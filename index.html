@@ -1,118 +1,547 @@
 <!doctype html>
 <html lang="ta">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>NEW FASHION TAILORING INDUSTRY</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <style>
-    *{box-sizing:border-box}
-    body{margin:0;font-family:Arial,sans-serif;background:#f6f1ea;color:#292329}
-    .wrap{max-width:720px;margin:auto;padding:28px 18px}
-    .card{background:#fff;border:1px solid #ddd3cb;border-radius:28px;padding:34px 28px;box-shadow:0 8px 30px #00000010}
-    h1{margin:0;font-size:42px;line-height:1.05}
-    h2{margin:8px 0 0;color:#d9ad51;font-size:42px;line-height:1.05}
-    .sub{font-size:22px;color:#766e6e;margin:26px 0}
-    label{display:block;font-weight:700;font-size:18px;margin:18px 0 8px}
-    input{width:100%;padding:18px;border:1px solid #d5cdc7;border-radius:16px;font-size:18px}
-    button{width:100%;margin-top:22px;padding:18px;border:0;border-radius:16px;background:#a83f61;color:#fff;font-size:20px;font-weight:700}
-    #msg{margin-top:18px;font-size:17px;line-height:1.45}
-    .hidden{display:none}
-    .ok{color:#16723b}.err{color:#b3261e}
-    .dash{margin-top:24px}
-    .box{background:#fff;border:1px solid #ddd3cb;border-radius:20px;padding:22px;margin-top:16px}
-    .logout{background:#555}
-  </style>
-</head>
-<body>
-<div class="wrap">
-  <div class="card" id="loginCard">
-    <h1>NEW FASHION</h1>
-    <h2>TAILORING INDUSTRY</h2>
-    <div class="sub">Mobile Tailoring Software</div>
+    <head>
+          <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width,initial-scale=1">
+              <title>NEW FASHION TAILORING INDUSTRY</title>
 
-    <label for="email">Email</label>
-    <input id="email" type="email" autocomplete="email" placeholder="உங்கள் email">
+                <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-    <label for="password">Password</label>
-    <input id="password" type="password" autocomplete="current-password" placeholder="Password">
+                  <style>
+                        *{box-sizing:border-box}
 
-    <button id="loginBtn">🔐 LOGIN</button>
-    <div id="msg"></div>
-  </div>
+                            body{
+                                      margin:0;
+                                            font-family:Arial,sans-serif;
+                                                  background:#f6f1ea;
+                                                        color:#292329
+                            }
 
-  <div class="card hidden" id="dashboard">
-    <h1>NEW FASHION</h1>
-    <h2>TAILORING INDUSTRY</h2>
-    <div class="sub">Dashboard</div>
-    <div class="box">
-      <strong>Login successful ✅</strong>
-      <p id="userEmail"></p>
-      <p>Supabase Authentication connected successfully.</p>
-    </div>
-    <button class="logout" id="logoutBtn">LOGOUT</button>
-  </div>
-</div>
+                                .wrap{
+                                          max-width:720px;
+                                                margin:auto;
+                                                      padding:28px 18px
+                                }
 
-<script>
-const SUPABASE_URL = "https://yjkyflusegxaqfvpeklb.supabase.co";
-const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_-NK1gubUvsc47KKDV8DNKQ_I5pbx-sR";
+                                    .card{
+                                              background:#fff;
+                                                    border:1px solid #ddd3cb;
+                                                          border-radius:28px;
+                                                                padding:34px 28px;
+                                                                      box-shadow:0 8px 30px #00000010
+                                    }
 
-const { createClient } = supabase;
-const db = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+                                        h1{
+                                                  margin:0;
+                                                        font-size:42px;
+                                                              line-height:1.05
+                                        }
 
-const loginCard = document.getElementById("loginCard");
-const dashboard = document.getElementById("dashboard");
-const msg = document.getElementById("msg");
-const email = document.getElementById("email");
-const password = document.getElementById("password");
+                                            h2{
+                                                      margin:8px 0 0;
+                                                            color:#d9ad51;
+                                                                  font-size:42px;
+                                                                        line-height:1.05
+                                            }
 
-function showError(text){
-  msg.className="err";
-  msg.textContent=text;
-}
-function showDashboard(user){
-  loginCard.classList.add("hidden");
-  dashboard.classList.remove("hidden");
-  document.getElementById("userEmail").textContent = user?.email ? "Email: " + user.email : "";
-}
-async function checkSession(){
-  const {data, error} = await db.auth.getSession();
-  if(error){ showError("Supabase connection error: " + error.message); return; }
-  if(data.session) showDashboard(data.session.user);
-}
+                                                .sub{
+                                                          font-size:22px;
+                                                                color:#766e6e;
+                                                                      margin:26px 0
+                                                }
 
-document.getElementById("loginBtn").addEventListener("click", async ()=>{
-  const e=email.value.trim();
-  const p=password.value;
-  if(!e || !p){ showError("Email மற்றும் Password இரண்டையும் உள்ளிடுங்கள்."); return; }
+                                                    label{
+                                                              display:block;
+                                                                    font-weight:700;
+                                                                          font-size:18px;
+                                                                                margin:18px 0 8px
+                                                    }
 
-  msg.className="";
-  msg.textContent="Login ஆகிறது...";
+                                                        input{
+                                                                  width:100%;
+                                                                        padding:18px;
+                                                                              border:1px solid #d5cdc7;
+                                                                                    border-radius:16px;
+                                                                                          font-size:18px
+                                                        }
 
-  const {data, error} = await db.auth.signInWithPassword({email:e,password:p});
-  if(error){
-    showError("Login முடியவில்லை: " + error.message);
-    return;
-  }
-  msg.className="ok";
-  msg.textContent="Login successful.";
-  showDashboard(data.user);
-});
+                                                            button{
+                                                                      width:100%;
+                                                                            margin-top:16px;
+                                                                                  padding:17px;
+                                                                                        border:0;
+                                                                                              border-radius:16px;
+                                                                                                    background:#a83f61;
+                                                                                                          color:#fff;
+                                                                                                                font-size:19px;
+                                                                                                                      font-weight:700
+                                                            }
 
-document.getElementById("logoutBtn").addEventListener("click", async ()=>{
-  await db.auth.signOut();
-  dashboard.classList.add("hidden");
-  loginCard.classList.remove("hidden");
-  password.value="";
-  msg.textContent="";
-});
+                                                                .hidden{display:none}
 
-db.auth.onAuthStateChange((_event, session)=>{
-  if(session) showDashboard(session.user);
-});
+                                                                    #msg{
+                                                                              margin-top:18px;
+                                                                                    font-size:17px;
+                                                                                          line-height:1.45
+                                                                    }
 
-checkSession();
-</script>
-</body>
-</html>
+                                                                        .ok{color:#16723b}
+                                                                            .err{color:#b3261e}
+
+                                                                                .grid{
+                                                                                          display:grid;
+                                                                                                grid-template-columns:1fr 1fr;
+                                                                                                      gap:14px;
+                                                                                                            margin-top:20px
+                                                                                }
+
+                                                                                    .stat{
+                                                                                              background:#fff;
+                                                                                                    border:1px solid #ddd3cb;
+                                                                                                          border-radius:20px;
+                                                                                                                padding:20px
+                                                                                    }
+
+                                                                                        .stat-title{
+                                                                                                  color:#766e6e;
+                                                                                                        font-size:17px
+                                                                                        }
+
+                                                                                            .stat-number{
+                                                                                                      font-size:34px;
+                                                                                                            font-weight:700;
+                                                                                                                  margin-top:8px;
+                                                                                                                        color:#a83f61
+                                                                                            }
+
+                                                                                                .section{
+                                                                                                          margin-top:24px
+                                                                                                }
+
+                                                                                                    .section h3{
+                                                                                                              margin-bottom:8px;
+                                                                                                                    font-size:22px
+                                                                                                    }
+
+                                                                                                        .logout{
+                                                                                                                  background:#555
+                                                                                                        }
+
+                                                                                                            .refresh{
+                                                                                                                      background:#d9ad51;
+                                                                                                                            color:#292329
+                                                                                                            }
+
+                                                                                                                @media(max-width:500px){
+                                                                                                                          h1,h2{font-size:34px}
+                                                                                                                                .grid{grid-template-columns:1fr 1fr}
+                                                                                                                }
+                                                                                                            </style>
+                                                                                                        </head>
+
+                                                                                                        <body>
+
+                                                                                                            <div class="wrap">
+
+                                                                                                                  <!-- LOGIN -->
+                                                                                                                  <div class="card" id="loginCard">
+                                                                                                                    
+                                                                                                                    <h1>NEW FASHION</h1>
+                                                                                                                    <h2>TAILORING INDUSTRY</h2>
+                                                                                                                
+                                                                                                                    <div class="sub">Mobile Tailoring Software</div>
+                                                                                                                
+                                                                                                                    <label for="email">Email</label>
+                                                                                                                    <input
+                                                                                                                      id="email"
+                                                                                                                          type="email"
+                                                                                                                              autocomplete="email"
+                                                                                                                                  placeholder="உங்கள் email"
+                                                                                                                                    >
+                                                                                                                                
+                                                                                                                                    <label for="password">Password</label>
+                                                                                                                                    <input
+                                                                                                                                      id="password"
+                                                                                                                                          type="password"
+                                                                                                                                              autocomplete="current-password"
+                                                                                                                                                  placeholder="Password"
+                                                                                                                                                    >
+                                                                                                                                                
+                                                                                                                                                    <button id="loginBtn">🔐 LOGIN</button>
+                                                                                                                                                
+                                                                                                                                                    <div id="msg"></div>
+                                                                                                                  </div>
+                                                                                                                
+                                                                                                                
+                                                                                                                  <!-- DASHBOARD -->
+                                                                                                                  <div class="card hidden" id="dashboard">
+                                                                                                                    
+                                                                                                                    <h1>NEW FASHION</h1>
+                                                                                                                    <h2>TAILORING INDUSTRY</h2>
+                                                                                                                
+                                                                                                                    <div class="sub">Dashboard</div>
+                                                                                                                
+                                                                                                                    <div class="section">
+                                                                                                                              <div class="box">
+                                                                                                                                        <strong>Login successful ✅</strong>
+                                                                                                                                            <p id="userEmail"></p>
+                                                                                                                                                <p>Supabase Authentication connected successfully.</p>
+                                                                                                                              </div>
+                                                                                                                            </div>
+                                                                                                                        
+                                                                                                                            <!-- COUNTS -->
+                                                                                                                            <div class="grid">
+                                                                                                                                
+                                                                                                                                  <div class="stat">
+                                                                                                                                            <div class="stat-title">Customers</div>
+                                                                                                                                                <div class="stat-number" id="customersCount">-</div>
+                                                                                                                                  </div>
+                                                                                                                                
+                                                                                                                                      <div class="stat">
+                                                                                                                                                <div class="stat-title">Orders</div>
+                                                                                                                                                    <div class="stat-number" id="ordersCount">-</div>
+                                                                                                                                      </div>
+                                                                                                                                    
+                                                                                                                                          <div class="stat">
+                                                                                                                                                    <div class="stat-title">Measurements</div>
+                                                                                                                                                        <div class="stat-number" id="measurementsCount">-</div>
+                                                                                                                                          </div>
+                                                                                                                                        
+                                                                                                                                              <div class="stat">
+                                                                                                                                                        <div class="stat-title">Payments</div>
+                                                                                                                                                            <div class="stat-number" id="paymentsCount">-</div>
+                                                                                                                                              </div>
+                                                                                                                                            
+                                                                                                                                                  <div class="stat">
+                                                                                                                                                            <div class="stat-title">Alterations</div>
+                                                                                                                                                                <div class="stat-number" id="alterationsCount">-</div>
+                                                                                                                                                  </div>
+                                                                                                                                                
+                                                                                                                                                      <div class="stat">
+                                                                                                                                                                <div class="stat-title">Designs</div>
+                                                                                                                                                                    <div class="stat-number" id="designsCount">-</div>
+                                                                                                                                                      </div>
+                                                                                                                                                    
+                                                                                                                                                    </div>
+                                                                                                                                                
+                                                                                                                                                    <button class="refresh" id="refreshBtn">
+                                                                                                                                                              🔄 Refresh Dashboard
+                                                                                                                                                    </button>
+                                                                                                                                                
+                                                                                                                                                    <button class="logout" id="logoutBtn">
+                                                                                                                                                              LOGOUT
+                                                                                                                                                    </button>
+                                                                                                                                                
+                                                                                                                                                    <div id="dashboardMsg"></div>
+                                                                                                                                                
+                                                                                                                                                </div>
+                                                                                                                                            
+                                                                                                                                            </div>
+                                                                                                                                        
+                                                                                                                                        
+                                                                                                                                        <script>
+                                                                                                                                            
+                                                                                                                                        const SUPABASE_URL =
+                                                                                                                                      "https://yjkyflusegxaqfvpeklb.supabase.co";
+                                                                                                                                    
+                                                                                                                                    const SUPABASE_PUBLISHABLE_KEY =
+                                                                                                                                  "sb_publishable_-NK1gubUvsc47KKDV8DNKQ_I5pbx-sR";
+                                                                                                                                
+                                                                                                                                const { createClient } = supabase;
+                                                                                                                            
+                                                                                                                            const db = createClient(
+                                                                                                                                  SUPABASE_URL,
+                                                                                                                                    SUPABASE_PUBLISHABLE_KEY
+                                                                                                                            );
+
+
+                                                                                                                            const loginCard =
+                                                                                                                              document.getElementById("loginCard");
+
+                                                                                                                              const dashboard =
+                                                                                                                                document.getElementById("dashboard");
+
+                                                                                                                                const msg =
+                                                                                                                                  document.getElementById("msg");
+
+                                                                                                                                  const email =
+                                                                                                                                    document.getElementById("email");
+
+                                                                                                                                    const password =
+                                                                                                                                      document.getElementById("password");
+
+
+                                                                                                                                      function showError(text){
+
+                                                                                                                                          msg.className = "err";
+                                                                                                                                            msg.textContent = text;
+
+                                                                                                                                      }
+
+
+                                                                                                                                      function showDashboard(user){
+
+                                                                                                                                          loginCard.classList.add("hidden");
+
+                                                                                                                                            dashboard.classList.remove("hidden");
+
+                                                                                                                                              document.getElementById("userEmail").textContent =
+                                                                                                                                                  user?.email
+                                                                                                                                                        ? "Email: " + user.email
+                                                                                                                                                              : "";
+
+                                                                                                                                                                loadDashboard();
+
+                                                                                                                                      }
+
+
+                                                                                                                                      async function getCount(tableName){
+
+                                                                                                                                          const { count, error } = await db
+                                                                                                                                              .from(tableName)
+                                                                                                                                                  .select("*", {
+                                                                                                                                                          count:"exact",
+                                                                                                                                                                head:true
+                                                                                                                                                  });
+
+                                                                                                                                                    if(error){
+
+                                                                                                                                                            console.log(
+                                                                                                                                                                      tableName,
+                                                                                                                                                                            error.message
+                                                                                                                                                            );
+
+                                                                                                                                                                return 0;
+                                                                                                                                                    }
+
+                                                                                                                                                      return count || 0;
+
+                                                                                                                                                }
+
+
+                                                                                                                                                async function loadDashboard(){
+
+                                                                                                                                                      const dashboardMsg =
+                                                                                                                                                          document.getElementById("dashboardMsg");
+
+                                                                                                                                                            dashboardMsg.className = "";
+                                                                                                                                                              dashboardMsg.textContent =
+                                                                                                                                                                  "Dashboard data loading...";
+
+                                                                                                                                                                    const results =
+                                                                                                                                                                        await Promise.all([
+                                                                                                                                                                              getCount("customers"),
+                                                                                                                                                                                    getCount("orders"),
+                                                                                                                                                                                          getCount("measurements"),
+                                                                                                                                                                                                getCount("payments"),
+                                                                                                                                                                                                      getCount("alterations"),
+                                                                                                                                                                                                            getCount("designs")
+                                                                                                                                                                                                                ]);
+
+                                                                                                                                                                                                                  document.getElementById("customersCount")
+                                                                                                                                                                                                                      .textContent = results[0];
+
+                                                                                                                                                                                                                        document.getElementById("ordersCount")
+                                                                                                                                                                                                                            .textContent = results[1];
+
+                                                                                                                                                                                                                              document.getElementById("measurementsCount")
+                                                                                                                                                                                                                                  .textContent = results[2];
+
+                                                                                                                                                                                                                                    document.getElementById("paymentsCount")
+                                                                                                                                                                                                                                        .textContent = results[3];
+
+                                                                                                                                                                                                                                          document.getElementById("alterationsCount")
+                                                                                                                                                                                                                                              .textContent = results[4];
+
+                                                                                                                                                                                                                                                document.getElementById("designsCount")
+                                                                                                                                                                                                                                                    .textContent = results[5];
+
+                                                                                                                                                                                                                                                      dashboardMsg.className = "ok";
+
+                                                                                                                                                                                                                                                        dashboardMsg.textContent =
+                                                                                                                                                                                                                                                            "Dashboard updated successfully ✅";
+
+                                                                                                                                                }
+
+
+                                                                                                                                                async function checkSession(){
+
+                                                                                                                                                      const { data, error } =
+                                                                                                                                                          await db.auth.getSession();
+
+                                                                                                                                                            if(error){
+
+                                                                                                                                                                    showError(
+                                                                                                                                                                              "Supabase connection error: "
+                                                                                                                                                                                    + error.message
+                                                                                                                                                                    );
+
+                                                                                                                                                                        return;
+                                                                                                                                                            }
+
+                                                                                                                                                              if(data.session){
+
+                                                                                                                                                                    showDashboard(
+                                                                                                                                                                              data.session.user
+                                                                                                                                                                    );
+
+                                                                                                                                                              }
+
+                                                                                                                                                            }
+
+
+                                                                                                                                                            document
+                                                                                                                                                              .getElementById("loginBtn")
+                                                                                                                                                                .addEventListener(
+                                                                                                                                                                        "click",
+                                                                                                                                                                            async ()=>{
+
+                                                                                                                                                                                      const e =
+                                                                                                                                                                                              email.value.trim();
+
+                                                                                                                                                                                                    const p =
+                                                                                                                                                                                                            password.value;
+
+                                                                                                                                                                                                                  if(!e || !p){
+
+                                                                                                                                                                                                                            showError(
+                                                                                                                                                                                                                                          "Email மற்றும் Password இரண்டையும் உள்ளிடுங்கள்."
+                                                                                                                                                                                                                            );
+
+                                                                                                                                                                                                                                    return;
+                                                                                                                                                                                                                  }
+
+                                                                                                                                                                                                                        msg.className = "";
+
+                                                                                                                                                                                                                              msg.textContent =
+                                                                                                                                                                                                                                      "Login ஆகிறது...";
+
+                                                                                                                                                                                                                                            const { data, error } =
+                                                                                                                                                                                                                                                    await db.auth.signInWithPassword({
+                                                                                                                                                                                                                                                                  email:e,
+                                                                                                                                                                                                                                                                            password:p
+                                                                                                                                                                                                                                                    });
+
+                                                                                                                                                                                                                                                          if(error){
+
+                                                                                                                                                                                                                                                                    showError(
+                                                                                                                                                                                                                                                                                  "Login முடியவில்லை: "
+                                                                                                                                                                                                                                                                                            + error.message
+                                                                                                                                                                                                                                                                    );
+
+                                                                                                                                                                                                                                                                            return;
+                                                                                                                                                                                                                                                          }
+
+                                                                                                                                                                                                                                                                msg.className = "ok";
+
+                                                                                                                                                                                                                                                                      msg.textContent =
+                                                                                                                                                                                                                                                                              "Login successful.";
+
+                                                                                                                                                                                                                                                                                    showDashboard(
+                                                                                                                                                                                                                                                                                                data.user
+                                                                                                                                                                                                                                                                                    );
+
+                                                                                                                                                                                                                                                        }
+                                                                                                                                                                );
+
+
+                                                                                                                                                                document
+                                                                                                                                                                  .getElementById("refreshBtn")
+                                                                                                                                                                    .addEventListener(
+                                                                                                                                                                            "click",
+                                                                                                                                                                                loadDashboard
+                                                                                                                                                                    );
+
+
+                                                                                                                                                                    document
+                                                                                                                                                                      .getElementById("logoutBtn")
+                                                                                                                                                                        .addEventListener(
+                                                                                                                                                                                "click",
+                                                                                                                                                                                    async ()=>{
+
+                                                                                                                                                                                              await db.auth.signOut();
+
+                                                                                                                                                                                                    dashboard.classList.add(
+                                                                                                                                                                                                                "hidden"
+                                                                                                                                                                                                    );
+
+                                                                                                                                                                                                          loginCard.classList.remove(
+                                                                                                                                                                                                                    "hidden"
+                                                                                                                                                                                                          );
+
+                                                                                                                                                                                                                password.value = "";
+
+                                                                                                                                                                                                                      msg.textContent = "";
+
+                                                                                                                                                                                    }
+                                                                                                                                                                        );
+
+
+                                                                                                                                                                        db.auth.onAuthStateChange(
+                                                                                                                                                                              (_event, session)=>{
+                                                                                                                                                                                    if(session){
+
+                                                                                                                                                                                              showDashboard(
+                                                                                                                                                                                                        session.user
+                                                                                                                                                                                              );
+
+                                                                                                                                                                                    }
+
+                                                                                                                                                                                }
+                                                                                                                                                                        );
+
+
+                                                                                                                                                                        checkSession();
+
+                                                                                                                                                                            </script>
+
+                                                                                                                                                                        </body>
+                                                                                                                                                                        </html>
+                                                                                                                                                                                              )
+                                                                                                                                                                                    }
+                                                                                                                                                                              }
+                                                                                                                                                                        )
+                                                                                                                                                                                                          )
+                                                                                                                                                                                                    )
+                                                                                                                                                                                    }
+                                                                                                                                                                        )
+                                                                                                                                                                    )
+                                                                                                                                                                                                                                                                                    )
+                                                                                                                                                                                                                                                                    )
+                                                                                                                                                                                                                                                          }
+                                                                                                                                                                                                                                                    })
+                                                                                                                                                                                                                            )
+                                                                                                                                                                                                                  }
+                                                                                                                                                                            }
+                                                                                                                                                                )
+                                                                                                                                                                    )
+                                                                                                                                                              }
+                                                                                                                                                                    )
+                                                                                                                                                            }
+                                                                                                                                                }
+                                                                                                                                                }
+                                                                                                                                                            )
+                                                                                                                                                    }
+                                                                                                                                                  })
+                                                                                                                                      }
+                                                                                                                                      }
+                                                                                                                                      }
+                                                                                                                            )-->-->-->
+                                                                                                                }
+                                                                                                            }
+                                                                                                        }
+                                                                                                    }
+                                                                                                }
+                                                                                            }
+                                                                                    }
+                                                                                }
+                                                                    }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
