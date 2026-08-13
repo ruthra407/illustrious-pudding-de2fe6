@@ -60,7 +60,7 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}.hidden{display:
 .customerReminder{border-radius:12px;padding:10px;background:#fff7df}.customerReminder.late{background:#fff0ee}.customerReminder.ok{background:#e8f6ef}
 .customerOrderLine{padding:8px 0;border-bottom:1px dashed var(--line)}.customerOrderLine:last-child{border-bottom:0}
 .customerSearchBox{margin-bottom:12px}
-.reminderSettings{display:flex;gap:8px;align-items:end;flex-wrap:wrap}.reminderSettings .field{min-width:150px}
+.reminderSettings{display:flex;gap:8px;align-items:end;flex-wrap:wrap}.reminderSettings .field{min-width:150px}.reminderTimesGrid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;margin-top:6px}.reminderTimeChip{background:#fff7df;border:1px solid #f0d58a;border-radius:9px;padding:7px 8px;text-align:center;font-weight:750;font-size:12px}@media(max-width:560px){.reminderTimesGrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:900px){.customerCards{grid-template-columns:1fr}}
 @media(max-width:560px){.customerStats{grid-template-columns:repeat(2,1fr)}.customerDesignGrid{grid-template-columns:repeat(3,1fr)}}
 
@@ -526,7 +526,7 @@ function customerCard(id){
  const ordersHtml=st.os.slice().sort((a,b)=>String(b.created_at||"").localeCompare(String(a.created_at||""))).slice(0,8).map(o=>{
   const d=dueInfo(o),rem=d?(d.kind==="late"?`<span class="pill bad">${d.days} நாள் late</span>`:d.kind==="today"?`<span class="pill warn">இன்று</span>`:`<span class="pill">${d.days} நாள்</span>`):"";
   const lining=o.lining_cloth_source?`<br><span class="mini">🧵 Lining cloth: ${o.lining_cloth_source==="customer"?"Customer கொடுத்தது":"நாம் வாங்கியது"} · ${Number(o.lining_cloth_qty||0)}</span>`:"";
-  return `<div class="customerOrderLine"><b>${esc(o.order_no)}</b> · ${esc(o.garment_type)} · ${blouseSplitText(o)} ${rem}<br><span class="mini">துணி: ${dateText(o.cloth_received_date)} · Delivery: ${dateText(o.delivery_date)} · ${esc(rateLabel(String(o.rate_type||"normal")))} · Rate: ${money(o.unit_price)} · Balance: ${money(o.balance_amount)}</span>${lining}${o.notes?`<br><span class="mini">📝 ${esc(o.notes)}</span>`:""}<div class="orderActions"><button class="btn success" onclick="markDelivered('${o.id}')">Delivered</button><button class="btn secondary" onclick="openModal('order','${o.id}')">Edit</button></div></div>`;
+  return `<div class="customerOrderLine"><b>${esc(o.order_no)}</b> · ${esc(o.garment_type)} · ${blouseSplitText(o)} ${rem}<br><span class="mini">துணி: ${dateText(o.cloth_received_date)} · Delivery: ${dateText(o.delivery_date)} · ${esc(rateLabel(String(o.rate_type||"normal")))} · Rate: ${money(o.unit_price)} · Balance: ${money(o.balance_amount)}</span>${lining}${cleanOrderNotes(o.notes)?`<br><span class="mini">📝 ${esc(cleanOrderNotes(o.notes))}</span>`:""}<div class="orderActions"><button class="btn success" onclick="markDelivered('${o.id}')">Delivered</button><button class="btn secondary" onclick="openModal('order','${o.id}')">Edit</button></div></div>`;
  }).join("")||`<div class="mini">இன்னும் order இல்லை.</div>`;
  return `<article class="customerCard" id="customer-card-${id}">
  <div class="customerCardHead"><div class="customerAvatar">👤</div><div style="flex:1"><h3>${esc(c.name)}</h3><p>📞 ${esc(c.phone||"Phone இல்லை")} · 📍 ${esc(village||"ஊர் இல்லை")}</p><p>🏠 ${esc(address)}</p><p>${esc(c.notes||"")}</p></div><button class="btn secondary" onclick="openModal('customer','${id}')">Edit</button></div>
@@ -546,7 +546,7 @@ function customerCard(id){
  <div class="field"><label>மொத்தம்</label><div id="qo-total-${id}" class="autoTotal">₹0.00</div></div><div class="field full"><label>Notes</label><textarea id="qo-notes-${id}" class="input" placeholder="தேவைப்பட்டால் குறிப்பு"></textarea></div>
  </div><div class="customerActions" style="margin-top:10px"><button class="btn primary" onclick="saveQuickOrder('${id}')">💾 Save Order</button><button class="btn secondary" onclick="toggleQuickOrder('${id}')">Close</button></div></div></div>
  <div class="customerSection"><h4>💵 Blouse Rate List</h4><div class="rateGrid"><div class="rateBox"><label>Normal blouse</label><input id="rate-normal-${id}" type="number" min="0" step="1" value="${getRates().normal}"></div><div class="rateBox"><label>Lining blouse</label><input id="rate-lining-${id}" type="number" min="0" step="1" value="${getRates().lining}"></div><div class="rateBox"><label>Design blouse</label><input id="rate-design-${id}" type="number" min="0" step="1" value="${getRates().design}"></div></div><div class="customerActions" style="margin-top:8px"><button class="btn secondary" onclick="saveRates('${id}')">💾 Rate list Save</button></div></div>
- <div class="customerSection"><h4>⏰ Delivery Reminder</h4>${customerReminderHTML(st.os)}<div class="reminderSettings" style="margin-top:8px"><div class="field"><label class="mini">Reminder time</label><input class="input" type="time" id="remtime-${id}" value="${localStorage.getItem("nf_reminder_time")||"09:00"}"></div><button class="btn warning" onclick="saveReminderTime('${id}')">🔔 Daily Reminder</button></div></div>
+ <div class="customerSection"><h4>⏰ Delivery Reminder</h4>${customerReminderHTML(st.os)}<div class="reminderSettings" style="margin-top:8px"><div class="field" style="min-width:100%"><label class="mini">ஒரு நாளில் 10 reminder நேரங்கள்</label><div class="reminderTimesGrid">${REMINDER_TIMES.map(t=>`<span class="reminderTimeChip">🔔 ${t}</span>`).join("")}</div></div><button class="btn warning" onclick="enableDailyNotifications()">🔔 10 Daily Notifications ON</button></div><div class="hint">Notification permission கொடுத்தால் இந்த 10 நேரங்களில் phone notification வரும். App/browser active-ஆ இருக்கும்போது இந்த HTML version வேலை செய்யும்.</div></div>
  <div class="customerSection"><h4>🎨 இந்த customer-ன் Blouse Design</h4><div class="photoActions"><label class="btn secondary">🖼️ Gallery<input type="file" accept="image/*" style="display:none" onchange="uploadCustomerDesign('${id}',this.files[0])"></label><label class="btn secondary">📷 Camera<input type="file" accept="image/*" capture="environment" style="display:none" onchange="uploadCustomerDesign('${id}',this.files[0])"></label><button class="btn secondary" onclick="searchDesignForCustomer('${id}')">🔎 Google Images Search</button></div><div class="hint">Gallery-ல் இருந்து photo தேர்வு செய்யலாம்; Camera மூலம் நேரடியாக photo எடுக்கலாம்.</div><div id="customer-design-search-${id}" class="hidden" style="margin-bottom:8px"><div class="toolbar"><input class="input search" id="customer-design-q-${id}" placeholder="blouse design search"><button class="btn primary" onclick="runCustomerDesignSearch('${id}')">Search</button></div><div id="customer-design-results-${id}" class="customerDesignGrid"></div></div><div class="customerDesignGrid">${designHtml}</div></div>
  <div class="customerSection"><h4>🧵 Recent Orders</h4>${ordersHtml}</div>
  </article>`;
@@ -868,16 +868,16 @@ function runPhoneReminders(){
  if(!REMINDER_TIMES.includes(slot))return;
  const today=localDate(),key=`nf_reminder_slot_${today}_${slot}`;
  if(localStorage.getItem(key)==="1")return;
- const body=`🚨 Late: ${late.length} | 🔔 Today: ${dueToday.length} | ⏰ Next 5 days: ${dueSoon.length}`;
+ const people=[...late,...dueToday,...dueSoon].slice(0,5).map(o=>{const c=state.customers.find(x=>x.id===o.customer_id)||{};const d=dueInfo(o);const tag=d?.kind==="late"?`${d.days} நாள் late`:d?.kind==="today"?"இன்று":`${d?.days??"—"} நாள் உள்ளது`;return `👤 ${c.name||"Customer"} · 📞 ${c.phone||"Phone இல்லை"} · ${tag}`;}).join(" | "); const extra=(late.length+dueToday.length+dueSoon.length)>5?` +${late.length+dueToday.length+dueSoon.length-5} பேர்`:""; const body=`🚨 Late ${late.length} · 🔔 Today ${dueToday.length} · ⏰ Next 5 days ${dueSoon.length}${extra}\n${people}`;
  try{new Notification("New Fashion Tailoring — Daily Reminder",{body,icon:""});localStorage.setItem(key,"1")}catch{}
 }
 function startReminderScheduler(){
  if(reminderTimer)clearInterval(reminderTimer);
  if(localStorage.getItem("nf_notification_enabled")!=="1")return;
  runPhoneReminders();
- reminderTimer=setInterval(runPhoneReminders,30000);
+ reminderTimer=setInterval(runPhoneReminders,20000);
 }
-function enableDailyNotifications(){requestNotificationPermission().then(p=>{if(p==="granted"){localStorage.setItem("nf_notification_enabled","1");startReminderScheduler();toast("ஒரு நாளில் 10 Daily Reminder நேரங்கள் இயக்கப்பட்டன.")}else toast("Notification permission கிடைக்கவில்லை.",true)})}
+function enableDailyNotifications(){requestNotificationPermission().then(p=>{if(p==="granted"){localStorage.setItem("nf_notification_enabled","1");startReminderScheduler();toast("ஒரு நாளில் 10 Daily Reminder நேரங்கள் ON. Phone notification permission வழங்கப்பட்டுள்ளது.")}else toast("Notification permission கிடைக்கவில்லை.",true)})}
 updateBackButton();
 supabaseClient.auth.onAuthStateChange((_event,session)=>{if(session?.user){showApp(session.user);setTimeout(()=>loadAll(true),0)}else showLogin()});
 (async()=>{const {data}=await supabaseClient.auth.getSession();if(data?.session?.user){showApp(data.session.user);await loadAll(true)}else showLogin()})();
