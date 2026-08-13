@@ -99,6 +99,8 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}.hidden{display:
 .calcBar input{flex:1;min-width:180px;border:1px solid #d5cec8;border-radius:9px;padding:9px}
 .calcKey{min-width:42px;height:40px;border:1px solid #d5cec8;border-radius:9px;background:#fff;font-weight:900}
 .designSearchNote{background:#fff7df;border:1px solid #efd89a;padding:10px;border-radius:11px;margin-top:10px;line-height:1.45}
+.orderBlouseQty{font-weight:800}.designResult .actions{margin-top:8px}.designResult .actions .btn{min-width:0}
+
 .customerOrderLine .orderActions{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
 @media(max-width:560px){.rateGrid{grid-template-columns:1fr}.calcBar input{min-width:140px}}
 
@@ -382,20 +384,46 @@ function customerPayments(id){
 const ids=new Set(customerOrders(id).map(o=>o.id));
 return state.payments.filter(p=>ids.has(p.order_id));
 }
+function blouseSplit(o){
+ const qty=Math.max(0,Number(o?.quantity||0));
+ const fallbackType=String(o?.rate_type||"normal").toLowerCase();
+ const fallback={normal:0,lining:0,design:0};
+ if(["normal","lining","design"].includes(fallbackType))fallback[fallbackType]=qty;
+ const m=String(o?.notes||"").match(/BLOUSE_SPLIT:(\\{[^}]+\\})/);
+ if(!m)return fallback;
+ try{
+  const x=JSON.parse(m[1]);
+  return {normal:Math.max(0,Number(x.normal||0)),lining:Math.max(0,Number(x.lining||0)),design:Math.max(0,Number(x.design||0))};
+ }catch{return fallback}
+}
+function blouseSplitText(o){
+ const s=blouseSplit(o),parts=[];
+ if(s.normal)parts.push(`Normal ${s.normal}`);
+ if(s.lining)parts.push(`Lining ${s.lining}`);
+ if(s.design)parts.push(`Design ${s.design}`);
+ return parts.length?parts.join(" · "):`${Number(o?.quantity||0)} pcs`;
+}
+function cleanOrderNotes(v){return String(v||"").replace(/BLOUSE_SPLIT:\{[^}]+\}\s*\|?\s*/,"").replace(/BLOUSE_RATES:\{[^}]+\}\s*\|?\s*/,"").trim()}
+function makeBlouseSplitNote(s,rates,userNotes=""){
+ const marker=`BLOUSE_SPLIT:${JSON.stringify({normal:Number(s.normal||0),lining:Number(s.lining||0),design:Number(s.design||0)})}`;
+ const rateMarker=`BLOUSE_RATES:${JSON.stringify({normal:Number(rates.normal||0),lining:Number(rates.lining||0),design:Number(rates.design||0)})}`;
+ return [marker,rateMarker,cleanOrderNotes(userNotes)].filter(Boolean).join(" | ");
+}
 function customerStats(id){
- const os=customerOrders(id),given=os.reduce((a,o)=>a+Number(o.quantity||0),0);
- const delivered=os.filter(o=>String(o.status)==="Delivered").reduce((a,o)=>a+Number(o.quantity||0),0);
- const pending=os.filter(o=>!isFinished(o)).reduce((a,o)=>a+Number(o.quantity||0),0);
+ const os=customerOrders(id);
+ const splits=os.map(blouseSplit);
+ const given=splits.reduce((a,s)=>a+s.normal+s.lining+s.design,0);
+ const delivered=os.map((o,i)=>String(o.status)==="Delivered"?splits[i].normal+splits[i].lining+splits[i].design:0).reduce((a,n)=>a+n,0);
+ const pending=os.map((o,i)=>!isFinished(o)?splits[i].normal+splits[i].lining+splits[i].design:0).reduce((a,n)=>a+n,0);
  const paid=customerPayments(id).reduce((a,p)=>a+Number(p.amount||0),0);
  const total=os.reduce((a,o)=>a+orderTotal(o),0);
  const balance=Math.max(0,os.reduce((a,o)=>a+Number(o.balance_amount||0),0));
  const advance=os.reduce((a,o)=>a+Number(o.advance_amount||0),0);
- const typeOf=o=>{const t=String(o.rate_type||"").toLowerCase();if(t)return t;const n=String(o.notes||"").toLowerCase();return n.includes("lining blouse")?"lining":n.includes("design blouse")?"design":"normal"};
- const normal=os.filter(o=>typeOf(o)==="normal").reduce((a,o)=>a+Number(o.quantity||0),0);
- const lining=os.filter(o=>typeOf(o)==="lining").reduce((a,o)=>a+Number(o.quantity||0),0);
- const design=os.filter(o=>typeOf(o)==="design").reduce((a,o)=>a+Number(o.quantity||0),0);
- const liningCustomer=os.filter(o=>String(o.lining_cloth_source||"").toLowerCase()==="customer").reduce((a,o)=>a+Number(o.lining_cloth_qty||0),0);
- const liningShop=os.filter(o=>["shop","tailor"].includes(String(o.lining_cloth_source||"").toLowerCase())).reduce((a,o)=>a+Number(o.lining_cloth_qty||0),0);
+ const normal=splits.reduce((a,s)=>a+s.normal,0);
+ const lining=splits.reduce((a,s)=>a+s.lining,0);
+ const design=splits.reduce((a,s)=>a+s.design,0);
+ const liningCustomer=os.reduce((a,o)=>a+(String(o.lining_cloth_source||"").toLowerCase()==="customer"?Number(o.lining_cloth_qty||0):0),0);
+ const liningShop=os.reduce((a,o)=>a+((["shop","tailor"].includes(String(o.lining_cloth_source||"").toLowerCase()))?Number(o.lining_cloth_qty||0):0),0);
  return {os,given,delivered,pending,paid,total,balance,advance,normal,lining,design,liningCustomer,liningShop};
 }
 function customerDesigns(id){
@@ -434,27 +462,50 @@ q?.addEventListener("input",recalc);p?.addEventListener("input",recalc);recalc()
 }
 }
 function makeOrderNo(){return "ORD-"+Date.now().toString().slice(-10)}
+async function updateQuickOrderCalc(id){
+ const s={
+  normal:Math.max(0,Number($("qo-normal-"+id)?.value||0)),
+  lining:Math.max(0,Number($("qo-lining-"+id)?.value||0)),
+  design:Math.max(0,Number($("qo-design-"+id)?.value||0))
+ };
+ const rates=getRates();
+ const totalQty=s.normal+s.lining+s.design;
+ const total=s.normal*rates.normal+s.lining*rates.lining+s.design*rates.design;
+ const q=$("qo-qty-"+id),t=$("qo-total-"+id);
+ if(q)q.value=totalQty;
+ if(t)t.textContent=money(total);
+}
 async function saveQuickOrder(id){
-const garment=$("qo-garment-"+id)?.value.trim()||"Blouse";
-const cloth=$("qo-cloth-"+id)?.value||null;
-const delivery=$("qo-delivery-"+id)?.value||null;
-const qty=Math.max(1,Number($("qo-qty-"+id)?.value||1));
-const price=Math.max(0,Number($("qo-price-"+id)?.value||0));
-const advance=Math.max(0,Number($("qo-advance-"+id)?.value||0));
-const status=$("qo-status-"+id)?.value||"Pending";
-const rateType=$("qo-rate-type-"+id)?.value||"normal";
-const liningSource=$("qo-lining-"+id)?.value||"";
+ const garment=$("qo-garment-"+id)?.value.trim()||"Blouse";
+ const cloth=$("qo-cloth-"+id)?.value||null;
+ const delivery=$("qo-delivery-"+id)?.value||null;
+ const s={
+  normal:Math.max(0,Number($("qo-normal-"+id)?.value||0)),
+  lining:Math.max(0,Number($("qo-lining-"+id)?.value||0)),
+  design:Math.max(0,Number($("qo-design-"+id)?.value||0))
+ };
+ const qty=s.normal+s.lining+s.design;
+ const rates=getRates();
+ const total=s.normal*rates.normal+s.lining*rates.lining+s.design*rates.design;
+ const advance=Math.max(0,Number($("qo-advance-"+id)?.value||0));
+ const status=$("qo-status-"+id)?.value||"Pending";
+ const liningSource=$("qo-lining-source-"+id)?.value||"";
  const liningQty=Math.max(0,Number($("qo-lining-qty-"+id)?.value||0));
-if(!delivery){toast("Delivery Date தேர்வு செய்யுங்கள்.",true);return}
-const total=qty*price,balance=Math.max(0,total-advance);
-const noteParts=[`Rate: ${rateLabel(rateType)}`];
-if(liningSource)noteParts.push(`Lining cloth: ${liningSource==="customer"?"Customer கொடுத்தது":"நாம் எடுத்தது"}`);
-const payload={customer_id:id,order_no:makeOrderNo(),garment_type:garment,order_date:localDate(),cloth_received_date:cloth,delivery_date:delivery,quantity:qty,unit_price:price,total_amount:total,advance_amount:advance,balance_amount:balance,status,rate_type:rateType,lining_cloth_source:liningSource||null,lining_cloth_qty:liningQty,notes:noteParts.join(" | ")};
-try{
-const {error}=await supabaseClient.from("orders").insert(payload);
-if(error)throw error;
-await loadAll(true);toast("இந்த customer-க்கு New Order சேமிக்கப்பட்டது.");
-}catch(err){toast("Order save failed: "+err.message,true)}
+ if(!delivery){toast("Delivery Date தேர்வு செய்யுங்கள்.",true);return}
+ if(qty<=0){toast("Normal / Lining / Design blouse-ல் குறைந்தது 1 blouse எண்ணிக்கை கொடுக்க வேண்டும்.",true);return}
+ const balance=Math.max(0,total-advance);
+ const activeTypes=["normal","lining","design"].filter(k=>s[k]>0);
+ const rateType=activeTypes.length===1?activeTypes[0]:"mixed";
+ const avgPrice=qty?total/qty:0;
+ const userNotes=$("qo-notes-"+id)?.value||"";
+ const notes=makeBlouseSplitNote(s,rates,userNotes);
+ if(liningSource)notes+=` | Lining cloth: ${liningSource==="customer"?"Customer கொடுத்தது":"நாம் வாங்கியது"}`;
+ const payload={customer_id:id,order_no:makeOrderNo(),garment_type:garment,order_date:localDate(),cloth_received_date:cloth,delivery_date:delivery,quantity:qty,unit_price:avgPrice,total_amount:total,advance_amount:advance,balance_amount:balance,status,rate_type:rateType,lining_cloth_source:liningSource||null,lining_cloth_qty:liningQty,notes};
+ try{
+  const {error}=await supabaseClient.from("orders").insert(payload);
+  if(error)throw error;
+  await loadAll(true);toast("இந்த customer-க்கு New Order சேமிக்கப்பட்டது.");
+ }catch(err){toast("Order save failed: "+err.message,true)}
 }
 function customerReminderHTML(os){
 const active=os.filter(o=>!isFinished(o)&&o.delivery_date).sort((a,b)=>String(a.delivery_date).localeCompare(String(b.delivery_date)));
@@ -475,7 +526,7 @@ function customerCard(id){
  const ordersHtml=st.os.slice().sort((a,b)=>String(b.created_at||"").localeCompare(String(a.created_at||""))).slice(0,8).map(o=>{
   const d=dueInfo(o),rem=d?(d.kind==="late"?`<span class="pill bad">${d.days} நாள் late</span>`:d.kind==="today"?`<span class="pill warn">இன்று</span>`:`<span class="pill">${d.days} நாள்</span>`):"";
   const lining=o.lining_cloth_source?`<br><span class="mini">🧵 Lining cloth: ${o.lining_cloth_source==="customer"?"Customer கொடுத்தது":"நாம் வாங்கியது"} · ${Number(o.lining_cloth_qty||0)}</span>`:"";
-  return `<div class="customerOrderLine"><b>${esc(o.order_no)}</b> · ${esc(o.garment_type)} · ${Number(o.quantity||0)} pcs ${rem}<br><span class="mini">துணி: ${dateText(o.cloth_received_date)} · Delivery: ${dateText(o.delivery_date)} · ${esc(rateLabel(String(o.rate_type||"normal")))} · Rate: ${money(o.unit_price)} · Balance: ${money(o.balance_amount)}</span>${lining}${o.notes?`<br><span class="mini">📝 ${esc(o.notes)}</span>`:""}<div class="orderActions"><button class="btn success" onclick="markDelivered('${o.id}')">Delivered</button><button class="btn secondary" onclick="openModal('order','${o.id}')">Edit</button></div></div>`;
+  return `<div class="customerOrderLine"><b>${esc(o.order_no)}</b> · ${esc(o.garment_type)} · ${blouseSplitText(o)} ${rem}<br><span class="mini">துணி: ${dateText(o.cloth_received_date)} · Delivery: ${dateText(o.delivery_date)} · ${esc(rateLabel(String(o.rate_type||"normal")))} · Rate: ${money(o.unit_price)} · Balance: ${money(o.balance_amount)}</span>${lining}${o.notes?`<br><span class="mini">📝 ${esc(o.notes)}</span>`:""}<div class="orderActions"><button class="btn success" onclick="markDelivered('${o.id}')">Delivered</button><button class="btn secondary" onclick="openModal('order','${o.id}')">Edit</button></div></div>`;
  }).join("")||`<div class="mini">இன்னும் order இல்லை.</div>`;
  return `<article class="customerCard" id="customer-card-${id}">
  <div class="customerCardHead"><div class="customerAvatar">👤</div><div style="flex:1"><h3>${esc(c.name)}</h3><p>📞 ${esc(c.phone||"Phone இல்லை")} · 📍 ${esc(village||"ஊர் இல்லை")}</p><p>🏠 ${esc(address)}</p><p>${esc(c.notes||"")}</p></div><button class="btn secondary" onclick="openModal('customer','${id}')">Edit</button></div>
@@ -484,10 +535,15 @@ function customerCard(id){
  <div class="customerMoneyGrid"><div class="moneyStat"><b>${money(st.total)}</b><span>மொத்த order</span></div><div class="moneyStat"><b>${money(st.paid)}</b><span>Customer paid</span></div><div class="moneyStat"><b>${money(st.advance)}</b><span>Advance வாங்கியது</span></div><div class="moneyStat clickable" onclick="goView('payments')"><b>${money(st.balance)}</b><span>இன்னும் கொடுக்க வேண்டும்</span></div></div>
  <div class="customerSection"><h4>🧾 New Order — இந்த customer card-லேயே</h4><div class="customerActions"><button class="btn primary" onclick="toggleQuickOrder('${id}')">＋ New Order</button><button class="btn secondary" onclick="openCustomerMeasurement('${id}')">📏 Measurement</button><button class="btn success" onclick="openCustomerPayment('${id}')">💰 Payment</button></div>
  <div id="quick-order-${id}" class="hidden" style="margin-top:10px;background:#faf8f6;border:1px solid var(--line);border-radius:13px;padding:12px"><div class="formgrid">
- <div class="field"><label>Garment / Blouse</label><input id="qo-garment-${id}" class="input" value="Blouse"></div><div class="field"><label>துணி கொடுத்த தேதி</label><input id="qo-cloth-${id}" class="input" type="date" value="${localDate()}"></div><div class="field"><label>Delivery Date</label><input id="qo-delivery-${id}" class="input" type="date"></div><div class="field"><label>எத்தனை blouse</label><input id="qo-qty-${id}" class="input" type="number" min="1" step="1" value="1"></div>
- <div class="field"><label>Blouse type</label><select id="qo-rate-type-${id}" class="input" onchange="updateQuickRate('${id}')"><option value="normal">Normal blouse</option><option value="lining">Lining blouse</option><option value="design">Design blouse</option></select></div><div class="field"><label>ஒரு blouse விலை</label><input id="qo-price-${id}" class="input" type="number" min="0" step="0.01" value="${rateForType("normal")}"></div>
- <div class="field"><label>Lining cloth</label><select id="qo-lining-${id}" class="input"><option value="">தேவையில்லை</option><option value="customer">Customer கொடுத்தது</option><option value="shop">நாம் வாங்கியது</option></select></div><div class="field"><label>Lining cloth எத்தனை</label><input id="qo-lining-qty-${id}" class="input" type="number" min="0" step="1" value="0"></div>
- <div class="field"><label>Advance வாங்கியது</label><input id="qo-advance-${id}" class="input" type="number" min="0" step="0.01" value="0"></div><div class="field"><label>Status</label><select id="qo-status-${id}" class="input"><option>Pending</option><option>In Progress</option><option>Ready</option><option>Delivered</option></select></div><div class="field"><label>மொத்தம்</label><div id="qo-total-${id}" class="autoTotal">₹0.00</div></div>
+ <div class="field"><label>Garment / Blouse</label><input id="qo-garment-${id}" class="input" value="Blouse"></div><div class="field"><label>துணி கொடுத்த தேதி</label><input id="qo-cloth-${id}" class="input" type="date" value="${localDate()}"></div><div class="field"><label>Delivery Date</label><input id="qo-delivery-${id}" class="input" type="date"></div>
+ <div class="field full"><label>👗 Customer கொடுத்த blouse — வகை வாரியாக எண்ணிக்கை</label><div class="customerMoneyGrid" style="margin-top:7px">
+ <div class="moneyStat"><span>Normal blouse</span><input id="qo-normal-${id}" class="input" type="number" min="0" step="1" value="0" oninput="updateQuickOrderCalc('${id}')"></div>
+ <div class="moneyStat"><span>Lining blouse</span><input id="qo-lining-${id}" class="input" type="number" min="0" step="1" value="0" oninput="updateQuickOrderCalc('${id}')"></div>
+ <div class="moneyStat"><span>Design blouse</span><input id="qo-design-${id}" class="input" type="number" min="0" step="1" value="0" oninput="updateQuickOrderCalc('${id}')"></div>
+ <div class="moneyStat"><span>மொத்த blouse</span><input id="qo-qty-${id}" class="input" type="number" value="0" readonly></div></div></div>
+ <div class="field"><label>Lining cloth</label><select id="qo-lining-source-${id}" class="input"><option value="">தேவையில்லை</option><option value="customer">Customer கொடுத்தது</option><option value="shop">நாம் வாங்கியது</option></select></div><div class="field"><label>Lining cloth எத்தனை</label><input id="qo-lining-qty-${id}" class="input" type="number" min="0" step="1" value="0"></div>
+ <div class="field"><label>Advance வாங்கியது</label><input id="qo-advance-${id}" class="input" type="number" min="0" step="0.01" value="0"></div><div class="field"><label>Status</label><select id="qo-status-${id}" class="input"><option>Pending</option><option>In Progress</option><option>Ready</option><option>Delivered</option></select></div>
+ <div class="field"><label>மொத்தம்</label><div id="qo-total-${id}" class="autoTotal">₹0.00</div></div><div class="field full"><label>Notes</label><textarea id="qo-notes-${id}" class="input" placeholder="தேவைப்பட்டால் குறிப்பு"></textarea></div>
  </div><div class="customerActions" style="margin-top:10px"><button class="btn primary" onclick="saveQuickOrder('${id}')">💾 Save Order</button><button class="btn secondary" onclick="toggleQuickOrder('${id}')">Close</button></div></div></div>
  <div class="customerSection"><h4>💵 Blouse Rate List</h4><div class="rateGrid"><div class="rateBox"><label>Normal blouse</label><input id="rate-normal-${id}" type="number" min="0" step="1" value="${getRates().normal}"></div><div class="rateBox"><label>Lining blouse</label><input id="rate-lining-${id}" type="number" min="0" step="1" value="${getRates().lining}"></div><div class="rateBox"><label>Design blouse</label><input id="rate-design-${id}" type="number" min="0" step="1" value="${getRates().design}"></div></div><div class="customerActions" style="margin-top:8px"><button class="btn secondary" onclick="saveRates('${id}')">💾 Rate list Save</button></div></div>
  <div class="customerSection"><h4>⏰ Delivery Reminder</h4>${customerReminderHTML(st.os)}<div class="reminderSettings" style="margin-top:8px"><div class="field"><label class="mini">Reminder time</label><input class="input" type="time" id="remtime-${id}" value="${localStorage.getItem("nf_reminder_time")||"09:00"}"></div><button class="btn warning" onclick="saveReminderTime('${id}')">🔔 Daily Reminder</button></div></div>
@@ -540,7 +596,7 @@ const q=($("orderSearch").value||"").toLowerCase(),sf=$("orderStatusFilter").val
 const r=state.orders.filter(x=>(!sf||x.status===sf)&&[x.order_no,customerName(x.customer_id),x.garment_type,x.status].join(" ").toLowerCase().includes(q));
 $("ordersTable").innerHTML=r.length?`<div class="tablewrap"><table class="table"><thead><tr><th>Order</th><th>Customer</th><th>Garment</th><th>Cloth received</th><th>Delivery</th><th>Qty</th><th>Rate</th><th>Total</th><th>Advance</th><th>Balance</th><th>Status</th><th>Actions</th></tr></thead><tbody>${r.map(o=>{
 const d=dueInfo(o);const reminder=d?`<br><span class="pill ${d.kind==="late"?"bad":d.kind==="today"?"warn":""}">${d.kind==="late"?d.days+" நாள் late":d.kind==="today"?"இன்று":d.days+" நாள்"}</span>`:"";
-return `<tr><td><b>${esc(o.order_no)}</b></td><td>${esc(customerName(o.customer_id))}</td><td>${esc(o.garment_type)}</td><td>${dateText(o.cloth_received_date)}</td><td>${dateText(o.delivery_date)}${reminder}</td><td>${Number(o.quantity||0)}</td><td>${money(o.unit_price)}</td><td>${money(orderTotal(o))}</td><td>${money(o.advance_amount)}</td><td>${money(o.balance_amount)}</td><td>${statusPill(o.status)}</td><td><div class="actions"><button class="btn secondary" onclick="openModal('order','${o.id}')">Edit</button>${!isFinished(o)?`<button class="btn success" onclick="markDelivered('${o.id}')">Delivered</button>`:""}<button class="btn danger" onclick="removeRow('orders','${o.id}')">Delete</button></div></td></tr>`;
+return `<tr><td><b>${esc(o.order_no)}</b></td><td>${esc(customerName(o.customer_id))}</td><td>${esc(o.garment_type)}</td><td>${dateText(o.cloth_received_date)}</td><td>${dateText(o.delivery_date)}${reminder}</td><td><b>${Number(o.quantity||0)}</b><br><span class="mini">${esc(blouseSplitText(o))}</span></td><td>${money(o.unit_price)}</td><td>${money(orderTotal(o))}</td><td>${money(o.advance_amount)}</td><td>${money(o.balance_amount)}</td><td>${statusPill(o.status)}</td><td><div class="actions"><button class="btn secondary" onclick="openModal('order','${o.id}')">Edit</button>${!isFinished(o)?`<button class="btn success" onclick="markDelivered('${o.id}')">Delivered</button>`:""}<button class="btn danger" onclick="removeRow('orders','${o.id}')">Delete</button></div></td></tr>`;
 }).join("")}</tbody></table></div>`:`<div class="empty">No orders found.</div>`;
 }
 function renderAlterations(){
@@ -574,18 +630,30 @@ if(!pages.length){box.innerHTML='<div class="empty" style="grid-column:1/-1">Des
 box.innerHTML=pages.map(p=>{
 const ii=p.imageinfo?.[0]||{},src=ii.thumburl||ii.url||"",name=ii.extmetadata?.ImageDescription?.value||p.title||"Blouse Design";
 const clean=name.replace(/<[^>]*>/g,"").slice(0,120);
-return `<div class="designResult">${src?`<img src="${esc(src)}" alt="${esc(clean)}" loading="lazy">`:`<div class="photoPlaceholder">No image</div>`}<b>${esc(clean)}</b><span class="mini">Wikimedia Commons</span><button class="btn success" style="width:100%" onclick="saveOnlineDesign(${JSON.stringify(src)},${JSON.stringify(clean)})">✅ Select / Save</button></div>`;
+return `<div class="designResult" id="online-design-result-${p.pageid}">${src?`<img src="${esc(src)}" alt="${esc(clean)}" loading="lazy">`:`<div class="photoPlaceholder">No image</div>`}<b>${esc(clean)}</b><span class="mini">Wikimedia Commons</span><div class="actions"><button class="btn success" style="flex:1" onclick="saveOnlineDesign(${JSON.stringify(src)},${JSON.stringify(clean)},${JSON.stringify("online-design-result-"+p.pageid)})">💾 Save</button><button class="btn danger" type="button" onclick="this.closest('.designResult')?.remove()">🗑 Delete</button></div></div>`;
 }).join("");
 }catch(err){box.innerHTML=`<div class="empty" style="grid-column:1/-1">Search error: ${esc(err.message)}</div>`}
 }
-async function saveOnlineDesign(imageUrl,name){
+async function saveOnlineDesign(imageUrl,name,resultId){
 if(!imageUrl){toast("இந்த design-க்கு image URL கிடைக்கவில்லை.",true);return}
 const payload={design_no:"WEB-"+Date.now().toString().slice(-6),design_name:name.slice(0,150),category:"Online Blouse Design",description:"Saved from online design search",image_url:imageUrl,price:0};
 try{
-const {error}=await supabaseClient.from("designs").insert(payload);
+const {data,error}=await supabaseClient.from("designs").insert(payload).select().single();
 if(error)throw error;
-await loadAll(true);toast("Design database-ல் save செய்யப்பட்டது.");
+const box=$(resultId);
+if(box)box.innerHTML=`<img src="${esc(imageUrl)}" alt="${esc(name)}" loading="lazy"><b>${esc(name)}</b><span class="mini">Saved to your Designs</span><div class="actions"><button class="btn secondary" onclick="openModal('design','${data.id}')">✏️ Edit</button><button class="btn danger" onclick="deleteOnlineSavedDesign('${data.id}','${resultId}')">🗑 Delete</button></div>`;
+await loadAll(true);toast("Design save செய்யப்பட்டது. இங்கேயே Delete செய்யலாம்.");
 }catch(err){toast("Design save failed: "+err.message,true)}
+}
+async function deleteOnlineSavedDesign(id,resultId){
+if(!confirm("இந்த saved blouse design-ஐ delete செய்யவா?"))return;
+try{
+ const {error}=await supabaseClient.from("designs").delete().eq("id",id);
+ if(error)throw error;
+ $(resultId)?.remove();
+ await loadAll(true);
+ toast("Blouse design deleted.");
+}catch(err){toast("Design delete failed: "+err.message,true)}
 }
 function renderAll(){renderDashboard();renderCustomers();renderMeasurements();renderOrders();renderAlterations();renderPayments();renderDesigns()}
 
@@ -601,7 +669,9 @@ measurement:{title:"Measurement",table:"measurements",fields:[["customer_id","Cu
 order:{title:"Order",table:"orders",fields:[
 ["customer_id","Customer","customer",true],["order_no","Order No","text",true],["garment_type","Garment Type","text",true],
 ["order_date","Order Date","date",true],["cloth_received_date","துணி பெற்ற / கொடுத்த தேதி","date"],
-["delivery_date","Delivery Date","date",true],["quantity","Quantity / Pieces","number",true],["rate_type","Blouse Type","ratetype",true],["unit_price","ஒரு blouse / piece விலை","number",true],
+["delivery_date","Delivery Date","date",true],
+["normal_qty","👗 Normal blouse — customer கொடுத்தது","blouseqty"],["lining_qty","👗 Lining blouse — customer கொடுத்தது","blouseqty"],["design_qty","👗 Design blouse — customer கொடுத்தது","blouseqty"],
+["quantity","மொத்த blouse","number",true],["rate_type","Blouse Type","ratetype",true],["unit_price","Average blouse விலை","number",true],
 ["lining_cloth_source","Lining cloth","liningSource"],["lining_cloth_qty","Lining cloth quantity","number"],["total_amount","மொத்த தொகை","number",true],["advance_amount","Advance / Paid","number",true],["status","Status","orderstatus",true],["notes","Notes","textarea"]
 ]},
 alteration:{title:"Alteration",table:"alterations",fields:[["customer_id","Customer","customer",true],["order_id","Order","order"],["alteration_details","Alteration Details","textarea",true],["alteration_date","Alteration Date","date",true],["delivery_date","Delivery Date","date"],["status","Status","alterstatus",true],["amount","Amount","number"],["notes","Notes","textarea"]]},
@@ -614,8 +684,9 @@ const [key,label,type,required]=f,v=val??"";
 if(type==="textarea")return `<div class="field full"><label>${label}</label><textarea class="input" name="${key}" ${required?"required":""}>${esc(v)}</textarea></div>`;
 if(type==="customer")return `<div class="field"><label>${label}</label><select class="input" name="${key}" ${required?"required":""}><option value="">Select customer</option>${state.customers.map(c=>`<option value="${c.id}" ${v===c.id?"selected":""}>${esc(c.name)}${c.phone?" — "+esc(c.phone):""}</option>`).join("")}</select></div>`;
 if(type==="order")return `<div class="field"><label>${label}</label><select class="input" name="${key}" ${required?"required":""}><option value="">Select order</option>${state.orders.map(o=>`<option value="${o.id}" ${v===o.id?"selected":""}>${esc(o.order_no)} — ${esc(customerName(o.customer_id))}</option>`).join("")}</select></div>`;
-const opts={orderstatus:["Pending","In Progress","Ready","Delivered","Cancelled"],alterstatus:["Pending","In Progress","Ready","Completed","Cancelled"],paymentmethod:["Cash","UPI","Card","Bank Transfer","Other"],ratetype:["normal","lining","design"],liningSource:["","customer","shop"]};
-if(opts[type]){const labels={normal:"Normal blouse",lining:"Lining blouse",design:"Design blouse","":"தேவையில்லை",customer:"Customer கொடுத்தது",shop:"நாம் வாங்கியது"};return `<div class="field"><label>${label}</label><select class="input" name="${key}" ${required?"required":""}>${opts[type].map(o=>`<option value="${esc(o)}" ${v===o?"selected":""}>${esc(labels[o]??o)}</option>`).join("")}</select></div>`;}
+if(type==="blouseqty")return `<div class="field"><label>${label}</label><input class="input orderBlouseQty" name="${key}" type="number" min="0" step="1" value="${esc(v)}"></div>`;
+const opts={orderstatus:["Pending","In Progress","Ready","Delivered","Cancelled"],alterstatus:["Pending","In Progress","Ready","Completed","Cancelled"],paymentmethod:["Cash","UPI","Card","Bank Transfer","Other"],ratetype:["normal","lining","design","mixed"],liningSource:["","customer","shop"]};
+if(opts[type]){const labels={normal:"Normal blouse",lining:"Lining blouse",design:"Design blouse",mixed:"Mixed — பல வகை","":"தேவையில்லை",customer:"Customer கொடுத்தது",shop:"நாம் வாங்கியது"};return `<div class="field"><label>${label}</label><select class="input" name="${key}" ${required?"required":""}>${opts[type].map(o=>`<option value="${esc(o)}" ${v===o?"selected":""}>${esc(labels[o]??o)}</option>`).join("")}</select></div>`;}
 return `<div class="field"><label>${label}</label><input class="input" name="${key}" type="${type}" value="${esc(v)}" ${required?"required":""} ${type==="number"?'step="0.01" min="0"':''}></div>`;
 }
 
@@ -640,6 +711,8 @@ $("modalTitle").textContent=(id?"Edit ":"Add ")+def.title;$("formMsg").textConte
 const today=localDate();
 $("formFields").innerHTML=def.fields.map(f=>{
 let val=row?.[f[0]];
+if(type==="order"&&f[0]==="notes"&&val!=null)val=cleanOrderNotes(val);
+if(type==="order"&&["normal_qty","lining_qty","design_qty"].includes(f[0])){const s=blouseSplit(row||{});val=s[f[0].replace("_qty","")]||0}
 if(val==null&&["order_date","alteration_date","payment_date"].includes(f[0]))val=today;
 if(val==null&&f[0]==="status")val="Pending";
 if(val==null&&["quantity"].includes(f[0]))val=1;
@@ -676,17 +749,30 @@ calc.innerHTML=`<label>🧮 Quick Calculator — + − × ÷</label><div class="
 $("formFields").prepend(calc);
 }
 if(type==="order"){
-const q=$('formFields').querySelector('[name="quantity"]'),u=$('formFields').querySelector('[name="unit_price"]'),t=$('formFields').querySelector('[name="total_amount"]'),a=$('formFields').querySelector('[name="advance_amount"]'),rt=$('formFields').querySelector('[name="rate_type"]');
-if(t)t.readOnly=true;
-const recalc=()=>{const total=Math.max(0,Number(q?.value||0)*Number(u?.value||0));if(t)t.value=total.toFixed(2);};
-const setRate=()=>{if(u&&rt)u.value=rateForType(rt.value);recalc();};
-rt?.addEventListener("change",setRate);q?.addEventListener("input",recalc);u?.addEventListener("input",recalc);
-const note=document.createElement("div");note.className="field full hint";note.textContent="Quantity × Unit Price = Total. உதாரணம்: 5 blouse × ₹300 = ₹1,500.";
-t?.parentElement?.appendChild(note);
-const bal=document.createElement("div");bal.className="field full";bal.innerHTML='<label>Balance (auto)</label><div id="liveBalance" class="autoTotal">₹0.00</div>';
-t?.parentElement?.parentElement?.appendChild(bal);
-const updateBal=()=>{const total=Number(t?.value||0),adv=Number(a?.value||0);$("liveBalance").textContent=money(Math.max(0,total-adv));};
-q?.addEventListener("input",updateBal);u?.addEventListener("input",updateBal);a?.addEventListener("input",updateBal);setRate();updateBal();
+ const s=row?blouseSplit(row):{normal:0,lining:0,design:0};
+ ["normal","lining","design"].forEach(k=>{const el=$("formFields").querySelector(`[name="${k}_qty"]`);if(el)el.value=s[k]});
+ const q=$('formFields').querySelector('[name="quantity"]'),u=$('formFields').querySelector('[name="unit_price"]'),t=$('formFields').querySelector('[name="total_amount"]'),a=$('formFields').querySelector('[name="advance_amount"]'),rt=$('formFields').querySelector('[name="rate_type"]');
+ if(q)q.readOnly=true;
+ if(t)t.readOnly=true;
+ const rates=(()=>{const m=String(row?.notes||"").match(/BLOUSE_RATES:(\{[^}]+\})/);if(m){try{return {...getRates(),...JSON.parse(m[1])}}catch{}}return getRates()})();
+ const recalc=()=>{
+  const n=Math.max(0,Number($('formFields').querySelector('[name="normal_qty"]')?.value||0));
+  const l=Math.max(0,Number($('formFields').querySelector('[name="lining_qty"]')?.value||0));
+  const d=Math.max(0,Number($('formFields').querySelector('[name="design_qty"]')?.value||0));
+  const totalQty=n+l+d,total=n*rates.normal+l*rates.lining+d*rates.design,avg=totalQty?total/totalQty:0;
+  if(q)q.value=totalQty;
+  if(u)u.value=avg.toFixed(2);
+  if(t)t.value=total.toFixed(2);
+  if(rt)rt.value=totalQty?((n>0?1:0)+(l>0?1:0)+(d>0?1:0)>1?"mixed":n>0?"normal":l>0?"lining":"design"):"normal";
+  const live=$("liveBalance");if(live)live.textContent=money(Math.max(0,total-Number(a?.value||0)));
+ };
+ const note=document.createElement("div");note.className="field full hint";note.textContent="Customer கொடுத்த blouse-ஐ Normal / Lining / Design என்று தனித்தனியாக எண்ணிக்கை கொடுங்கள். Total தானாக கணக்காகும்.";
+ t?.parentElement?.appendChild(note);
+ ["normal_qty","lining_qty","design_qty"].forEach(k=>$('formFields').querySelector(`[name="${k}"]`)?.addEventListener("input",recalc));
+ a?.addEventListener("input",recalc);
+ const bal=document.createElement("div");bal.className="field full";bal.innerHTML='<label>Balance (auto)</label><div id="liveBalance" class="autoTotal">₹0.00</div>';
+ t?.parentElement?.parentElement?.appendChild(bal);
+ recalc();
 }
 $("modal").classList.add("open");
 }
@@ -696,15 +782,31 @@ $("modal").addEventListener("click",e=>{if(e.target===$("modal"))closeModal()});
 $("dataForm").addEventListener("submit",async e=>{
 e.preventDefault();if(!state.editing)return;
 const {type,id}=state.editing,def=formDefs[type],fd=new FormData(e.target),payload={};
-def.fields.forEach(f=>{let v=fd.get(f[0]);if(v==="")v=null;if(f[2]==="number"&&v!==null)v=Number(v);if(!(type==="customer"&&f[0]==="village"))payload[f[0]]=v});
+def.fields.forEach(f=>{
+ let v=fd.get(f[0]);if(v==="")v=null;
+ if(f[2]==="number"&&v!==null)v=Number(v);
+ if(f[2]==="blouseqty")return;
+ if(!(type==="customer"&&f[0]==="village"))payload[f[0]]=v;
+});
 if(type==="design"){const f=$("designPhotoFile"),cam=$("designCameraFile");const dataUrl=f?.dataset.dataUrl||cam?.dataset.dataUrl;const remove=f?.dataset.remove==="1"||cam?.dataset.remove==="1";if(dataUrl)payload.image_url=dataUrl;else if(remove)payload.image_url=null;}
 if(type==="order"){
- payload.total_amount=Math.max(0,Number(payload.quantity||0)*Number(payload.unit_price||0));
+ const split={
+  normal:Math.max(0,Number(fd.get("normal_qty")||0)),
+  lining:Math.max(0,Number(fd.get("lining_qty")||0)),
+  design:Math.max(0,Number(fd.get("design_qty")||0))
+ };
+ const rates=(()=>{const m=String(payload.notes||"").match(/BLOUSE_RATES:(\{[^}]+\})/);if(m){try{return {...getRates(),...JSON.parse(m[1])}}catch{}}return getRates()})();
+ payload.quantity=split.normal+split.lining+split.design;
+ payload.total_amount=split.normal*rates.normal+split.lining*rates.lining+split.design*rates.design;
+ payload.unit_price=payload.quantity?payload.total_amount/payload.quantity:0;
+ const active=["normal","lining","design"].filter(k=>split[k]>0);
+ payload.rate_type=active.length>1?"mixed":active[0]||"normal";
+ payload.notes=makeBlouseSplitNote(split,rates,payload.notes||"");
  payload.balance_amount=Math.max(0,payload.total_amount-Number(payload.advance_amount||0));
  if(!payload.status)payload.status="Pending";
- if(!payload.rate_type)payload.rate_type="normal";
  if(!payload.lining_cloth_source)payload.lining_cloth_source=null;
  if(payload.lining_cloth_qty==null)payload.lining_cloth_qty=0;
+ if(payload.quantity<=0){$("formMsg").textContent="குறைந்தது 1 blouse எண்ணிக்கை கொடுக்க வேண்டும்.";$("formMsg").className="msg error";return;}
 }
 const b=$("saveBtn");b.disabled=true;b.textContent="Saving...";
 try{
