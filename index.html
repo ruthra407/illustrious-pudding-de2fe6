@@ -84,6 +84,13 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}.hidden{display:
 .dashboardOrderCard .top{display:flex;gap:8px;justify-content:space-between;align-items:flex-start}
 .dashboardOrderCard .name{font-weight:850}
 .dashboardOrderCard .meta{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.5}
+.clickable{cursor:pointer;transition:transform .12s,box-shadow .12s}.clickable:hover{transform:translateY(-1px);box-shadow:0 10px 24px rgba(35,25,30,.10)}
+.backbtn{border:1px solid #4b4146;background:#30272c;color:#fff;border-radius:12px;width:42px;height:42px;font-size:20px}.backbtn:disabled{opacity:.45;cursor:not-allowed}
+.dashboardDues{margin-top:14px}.dueCustomer{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 0;border-top:1px solid var(--line)}.dueCustomer:first-child{border-top:0}.dueCustomer .dueName{font-weight:850}.dueCustomer .dueMeta{font-size:12px;color:var(--muted);margin-top:3px}
+.customerMoneyGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:9px}.moneyStat{background:#faf8f6;border:1px solid var(--line);border-radius:11px;padding:9px}.moneyStat b{display:block;font-size:16px}.moneyStat span{font-size:10px;color:var(--muted)}
+.customerClothGrid{display:grid;grid-template-columns:repeat(5,1fr);gap:7px;margin-top:9px}.clothStat{background:#f7f2ef;border:1px solid var(--line);border-radius:11px;padding:9px}.clothStat b{display:block;font-size:17px}.clothStat span{font-size:10px;color:var(--muted)}
+@media(max-width:700px){.customerClothGrid{grid-template-columns:1fr 1fr 1fr}}@media(max-width:560px){.customerMoneyGrid{grid-template-columns:1fr 1fr}.customerClothGrid{grid-template-columns:1fr 1fr}}
+
 .rateGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:9px}
 .rateBox{border:1px solid var(--line);background:#faf8f6;border-radius:11px;padding:9px}
 .rateBox label{display:block;font-size:11px;color:var(--muted);font-weight:750;margin-bottom:4px}
@@ -136,10 +143,10 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}.hidden{display:
 <div class="pagehead"><div><h2>Dashboard</h2><p>உங்கள் tailoring வேலை, delivery reminder, collection, balance எல்லாம் இங்கே தெரியும்.</p></div></div>
 
 <div class="stats">
-<div class="stat"><div class="label">Customers</div><div id="statCustomers" class="num">0</div></div>
-<div class="stat"><div class="label">Orders</div><div id="statOrders" class="num">0</div></div>
-<div class="stat"><div class="label">Today Collection</div><div id="statTodayCollection" class="num">₹0</div></div>
-<div class="stat"><div class="label">Pending Balance</div><div id="statBalance" class="num">₹0</div></div>
+<div class="stat clickable" role="button" tabindex="0" onclick="goView('customers')"><div class="label">Customers</div><div id="statCustomers" class="num">0</div></div>
+<div class="stat clickable" role="button" tabindex="0" onclick="goView('orders')"><div class="label">Orders</div><div id="statOrders" class="num">0</div></div>
+<div class="stat clickable" role="button" tabindex="0" onclick="goView('payments')"><div class="label">Today Collection</div><div id="statTodayCollection" class="num">₹0</div></div>
+<div class="stat clickable" role="button" tabindex="0" onclick="goView('customers')"><div class="label">Pending Balance</div><div id="statBalance" class="num">₹0</div></div>
 </div>
 
 <div class="summarygrid">
@@ -148,18 +155,18 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}.hidden{display:
 <div class="summary"><div class="mini">Late orders</div><b id="statLate">0</b></div>
 </div>
 <div class="kpiGrid">
-<div class="kpiCard kpiPending"><div class="kpiTitle">🔴 Pending Orders</div><div id="kpiPending" class="kpiNum">0</div><div id="kpiPendingSmall" class="kpiSmall">வேலை முடிக்க வேண்டிய orders</div></div>
-<div class="kpiCard kpiToday"><div class="kpiTitle">💰 Today Collection</div><div id="kpiToday" class="kpiNum">₹0</div><div class="kpiSmall">இன்று பெற்ற payment</div></div>
-<div class="kpiCard kpiDelivery"><div class="kpiTitle">🚚 Today Delivery</div><div id="kpiDelivery" class="kpiNum">0</div><div class="kpiSmall">இன்று கொடுக்க வேண்டியவை</div></div>
-<div class="kpiCard kpiReminder"><div class="kpiTitle">🔔 Daily Reminder</div><div id="kpiReminder" class="kpiNum">0</div><div class="kpiSmall">அடுத்த 5 நாட்கள் + late</div></div>
-<div class="kpiCard kpiMonthly"><div class="kpiTitle">📅 Monthly Collection</div><div id="kpiMonthly" class="kpiNum">₹0</div><div id="kpiMonthlySmall" class="kpiSmall">இந்த மாதம்</div></div>
-<div class="kpiCard kpiBalance"><div class="kpiTitle">💳 Customer Balance</div><div id="kpiBalance" class="kpiNum">₹0</div><div class="kpiSmall">Customers கொடுக்க வேண்டியது</div></div>
+<div class="kpiCard kpiPending clickable" role="button" tabindex="0" onclick="goView('orders')"><div class="kpiTitle">🔴 Pending Orders</div><div id="kpiPending" class="kpiNum">0</div><div id="kpiPendingSmall" class="kpiSmall">வேலை முடிக்க வேண்டிய orders</div></div>
+<div class="kpiCard kpiToday clickable" role="button" tabindex="0" onclick="goView('payments')"><div class="kpiTitle">💰 Today Collection</div><div id="kpiToday" class="kpiNum">₹0</div><div class="kpiSmall">இன்று பெற்ற payment</div></div>
+<div class="kpiCard kpiDelivery clickable" role="button" tabindex="0" onclick="goView('orders')"><div class="kpiTitle">🚚 Today Delivery</div><div id="kpiDelivery" class="kpiNum">0</div><div class="kpiSmall">இன்று கொடுக்க வேண்டியவை</div></div>
+<div class="kpiCard kpiReminder clickable" role="button" tabindex="0" onclick="goView('orders')"><div class="kpiTitle">🔔 Daily Reminder</div><div id="kpiReminder" class="kpiNum">0</div><div class="kpiSmall">அடுத்த 5 நாட்கள் + late</div></div>
+<div class="kpiCard kpiMonthly clickable" role="button" tabindex="0" onclick="goView('payments')"><div class="kpiTitle">📅 Monthly Collection</div><div id="kpiMonthly" class="kpiNum">₹0</div><div id="kpiMonthlySmall" class="kpiSmall">இந்த மாதம்</div></div>
+<div class="kpiCard kpiBalance clickable" role="button" tabindex="0" onclick="goView('customers')"><div class="kpiTitle">💳 Customer Balance</div><div id="kpiBalance" class="kpiNum">₹0</div><div class="kpiSmall">Customers கொடுக்க வேண்டியது</div></div>
 </div>
-
+<div class="card dashboardDues"><div class="pagehead"><div><h3 style="margin:0">💳 Customer Dues</h3><p>யார் எவ்வளவு கொடுக்க வேண்டும் — பெயர், phone, balance</p></div></div><div id="dashboardDuesList"></div></div>
 <div class="alertgrid">
-<div class="alertbox today"><h3>🔔 Today Delivery</h3><b id="dueTodayCount" class="big">0</b><div id="dueTodayList"></div></div>
-<div class="alertbox soon"><h3>⏰ Next 5 Days</h3><b id="dueSoonCount" class="big">0</b><div id="dueSoonList"></div></div>
-<div class="alertbox late"><h3>🚨 Pending / Late</h3><b id="lateCount" class="big">0</b><div id="lateList"></div></div>
+<div class="alertbox today clickable" role="button" tabindex="0" onclick="goView('orders')"><h3>🔔 Today Delivery</h3><b id="dueTodayCount" class="big">0</b><div id="dueTodayList"></div></div>
+<div class="alertbox soon clickable" role="button" tabindex="0" onclick="goView('orders')"><h3>⏰ Next 5 Days</h3><b id="dueSoonCount" class="big">0</b><div id="dueSoonList"></div></div>
+<div class="alertbox late clickable" role="button" tabindex="0" onclick="goView('orders')"><h3>🚨 Pending / Late</h3><b id="lateCount" class="big">0</b><div id="lateList"></div></div>
 </div>
 
 <div class="quick">
@@ -254,7 +261,20 @@ try{const {data,error}=await supabaseClient.auth.signInWithPassword({email:$("lo
 $("forgotBtn").addEventListener("click",async()=>{const email=$("loginEmail").value.trim();if(!email){setLoginMsg("முதலில் Email உள்ளிடுங்கள்.",true);return}const {error}=await supabaseClient.auth.resetPasswordForEmail(email,{redirectTo:location.href});if(error)setLoginMsg("Reset failed: "+error.message,true);else setLoginMsg("Password reset email அனுப்பப்பட்டது. Spam/Promotions-ஐயும் பாருங்கள்.")});
 async function logout(){const {error}=await supabaseClient.auth.signOut();if(error)toast(error.message,true);else showLogin()}
 $("logoutBtn").onclick=logout;$("sideLogout").onclick=logout;$("reloadBtn").onclick=()=>loadAll(true);$("menuBtn").onclick=()=>$("sidebar").classList.toggle("open");
-document.querySelectorAll(".navbtn[data-view]").forEach(b=>b.addEventListener("click",()=>{document.querySelectorAll(".navbtn[data-view]").forEach(x=>x.classList.remove("active"));b.classList.add("active");document.querySelectorAll(".view").forEach(x=>x.classList.remove("active"));$("view-"+b.dataset.view).classList.add("active");$("sidebar").classList.remove("open")}));
+function goView(view,push=true){
+ const target=$("view-"+view);if(!target)return;
+ document.querySelectorAll(".navbtn[data-view]").forEach(x=>x.classList.toggle("active",x.dataset.view===view));
+ document.querySelectorAll(".view").forEach(x=>x.classList.remove("active"));
+ target.classList.add("active");$("sidebar").classList.remove("open");
+ window.scrollTo({top:0,behavior:"smooth"});
+ if(push&&history.state?.view!==view)history.pushState({view},"","#"+view);
+ updateBackButton();
+}
+function updateBackButton(){const v=history.state?.view||"dashboard";$("backBtn").disabled=v==="dashboard";$("backBtn").title=v==="dashboard"?"Dashboard":"Back";}
+document.querySelectorAll(".navbtn[data-view]").forEach(b=>b.addEventListener("click",()=>goView(b.dataset.view)));
+$("backBtn").onclick=()=>{if((history.state?.view||"dashboard")!=="dashboard")history.back();};
+window.addEventListener("popstate",e=>goView(e.state?.view||"dashboard",false));
+if(!history.state?.view)history.replaceState({view:"dashboard"},"","#dashboard");
 
 async function getTable(name){
 const {data,error}=await supabaseClient.from(name).select("*").order("created_at",{ascending:false});
@@ -270,6 +290,9 @@ Object.assign(state,{customers,orders,measurements,alterations,payments,designs}
 }catch(err){toast("Database load error: "+err.message,true)}
 }
 function customerName(id){return state.customers.find(x=>x.id===id)?.name||"Unknown"}
+function goToCustomer(id){goView("customers");setTimeout(()=>document.getElementById("customer-card-"+id)?.scrollIntoView({behavior:"smooth",block:"start"}),120);}
+function goToOrderCustomer(orderId){const o=state.orders.find(x=>x.id===orderId);if(o)goToCustomer(o.customer_id);else goView("orders");}
+
 function orderLabel(id){const o=state.orders.find(x=>x.id===id);return o?`${o.order_no} — ${customerName(o.customer_id)}`:"Unknown"}
 function isFinished(o){return ["Delivered","Cancelled"].includes(String(o.status||""))}
 function dueInfo(o){
@@ -292,6 +315,10 @@ return state.payments.filter(p=>String(p.payment_date||"").slice(0,7)===ym).redu
 }
 function pendingOrdersCount(){return state.orders.filter(o=>!isFinished(o)).length}
 
+function renderDashboardDues(){
+ const rows=state.customers.map(c=>({c,s:customerStats(c.id)})).filter(x=>x.s.balance>0).sort((a,b)=>b.s.balance-a.s.balance);
+ $("dashboardDuesList").innerHTML=rows.length?rows.slice(0,15).map(x=>`<div class="dueCustomer clickable" role="button" tabindex="0" onclick="goToCustomer('${x.c.id}')"><div><div class="dueName">👤 ${esc(x.c.name)}</div><div class="dueMeta">📞 ${esc(x.c.phone||"Phone இல்லை")} · Pending blouse: ${x.s.pending}</div></div><b>${money(x.s.balance)}</b></div>`).join(""):`<div class="empty">Customer balance இல்லை. 🎉</div>`;
+}
 function renderDashboard(){
 $("statCustomers").textContent=state.customers.length;
 $("statOrders").textContent=state.orders.length;
@@ -307,6 +334,7 @@ $("kpiDelivery").textContent=today.length;
 $("kpiReminder").textContent=soon.length+late.length;
 $("kpiMonthly").textContent=money(monthlyCollection());
 $("kpiBalance").textContent=money(totalBalance());
+ renderDashboardDues();
 $("kpiMonthlySmall").textContent=new Date().toLocaleDateString("ta-IN",{month:"long",year:"numeric"});
 $("dueTodayCount").textContent=today.length;$("dueSoonCount").textContent=soon.length;$("lateCount").textContent=late.length;
 $("dueTodayList").innerHTML=smallOrderList(today,"இன்று கொடுக்க வேண்டும்");
@@ -325,32 +353,34 @@ renderPhotos();
 if(localStorage.getItem("nf_notification_enabled")==="1")runPhoneReminders();
 }
 function smallOrderList(list,label){
-if(!list.length)return `<div class="mini" style="margin-top:8px">எதுவும் இல்லை.</div>`;
-return `<div class="dashboardOrderList">${list.slice(0,8).map(o=>{
-const d=dueInfo(o),c=state.customers.find(x=>x.id===o.customer_id)||{};
-const when=d?.kind==="late"?`🚨 ${d.days} நாள் late`:d?.kind==="today"?"🔔 இன்று":`⏰ ${d.days} நாள் உள்ளது`;
-return `<div class="dashboardOrderCard">
-<div class="top"><div><div class="name">👤 ${esc(c.name||"Unknown Customer")}</div><div class="meta">📞 ${esc(c.phone||"Phone இல்லை")} · 📅 ${dateText(o.delivery_date)}</div></div><span class="pill ${d?.kind==="late"?"bad":d?.kind==="today"?"warn":""}">${esc(when)}</span></div>
-<div class="meta">🧵 ${esc(o.garment_type||"Blouse")} · 👗 ${Number(o.quantity||0)} pcs · 🧾 ${esc(o.order_no||"")}</div>
-</div>`;
-}).join("")}${list.length>8?`<div class="mini">+ ${list.length-8} more</div>`:""}</div>`;
+ if(!list.length)return `<div class="mini" style="margin-top:8px">எதுவும் இல்லை.</div>`;
+ return `<div class="dashboardOrderList">${list.slice(0,12).map(o=>{
+  const d=dueInfo(o),c=state.customers.find(x=>x.id===o.customer_id)||{};
+  const when=d?.kind==="late"?`🚨 ${d.days} நாள் late`:d?.kind==="today"?"🔔 இன்று":`⏰ ${d?.days??"—"} நாள் உள்ளது`;
+  const cls=d?.kind==="late"?"bad":d?.kind==="today"?"warn":"";
+  return `<div class="dashboardOrderCard clickable" role="button" tabindex="0" onclick="goToOrderCustomer('${o.id}')"><div class="top"><div><div class="name">👤 ${esc(c.name||"Unknown Customer")}</div><div class="meta">📞 ${esc(c.phone||"Phone இல்லை")} · 📅 Delivery: ${dateText(o.delivery_date)}</div></div><span class="pill ${cls}">${esc(when)}</span></div><div class="meta">🧵 ${esc(o.garment_type||"Blouse")} · 👗 ${Number(o.quantity||0)} pcs · 🧾 ${esc(o.order_no||"")}</div></div>`;
+ }).join("")}${list.length>12?`<div class="mini">+ ${list.length-12} more</div>`:""}</div>`;
 }
-
 function customerOrders(id){return state.orders.filter(o=>o.customer_id===id)}
 function customerPayments(id){
 const ids=new Set(customerOrders(id).map(o=>o.id));
 return state.payments.filter(p=>ids.has(p.order_id));
 }
 function customerStats(id){
-const os=customerOrders(id);
-const given=os.reduce((a,o)=>a+Number(o.quantity||0),0);
-const delivered=os.filter(o=>String(o.status)==="Delivered").reduce((a,o)=>a+Number(o.quantity||0),0);
-const pending=os.filter(o=>!isFinished(o)).reduce((a,o)=>a+Number(o.quantity||0),0);
-const paid=customerPayments(id).reduce((a,p)=>a+Number(p.amount||0),0);
-const total=os.reduce((a,o)=>a+orderTotal(o),0);
-const balance=Math.max(0,os.reduce((a,o)=>a+Number(o.balance_amount||0),0));
-const advance=os.reduce((a,o)=>a+Number(o.advance_amount||0),0);
-return {os,given,delivered,pending,paid,total,balance,advance};
+ const os=customerOrders(id),given=os.reduce((a,o)=>a+Number(o.quantity||0),0);
+ const delivered=os.filter(o=>String(o.status)==="Delivered").reduce((a,o)=>a+Number(o.quantity||0),0);
+ const pending=os.filter(o=>!isFinished(o)).reduce((a,o)=>a+Number(o.quantity||0),0);
+ const paid=customerPayments(id).reduce((a,p)=>a+Number(p.amount||0),0);
+ const total=os.reduce((a,o)=>a+orderTotal(o),0);
+ const balance=Math.max(0,os.reduce((a,o)=>a+Number(o.balance_amount||0),0));
+ const advance=os.reduce((a,o)=>a+Number(o.advance_amount||0),0);
+ const typeOf=o=>{const t=String(o.rate_type||"").toLowerCase();if(t)return t;const n=String(o.notes||"").toLowerCase();return n.includes("lining blouse")?"lining":n.includes("design blouse")?"design":"normal"};
+ const normal=os.filter(o=>typeOf(o)==="normal").reduce((a,o)=>a+Number(o.quantity||0),0);
+ const lining=os.filter(o=>typeOf(o)==="lining").reduce((a,o)=>a+Number(o.quantity||0),0);
+ const design=os.filter(o=>typeOf(o)==="design").reduce((a,o)=>a+Number(o.quantity||0),0);
+ const liningCustomer=os.filter(o=>String(o.lining_cloth_source||"").toLowerCase()==="customer").reduce((a,o)=>a+Number(o.lining_cloth_qty||0),0);
+ const liningShop=os.filter(o=>["shop","tailor"].includes(String(o.lining_cloth_source||"").toLowerCase())).reduce((a,o)=>a+Number(o.lining_cloth_qty||0),0);
+ return {os,given,delivered,pending,paid,total,balance,advance,normal,lining,design,liningCustomer,liningShop};
 }
 function customerDesigns(id){
 try{return JSON.parse(localStorage.getItem("nf_customer_designs_"+id)||"[]")}catch{return[]}
@@ -398,11 +428,12 @@ const advance=Math.max(0,Number($("qo-advance-"+id)?.value||0));
 const status=$("qo-status-"+id)?.value||"Pending";
 const rateType=$("qo-rate-type-"+id)?.value||"normal";
 const liningSource=$("qo-lining-"+id)?.value||"";
+ const liningQty=Math.max(0,Number($("qo-lining-qty-"+id)?.value||0));
 if(!delivery){toast("Delivery Date தேர்வு செய்யுங்கள்.",true);return}
 const total=qty*price,balance=Math.max(0,total-advance);
 const noteParts=[`Rate: ${rateLabel(rateType)}`];
 if(liningSource)noteParts.push(`Lining cloth: ${liningSource==="customer"?"Customer கொடுத்தது":"நாம் எடுத்தது"}`);
-const payload={customer_id:id,order_no:makeOrderNo(),garment_type:garment,order_date:localDate(),cloth_received_date:cloth,delivery_date:delivery,quantity:qty,unit_price:price,total_amount:total,advance_amount:advance,balance_amount:balance,status,notes:noteParts.join(" | ")};
+const payload={customer_id:id,order_no:makeOrderNo(),garment_type:garment,order_date:localDate(),cloth_received_date:cloth,delivery_date:delivery,quantity:qty,unit_price:price,total_amount:total,advance_amount:advance,balance_amount:balance,status,rate_type:rateType,lining_cloth_source:liningSource||null,lining_cloth_qty:liningQty,notes:noteParts.join(" | ")};
 try{
 const {error}=await supabaseClient.from("orders").insert(payload);
 if(error)throw error;
@@ -418,58 +449,35 @@ const cls=d?.kind==="late"?"late":d?.kind==="today"?"":"ok";
 return `<div class="customerReminder ${cls}" style="margin-top:7px"><b>${esc(o.garment_type||"Blouse")}</b> · ${Number(o.quantity||0)} pcs<br><span class="mini">Delivery: ${dateText(o.delivery_date)} · ${label}</span></div>`;
 }).join("");
 }
+function openCustomerMeasurement(id){openModal("measurement");setTimeout(()=>{const x=document.querySelector('#formFields [name="customer_id"]');if(x)x.value=id;},30);}
+function openCustomerPayment(id){const os=customerOrders(id);if(!os.length){toast("இந்த customer-க்கு order இல்லை.",true);return}openModal("payment");setTimeout(()=>{const x=document.querySelector('#formFields [name="order_id"]');if(x)x.value=os[0].id;},30);}
 function openCustomerOrder(id){openModal("order");setTimeout(()=>{const s=document.querySelector('#formFields [name="customer_id"]');if(s){s.value=id;s.dispatchEvent(new Event("change"))}},30)}
 function customerCard(id){
-const c=state.customers.find(x=>x.id===id),s=customerStats(id),designs=customerDesigns(id); const village=localStorage.getItem("nf_village_"+id)||c.village||"";
-const city=c.address||"முகவரி இல்லை";
-const designHtml=designs.length?designs.slice(0,6).map((d,i)=>`<div class="customerDesignThumb">${d.src?`<img src="${esc(d.src)}" alt="${esc(d.name||"Design")}">`:`<div class="photoPlaceholder" style="height:100%">No photo</div>`}<span>${esc(d.name||"Design")}</span></div>`).join(""):`<div class="mini">இந்த customer-க்கு design save செய்யவில்லை.</div>`;
-const ordersHtml=s.os.slice().sort((a,b)=>String(b.created_at||"").localeCompare(String(a.created_at||""))).slice(0,4).map(o=>{
-const d=dueInfo(o);const rem=d?(d.kind==="late"?`<span class="pill bad">${d.days} நாள் late</span>`:d.kind==="today"?`<span class="pill warn">இன்று</span>`:`<span class="pill">${d.days} நாள்</span>`):"";
-return `<div class="customerOrderLine"><b>${esc(o.order_no)}</b> · ${esc(o.garment_type)} · ${Number(o.quantity||0)} pcs ${rem}<br><span class="mini">துணி: ${dateText(o.cloth_received_date)} · Delivery: ${dateText(o.delivery_date)} · Rate: ${money(o.unit_price)} · Balance: ${money(o.balance_amount)}</span>${o.notes?`<br><span class="mini">🧵 ${esc(o.notes)}</span>`:""}<div class="orderActions"><button class="btn success" onclick="markDelivered('${o.id}')">Delivered</button><button class="btn secondary" onclick="openModal('order','${o.id}')">Edit</button></div></div>`;
-}).join("")||`<div class="mini">இன்னும் order இல்லை.</div>`;
-return `<article class="customerCard" id="customer-card-${id}">
-<div class="customerCardHead"><div class="customerAvatar">👤</div><div style="flex:1"><h3>${esc(c.name)}</h3><p>📞 ${esc(c.phone||"Phone இல்லை")} · 📍 ${esc(village||"ஊர் இல்லை")}</p><p>🏠 ${esc(city)}</p><p>${esc(c.notes||"")}</p></div><button class="btn secondary" onclick="openModal('customer','${id}')">Edit</button></div>
-<div class="customerStats">
-<div class="customerStat"><b>${s.given}</b><span>கொடுத்த blouse</span></div>
-<div class="customerStat"><b>${s.delivered}</b><span>நாம் கொடுத்தது</span></div>
-<div class="customerStat"><b>${s.pending}</b><span>Pending blouse</span></div>
-<div class="customerStat"><b>${money(s.paid)}</b><span>வாடிக்கையாளர் கொடுத்தது</span></div>
-<div class="customerStat"><b>${money(s.advance)}</b><span>Advance வாங்கியது</span></div>
-<div class="customerStat"><b>${money(s.balance)}</b><span>இன்னும் balance</span></div>
-</div>
-<div class="customerSection"><h4>🧾 New Order — இந்த customer card-லேயே</h4>
-<div class="customerActions"><button class="btn primary" onclick="toggleQuickOrder('${id}')">＋ New Order</button><button class="btn secondary" onclick="openModal('measurement')">📏 Measurement</button><button class="btn success" onclick="openModal('payment')">💰 Payment</button></div>
-<div id="quick-order-${id}" class="hidden" style="margin-top:10px;background:#faf8f6;border:1px solid var(--line);border-radius:13px;padding:12px">
-<div class="formgrid">
-<div class="field"><label>Garment / Blouse</label><input id="qo-garment-${id}" class="input" value="Blouse"></div>
-<div class="field"><label>துணி கொடுத்த தேதி</label><input id="qo-cloth-${id}" class="input" type="date" value="${localDate()}"></div>
-<div class="field"><label>Delivery Date</label><input id="qo-delivery-${id}" class="input" type="date"></div>
-<div class="field"><label>எத்தனை blouse</label><input id="qo-qty-${id}" class="input" type="number" min="1" step="1" value="1"></div>
-<div class="field"><label>Blouse rate type</label><select id="qo-rate-type-${id}" class="input" onchange="updateQuickRate('${id}')"><option value="normal">Normal blouse</option><option value="lining">Lining blouse</option><option value="design">Design blouse</option></select></div>
-<div class="field"><label>ஒரு blouse விலை</label><input id="qo-price-${id}" class="input" type="number" min="0" step="0.01" value="${rateForType("normal")}"></div>
-<div class="field"><label>Lining cloth</label><select id="qo-lining-${id}" class="input"><option value="">தேவையில்லை</option><option value="customer">Customer கொடுத்தது</option><option value="shop">நாம் எடுத்தது</option></select></div>
-<div class="field"><label>Advance வாங்கியது</label><input id="qo-advance-${id}" class="input" type="number" min="0" step="0.01" value="0"></div>
-<div class="field"><label>Status</label><select id="qo-status-${id}" class="input"><option>Pending</option><option>In Progress</option><option>Ready</option><option>Delivered</option></select></div>
-<div class="field"><label>மொத்தம்</label><div id="qo-total-${id}" class="autoTotal">₹0.00</div></div>
-</div>
-<div class="customerActions" style="margin-top:10px"><button class="btn primary" onclick="saveQuickOrder('${id}')">💾 Save Order</button><button class="btn secondary" onclick="toggleQuickOrder('${id}')">Close</button></div>
-</div></div>
-<div class="customerSection"><h4>💵 Blouse Rate List</h4>
-<div class="rateGrid">
-<div class="rateBox"><label>Normal blouse</label><input id="rate-normal-${id}" type="number" min="0" step="1" value="${getRates().normal}"></div>
-<div class="rateBox"><label>Lining blouse</label><input id="rate-lining-${id}" type="number" min="0" step="1" value="${getRates().lining}"></div>
-<div class="rateBox"><label>Design blouse</label><input id="rate-design-${id}" type="number" min="0" step="1" value="${getRates().design}"></div>
-</div>
-<div class="customerActions" style="margin-top:8px"><button class="btn secondary" onclick="saveRates('${id}')">💾 Rate list Save</button></div>
-</div>
-<div class="customerSection"><h4>⏰ Delivery Reminder</h4>${customerReminderHTML(s.os)}<div class="reminderSettings" style="margin-top:8px"><div class="field"><label class="mini">Reminder time</label><input class="input" type="time" id="remtime-${id}" value="${localStorage.getItem("nf_reminder_time")||"09:00"}"></div><button class="btn warning" onclick="saveReminderTime('${id}')">🔔 Daily Reminder</button></div></div>
-<div class="customerSection"><h4>🎨 இந்த customer-ன் Blouse Design</h4>
-<div class="customerActions" style="margin-bottom:8px"><label class="btn secondary" style="display:inline-block">📷 Phone-லிருந்து Upload<input type="file" accept="image/*" style="display:none" onchange="uploadCustomerDesign('${id}',this.files[0])"></label><button class="btn secondary" onclick="searchDesignForCustomer('${id}')">🔎 Net-ல் Search</button></div>
-<div id="customer-design-search-${id}" class="hidden" style="margin-bottom:8px"><div class="toolbar"><input class="input search" id="customer-design-q-${id}" placeholder="blouse design search"><button class="btn primary" onclick="runCustomerDesignSearch('${id}')">Search</button></div><div id="customer-design-results-${id}" class="customerDesignGrid"></div></div>
-<div class="customerDesignGrid">${designHtml}</div>
-</div>
-<div class="customerSection"><h4>🧵 Recent Orders</h4>${ordersHtml}</div>
-</article>`;
+ const c=state.customers.find(x=>x.id===id),st=customerStats(id),designs=customerDesigns(id);
+ const village=c.village||localStorage.getItem("nf_village_"+id)||"",address=c.address||"முகவரி இல்லை";
+ const designHtml=designs.length?designs.slice(0,9).map(d=>`<div class="customerDesignThumb">${d.src?`<img src="${esc(d.src)}" alt="${esc(d.name||"Design")}">`:`<div class="photoPlaceholder" style="height:100%">No photo</div>`}<span>${esc(d.name||"Design")}</span></div>`).join(""):`<div class="mini">இந்த customer-க்கு design save செய்யவில்லை.</div>`;
+ const ordersHtml=st.os.slice().sort((a,b)=>String(b.created_at||"").localeCompare(String(a.created_at||""))).slice(0,8).map(o=>{
+  const d=dueInfo(o),rem=d?(d.kind==="late"?`<span class="pill bad">${d.days} நாள் late</span>`:d.kind==="today"?`<span class="pill warn">இன்று</span>`:`<span class="pill">${d.days} நாள்</span>`):"";
+  const lining=o.lining_cloth_source?`<br><span class="mini">🧵 Lining cloth: ${o.lining_cloth_source==="customer"?"Customer கொடுத்தது":"நாம் வாங்கியது"} · ${Number(o.lining_cloth_qty||0)}</span>`:"";
+  return `<div class="customerOrderLine"><b>${esc(o.order_no)}</b> · ${esc(o.garment_type)} · ${Number(o.quantity||0)} pcs ${rem}<br><span class="mini">துணி: ${dateText(o.cloth_received_date)} · Delivery: ${dateText(o.delivery_date)} · ${esc(rateLabel(String(o.rate_type||"normal")))} · Rate: ${money(o.unit_price)} · Balance: ${money(o.balance_amount)}</span>${lining}${o.notes?`<br><span class="mini">📝 ${esc(o.notes)}</span>`:""}<div class="orderActions"><button class="btn success" onclick="markDelivered('${o.id}')">Delivered</button><button class="btn secondary" onclick="openModal('order','${o.id}')">Edit</button></div></div>`;
+ }).join("")||`<div class="mini">இன்னும் order இல்லை.</div>`;
+ return `<article class="customerCard" id="customer-card-${id}">
+ <div class="customerCardHead"><div class="customerAvatar">👤</div><div style="flex:1"><h3>${esc(c.name)}</h3><p>📞 ${esc(c.phone||"Phone இல்லை")} · 📍 ${esc(village||"ஊர் இல்லை")}</p><p>🏠 ${esc(address)}</p><p>${esc(c.notes||"")}</p></div><button class="btn secondary" onclick="openModal('customer','${id}')">Edit</button></div>
+ <div class="customerStats"><div class="customerStat"><b>${st.given}</b><span>கஸ்டமர் கொடுத்த blouse</span></div><div class="customerStat"><b>${st.delivered}</b><span>நாம் கொடுத்தது</span></div><div class="customerStat"><b>${st.pending}</b><span>Pending blouse</span></div></div>
+ <div class="customerClothGrid"><div class="clothStat"><b>${st.normal}</b><span>Normal blouse</span></div><div class="clothStat"><b>${st.lining}</b><span>Lining blouse</span></div><div class="clothStat"><b>${st.design}</b><span>Design blouse</span></div><div class="clothStat"><b>${st.liningCustomer}</b><span>Lining cloth — Customer</span></div><div class="clothStat"><b>${st.liningShop}</b><span>Lining cloth — நாம் வாங்கியது</span></div></div>
+ <div class="customerMoneyGrid"><div class="moneyStat"><b>${money(st.total)}</b><span>மொத்த order</span></div><div class="moneyStat"><b>${money(st.paid)}</b><span>Customer paid</span></div><div class="moneyStat"><b>${money(st.advance)}</b><span>Advance வாங்கியது</span></div><div class="moneyStat clickable" onclick="goView('payments')"><b>${money(st.balance)}</b><span>இன்னும் கொடுக்க வேண்டும்</span></div></div>
+ <div class="customerSection"><h4>🧾 New Order — இந்த customer card-லேயே</h4><div class="customerActions"><button class="btn primary" onclick="toggleQuickOrder('${id}')">＋ New Order</button><button class="btn secondary" onclick="openCustomerMeasurement('${id}')">📏 Measurement</button><button class="btn success" onclick="openCustomerPayment('${id}')">💰 Payment</button></div>
+ <div id="quick-order-${id}" class="hidden" style="margin-top:10px;background:#faf8f6;border:1px solid var(--line);border-radius:13px;padding:12px"><div class="formgrid">
+ <div class="field"><label>Garment / Blouse</label><input id="qo-garment-${id}" class="input" value="Blouse"></div><div class="field"><label>துணி கொடுத்த தேதி</label><input id="qo-cloth-${id}" class="input" type="date" value="${localDate()}"></div><div class="field"><label>Delivery Date</label><input id="qo-delivery-${id}" class="input" type="date"></div><div class="field"><label>எத்தனை blouse</label><input id="qo-qty-${id}" class="input" type="number" min="1" step="1" value="1"></div>
+ <div class="field"><label>Blouse type</label><select id="qo-rate-type-${id}" class="input" onchange="updateQuickRate('${id}')"><option value="normal">Normal blouse</option><option value="lining">Lining blouse</option><option value="design">Design blouse</option></select></div><div class="field"><label>ஒரு blouse விலை</label><input id="qo-price-${id}" class="input" type="number" min="0" step="0.01" value="${rateForType("normal")}"></div>
+ <div class="field"><label>Lining cloth</label><select id="qo-lining-${id}" class="input"><option value="">தேவையில்லை</option><option value="customer">Customer கொடுத்தது</option><option value="shop">நாம் வாங்கியது</option></select></div><div class="field"><label>Lining cloth எத்தனை</label><input id="qo-lining-qty-${id}" class="input" type="number" min="0" step="1" value="0"></div>
+ <div class="field"><label>Advance வாங்கியது</label><input id="qo-advance-${id}" class="input" type="number" min="0" step="0.01" value="0"></div><div class="field"><label>Status</label><select id="qo-status-${id}" class="input"><option>Pending</option><option>In Progress</option><option>Ready</option><option>Delivered</option></select></div><div class="field"><label>மொத்தம்</label><div id="qo-total-${id}" class="autoTotal">₹0.00</div></div>
+ </div><div class="customerActions" style="margin-top:10px"><button class="btn primary" onclick="saveQuickOrder('${id}')">💾 Save Order</button><button class="btn secondary" onclick="toggleQuickOrder('${id}')">Close</button></div></div></div>
+ <div class="customerSection"><h4>💵 Blouse Rate List</h4><div class="rateGrid"><div class="rateBox"><label>Normal blouse</label><input id="rate-normal-${id}" type="number" min="0" step="1" value="${getRates().normal}"></div><div class="rateBox"><label>Lining blouse</label><input id="rate-lining-${id}" type="number" min="0" step="1" value="${getRates().lining}"></div><div class="rateBox"><label>Design blouse</label><input id="rate-design-${id}" type="number" min="0" step="1" value="${getRates().design}"></div></div><div class="customerActions" style="margin-top:8px"><button class="btn secondary" onclick="saveRates('${id}')">💾 Rate list Save</button></div></div>
+ <div class="customerSection"><h4>⏰ Delivery Reminder</h4>${customerReminderHTML(st.os)}<div class="reminderSettings" style="margin-top:8px"><div class="field"><label class="mini">Reminder time</label><input class="input" type="time" id="remtime-${id}" value="${localStorage.getItem("nf_reminder_time")||"09:00"}"></div><button class="btn warning" onclick="saveReminderTime('${id}')">🔔 Daily Reminder</button></div></div>
+ <div class="customerSection"><h4>🎨 இந்த customer-ன் Blouse Design</h4><div class="customerActions" style="margin-bottom:8px"><label class="btn secondary" style="display:inline-block">📷 Phone Gallery / Camera<input type="file" accept="image/*" style="display:none" onchange="uploadCustomerDesign('${id}',this.files[0])"></label><button class="btn secondary" onclick="searchDesignForCustomer('${id}')">🔎 Net-ல் Search</button></div><div id="customer-design-search-${id}" class="hidden" style="margin-bottom:8px"><div class="toolbar"><input class="input search" id="customer-design-q-${id}" placeholder="blouse design search"><button class="btn primary" onclick="runCustomerDesignSearch('${id}')">Search</button></div><div id="customer-design-results-${id}" class="customerDesignGrid"></div></div><div class="customerDesignGrid">${designHtml}</div></div>
+ <div class="customerSection"><h4>🧵 Recent Orders</h4>${ordersHtml}</div>
+ </article>`;
 }
 function renderCustomers(){
 const q=($("customerSearch").value||"").toLowerCase();
@@ -571,8 +579,8 @@ measurement:{title:"Measurement",table:"measurements",fields:[["customer_id","Cu
 order:{title:"Order",table:"orders",fields:[
 ["customer_id","Customer","customer",true],["order_no","Order No","text",true],["garment_type","Garment Type","text",true],
 ["order_date","Order Date","date",true],["cloth_received_date","துணி பெற்ற / கொடுத்த தேதி","date"],
-["delivery_date","Delivery Date","date",true],["quantity","Quantity / Pieces","number",true],["unit_price","ஒரு blouse / piece விலை","number",true],
-["total_amount","மொத்த தொகை","number",true],["advance_amount","Advance / Paid","number",true],["status","Status","orderstatus",true],["notes","Notes","textarea"]
+["delivery_date","Delivery Date","date",true],["quantity","Quantity / Pieces","number",true],["rate_type","Blouse Type","ratetype",true],["unit_price","ஒரு blouse / piece விலை","number",true],
+["lining_cloth_source","Lining cloth","liningSource"],["lining_cloth_qty","Lining cloth quantity","number"],["total_amount","மொத்த தொகை","number",true],["advance_amount","Advance / Paid","number",true],["status","Status","orderstatus",true],["notes","Notes","textarea"]
 ]},
 alteration:{title:"Alteration",table:"alterations",fields:[["customer_id","Customer","customer",true],["order_id","Order","order"],["alteration_details","Alteration Details","textarea",true],["alteration_date","Alteration Date","date",true],["delivery_date","Delivery Date","date"],["status","Status","alterstatus",true],["amount","Amount","number"],["notes","Notes","textarea"]]},
 payment:{title:"Payment",table:"payments",fields:[["order_id","Order","order",true],["payment_date","Payment Date","date",true],["amount","Amount","number",true],["payment_method","Payment Method","paymentmethod",true],["reference_no","Reference No","text"],["notes","Notes","textarea"]]},
@@ -584,8 +592,8 @@ const [key,label,type,required]=f,v=val??"";
 if(type==="textarea")return `<div class="field full"><label>${label}</label><textarea class="input" name="${key}" ${required?"required":""}>${esc(v)}</textarea></div>`;
 if(type==="customer")return `<div class="field"><label>${label}</label><select class="input" name="${key}" ${required?"required":""}><option value="">Select customer</option>${state.customers.map(c=>`<option value="${c.id}" ${v===c.id?"selected":""}>${esc(c.name)}${c.phone?" — "+esc(c.phone):""}</option>`).join("")}</select></div>`;
 if(type==="order")return `<div class="field"><label>${label}</label><select class="input" name="${key}" ${required?"required":""}><option value="">Select order</option>${state.orders.map(o=>`<option value="${o.id}" ${v===o.id?"selected":""}>${esc(o.order_no)} — ${esc(customerName(o.customer_id))}</option>`).join("")}</select></div>`;
-const opts={orderstatus:["Pending","In Progress","Ready","Delivered","Cancelled"],alterstatus:["Pending","In Progress","Ready","Completed","Cancelled"],paymentmethod:["Cash","UPI","Card","Bank Transfer","Other"]};
-if(opts[type])return `<div class="field"><label>${label}</label><select class="input" name="${key}" ${required?"required":""}>${opts[type].map(o=>`<option ${v===o?"selected":""}>${o}</option>`).join("")}</select></div>`;
+const opts={orderstatus:["Pending","In Progress","Ready","Delivered","Cancelled"],alterstatus:["Pending","In Progress","Ready","Completed","Cancelled"],paymentmethod:["Cash","UPI","Card","Bank Transfer","Other"],ratetype:["normal","lining","design"],liningSource:["","customer","shop"]};
+if(opts[type]){const labels={normal:"Normal blouse",lining:"Lining blouse",design:"Design blouse","":"தேவையில்லை",customer:"Customer கொடுத்தது",shop:"நாம் வாங்கியது"};return `<div class="field"><label>${label}</label><select class="input" name="${key}" ${required?"required":""}>${opts[type].map(o=>`<option value="${esc(o)}" ${v===o?"selected":""}>${esc(labels[o]??o)}</option>`).join("")}</select></div>`;}
 return `<div class="field"><label>${label}</label><input class="input" name="${key}" type="${type}" value="${esc(v)}" ${required?"required":""} ${type==="number"?'step="0.01" min="0"':''}></div>`;
 }
 
@@ -613,7 +621,8 @@ let val=row?.[f[0]];
 if(val==null&&["order_date","alteration_date","payment_date"].includes(f[0]))val=today;
 if(val==null&&f[0]==="status")val="Pending";
 if(val==null&&["quantity"].includes(f[0]))val=1;
-if(val==null&&["total_amount","advance_amount","amount","price","unit_price"].includes(f[0]))val=0;
+if(val==null&&["total_amount","advance_amount","amount","price","unit_price","lining_cloth_qty"].includes(f[0]))val=0;
+ if(val==null&&f[0]==="rate_type")val="normal";
 return inputHTML(f,val);
  }).join("");
 if(type==="design"){
@@ -657,9 +666,12 @@ const {type,id}=state.editing,def=formDefs[type],fd=new FormData(e.target),paylo
 def.fields.forEach(f=>{let v=fd.get(f[0]);if(v==="")v=null;if(f[2]==="number"&&v!==null)v=Number(v);if(!(type==="customer"&&f[0]==="village"))payload[f[0]]=v});
 if(type==="design" && $("designPhotoFile")?.dataset.dataUrl)payload.image_url=$("designPhotoFile").dataset.dataUrl;
 if(type==="order"){
-payload.total_amount=Math.max(0,Number(payload.quantity||0)*Number(payload.unit_price||0));
-payload.balance_amount=Math.max(0,payload.total_amount-Number(payload.advance_amount||0));
-if(!payload.status)payload.status="Pending";
+ payload.total_amount=Math.max(0,Number(payload.quantity||0)*Number(payload.unit_price||0));
+ payload.balance_amount=Math.max(0,payload.total_amount-Number(payload.advance_amount||0));
+ if(!payload.status)payload.status="Pending";
+ if(!payload.rate_type)payload.rate_type="normal";
+ if(!payload.lining_cloth_source)payload.lining_cloth_source=null;
+ if(payload.lining_cloth_qty==null)payload.lining_cloth_qty=0;
 }
 const b=$("saveBtn");b.disabled=true;b.textContent="Saving...";
 try{
@@ -717,6 +729,7 @@ const body=`🚨 Late: ${late.length} | 🔔 Today: ${dueToday.length} | ⏰ Nex
 try{new Notification("New Fashion Tailoring — Daily Reminder",{body,icon:""});localStorage.setItem("nf_last_reminder_date",today)}catch{}
 }
 function enableDailyNotifications(){requestNotificationPermission().then(p=>{if(p==="granted"){localStorage.setItem("nf_notification_enabled","1");runPhoneReminders();toast("Phone notification permission enabled.")}else toast("Notification permission கிடைக்கவில்லை.",true)})}
+updateBackButton();
 supabaseClient.auth.onAuthStateChange((_event,session)=>{if(session?.user){showApp(session.user);setTimeout(()=>loadAll(true),0)}else showLogin()});
 (async()=>{const {data}=await supabaseClient.auth.getSession();if(data?.session?.user){showApp(data.session.user);await loadAll(true)}else showLogin()})();
 </script>
