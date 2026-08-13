@@ -1,223 +1,360 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>New Fashion Tailoring Industry</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<style>
-*{box-sizing:border-box}
-body{margin:0;min-height:100vh;font-family:Arial,sans-serif;background:#f5f0e9;color:#211b22}
-.wrap{width:min(94%,560px);margin:35px auto}
-.card{background:#fff;border:1px solid #ddd5cc;border-radius:28px;padding:34px 30px;box-shadow:0 10px 30px rgba(0,0,0,.06)}
-h1{margin:0;font-size:clamp(32px,8vw,52px);line-height:1.05;font-weight:800}
-.gold{margin:10px 0 0;color:#d5a948;font-size:clamp(28px,7vw,46px);line-height:1.05;font-weight:800}
-.sub{margin:32px 0 42px;color:#777176;font-size:clamp(24px,6vw,34px)}
-label{display:block;margin:0 0 10px;font-size:20px;font-weight:700}
-input{width:100%;height:66px;margin-bottom:24px;padding:0 18px;border:1px solid #d4cec8;border-radius:18px;font-size:18px;outline:none}
-input:focus{border-color:#b13d63;box-shadow:0 0 0 3px rgba(177,61,99,.12)}
-button{width:100%;min-height:62px;border:0;border-radius:18px;padding:14px 18px;font-size:19px;font-weight:700;cursor:pointer}
-#loginBtn{background:#b13d63;color:#fff}
-#loginBtn:disabled{opacity:.65;cursor:wait}
-.msg{min-height:24px;margin-top:16px;text-align:center;font-size:15px;line-height:1.4}
-.err{color:#c62828}.ok{color:#218838}.hidden{display:none!important}
-.dash-header{display:flex;justify-content:space-between;gap:15px;align-items:center;margin-bottom:24px}
-.dash-header h2{margin:0;font-size:30px}
-.user-email{margin-top:7px;color:#777176;word-break:break-word}
-#logoutBtn{width:auto;min-width:110px;background:#eee7e1;color:#7d2946}
-.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-top:25px}
-.stat{padding:22px;background:#faf8f6;border:1px solid #e2dcd5;border-radius:18px}
-.stat-title{color:#777176;font-size:15px;margin-bottom:10px}
-.stat-number{font-size:30px;font-weight:800}
-#refreshBtn{margin-top:20px;background:#2f6f59;color:white}
-@media(max-width:480px){.wrap{margin:18px auto}.card{padding:26px 20px;border-radius:22px}.dash-header{align-items:flex-start;flex-direction:column}#logoutBtn{width:100%}.stats{grid-template-columns:1fr}}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>New Fashion Tailoring Industry</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Arial, Helvetica, sans-serif;
+      background: #f6f1eb;
+      color: #241d25;
+    }
+    .wrap {
+      width: min(920px, calc(100% - 28px));
+      margin: 28px auto;
+    }
+    .card {
+      background: #fff;
+      border: 1px solid #ded7d0;
+      border-radius: 28px;
+      padding: 30px;
+      box-shadow: 0 12px 35px rgba(0,0,0,.07);
+    }
+    h1 {
+      margin: 0;
+      font-size: clamp(30px, 7vw, 54px);
+      line-height: 1;
+      letter-spacing: -1px;
+    }
+    .gold {
+      color: #d4aa4f;
+      margin-top: 14px;
+      font-size: clamp(28px, 6vw, 48px);
+      font-weight: 800;
+    }
+    .sub {
+      color: #6f6a6e;
+      font-size: 22px;
+      margin: 34px 0 26px;
+    }
+    label {
+      display: block;
+      font-weight: 700;
+      font-size: 18px;
+      margin: 18px 0 8px;
+    }
+    input {
+      width: 100%;
+      padding: 17px 18px;
+      border: 1px solid #d5d0ca;
+      border-radius: 16px;
+      font-size: 17px;
+      outline: none;
+      background: #fff;
+    }
+    input:focus { border-color: #b23e62; box-shadow: 0 0 0 3px rgba(178,62,98,.12); }
+    .password-row { position: relative; }
+    .toggle {
+      position: absolute;
+      right: 10px;
+      top: 9px;
+      border: 0;
+      background: transparent;
+      padding: 10px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    button {
+      border: 0;
+      border-radius: 16px;
+      padding: 16px 20px;
+      font-size: 17px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .login {
+      width: 100%;
+      margin-top: 24px;
+      background: #b23e62;
+      color: #fff;
+    }
+    button:disabled { opacity: .65; cursor: not-allowed; }
+    .msg {
+      min-height: 24px;
+      margin-top: 14px;
+      font-size: 15px;
+      font-weight: 600;
+    }
+    .err { color: #b42318; }
+    .ok { color: #16794c; }
+    .hidden { display: none !important; }
+    .dash-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 15px;
+      flex-wrap: wrap;
+    }
+    .dash-head h2 { margin: 0; font-size: 30px; }
+    .email { color: #6f6a6e; margin-top: 7px; word-break: break-word; }
+    .actions { display: flex; gap: 10px; }
+    .refresh { background: #eee9e4; color: #241d25; }
+    .logout { background: #b23e62; color: #fff; }
+    .status {
+      margin-top: 24px;
+      padding: 13px 16px;
+      border-radius: 14px;
+      background: #f1f8f4;
+      color: #16794c;
+      font-weight: 700;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0,1fr));
+      gap: 16px;
+      margin-top: 22px;
+    }
+    .stat {
+      border: 1px solid #e0dad4;
+      border-radius: 18px;
+      padding: 20px;
+      background: #fff;
+    }
+    .stat-title { color: #6f6a6e; font-weight: 700; }
+    .stat-number { font-size: 34px; font-weight: 800; margin-top: 8px; }
+    .note {
+      margin-top: 22px;
+      padding: 16px;
+      border-radius: 14px;
+      background: #faf7f3;
+      color: #625c60;
+      line-height: 1.5;
+    }
+    @media (max-width: 600px) {
+      .wrap { width: min(100% - 16px, 920px); margin: 8px auto; }
+      .card { padding: 22px; border-radius: 22px; }
+      .grid { grid-template-columns: 1fr; }
+      .actions { width: 100%; }
+      .actions button { flex: 1; }
+    }
+  </style>
 </head>
 <body>
-<main class="wrap">
+  <main class="wrap">
+    <section id="loginCard" class="card">
+      <h1>NEW FASHION</h1>
+      <div class="gold">TAILORING INDUSTRY</div>
+      <div class="sub">Mobile Tailoring Software</div>
 
-<section id="loginCard" class="card">
-<h1>NEW FASHION</h1>
-<div class="gold">TAILORING INDUSTRY</div>
-<div class="sub">Mobile Tailoring Software</div>
+      <form id="loginForm" novalidate>
+        <label for="email">Email</label>
+        <input id="email" type="email" autocomplete="email" placeholder="உங்கள் Email" required>
 
-<form id="loginForm">
-<label for="email">Email</label>
-<input id="email" type="email" placeholder="உங்கள் Email" autocomplete="email" required>
+        <label for="password">Password</label>
+        <div class="password-row">
+          <input id="password" type="password" autocomplete="current-password" placeholder="Password" required>
+          <button id="togglePassword" class="toggle" type="button" aria-label="Show password">👁️</button>
+        </div>
 
-<label for="password">Password</label>
-<input id="password" type="password" placeholder="Password" autocomplete="current-password" required>
+        <button id="loginBtn" class="login" type="submit">🔐 LOGIN</button>
+        <div id="loginMsg" class="msg" aria-live="polite"></div>
+      </form>
+    </section>
 
-<button id="loginBtn" type="submit">🔐 LOGIN</button>
-</form>
-<div id="loginMsg" class="msg"></div>
-</section>
+    <section id="dashboard" class="card hidden">
+      <div class="dash-head">
+        <div>
+          <h2>NEW FASHION TAILORING</h2>
+          <div id="userEmail" class="email"></div>
+        </div>
+        <div class="actions">
+          <button id="refreshBtn" class="refresh" type="button">↻ Refresh</button>
+          <button id="logoutBtn" class="logout" type="button">LOGOUT</button>
+        </div>
+      </div>
 
-<section id="dashboard" class="card hidden">
-<div class="dash-header">
-<div>
-<h2>Tailoring Dashboard</h2>
-<div id="userEmail" class="user-email"></div>
-</div>
-<button id="logoutBtn" type="button">LOGOUT</button>
-</div>
+      <div id="dashMsg" class="status">✓ Logged in successfully</div>
 
-<div class="stats">
-<div class="stat"><div class="stat-title">Customers</div><div class="stat-number">0</div></div>
-<div class="stat"><div class="stat-title">Payments</div><div class="stat-number">0</div></div>
-<div class="stat"><div class="stat-title">Alterations</div><div class="stat-number">0</div></div>
-<div class="stat"><div class="stat-title">Designs</div><div class="stat-number">0</div></div>
-</div>
+      <div class="grid">
+        <div class="stat">
+          <div class="stat-title">Customers</div>
+          <div class="stat-number">—</div>
+        </div>
+        <div class="stat">
+          <div class="stat-title">Payments</div>
+          <div class="stat-number">—</div>
+        </div>
+        <div class="stat">
+          <div class="stat-title">Alterations</div>
+          <div class="stat-number">—</div>
+        </div>
+        <div class="stat">
+          <div class="stat-title">Designs</div>
+          <div class="stat-number">—</div>
+        </div>
+      </div>
 
-<button id="refreshBtn" type="button">🔄 Refresh Dashboard</button>
-<div id="dashMsg" class="msg"></div>
-</section>
+      <div class="note">
+        Login and logout are connected to Supabase Authentication.
+        The dashboard cards are intentionally left without database queries until the exact table names are confirmed.
+      </div>
+    </section>
+  </main>
 
-</main>
+  <script>
+    const SUPABASE_URL = "https://yjkyflusegxaqfvpeklb.supabase.co";
+    const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_-NK1gubUvsc47KKDV8DNKQ_I5pbx-sR";
 
-<script>
-/* SUPABASE CONFIGURATION
-   Replace only the two values below.
-   Use your Project URL and Publishable key.
-   Do NOT use a secret/service_role key in this page.
-*/
-const SUPABASE_URL = "https://yjkyflusegxaqfvpeklb.supabase.co";
-const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_-NK1gubUvsc47KKDV8DNKQ_I5pbx-sR";
+    const supabaseClient = window.supabase.createClient(
+      SUPABASE_URL,
+      SUPABASE_PUBLISHABLE_KEY
+    );
 
-const supabaseClient = window.supabase.createClient(
-  SUPABASE_URL,
-  SUPABASE_PUBLISHABLE_KEY
-);
+    const loginCard = document.getElementById("loginCard");
+    const dashboard = document.getElementById("dashboard");
+    const loginForm = document.getElementById("loginForm");
+    const emailInput = document.getElementById("email");
+    const passwordInput = document.getElementById("password");
+    const loginBtn = document.getElementById("loginBtn");
+    const loginMsg = document.getElementById("loginMsg");
+    const togglePassword = document.getElementById("togglePassword");
+    const logoutBtn = document.getElementById("logoutBtn");
+    const refreshBtn = document.getElementById("refreshBtn");
+    const userEmail = document.getElementById("userEmail");
+    const dashMsg = document.getElementById("dashMsg");
 
-const loginCard = document.getElementById("loginCard");
-const dashboard = document.getElementById("dashboard");
-const loginForm = document.getElementById("loginForm");
-const loginBtn = document.getElementById("loginBtn");
-const logoutBtn = document.getElementById("logoutBtn");
-const refreshBtn = document.getElementById("refreshBtn");
-const loginMsg = document.getElementById("loginMsg");
-const dashMsg = document.getElementById("dashMsg");
-const userEmail = document.getElementById("userEmail");
+    function showLogin() {
+      loginCard.classList.remove("hidden");
+      dashboard.classList.add("hidden");
+      userEmail.textContent = "";
+    }
 
-function showLogin(){
-  loginCard.classList.remove("hidden");
-  dashboard.classList.add("hidden");
-}
+    function showDashboard(user) {
+      loginCard.classList.add("hidden");
+      dashboard.classList.remove("hidden");
+      userEmail.textContent = user && user.email ? user.email : "";
+      dashMsg.textContent = "✓ Logged in successfully";
+      dashMsg.className = "status";
+    }
 
-function showDashboard(user){
-  loginCard.classList.add("hidden");
-  dashboard.classList.remove("hidden");
-  userEmail.textContent = user && user.email ? user.email : "";
-}
+    function showLoginError(message) {
+      loginMsg.textContent = message;
+      loginMsg.className = "msg err";
+    }
 
-function setLoginMessage(text,isError){
-  loginMsg.textContent = text;
-  loginMsg.className = "msg " + (isError ? "err" : "ok");
-}
+    loginForm.addEventListener("submit", async function (event) {
+      event.preventDefault();
 
-function setDashMessage(text,isError){
-  dashMsg.textContent = text;
-  dashMsg.className = "msg " + (isError ? "err" : "ok");
-}
+      const email = emailInput.value.trim();
+      const password = passwordInput.value;
 
-loginForm.addEventListener("submit",async function(event){
-  event.preventDefault();
+      loginMsg.textContent = "";
+      loginMsg.className = "msg";
 
-  const email = document.getElementById("email").value.trim();
-  const password = document.getElementById("password").value;
+      if (!email || !password) {
+        showLoginError("Email மற்றும் Password இரண்டையும் உள்ளிடுங்கள்.");
+        return;
+      }
 
-  setLoginMessage("",false);
+      loginBtn.disabled = true;
+      loginBtn.textContent = "Logging in...";
 
-  if(!email || !password){
-    setLoginMessage("Email மற்றும் Password இரண்டையும் உள்ளிடுங்கள்.",true);
-    return;
-  }
+      try {
+        const result = await supabaseClient.auth.signInWithPassword({
+          email: email,
+          password: password
+        });
 
-  if(
-    !SUPABASE_URL ||
-    !SUPABASE_PUBLISHABLE_KEY ||
-    SUPABASE_URL === "YOUR_SUPABASE_URL" ||
-    SUPABASE_PUBLISHABLE_KEY === "YOUR_SUPABASE_PUBLISHABLE_KEY"
-  ){
-    setLoginMessage("Supabase configuration missing.",true);
-    return;
-  }
+        if (result.error) {
+          showLoginError("Login failed: " + result.error.message);
+          return;
+        }
 
-  loginBtn.disabled = true;
-  loginBtn.textContent = "Logging in...";
+        if (!result.data || !result.data.user) {
+          showLoginError("Login failed: User session was not returned.");
+          return;
+        }
 
-  try{
-    const {data,error} = await supabaseClient.auth.signInWithPassword({
-      email:email,
-      password:password
+        showDashboard(result.data.user);
+      } catch (error) {
+        showLoginError("Login failed: " + (error.message || "Unknown error"));
+      } finally {
+        loginBtn.disabled = false;
+        loginBtn.textContent = "🔐 LOGIN";
+      }
     });
 
-    if(error){
-      setLoginMessage("Login failed: " + error.message,true);
-      return;
-    }
+    togglePassword.addEventListener("click", function () {
+      const isPassword = passwordInput.type === "password";
+      passwordInput.type = isPassword ? "text" : "password";
+      togglePassword.textContent = isPassword ? "🙈" : "👁️";
+    });
 
-    if(data && data.user){
-      showDashboard(data.user);
-    }else{
-      setLoginMessage("Login செய்ய முடியவில்லை. மீண்டும் முயற்சி செய்யுங்கள்.",true);
-    }
-  }catch(error){
-    setLoginMessage("Login failed: " + (error.message || error),true);
-  }finally{
-    loginBtn.disabled = false;
-    loginBtn.textContent = "🔐 LOGIN";
-  }
-});
+    logoutBtn.addEventListener("click", async function () {
+      logoutBtn.disabled = true;
 
-logoutBtn.addEventListener("click",async function(){
-  logoutBtn.disabled = true;
+      try {
+        const result = await supabaseClient.auth.signOut();
 
-  const {error} = await supabaseClient.auth.signOut();
+        if (result.error) {
+          dashMsg.textContent = "Logout failed: " + result.error.message;
+          dashMsg.className = "status err";
+          return;
+        }
 
-  logoutBtn.disabled = false;
+        showLogin();
+        passwordInput.value = "";
+      } catch (error) {
+        dashMsg.textContent = "Logout failed: " + (error.message || "Unknown error");
+        dashMsg.className = "status err";
+      } finally {
+        logoutBtn.disabled = false;
+      }
+    });
 
-  if(error){
-    setDashMessage("Logout failed: " + error.message,true);
-    return;
-  }
+    refreshBtn.addEventListener("click", async function () {
+      const result = await supabaseClient.auth.getUser();
 
-  setDashMessage("",false);
-  showLogin();
-});
+      if (result.error || !result.data || !result.data.user) {
+        showLogin();
+        return;
+      }
 
-refreshBtn.addEventListener("click",function(){
-  setDashMessage("Dashboard refreshed.",false);
-});
+      showDashboard(result.data.user);
+      dashMsg.textContent = "✓ Session is active";
+    });
 
-supabaseClient.auth.onAuthStateChange(function(_event,session){
-  if(session && session.user){
-    showDashboard(session.user);
-  }else{
-    showLogin();
-  }
-});
+    supabaseClient.auth.onAuthStateChange(function (_event, session) {
+      if (session && session.user) {
+        showDashboard(session.user);
+      } else {
+        showLogin();
+      }
+    });
 
-async function startApp(){
-  try{
-    const {data,error} = await supabaseClient.auth.getSession();
+    (async function init() {
+      try {
+        const result = await supabaseClient.auth.getSession();
 
-    if(error){
-      showLogin();
-      return;
-    }
+        if (result.error) {
+          showLogin();
+          return;
+        }
 
-    if(data.session && data.session.user){
-      showDashboard(data.session.user);
-    }else{
-      showLogin();
-    }
-  }catch(error){
-    showLogin();
-  }
-}
-
-startApp();
-</script>
+        if (result.data && result.data.session && result.data.session.user) {
+          showDashboard(result.data.session.user);
+        } else {
+          showLogin();
+        }
+      } catch (error) {
+        showLogin();
+      }
+    })();
+  </script>
 </body>
 </html>
