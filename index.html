@@ -1,265 +1,160 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>New Fashion Tailoring Industry</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <style>
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      min-height: 100vh;
-      font-family: Arial, sans-serif;
-      background: #f6f1eb;
-      color: #241d25;
-    }
-    .wrap { width: min(900px, 94%); margin: 30px auto; }
-    .card {
-      background: #fff;
-      border: 1px solid #ddd6cf;
-      border-radius: 26px;
-      padding: 30px;
-      box-shadow: 0 10px 30px rgba(0,0,0,.07);
-    }
-    h1 { margin: 0; font-size: 44px; }
-    h2 { margin: 0; font-size: 30px; }
-    .gold { margin-top: 12px; color: #d4aa4f; font-size: 38px; font-weight: 800; }
-    .sub { margin: 28px 0; color: #706a6e; font-size: 22px; }
-    label { display: block; margin: 16px 0 8px; font-weight: 700; }
-    input {
-      width: 100%;
-      padding: 16px;
-      border: 1px solid #d5d0ca;
-      border-radius: 14px;
-      font-size: 17px;
-    }
-    button {
-      border: 0;
-      border-radius: 14px;
-      padding: 15px 20px;
-      font-size: 16px;
-      font-weight: 700;
-      cursor: pointer;
-    }
-    #loginBtn {
-      width: 100%;
-      margin-top: 22px;
-      background: #b23e62;
-      color: white;
-    }
-    .row { display: flex; gap: 10px; margin-top: 22px; }
-    .row button { flex: 1; }
-    #refreshBtn { background: #eee9e4; }
-    #logoutBtn { background: #b23e62; color: white; }
-    .msg { min-height: 24px; margin-top: 12px; font-weight: 600; }
-    .error { color: #b42318; }
-    .success { color: #16794c; }
-    .hidden { display: none; }
-    .email { color: #706a6e; margin-top: 8px; word-break: break-word; }
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 14px;
-      margin-top: 24px;
-    }
-    .stat {
-      padding: 20px;
-      border: 1px solid #e0dad4;
-      border-radius: 16px;
-    }
-    .stat-title { color: #706a6e; font-weight: 700; }
-    .stat-number { margin-top: 8px; font-size: 30px; font-weight: 800; }
-    @media (max-width: 600px) {
-      .wrap { width: 96%; margin: 10px auto; }
-      .card { padding: 22px; }
-      h1 { font-size: 34px; }
-      .gold { font-size: 29px; }
-      .grid { grid-template-columns: 1fr; }
-    }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>New Fashion Tailoring — Online Management</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--bg:#f5f1ed;--card:#fff;--text:#211b20;--muted:#746c70;--line:#e3ddd7;--brand:#b23e62;--gold:#c99d43;--ok:#16794c;--danger:#b42318;--shadow:0 12px 35px rgba(35,25,30,.08)}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,Arial,sans-serif}button,input,select,textarea{font:inherit}button{cursor:pointer}
+.hidden{display:none!important}.app{min-height:100vh}.topbar{height:68px;background:#211b20;color:#fff;display:flex;align-items:center;gap:16px;padding:0 20px;position:sticky;top:0;z-index:20}.topbar h1{font-size:20px;margin:0}.topbar small{color:#d9cdd2}.spacer{flex:1}.iconbtn{border:1px solid #4b4146;background:#30272c;color:#fff;border-radius:12px;width:42px;height:42px}.layout{display:grid;grid-template-columns:240px 1fr;min-height:calc(100vh - 68px)}.sidebar{background:#2b2227;color:#eee;padding:18px 12px}.navbtn{display:flex;width:100%;align-items:center;gap:11px;background:transparent;border:0;color:#ddd;padding:12px 13px;border-radius:11px;text-align:left;margin-bottom:5px}.navbtn:hover,.navbtn.active{background:#43343b;color:#fff}.sidebar .logout{margin-top:25px;background:#b23e62;color:#fff}.main{padding:24px;max-width:1500px;width:100%;margin:auto}.view{display:none}.view.active{display:block}.pagehead{display:flex;align-items:center;gap:12px;margin-bottom:18px}.pagehead h2{margin:0;font-size:28px}.pagehead p{margin:4px 0 0;color:var(--muted)}.card{background:var(--card);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);padding:20px}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}.stat{background:#fff;border:1px solid var(--line);border-radius:16px;padding:18px}.stat .label{color:var(--muted);font-weight:700}.stat .num{font-size:32px;font-weight:800;margin-top:8px}.quick{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:16px}.quick button{padding:18px;border:1px solid var(--line);background:#fff;border-radius:15px;text-align:left}.toolbar{display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap}.search{flex:1;min-width:220px}.input,select,textarea{width:100%;padding:12px 13px;border:1px solid #d5cec8;border-radius:11px;background:#fff;color:var(--text);outline:none}.input:focus,select:focus,textarea:focus{border-color:var(--brand);box-shadow:0 0 0 3px rgba(178,62,98,.10)}textarea{min-height:90px;resize:vertical}.btn{border:0;border-radius:11px;padding:11px 15px;font-weight:750}.primary{background:var(--brand);color:#fff}.secondary{background:#eee9e4;color:var(--text)}.danger{background:#fbe9e7;color:var(--danger)}.tablewrap{overflow:auto;border:1px solid var(--line);border-radius:14px}.table{width:100%;border-collapse:collapse;min-width:760px}.table th,.table td{padding:12px 13px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}.table th{background:#faf8f6;color:#5f575b;font-size:13px}.table tr:last-child td{border-bottom:0}.actions{display:flex;gap:6px;flex-wrap:wrap}.pill{display:inline-block;padding:5px 9px;border-radius:999px;background:#eee9e4;font-size:12px;font-weight:750}.pill.ok{background:#e8f6ef;color:var(--ok)}.pill.warn{background:#fff4d8;color:#7b5b00}.pill.bad{background:#fbe9e7;color:var(--danger)}.empty{text-align:center;padding:35px;color:var(--muted)}.modal{position:fixed;inset:0;background:rgba(20,15,18,.55);display:none;align-items:center;justify-content:center;padding:18px;z-index:50}.modal.open{display:flex}.modalbox{width:min(760px,100%);max-height:92vh;overflow:auto;background:#fff;border-radius:20px;padding:22px}.modalhead{display:flex;align-items:center;margin-bottom:16px}.modalhead h3{margin:0}.close{margin-left:auto;border:0;background:#eee9e4;border-radius:10px;width:38px;height:38px}.formgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:13px}.field.full{grid-column:1/-1}.field label{display:block;font-size:13px;font-weight:750;margin-bottom:6px}.modalfoot{display:flex;gap:9px;justify-content:flex-end;margin-top:18px}.toast{position:fixed;right:18px;bottom:18px;z-index:100;max-width:380px;padding:13px 16px;border-radius:12px;color:#fff;background:#30272c;box-shadow:var(--shadow);display:none}.toast.show{display:block}.toast.error{background:#9d2d22}.loginpage{min-height:100vh;display:grid;place-items:center;padding:20px;background:linear-gradient(135deg,#f6f1eb,#eadce1)}.loginbox{width:min(480px,100%);background:#fff;border:1px solid var(--line);border-radius:26px;padding:30px;box-shadow:0 20px 60px rgba(35,25,30,.12)}.brand{font-size:38px;font-weight:900}.gold{color:var(--gold);font-size:24px;font-weight:850;margin-top:6px}.sub{color:var(--muted);margin:9px 0 24px}.loginbox .field{margin-bottom:14px}.loginbox .btn{width:100%;padding:14px;margin-top:8px}.msg{min-height:22px;margin-top:10px;font-weight:650}.msg.error{color:var(--danger)}.msg.ok{color:var(--ok)}.mobileOnly{display:none}.userchip{font-size:13px;color:#e4d9de}.mini{font-size:12px;color:var(--muted)}@media(max-width:900px){.layout{grid-template-columns:1fr}.sidebar{position:fixed;left:0;top:68px;bottom:0;width:260px;transform:translateX(-105%);transition:.2s;z-index:30}.sidebar.open{transform:translateX(0)}.mobileOnly{display:block}.stats{grid-template-columns:repeat(2,1fr)}.quick{grid-template-columns:1fr}.main{padding:16px}}@media(max-width:560px){.topbar{padding:0 12px}.topbar h1{font-size:16px}.userchip{display:none}.stats{grid-template-columns:1fr 1fr}.stat .num{font-size:25px}.formgrid{grid-template-columns:1fr}.field.full{grid-column:auto}.pagehead h2{font-size:23px}.loginbox{padding:22px}.brand{font-size:31px}}
+</style>
 </head>
 <body>
-  <main class="wrap">
-    <section id="loginCard" class="card">
-      <h1>NEW FASHION</h1>
-      <div class="gold">TAILORING INDUSTRY</div>
-      <div class="sub">Mobile Tailoring Software</div>
+<div id="loginPage" class="loginpage">
+<section class="loginbox">
+<div class="brand">NEW FASHION</div><div class="gold">TAILORING INDUSTRY</div>
+<div class="sub">Online Tailoring Management Software</div>
+<form id="loginForm">
+<div class="field"><label>Email</label><input id="loginEmail" class="input" type="email" autocomplete="email" required placeholder="உங்கள் Email"></div>
+<div class="field"><label>Password</label><input id="loginPassword" class="input" type="password" autocomplete="current-password" required placeholder="Password"></div>
+<button class="btn primary" id="loginBtn" type="submit">🔐 LOGIN</button><div id="loginMsg" class="msg"></div>
+</form>
+<button id="forgotBtn" class="btn secondary" style="width:100%;margin-top:10px">Forgot password?</button>
+</section></div>
 
-      <form id="loginForm">
-        <label for="email">Email</label>
-        <input id="email" type="email" autocomplete="email" placeholder="உங்கள் Email">
+<div id="app" class="app hidden">
+<header class="topbar">
+<button id="menuBtn" class="iconbtn mobileOnly">☰</button>
+<div><h1>NEW FASHION TAILORING</h1><small>ONLINE MANAGEMENT</small></div>
+<div class="spacer"></div><div id="userChip" class="userchip"></div>
+<button id="reloadBtn" class="iconbtn" title="Refresh">↻</button><button id="logoutBtn" class="iconbtn" title="Logout">⎋</button>
+</header>
+<div class="layout">
+<aside id="sidebar" class="sidebar">
+<button class="navbtn active" data-view="dashboard">📊 Dashboard</button>
+<button class="navbtn" data-view="customers">👥 Customers</button>
+<button class="navbtn" data-view="measurements">📏 Measurements</button>
+<button class="navbtn" data-view="orders">🧾 Orders</button>
+<button class="navbtn" data-view="alterations">✏️ Alterations</button>
+<button class="navbtn" data-view="payments">💰 Payments</button>
+<button class="navbtn" data-view="designs">🎨 Designs</button>
+<button class="navbtn logout" id="sideLogout">⎋ Logout</button>
+</aside>
+<main class="main">
 
-        <label for="password">Password</label>
-        <input id="password" type="password" autocomplete="current-password" placeholder="Password">
+<section id="view-dashboard" class="view active">
+<div class="pagehead"><div><h2>Dashboard</h2><p>உங்கள் online tailoring data இங்கே தெரியும்.</p></div></div>
+<div class="stats">
+<div class="stat"><div class="label">Customers</div><div id="statCustomers" class="num">0</div></div>
+<div class="stat"><div class="label">Orders</div><div id="statOrders" class="num">0</div></div>
+<div class="stat"><div class="label">Pending Balance</div><div id="statBalance" class="num">₹0</div></div>
+<div class="stat"><div class="label">Payments</div><div id="statPayments" class="num">0</div></div>
+</div>
+<div class="quick">
+<button onclick="openModal('customer')"><b>➕ Add Customer</b><br><span class="mini">புதிய customer</span></button>
+<button onclick="openModal('order')"><b>➕ New Order</b><br><span class="mini">புதிய tailoring order</span></button>
+<button onclick="openModal('measurement')"><b>➕ Measurement</b><br><span class="mini">அளவு சேமிக்க</span></button>
+</div>
+<div class="card" style="margin-top:16px"><div class="pagehead"><div><h2 style="font-size:20px">Recent Orders</h2></div></div><div id="recentOrders"></div></div>
+</section>
 
-        <button id="loginBtn" type="submit">🔐 LOGIN</button>
-        <div id="loginMsg" class="msg"></div>
-      </form>
-    </section>
+<section id="view-customers" class="view">
+<div class="pagehead"><div><h2>Customers</h2><p>Customer details online database-ல் சேமிக்கப்படும்.</p></div><div class="spacer"></div><button class="btn primary" onclick="openModal('customer')">＋ Add Customer</button></div>
+<div class="card"><div class="toolbar"><input id="customerSearch" class="input search" placeholder="Search name / phone / address"><button class="btn secondary" onclick="loadAll()">↻ Refresh</button></div><div id="customersTable"></div></div>
+</section>
 
-    <section id="dashboard" class="card hidden">
-      <h2>NEW FASHION TAILORING</h2>
-      <div id="userEmail" class="email"></div>
-      <div id="dashMsg" class="msg success">Login successful</div>
+<section id="view-measurements" class="view">
+<div class="pagehead"><div><h2>Measurements</h2><p>Customer-wise measurements.</p></div><div class="spacer"></div><button class="btn primary" onclick="openModal('measurement')">＋ Add Measurement</button></div>
+<div class="card"><div class="toolbar"><input id="measurementSearch" class="input search" placeholder="Search customer / garment"><button class="btn secondary" onclick="loadAll()">↻ Refresh</button></div><div id="measurementsTable"></div></div>
+</section>
 
-      <div class="grid">
-        <div class="stat">
-          <div class="stat-title">Customers</div>
-          <div class="stat-number">—</div>
-        </div>
-        <div class="stat">
-          <div class="stat-title">Payments</div>
-          <div class="stat-number">—</div>
-        </div>
-        <div class="stat">
-          <div class="stat-title">Alterations</div>
-          <div class="stat-number">—</div>
-        </div>
-        <div class="stat">
-          <div class="stat-title">Designs</div>
-          <div class="stat-number">—</div>
-        </div>
-      </div>
+<section id="view-orders" class="view">
+<div class="pagehead"><div><h2>Orders</h2><p>Order, delivery, amount and status.</p></div><div class="spacer"></div><button class="btn primary" onclick="openModal('order')">＋ New Order</button></div>
+<div class="card"><div class="toolbar"><input id="orderSearch" class="input search" placeholder="Search order no / customer / garment"><select id="orderStatusFilter" style="max-width:180px"><option value="">All status</option><option>Pending</option><option>In Progress</option><option>Ready</option><option>Delivered</option><option>Cancelled</option></select><button class="btn secondary" onclick="loadAll()">↻ Refresh</button></div><div id="ordersTable"></div></div>
+</section>
 
-      <div class="row">
-        <button id="refreshBtn" type="button">↻ Refresh</button>
-        <button id="logoutBtn" type="button">LOGOUT</button>
-      </div>
-    </section>
-  </main>
+<section id="view-alterations" class="view">
+<div class="pagehead"><div><h2>Alterations</h2><p>Alteration work and delivery tracking.</p></div><div class="spacer"></div><button class="btn primary" onclick="openModal('alteration')">＋ Add Alteration</button></div>
+<div class="card"><div class="toolbar"><input id="alterationSearch" class="input search" placeholder="Search customer / details"><button class="btn secondary" onclick="loadAll()">↻ Refresh</button></div><div id="alterationsTable"></div></div>
+</section>
 
-  <script>
-    const SUPABASE_URL = "https://yjkyflusegxaqfvpeklb.supabase.co";
-    const SUPABASE_KEY = "sb_publishable_-NK1gubUvsc47KKDV8DNKQ_I5pbx-sR";
+<section id="view-payments" class="view">
+<div class="pagehead"><div><h2>Payments</h2><p>Online database-ல் payment history.</p></div><div class="spacer"></div><button class="btn primary" onclick="openModal('payment')">＋ Add Payment</button></div>
+<div class="card"><div class="toolbar"><input id="paymentSearch" class="input search" placeholder="Search order / payment method / reference"><button class="btn secondary" onclick="loadAll()">↻ Refresh</button></div><div id="paymentsTable"></div></div>
+</section>
 
-    const supabaseClient = window.supabase.createClient(
-      SUPABASE_URL,
-      SUPABASE_KEY
-    );
+<section id="view-designs" class="view">
+<div class="pagehead"><div><h2>Designs</h2><p>Design catalogue and prices.</p></div><div class="spacer"></div><button class="btn primary" onclick="openModal('design')">＋ Add Design</button></div>
+<div class="card"><div class="toolbar"><input id="designSearch" class="input search" placeholder="Search design no / name / category"><button class="btn secondary" onclick="loadAll()">↻ Refresh</button></div><div id="designsTable"></div></div>
+</section>
 
-    const loginCard = document.getElementById("loginCard");
-    const dashboard = document.getElementById("dashboard");
-    const loginForm = document.getElementById("loginForm");
-    const emailInput = document.getElementById("email");
-    const passwordInput = document.getElementById("password");
-    const loginBtn = document.getElementById("loginBtn");
-    const loginMsg = document.getElementById("loginMsg");
-    const userEmail = document.getElementById("userEmail");
-    const dashMsg = document.getElementById("dashMsg");
-    const refreshBtn = document.getElementById("refreshBtn");
-    const logoutBtn = document.getElementById("logoutBtn");
+</main></div></div>
 
-    function showLogin() {
-      loginCard.classList.remove("hidden");
-      dashboard.classList.add("hidden");
-    }
+<div id="modal" class="modal"><div class="modalbox">
+<div class="modalhead"><h3 id="modalTitle">Add</h3><button class="close" onclick="closeModal()">✕</button></div>
+<form id="dataForm"><div id="formFields" class="formgrid"></div>
+<div class="modalfoot"><button type="button" class="btn secondary" onclick="closeModal()">Cancel</button><button id="saveBtn" type="submit" class="btn primary">Save</button></div>
+<div id="formMsg" class="msg"></div></form>
+</div></div>
+<div id="toast" class="toast"></div>
 
-    function showDashboard(user) {
-      loginCard.classList.add("hidden");
-      dashboard.classList.remove("hidden");
-      userEmail.textContent = user && user.email ? user.email : "";
-    }
+<script>
+const SUPABASE_URL="https://pdlsicwzfmartkwcwozx.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY="sb_publishable_eCKne6Tzs6-QYSXpJb-aSQ_6AHe8n9O";
+const supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+const state={user:null,customers:[],orders:[],measurements:[],alterations:[],payments:[],designs:[],editing:null};
+const $=id=>document.getElementById(id);
+const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
+const money=n=>"₹"+Number(n||0).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2});
+const dateText=v=>v?new Date(v+"T00:00:00").toLocaleDateString("en-IN"):"—";
+function toast(m,error=false){const t=$("toast");t.textContent=m;t.className="toast show"+(error?" error":"");clearTimeout(window.__toast);window.__toast=setTimeout(()=>t.className="toast",3000)}
+function showLogin(){state.user=null;$("app").classList.add("hidden");$("loginPage").classList.remove("hidden")}
+function showApp(u){state.user=u;$("loginPage").classList.add("hidden");$("app").classList.remove("hidden");$("userChip").textContent=u?.email||""}
+function setLoginMsg(m,error=false){$("loginMsg").textContent=m;$("loginMsg").className="msg "+(error?"error":"ok")}
 
-    function showError(message) {
-      loginMsg.textContent = message;
-      loginMsg.className = "msg error";
-    }
+$("loginForm").addEventListener("submit",async e=>{
+e.preventDefault();setLoginMsg("");const b=$("loginBtn");b.disabled=true;b.textContent="Logging in...";
+try{const {data,error}=await supabaseClient.auth.signInWithPassword({email:$("loginEmail").value.trim(),password:$("loginPassword").value});if(error)throw error;showApp(data.user);await loadAll();setLoginMsg("Login successful")}catch(err){setLoginMsg("Login failed: "+err.message,true)}finally{b.disabled=false;b.textContent="🔐 LOGIN"}});
+$("forgotBtn").addEventListener("click",async()=>{const email=$("loginEmail").value.trim();if(!email){setLoginMsg("முதலில் Email உள்ளிடுங்கள்.",true);return}const {error}=await supabaseClient.auth.resetPasswordForEmail(email,{redirectTo:location.href});if(error)setLoginMsg("Reset failed: "+error.message,true);else setLoginMsg("Password reset email அனுப்பப்பட்டது.")});
+async function logout(){const {error}=await supabaseClient.auth.signOut();if(error)toast(error.message,true);else showLogin()}
+$("logoutBtn").onclick=logout;$("sideLogout").onclick=logout;$("reloadBtn").onclick=()=>loadAll(true);
+$("menuBtn").onclick=()=>$("sidebar").classList.toggle("open");
+document.querySelectorAll(".navbtn[data-view]").forEach(b=>b.addEventListener("click",()=>{document.querySelectorAll(".navbtn[data-view]").forEach(x=>x.classList.remove("active"));b.classList.add("active");document.querySelectorAll(".view").forEach(x=>x.classList.remove("active"));$("view-"+b.dataset.view).classList.add("active");$("sidebar").classList.remove("open")}));
 
-    loginForm.addEventListener("submit", async function (event) {
-      event.preventDefault();
+async function getTable(name){const {data,error}=await supabaseClient.from(name).select("*").order("created_at",{ascending:false});if(error)throw new Error(name+": "+error.message);return data||[]}
+async function loadAll(silent=false){if(!state.user)return;try{const [customers,orders,measurements,alterations,payments,designs]=await Promise.all([getTable("customers"),getTable("orders"),getTable("measurements"),getTable("alterations"),getTable("payments"),getTable("designs")]);Object.assign(state,{customers,orders,measurements,alterations,payments,designs});renderAll();if(!silent)toast("Online data loaded")}catch(err){toast("Database load error: "+err.message,true)}}
+function customerName(id){return state.customers.find(x=>x.id===id)?.name||"Unknown"}
+function orderLabel(id){const o=state.orders.find(x=>x.id===id);return o?`${o.order_no} — ${customerName(o.customer_id)}`:"Unknown"}
+function statusPill(s){const c=["Delivered","Completed","Ready"].includes(s)?"ok":s==="Cancelled"?"bad":["Pending","In Progress"].includes(s)?"warn":"";return `<span class="pill ${c}">${esc(s)}</span>`}
 
-      const email = emailInput.value.trim();
-      const password = passwordInput.value;
+function renderDashboard(){$("statCustomers").textContent=state.customers.length;$("statOrders").textContent=state.orders.length;$("statPayments").textContent=state.payments.length;$("statBalance").textContent=money(state.orders.reduce((a,o)=>a+Number(o.balance_amount||0),0));const r=state.orders.slice(0,8);$("recentOrders").innerHTML=r.length?`<div class="tablewrap"><table class="table"><thead><tr><th>Order</th><th>Customer</th><th>Garment</th><th>Delivery</th><th>Status</th><th>Balance</th></tr></thead><tbody>${r.map(o=>`<tr><td>${esc(o.order_no)}</td><td>${esc(customerName(o.customer_id))}</td><td>${esc(o.garment_type)}</td><td>${dateText(o.delivery_date)}</td><td>${statusPill(o.status)}</td><td>${money(o.balance_amount)}</td></tr>`).join("")}</tbody></table></div>`:`<div class="empty">No orders yet.</div>`}
+function renderCustomers(){const q=($("customerSearch").value||"").toLowerCase(),r=state.customers.filter(x=>[x.name,x.phone,x.address].join(" ").toLowerCase().includes(q));$("customersTable").innerHTML=r.length?`<div class="tablewrap"><table class="table"><thead><tr><th>Name</th><th>Phone</th><th>Address</th><th>Notes</th><th>Created</th><th>Actions</th></tr></thead><tbody>${r.map(x=>`<tr><td><b>${esc(x.name)}</b></td><td>${esc(x.phone)}</td><td>${esc(x.address)}</td><td>${esc(x.notes)}</td><td>${dateText(x.created_at?.slice(0,10))}</td><td><div class="actions"><button class="btn secondary" onclick="openModal('customer','${x.id}')">Edit</button><button class="btn danger" onclick="removeRow('customers','${x.id}')">Delete</button></div></td></tr>`).join("")}</tbody></table></div>`:`<div class="empty">No customers found.</div>`}
+function renderMeasurements(){const q=($("measurementSearch").value||"").toLowerCase(),r=state.measurements.filter(x=>[customerName(x.customer_id),x.garment_type,x.notes].join(" ").toLowerCase().includes(q));$("measurementsTable").innerHTML=r.length?`<div class="tablewrap"><table class="table"><thead><tr><th>Customer</th><th>Garment</th><th>Chest</th><th>Waist</th><th>Shoulder</th><th>Length</th><th>Notes</th><th>Actions</th></tr></thead><tbody>${r.map(x=>`<tr><td>${esc(customerName(x.customer_id))}</td><td>${esc(x.garment_type)}</td><td>${x.chest??"—"}</td><td>${x.waist??"—"}</td><td>${x.shoulder??"—"}</td><td>${x.shirt_length??x.pant_length??"—"}</td><td>${esc(x.notes)}</td><td><div class="actions"><button class="btn secondary" onclick="openModal('measurement','${x.id}')">Edit</button><button class="btn danger" onclick="removeRow('measurements','${x.id}')">Delete</button></div></td></tr>`).join("")}</tbody></table></div>`:`<div class="empty">No measurements found.</div>`}
+function renderOrders(){const q=($("orderSearch").value||"").toLowerCase(),sf=$("orderStatusFilter").value,r=state.orders.filter(x=>(!sf||x.status===sf)&&[x.order_no,customerName(x.customer_id),x.garment_type,x.status].join(" ").toLowerCase().includes(q));$("ordersTable").innerHTML=r.length?`<div class="tablewrap"><table class="table"><thead><tr><th>Order No</th><th>Customer</th><th>Garment</th><th>Order</th><th>Delivery</th><th>Total</th><th>Advance</th><th>Balance</th><th>Status</th><th>Actions</th></tr></thead><tbody>${r.map(x=>`<tr><td><b>${esc(x.order_no)}</b></td><td>${esc(customerName(x.customer_id))}</td><td>${esc(x.garment_type)}</td><td>${dateText(x.order_date)}</td><td>${dateText(x.delivery_date)}</td><td>${money(x.total_amount)}</td><td>${money(x.advance_amount)}</td><td>${money(x.balance_amount)}</td><td>${statusPill(x.status)}</td><td><div class="actions"><button class="btn secondary" onclick="openModal('order','${x.id}')">Edit</button><button class="btn danger" onclick="removeRow('orders','${x.id}')">Delete</button></div></td></tr>`).join("")}</tbody></table></div>`:`<div class="empty">No orders found.</div>`}
+function renderAlterations(){const q=($("alterationSearch").value||"").toLowerCase(),r=state.alterations.filter(x=>[customerName(x.customer_id),x.alteration_details,x.status].join(" ").toLowerCase().includes(q));$("alterationsTable").innerHTML=r.length?`<div class="tablewrap"><table class="table"><thead><tr><th>Customer</th><th>Order</th><th>Details</th><th>Date</th><th>Delivery</th><th>Amount</th><th>Status</th><th>Actions</th></tr></thead><tbody>${r.map(x=>`<tr><td>${esc(customerName(x.customer_id))}</td><td>${esc(orderLabel(x.order_id))}</td><td>${esc(x.alteration_details)}</td><td>${dateText(x.alteration_date)}</td><td>${dateText(x.delivery_date)}</td><td>${money(x.amount)}</td><td>${statusPill(x.status)}</td><td><div class="actions"><button class="btn secondary" onclick="openModal('alteration','${x.id}')">Edit</button><button class="btn danger" onclick="removeRow('alterations','${x.id}')">Delete</button></div></td></tr>`).join("")}</tbody></table></div>`:`<div class="empty">No alterations found.</div>`}
+function renderPayments(){const q=($("paymentSearch").value||"").toLowerCase(),r=state.payments.filter(x=>[orderLabel(x.order_id),x.payment_method,x.reference_no].join(" ").toLowerCase().includes(q));$("paymentsTable").innerHTML=r.length?`<div class="tablewrap"><table class="table"><thead><tr><th>Order</th><th>Date</th><th>Amount</th><th>Method</th><th>Reference</th><th>Notes</th><th>Actions</th></tr></thead><tbody>${r.map(x=>`<tr><td>${esc(orderLabel(x.order_id))}</td><td>${dateText(x.payment_date)}</td><td><b>${money(x.amount)}</b></td><td>${esc(x.payment_method)}</td><td>${esc(x.reference_no)}</td><td>${esc(x.notes)}</td><td><div class="actions"><button class="btn secondary" onclick="openModal('payment','${x.id}')">Edit</button><button class="btn danger" onclick="removeRow('payments','${x.id}')">Delete</button></div></td></tr>`).join("")}</tbody></table></div>`:`<div class="empty">No payments found.</div>`}
+function renderDesigns(){const q=($("designSearch").value||"").toLowerCase(),r=state.designs.filter(x=>[x.design_no,x.design_name,x.category,x.description].join(" ").toLowerCase().includes(q));$("designsTable").innerHTML=r.length?`<div class="tablewrap"><table class="table"><thead><tr><th>Design No</th><th>Name</th><th>Category</th><th>Description</th><th>Price</th><th>Actions</th></tr></thead><tbody>${r.map(x=>`<tr><td>${esc(x.design_no)}</td><td><b>${esc(x.design_name)}</b></td><td>${esc(x.category)}</td><td>${esc(x.description)}</td><td>${money(x.price)}</td><td><div class="actions"><button class="btn secondary" onclick="openModal('design','${x.id}')">Edit</button><button class="btn danger" onclick="removeRow('designs','${x.id}')">Delete</button></div></td></tr>`).join("")}</tbody></table></div>`:`<div class="empty">No designs found.</div>`}
+function renderAll(){renderDashboard();renderCustomers();renderMeasurements();renderOrders();renderAlterations();renderPayments();renderDesigns()}
+["customerSearch","measurementSearch","orderSearch","alterationSearch","paymentSearch","designSearch"].forEach(id=>$(id).addEventListener("input",renderAll));$("orderStatusFilter").addEventListener("change",renderAll);
 
-      loginMsg.textContent = "";
-      loginMsg.className = "msg";
-
-      if (!email || !password) {
-        showError("Email மற்றும் Password இரண்டையும் உள்ளிடுங்கள்.");
-        return;
-      }
-
-      loginBtn.disabled = true;
-      loginBtn.textContent = "Logging in...";
-
-      try {
-        const result = await supabaseClient.auth.signInWithPassword({
-          email: email,
-          password: password
-        });
-
-        if (result.error) {
-          showError("Login failed: " + result.error.message);
-          return;
-        }
-
-        if (result.data && result.data.user) {
-          showDashboard(result.data.user);
-        } else {
-          showError("Login failed: User was not returned.");
-        }
-      } catch (error) {
-        showError("Login failed: " + error.message);
-      } finally {
-        loginBtn.disabled = false;
-        loginBtn.textContent = "🔐 LOGIN";
-      }
-    });
-
-    logoutBtn.addEventListener("click", async function () {
-      const result = await supabaseClient.auth.signOut();
-
-      if (result.error) {
-        dashMsg.textContent = "Logout failed: " + result.error.message;
-        dashMsg.className = "msg error";
-        return;
-      }
-
-      passwordInput.value = "";
-      showLogin();
-    });
-
-    refreshBtn.addEventListener("click", async function () {
-      const result = await supabaseClient.auth.getUser();
-
-      if (result.error || !result.data || !result.data.user) {
-        showLogin();
-        return;
-      }
-
-      showDashboard(result.data.user);
-      dashMsg.textContent = "Session is active";
-      dashMsg.className = "msg success";
-    });
-
-    supabaseClient.auth.onAuthStateChange(function (_event, session) {
-      if (session && session.user) {
-        showDashboard(session.user);
-      } else {
-        showLogin();
-      }
-    });
-
-    async function startApp() {
-      try {
-        const result = await supabaseClient.auth.getSession();
-
-        if (
-          result.data &&
-          result.data.session &&
-          result.data.session.user
-        ) {
-          showDashboard(result.data.session.user);
-        } else {
-          showLogin();
-        }
-      } catch (error) {
-        showLogin();
-      }
-    }
-
-    startApp();
-  </script>
+const formDefs={
+customer:{title:"Customer",table:"customers",fields:[["name","Customer Name","text",true],["phone","Phone","tel"],["address","Address","text"],["notes","Notes","textarea"]]},
+measurement:{title:"Measurement",table:"measurements",fields:[["customer_id","Customer","customer",true],["garment_type","Garment Type","text",true],["neck","Neck","number"],["shoulder","Shoulder","number"],["chest","Chest","number"],["waist","Waist","number"],["hip","Hip","number"],["sleeve","Sleeve","number"],["armhole","Armhole","number"],["shirt_length","Shirt Length","number"],["pant_length","Pant Length","number"],["inseam","Inseam","number"],["thigh","Thigh","number"],["knee","Knee","number"],["bottom","Bottom","number"],["notes","Notes","textarea"]]},
+order:{title:"Order",table:"orders",fields:[["customer_id","Customer","customer",true],["order_no","Order No","text",true],["garment_type","Garment Type","text",true],["order_date","Order Date","date",true],["delivery_date","Delivery Date","date"],["status","Status","orderstatus",true],["total_amount","Total Amount","number",true],["advance_amount","Advance Amount","number",true],["notes","Notes","textarea"]]},
+alteration:{title:"Alteration",table:"alterations",fields:[["customer_id","Customer","customer",true],["order_id","Order","order"],["alteration_details","Alteration Details","textarea",true],["alteration_date","Alteration Date","date",true],["delivery_date","Delivery Date","date"],["status","Status","alterstatus",true],["amount","Amount","number"],["notes","Notes","textarea"]]},
+payment:{title:"Payment",table:"payments",fields:[["order_id","Order","order",true],["payment_date","Payment Date","date",true],["amount","Amount","number",true],["payment_method","Payment Method","paymentmethod",true],["reference_no","Reference No","text"],["notes","Notes","textarea"]]},
+design:{title:"Design",table:"designs",fields:[["design_no","Design No","text",true],["design_name","Design Name","text",true],["category","Category","text"],["description","Description","textarea"],["image_url","Image URL","url"],["price","Price","number"]]}
+};
+function inputHTML(f,val){const [key,label,type,required]=f,v=val??"";if(type==="textarea")return `<div class="field full"><label>${label}</label><textarea class="input" name="${key}" ${required?"required":""}>${esc(v)}</textarea></div>`;if(type==="customer")return `<div class="field"><label>${label}</label><select class="input" name="${key}" ${required?"required":""}><option value="">Select customer</option>${state.customers.map(c=>`<option value="${c.id}" ${v===c.id?"selected":""}>${esc(c.name)}${c.phone?" — "+esc(c.phone):""}</option>`).join("")}</select></div>`;if(type==="order")return `<div class="field"><label>${label}</label><select class="input" name="${key}" ${required?"required":""}><option value="">Select order</option>${state.orders.map(o=>`<option value="${o.id}" ${v===o.id?"selected":""}>${esc(o.order_no)} — ${esc(customerName(o.customer_id))}</option>`).join("")}</select></div>`;const opts={orderstatus:["Pending","In Progress","Ready","Delivered","Cancelled"],alterstatus:["Pending","In Progress","Ready","Completed","Cancelled"],paymentmethod:["Cash","UPI","Card","Bank Transfer","Other"]};if(opts[type])return `<div class="field"><label>${label}</label><select class="input" name="${key}" ${required?"required":""}>${opts[type].map(o=>`<option ${v===o?"selected":""}>${o}</option>`).join("")}</select></div>`;return `<div class="field"><label>${label}</label><input class="input" name="${key}" type="${type}" value="${esc(v)}" ${required?"required":""} ${type==="number"?'step="0.01" min="0"':''}></div>`}
+function openModal(type,id=null){state.editing={type,id};const def=formDefs[type];let row=null;if(id)row=state[type+"s"]?.find(x=>x.id===id)||null;$("modalTitle").textContent=(id?"Edit ":"Add ")+def.title;$("formMsg").textContent="";$("formMsg").className="msg";const today=new Date().toISOString().slice(0,10);$("formFields").innerHTML=def.fields.map(f=>{let val=row?.[f[0]];if(val==null&&["order_date","alteration_date","payment_date"].includes(f[0]))val=today;if(val==null&&["status"].includes(f[0]))val="Pending";if(val==null&&["total_amount","advance_amount","amount","price"].includes(f[0]))val=0;return inputHTML(f,val)}).join("");$("modal").classList.add("open")}
+function closeModal(){$("modal").classList.remove("open");state.editing=null}
+$("modal").addEventListener("click",e=>{if(e.target===$("modal"))closeModal()});
+$("dataForm").addEventListener("submit",async e=>{e.preventDefault();if(!state.editing)return;const {type,id}=state.editing,def=formDefs[type],fd=new FormData(e.target),payload={};def.fields.forEach(f=>{let v=fd.get(f[0]);if(v==="")v=null;if(f[2]==="number"&&v!==null)v=Number(v);payload[f[0]]=v});if(type==="order")payload.balance_amount=Math.max(0,Number(payload.total_amount||0)-Number(payload.advance_amount||0));const b=$("saveBtn");b.disabled=true;b.textContent="Saving...";try{let result=id?await supabaseClient.from(def.table).update(payload).eq("id",id).select().single():await supabaseClient.from(def.table).insert(payload).select().single();if(result.error)throw result.error;closeModal();await loadAll(true);toast(id?"Updated online":"Saved online")}catch(err){$("formMsg").textContent="Save failed: "+err.message;$("formMsg").className="msg error"}finally{b.disabled=false;b.textContent="Save"}});
+async function removeRow(table,id){if(!confirm("இந்த record-ஐ delete செய்ய வேண்டுமா?"))return;try{const {error}=await supabaseClient.from(table).delete().eq("id",id);if(error)throw error;await loadAll(true);toast("Deleted online")}catch(err){toast("Delete failed: "+err.message,true)}}
+supabaseClient.auth.onAuthStateChange((_event,session)=>{if(session?.user){showApp(session.user);setTimeout(()=>loadAll(true),0)}else showLogin()});
+(async()=>{const {data}=await supabaseClient.auth.getSession();if(data?.session?.user){showApp(data.session.user);await loadAll(true)}else showLogin()})();
+</script>
 </body>
 </html>
