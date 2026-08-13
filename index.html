@@ -7,7 +7,19 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{--bg:#f5f1ed;--card:#fff;--text:#211b20;--muted:#746c70;--line:#e3ddd7;--brand:#b23e62;--gold:#c99d43;--ok:#16794c;--danger:#b42318;--warn:#8a6200;--shadow:0 12px 35px rgba(35,25,30,.08)}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Noto Sans Tamil",Arial,sans-serif}
+*{box-sizing:border-box}
+/* Mobile side-drawer swipe gestures */
+body.menu-swipe-active{overflow:hidden;touch-action:none}
+@media (max-width:900px){
+  #drawer{will-change:transform;transition:transform .22s ease-out}
+  #drawer.menu-dragging{transition:none!important}
+  #drawer-swipe-edge{
+    position:fixed;left:0;top:0;bottom:0;width:24px;z-index:9998;
+    background:transparent;touch-action:none;
+  }
+}
+
+body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Noto Sans Tamil",Arial,sans-serif}
 button,input,select,textarea{font:inherit}button{cursor:pointer}.hidden{display:none!important}
 .topbar{height:68px;background:#211b20;color:#fff;display:flex;align-items:center;gap:14px;padding:0 16px;position:sticky;top:0;z-index:20}
 .topbar h1{font-size:19px;margin:0}.topbar small{color:#d9cdd2}.spacer{flex:1}
@@ -881,6 +893,124 @@ function enableDailyNotifications(){requestNotificationPermission().then(p=>{if(
 updateBackButton();
 supabaseClient.auth.onAuthStateChange((_event,session)=>{if(session?.user){showApp(session.user);setTimeout(()=>loadAll(true),0)}else showLogin()});
 (async()=>{const {data}=await supabaseClient.auth.getSession();if(data?.session?.user){showApp(data.session.user);await loadAll(true)}else showLogin()})();
+
+/* =========================================================
+   Mobile side-menu swipe:
+   - Swipe from the left edge -> open
+   - Drag the open menu left -> close
+   - Tap outside -> close
+   ========================================================= */
+(function setupSideMenuSwipe(){
+  let startX = 0, startY = 0, lastX = 0, dragging = false, mode = "";
+  const EDGE = 28;
+  const OPEN_THRESHOLD = 70;
+  const CLOSE_THRESHOLD = 70;
+
+  function drawer(){
+    return document.querySelector('#drawer, .drawer, .side-drawer, [data-drawer]');
+  }
+  function isOpen(el){
+    if(!el) return false;
+    const cs = getComputedStyle(el);
+    const rect = el.getBoundingClientRect();
+    return rect.left >= -20 && (cs.display !== "none") && (cs.visibility !== "hidden");
+  }
+  function setDrag(el, x){
+    if(!el) return;
+    const w = el.getBoundingClientRect().width || Math.min(window.innerWidth * .82, 360);
+    const clamped = Math.max(0, Math.min(w, -x));
+    el.classList.add("menu-dragging");
+    el.style.transform = `translateX(-${clamped}px)`;
+  }
+  function finishDrag(el, open){
+    if(!el) return;
+    el.classList.remove("menu-dragging");
+    el.style.transform = "";
+    if(open){
+      if(typeof window.openMenu === "function") window.openMenu();
+      else if(typeof window.toggleMenu === "function" && !isOpen(el)) window.toggleMenu();
+      else el.classList.add("open");
+    }else{
+      if(typeof window.closeMenu === "function") window.closeMenu();
+      else if(typeof window.toggleMenu === "function" && isOpen(el)) window.toggleMenu();
+      else el.classList.remove("open");
+    }
+    document.body.classList.remove("menu-swipe-active");
+  }
+
+  function onStart(e){
+    const t = e.touches && e.touches[0];
+    if(!t) return;
+    const el = drawer();
+    if(!el) return;
+    startX = lastX = t.clientX;
+    startY = t.clientY;
+    dragging = false;
+    mode = (startX <= EDGE && !isOpen(el)) ? "open" : (isOpen(el) ? "close" : "");
+  }
+
+  function onMove(e){
+    const t = e.touches && e.touches[0];
+    const el = drawer();
+    if(!t || !el || !mode) return;
+
+    const dx = t.clientX - startX;
+    const dy = t.clientY - startY;
+    if(!dragging){
+      if(Math.abs(dy) > Math.abs(dx) || Math.abs(dx) < 8){
+        return;
+      }
+      dragging = true;
+      document.body.classList.add("menu-swipe-active");
+      e.preventDefault();
+    }
+    lastX = t.clientX;
+
+    if(mode === "open" && dx > 0){
+      // Drawer normally sits closed at translateX(-100%).
+      const w = el.getBoundingClientRect().width || 320;
+      el.classList.add("menu-dragging");
+      el.style.transform = `translateX(${Math.min(0, dx - w)}px)`;
+    }else if(mode === "close" && dx < 0){
+      setDrag(el, dx);
+    }
+  }
+
+  function onEnd(){
+    const el = drawer();
+    if(!el || !mode) return;
+
+    const dx = lastX - startX;
+    const shouldOpen = mode === "open" && dx >= OPEN_THRESHOLD;
+    const shouldClose = mode === "close" && dx <= -CLOSE_THRESHOLD;
+
+    if(dragging){
+      if(shouldOpen) finishDrag(el, true);
+      else if(shouldClose) finishDrag(el, false);
+      else{
+        el.classList.remove("menu-dragging");
+        el.style.transform = "";
+        document.body.classList.remove("menu-swipe-active");
+      }
+    }
+    dragging = false;
+    mode = "";
+  }
+
+  document.addEventListener("touchstart", onStart, {passive:true});
+  document.addEventListener("touchmove", onMove, {passive:false});
+  document.addEventListener("touchend", onEnd, {passive:true});
+  document.addEventListener("touchcancel", onEnd, {passive:true});
+
+  // Add a dedicated invisible left-edge touch zone for easier opening.
+  if(!document.getElementById("drawer-swipe-edge")){
+    const edge = document.createElement("div");
+    edge.id = "drawer-swipe-edge";
+    edge.setAttribute("aria-hidden","true");
+    document.body.appendChild(edge);
+  }
+})();
+
 </script>
 </body>
 </html>
