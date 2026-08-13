@@ -49,6 +49,18 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}.hidden{display:
 .autoTotal{font-size:18px;font-weight:850;margin-top:5px}.hint{font-size:12px;color:var(--muted);margin-top:4px}
 @media(max-width:900px){.layout{grid-template-columns:1fr}.sidebar{position:fixed;left:0;top:68px;bottom:0;width:260px;transform:translateX(-105%);transition:.2s;z-index:30}.sidebar.open{transform:translateX(0)}.mobileOnly{display:block}.stats{grid-template-columns:1fr 1fr}.quick,.alertgrid,.summarygrid{grid-template-columns:1fr}.main{padding:14px}}
 @media(max-width:560px){.topbar{padding:0 10px}.topbar h1{font-size:16px}.userchip{display:none}.pagehead h2{font-size:23px}.formgrid{grid-template-columns:1fr}.field.full{grid-column:auto}.photoGrid{grid-template-columns:1fr}.photo,.photoPlaceholder{height:160px}.loginbox{padding:22px}.brand{font-size:30px}}
+
+.kpiGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:14px}
+.kpiCard{border-radius:18px;padding:16px;color:#fff;min-height:118px;box-shadow:var(--shadow)}
+.kpiCard .kpiTitle{font-weight:850;font-size:15px}.kpiCard .kpiNum{font-size:28px;font-weight:950;margin-top:7px}.kpiCard .kpiSmall{font-size:12px;opacity:.9;margin-top:4px}
+.kpiPending{background:linear-gradient(135deg,#a52b43,#d85d73)}.kpiToday{background:linear-gradient(135deg,#b17b1f,#dfb75d)}
+.kpiDelivery{background:linear-gradient(135deg,#246a9a,#4aa1d4)}.kpiReminder{background:linear-gradient(135deg,#7250a2,#a27bd2)}
+.kpiMonthly{background:linear-gradient(135deg,#267a59,#51b783)}.kpiBalance{background:linear-gradient(135deg,#59414a,#92707d)}
+.designTools{display:grid;grid-template-columns:1fr auto;gap:10px;margin-bottom:14px}.designSearchResults{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:12px}
+.designResult{border:1px solid var(--line);border-radius:15px;background:#fff;padding:9px}.designResult img{width:100%;height:190px;object-fit:cover;border-radius:10px;background:#eee9e4}.designResult .mini{display:block;margin:7px 0}
+.designGallery{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.designTile{border:1px solid var(--line);border-radius:15px;background:#fff;padding:10px}.designTile img{width:100%;height:190px;object-fit:cover;border-radius:10px;background:#eee9e4}.designTile .title{font-weight:850;margin-top:8px}
+@media(max-width:900px){.kpiGrid,.designSearchResults,.designGallery{grid-template-columns:1fr 1fr}}
+@media(max-width:560px){.kpiGrid,.designSearchResults,.designGallery{grid-template-columns:1fr}.designTools{grid-template-columns:1fr}.designResult img,.designTile img{height:220px}}
 </style>
 </head>
 <body>
@@ -102,6 +114,14 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}.hidden{display:
 <div class="summary"><div class="mini">Total order value</div><b id="statSales">₹0</b></div>
 <div class="summary"><div class="mini">Late orders</div><b id="statLate">0</b></div>
 </div>
+<div class="kpiGrid">
+<div class="kpiCard kpiPending"><div class="kpiTitle">🔴 Pending Orders</div><div id="kpiPending" class="kpiNum">0</div><div id="kpiPendingSmall" class="kpiSmall">வேலை முடிக்க வேண்டிய orders</div></div>
+<div class="kpiCard kpiToday"><div class="kpiTitle">💰 Today Collection</div><div id="kpiToday" class="kpiNum">₹0</div><div class="kpiSmall">இன்று பெற்ற payment</div></div>
+<div class="kpiCard kpiDelivery"><div class="kpiTitle">🚚 Today Delivery</div><div id="kpiDelivery" class="kpiNum">0</div><div class="kpiSmall">இன்று கொடுக்க வேண்டியவை</div></div>
+<div class="kpiCard kpiReminder"><div class="kpiTitle">🔔 Daily Reminder</div><div id="kpiReminder" class="kpiNum">0</div><div class="kpiSmall">அடுத்த 5 நாட்கள் + late</div></div>
+<div class="kpiCard kpiMonthly"><div class="kpiTitle">📅 Monthly Collection</div><div id="kpiMonthly" class="kpiNum">₹0</div><div id="kpiMonthlySmall" class="kpiSmall">இந்த மாதம்</div></div>
+<div class="kpiCard kpiBalance"><div class="kpiTitle">💳 Customer Balance</div><div id="kpiBalance" class="kpiNum">₹0</div><div class="kpiSmall">Customers கொடுக்க வேண்டியது</div></div>
+</div>
 
 <div class="alertgrid">
 <div class="alertbox today"><h3>🔔 Today Delivery</h3><b id="dueTodayCount" class="big">0</b><div id="dueTodayList"></div></div>
@@ -150,8 +170,22 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}.hidden{display:
 </section>
 
 <section id="view-designs" class="view">
-<div class="pagehead"><div><h2>Designs</h2><p>Design catalogue and prices.</p></div><div class="spacer"></div><button class="btn primary" onclick="openModal('design')">＋ Add Design</button></div>
-<div class="card"><div class="toolbar"><input id="designSearch" class="input search" placeholder="Search design no / name / category"><button class="btn secondary" onclick="loadAll()">↻ Refresh</button></div><div id="designsTable"></div></div>
+<div class="pagehead"><div><h2>🎨 Blouse Design Studio</h2><p>Online-ல் design தேடி, பிடித்த design-ஐ இங்கே save செய்து customer-க்கு காட்டலாம்.</p></div><div class="spacer"></div><button class="btn primary" onclick="openModal('design')">＋ Add Design</button></div>
+<div class="card">
+<div class="designTools">
+<input id="onlineDesignQuery" class="input" placeholder="எ.கா. bridal blouse design / simple blouse design">
+<button class="btn primary" id="onlineDesignBtn">🔎 Search Designs</button>
+</div>
+<div class="mini">Search results இந்த app-க்குள்ளேயே காட்டப்படும். Save செய்த design database-ல் `image_url` ஆக சேமிக்கப்படும்.</div>
+<div id="onlineDesignResults" class="designSearchResults"></div>
+</div>
+<div class="card" style="margin-top:14px">
+<div class="pagehead"><div><h3 style="margin:0">💾 Saved Designs</h3><p>உங்கள் design catalogue</p></div></div>
+<div id="designGallery" class="designGallery"></div>
+</div>
+<div class="card" style="margin-top:14px">
+<div class="toolbar"><input id="designSearch" class="input search" placeholder="Search saved design no / name / category"><button class="btn secondary" onclick="loadAll()">↻ Refresh</button></div><div id="designsTable"></div>
+</div>
 </section>
 </main></div></div>
 
@@ -217,6 +251,11 @@ function totalPieces(){return state.orders.reduce((a,o)=>a+Number(o.quantity||0)
 function totalSales(){return state.orders.reduce((a,o)=>a+orderTotal(o),0)}
 function totalBalance(){return state.orders.reduce((a,o)=>a+Math.max(0,Number(o.balance_amount||0)),0)}
 function todayCollection(){const t=localDate();return state.payments.filter(p=>p.payment_date===t).reduce((a,p)=>a+Number(p.amount||0),0)}
+function monthlyCollection(){
+const d=new Date(),ym=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
+return state.payments.filter(p=>String(p.payment_date||"").slice(0,7)===ym).reduce((a,p)=>a+Number(p.amount||0),0);
+}
+function pendingOrdersCount(){return state.orders.filter(o=>!isFinished(o)).length}
 
 function renderDashboard(){
 $("statCustomers").textContent=state.customers.length;
@@ -227,6 +266,13 @@ $("statPieces").textContent=totalPieces();
 $("statSales").textContent=money(totalSales());
 const late=state.orders.filter(o=>dueInfo(o)?.kind==="late"),today=state.orders.filter(o=>dueInfo(o)?.kind==="today"),soon=state.orders.filter(o=>dueInfo(o)?.kind==="soon");
 $("statLate").textContent=late.length;
+$("kpiPending").textContent=pendingOrdersCount();
+$("kpiToday").textContent=money(todayCollection());
+$("kpiDelivery").textContent=today.length;
+$("kpiReminder").textContent=soon.length+late.length;
+$("kpiMonthly").textContent=money(monthlyCollection());
+$("kpiBalance").textContent=money(totalBalance());
+$("kpiMonthlySmall").textContent=new Date().toLocaleDateString("ta-IN",{month:"long",year:"numeric"});
 $("dueTodayCount").textContent=today.length;$("dueSoonCount").textContent=soon.length;$("lateCount").textContent=late.length;
 $("dueTodayList").innerHTML=smallOrderList(today,"இன்று கொடுக்க வேண்டும்");
 $("dueSoonList").innerHTML=smallOrderList(soon,"இன்னும்");
@@ -234,6 +280,7 @@ $("lateList").innerHTML=smallOrderList(late,"late");
 const delivered=state.orders.filter(o=>String(o.status)==="Delivered").length;
 $("dailyUpdate").innerHTML=`<p>📅 இன்று: <b>${dateText(localDate())}</b></p>
 <p>💰 Today collection: <b>${money(todayCollection())}</b></p>
+<p>📅 This month collection: <b>${money(monthlyCollection())}</b></p>
 <p>👗 மொத்த pieces: <b>${totalPieces()}</b> &nbsp; | &nbsp; மொத்த order value: <b>${money(totalSales())}</b></p>
 <p>💳 Customers கொடுக்க வேண்டிய balance: <b>${money(totalBalance())}</b></p>
 <p>🚨 Late orders: <b>${late.length}</b> &nbsp; | &nbsp; ✅ Delivered: <b>${delivered}</b></p>`;
@@ -271,12 +318,46 @@ const q=($("paymentSearch").value||"").toLowerCase(),r=state.payments.filter(x=>
 $("paymentsTable").innerHTML=r.length?`<div class="tablewrap"><table class="table"><thead><tr><th>Order</th><th>Date</th><th>Amount</th><th>Method</th><th>Reference</th><th>Notes</th><th>Actions</th></tr></thead><tbody>${r.map(x=>`<tr><td>${esc(orderLabel(x.order_id))}</td><td>${dateText(x.payment_date)}</td><td><b>${money(x.amount)}</b></td><td>${esc(x.payment_method)}</td><td>${esc(x.reference_no)}</td><td>${esc(x.notes)}</td><td><div class="actions"><button class="btn secondary" onclick="openModal('payment','${x.id}')">Edit</button><button class="btn danger" onclick="removeRow('payments','${x.id}')">Delete</button></div></td></tr>`).join("")}</tbody></table></div>`:`<div class="empty">No payments found.</div>`;
 }
 function renderDesigns(){
-const q=($("designSearch").value||"").toLowerCase(),r=state.designs.filter(x=>[x.design_no,x.design_name,x.category,x.description].join(" ").toLowerCase().includes(q));
+const q=($("designSearch").value||"").toLowerCase();
+const r=state.designs.filter(x=>[x.design_no,x.design_name,x.category,x.description].join(" ").toLowerCase().includes(q));
+const gallery=$("designGallery");
+gallery.innerHTML=r.length?r.map(x=>{
+const src=x.image_url||"";
+return `<div class="designTile">${src?`<img src="${esc(src)}" alt="${esc(x.design_name||"Design")}" onerror="this.style.display='none'">`:`<div class="photoPlaceholder">No photo</div>`}<div class="title">${esc(x.design_name||"Untitled Design")}</div><div class="mini">${esc(x.design_no||"")} · ${esc(x.category||"")}</div><div><b>${money(x.price)}</b></div><div class="actions" style="margin-top:8px"><button class="btn secondary" onclick="openModal('design','${x.id}')">Edit</button><button class="btn danger" onclick="removeRow('designs','${x.id}')">Delete</button></div></div>`;
+}).join(""):`<div class="empty" style="grid-column:1/-1">Saved design இல்லை.</div>`;
 $("designsTable").innerHTML=r.length?`<div class="tablewrap"><table class="table"><thead><tr><th>Design No</th><th>Name</th><th>Category</th><th>Description</th><th>Price</th><th>Actions</th></tr></thead><tbody>${r.map(x=>`<tr><td>${esc(x.design_no)}</td><td><b>${esc(x.design_name)}</b></td><td>${esc(x.category)}</td><td>${esc(x.description)}</td><td>${money(x.price)}</td><td><div class="actions"><button class="btn secondary" onclick="openModal('design','${x.id}')">Edit</button><button class="btn danger" onclick="removeRow('designs','${x.id}')">Delete</button></div></td></tr>`).join("")}</tbody></table></div>`:`<div class="empty">No designs found.</div>`;
+}
+async function searchOnlineDesigns(){
+const q=$("onlineDesignQuery").value.trim();
+const box=$("onlineDesignResults");
+if(!q){toast("முதலில் blouse design search வார்த்தை உள்ளிடுங்கள்.",true);return}
+box.innerHTML='<div class="empty" style="grid-column:1/-1">Searching online...</div>';
+try{
+const url=`https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(q)}&gsrnamespace=6&gsrlimit=12&prop=imageinfo&iiprop=url|extmetadata&iiurlwidth=500&format=json&origin=*`;
+const res=await fetch(url); if(!res.ok)throw new Error("Online image search failed");
+const data=await res.json(),pages=Object.values(data.query?.pages||{});
+if(!pages.length){box.innerHTML='<div class="empty" style="grid-column:1/-1">Design கிடைக்கவில்லை. வேறு search வார்த்தை முயற்சி செய்யுங்கள்.</div>';return}
+box.innerHTML=pages.map(p=>{
+const ii=p.imageinfo?.[0]||{},src=ii.thumburl||ii.url||"",name=ii.extmetadata?.ImageDescription?.value||p.title||"Blouse Design";
+const clean=name.replace(/<[^>]*>/g,"").slice(0,120);
+return `<div class="designResult">${src?`<img src="${esc(src)}" alt="${esc(clean)}" loading="lazy">`:`<div class="photoPlaceholder">No image</div>`}<b>${esc(clean)}</b><span class="mini">Wikimedia Commons</span><button class="btn success" style="width:100%" onclick="saveOnlineDesign(${JSON.stringify(src)},${JSON.stringify(clean)})">💾 Save this design</button></div>`;
+}).join("");
+}catch(err){box.innerHTML=`<div class="empty" style="grid-column:1/-1">Search error: ${esc(err.message)}</div>`}
+}
+async function saveOnlineDesign(imageUrl,name){
+if(!imageUrl){toast("இந்த design-க்கு image URL கிடைக்கவில்லை.",true);return}
+const payload={design_no:"WEB-"+Date.now().toString().slice(-6),design_name:name.slice(0,150),category:"Online Blouse Design",description:"Saved from online design search",image_url:imageUrl,price:0};
+try{
+const {error}=await supabaseClient.from("designs").insert(payload);
+if(error)throw error;
+await loadAll(true);toast("Design database-ல் save செய்யப்பட்டது.");
+}catch(err){toast("Design save failed: "+err.message,true)}
 }
 function renderAll(){renderDashboard();renderCustomers();renderMeasurements();renderOrders();renderAlterations();renderPayments();renderDesigns()}
 
 ["customerSearch","measurementSearch","orderSearch","alterationSearch","paymentSearch","designSearch"].forEach(id=>$(id).addEventListener("input",renderAll));
+$("onlineDesignBtn").addEventListener("click",searchOnlineDesigns);
+$("onlineDesignQuery").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();searchOnlineDesigns()}});
 $("orderStatusFilter").addEventListener("change",renderAll);
 
 const formDefs={
@@ -315,7 +396,20 @@ if(val==null&&f[0]==="status")val="Pending";
 if(val==null&&["quantity"].includes(f[0]))val=1;
 if(val==null&&["total_amount","advance_amount","amount","price","unit_price"].includes(f[0]))val=0;
 return inputHTML(f,val);
-}).join("");
+ }).join("");
+if(type==="design"){
+const wrap=document.createElement("div");wrap.className="field full";
+wrap.innerHTML='<label>📷 Blouse Design Photo (phone gallery / camera)</label><input id="designPhotoFile" class="input" type="file" accept="image/*" capture="environment"><div id="designPhotoPreview" class="hint" style="margin-top:7px"></div>';
+$("formFields").appendChild(wrap);
+const existing=row?.image_url;
+if(existing)$("designPhotoPreview").innerHTML=`<img src="${esc(existing)}" style="width:100%;max-height:220px;object-fit:contain;border-radius:10px;background:#eee9e4" alt="design preview">`;
+$("designPhotoFile").addEventListener("change",e=>{
+const f=e.target.files?.[0];if(!f)return;
+if(!f.type.startsWith("image/")){toast("Image file மட்டும் தேர்வு செய்யுங்கள்.",true);e.target.value="";return}
+if(f.size>2*1024*1024){toast("Photo 2MB-க்கு குறைவாக இருக்க வேண்டும்.",true);e.target.value="";return}
+const r=new FileReader();r.onload=()=>{$("designPhotoPreview").innerHTML=`<img src="${esc(r.result)}" style="width:100%;max-height:220px;object-fit:contain;border-radius:10px;background:#eee9e4" alt="design preview">`;$("designPhotoFile").dataset.dataUrl=r.result};r.readAsDataURL(f);
+});
+}
 if(type==="order"){
 const q=$('formFields').querySelector('[name="quantity"]'),u=$('formFields').querySelector('[name="unit_price"]'),t=$('formFields').querySelector('[name="total_amount"]'),a=$('formFields').querySelector('[name="advance_amount"]');
 if(t)t.readOnly=true;
@@ -337,6 +431,7 @@ $("dataForm").addEventListener("submit",async e=>{
 e.preventDefault();if(!state.editing)return;
 const {type,id}=state.editing,def=formDefs[type],fd=new FormData(e.target),payload={};
 def.fields.forEach(f=>{let v=fd.get(f[0]);if(v==="")v=null;if(f[2]==="number"&&v!==null)v=Number(v);payload[f[0]]=v});
+if(type==="design" && $("designPhotoFile")?.dataset.dataUrl)payload.image_url=$("designPhotoFile").dataset.dataUrl;
 if(type==="order"){
 payload.total_amount=Math.max(0,Number(payload.quantity||0)*Number(payload.unit_price||0));
 payload.balance_amount=Math.max(0,payload.total_amount-Number(payload.advance_amount||0));
