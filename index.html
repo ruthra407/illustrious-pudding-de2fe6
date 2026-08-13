@@ -1,17 +1,58 @@
 <!doctype html>
-<html lang="en">
+<html lang="ta">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>New Fashion Tailoring — Online Management</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-:root{--bg:#f5f1ed;--card:#fff;--text:#211b20;--muted:#746c70;--line:#e3ddd7;--brand:#b23e62;--gold:#c99d43;--ok:#16794c;--danger:#b42318;--shadow:0 12px 35px rgba(35,25,30,.08)}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,Arial,sans-serif}button,input,select,textarea{font:inherit}button{cursor:pointer}
-.hidden{display:none!important}.app{min-height:100vh}.topbar{height:68px;background:#211b20;color:#fff;display:flex;align-items:center;gap:16px;padding:0 20px;position:sticky;top:0;z-index:20}.topbar h1{font-size:20px;margin:0}.topbar small{color:#d9cdd2}.spacer{flex:1}.iconbtn{border:1px solid #4b4146;background:#30272c;color:#fff;border-radius:12px;width:42px;height:42px}.layout{display:grid;grid-template-columns:240px 1fr;min-height:calc(100vh - 68px)}.sidebar{background:#2b2227;color:#eee;padding:18px 12px}.navbtn{display:flex;width:100%;align-items:center;gap:11px;background:transparent;border:0;color:#ddd;padding:12px 13px;border-radius:11px;text-align:left;margin-bottom:5px}.navbtn:hover,.navbtn.active{background:#43343b;color:#fff}.sidebar .logout{margin-top:25px;background:#b23e62;color:#fff}.main{padding:24px;max-width:1500px;width:100%;margin:auto}.view{display:none}.view.active{display:block}.pagehead{display:flex;align-items:center;gap:12px;margin-bottom:18px}.pagehead h2{margin:0;font-size:28px}.pagehead p{margin:4px 0 0;color:var(--muted)}.card{background:var(--card);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);padding:20px}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}.stat{background:#fff;border:1px solid var(--line);border-radius:16px;padding:18px}.stat .label{color:var(--muted);font-weight:700}.stat .num{font-size:32px;font-weight:800;margin-top:8px}.quick{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:16px}.quick button{padding:18px;border:1px solid var(--line);background:#fff;border-radius:15px;text-align:left}.toolbar{display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap}.search{flex:1;min-width:220px}.input,select,textarea{width:100%;padding:12px 13px;border:1px solid #d5cec8;border-radius:11px;background:#fff;color:var(--text);outline:none}.input:focus,select:focus,textarea:focus{border-color:var(--brand);box-shadow:0 0 0 3px rgba(178,62,98,.10)}textarea{min-height:90px;resize:vertical}.btn{border:0;border-radius:11px;padding:11px 15px;font-weight:750}.primary{background:var(--brand);color:#fff}.secondary{background:#eee9e4;color:var(--text)}.danger{background:#fbe9e7;color:var(--danger)}.tablewrap{overflow:auto;border:1px solid var(--line);border-radius:14px}.table{width:100%;border-collapse:collapse;min-width:760px}.table th,.table td{padding:12px 13px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}.table th{background:#faf8f6;color:#5f575b;font-size:13px}.table tr:last-child td{border-bottom:0}.actions{display:flex;gap:6px;flex-wrap:wrap}.pill{display:inline-block;padding:5px 9px;border-radius:999px;background:#eee9e4;font-size:12px;font-weight:750}.pill.ok{background:#e8f6ef;color:var(--ok)}.pill.warn{background:#fff4d8;color:#7b5b00}.pill.bad{background:#fbe9e7;color:var(--danger)}.empty{text-align:center;padding:35px;color:var(--muted)}.modal{position:fixed;inset:0;background:rgba(20,15,18,.55);display:none;align-items:center;justify-content:center;padding:18px;z-index:50}.modal.open{display:flex}.modalbox{width:min(760px,100%);max-height:92vh;overflow:auto;background:#fff;border-radius:20px;padding:22px}.modalhead{display:flex;align-items:center;margin-bottom:16px}.modalhead h3{margin:0}.close{margin-left:auto;border:0;background:#eee9e4;border-radius:10px;width:38px;height:38px}.formgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:13px}.field.full{grid-column:1/-1}.field label{display:block;font-size:13px;font-weight:750;margin-bottom:6px}.modalfoot{display:flex;gap:9px;justify-content:flex-end;margin-top:18px}.toast{position:fixed;right:18px;bottom:18px;z-index:100;max-width:380px;padding:13px 16px;border-radius:12px;color:#fff;background:#30272c;box-shadow:var(--shadow);display:none}.toast.show{display:block}.toast.error{background:#9d2d22}.loginpage{min-height:100vh;display:grid;place-items:center;padding:20px;background:linear-gradient(135deg,#f6f1eb,#eadce1)}.loginbox{width:min(480px,100%);background:#fff;border:1px solid var(--line);border-radius:26px;padding:30px;box-shadow:0 20px 60px rgba(35,25,30,.12)}.brand{font-size:38px;font-weight:900}.gold{color:var(--gold);font-size:24px;font-weight:850;margin-top:6px}.sub{color:var(--muted);margin:9px 0 24px}.loginbox .field{margin-bottom:14px}.loginbox .btn{width:100%;padding:14px;margin-top:8px}.msg{min-height:22px;margin-top:10px;font-weight:650}.msg.error{color:var(--danger)}.msg.ok{color:var(--ok)}.mobileOnly{display:none}.userchip{font-size:13px;color:#e4d9de}.dashboard-media{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:16px}.media-card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px;display:flex;align-items:center;gap:14px}.media-card img{width:78px;height:78px;border-radius:14px;object-fit:cover;background:#eee9e4;border:1px solid var(--line)}.media-card .media-placeholder{width:78px;height:78px;border-radius:14px;background:#eee9e4;display:grid;place-items:center;font-size:30px}.deadline{font-weight:800}.deadline.ok{color:var(--ok)}.deadline.warn{color:#8a6500}.deadline.bad{color:var(--danger)}.reminders{margin-top:16px}.reminder{border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-top:9px;background:#fff}.reminder.warn{background:#fff9e8;border-color:#ead38a}.reminder.bad{background:#fff0ee;border-color:#efb0a9}.design-thumb{width:58px;height:58px;border-radius:10px;object-fit:cover;border:1px solid var(--line);background:#eee9e4}.preview{max-width:180px;max-height:180px;border-radius:12px;margin-top:8px;border:1px solid var(--line)}.mini{font-size:12px;color:var(--muted)}@media(max-width:900px){.layout{grid-template-columns:1fr}.sidebar{position:fixed;left:0;top:68px;bottom:0;width:260px;transform:translateX(-105%);transition:.2s;z-index:30}.sidebar.open{transform:translateX(0)}.mobileOnly{display:block}.stats{grid-template-columns:repeat(2,1fr)}.quick{grid-template-columns:1fr}.main{padding:16px}}@media(max-width:700px){.dashboard-media{grid-template-columns:1fr}}@media(max-width:560px){.topbar{padding:0 12px}.topbar h1{font-size:16px}.userchip{display:none}.stats{grid-template-columns:1fr 1fr}.stat .num{font-size:25px}.formgrid{grid-template-columns:1fr}.field.full{grid-column:auto}.pagehead h2{font-size:23px}.loginbox{padding:22px}.brand{font-size:31px}}
+:root{--bg:#f5f1ed;--card:#fff;--text:#211b20;--muted:#746c70;--line:#e3ddd7;--brand:#b23e62;--gold:#c99d43;--ok:#16794c;--danger:#b42318;--warn:#8a6200;--shadow:0 12px 35px rgba(35,25,30,.08)}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Noto Sans Tamil",Arial,sans-serif}
+button,input,select,textarea{font:inherit}button{cursor:pointer}.hidden{display:none!important}
+.topbar{height:68px;background:#211b20;color:#fff;display:flex;align-items:center;gap:14px;padding:0 16px;position:sticky;top:0;z-index:20}
+.topbar h1{font-size:19px;margin:0}.topbar small{color:#d9cdd2}.spacer{flex:1}
+.iconbtn{border:1px solid #4b4146;background:#30272c;color:#fff;border-radius:12px;width:42px;height:42px}
+.layout{display:grid;grid-template-columns:240px 1fr;min-height:calc(100vh - 68px)}.sidebar{background:#2b2227;color:#eee;padding:18px 12px}
+.navbtn{display:flex;width:100%;align-items:center;gap:10px;background:transparent;border:0;color:#ddd;padding:12px 13px;border-radius:11px;text-align:left;margin-bottom:5px}
+.navbtn.active{background:#43343b;color:#fff}.sidebar .logout{margin-top:25px;background:#b23e62;color:#fff}
+.main{padding:20px;max-width:1500px;width:100%;margin:auto}.view{display:none}.view.active{display:block}
+.pagehead{display:flex;align-items:center;gap:12px;margin-bottom:16px}.pagehead h2{margin:0;font-size:27px}.pagehead p{margin:4px 0 0;color:var(--muted)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);padding:18px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.stat{background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px}
+.stat .label{color:var(--muted);font-weight:750}.stat .num{font-size:29px;font-weight:850;margin-top:7px}
+.quick{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:14px}.quick button{padding:17px;border:1px solid var(--line);background:#fff;border-radius:15px;text-align:left}
+.toolbar{display:flex;gap:9px;align-items:center;margin-bottom:13px;flex-wrap:wrap}.search{flex:1;min-width:210px}
+.input,select,textarea{width:100%;padding:11px 12px;border:1px solid #d5cec8;border-radius:11px;background:#fff;color:var(--text);outline:none}
+.input:focus,select:focus,textarea:focus{border-color:var(--brand);box-shadow:0 0 0 3px rgba(178,62,98,.1)}textarea{min-height:90px;resize:vertical}
+.btn{border:0;border-radius:11px;padding:10px 14px;font-weight:750}.primary{background:var(--brand);color:#fff}.secondary{background:#eee9e4;color:var(--text)}
+.danger{background:#fbe9e7;color:var(--danger)}.success{background:#e7f6ee;color:var(--ok)}.warning{background:#fff3d1;color:var(--warn)}
+.tablewrap{overflow:auto;border:1px solid var(--line);border-radius:14px}.table{width:100%;border-collapse:collapse;min-width:900px}
+.table th,.table td{padding:11px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}.table th{background:#faf8f6;color:#5f575b;font-size:13px}
+.actions{display:flex;gap:6px;flex-wrap:wrap}.pill{display:inline-block;padding:5px 9px;border-radius:999px;background:#eee9e4;font-size:12px;font-weight:750}
+.pill.ok{background:#e8f6ef;color:var(--ok)}.pill.warn{background:#fff4d8;color:var(--warn)}.pill.bad{background:#fbe9e7;color:var(--danger)}
+.empty{text-align:center;padding:30px;color:var(--muted)}.mini{font-size:12px;color:var(--muted)}
+.alertgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:14px}.alertbox{border-radius:15px;padding:14px;border:1px solid var(--line);background:#fff}
+.alertbox.late{background:#fff0ee;border-color:#f0c4bf}.alertbox.today{background:#fff7df}.alertbox.soon{background:#f2f8ff}
+.alertbox h3{margin:0 0 7px;font-size:17px}.alertbox b.big{font-size:25px}.alertrow{padding:8px 0;border-top:1px solid rgba(0,0,0,.08)}
+.summarygrid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:14px}.summary{background:#fff;border:1px solid var(--line);border-radius:15px;padding:14px}
+.photoGrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}.photoCard{border:1px solid var(--line);border-radius:15px;padding:12px;background:#fff}
+.photo{width:100%;height:180px;object-fit:cover;border-radius:12px;background:#eee9e4;display:block}.photoPlaceholder{height:180px;border-radius:12px;background:#eee9e4;display:grid;place-items:center;color:var(--muted);font-weight:750}
+.formgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.field.full{grid-column:1/-1}.field label{display:block;font-size:13px;font-weight:750;margin-bottom:6px}
+.modal{position:fixed;inset:0;background:rgba(20,15,18,.55);display:none;align-items:center;justify-content:center;padding:16px;z-index:50}.modal.open{display:flex}
+.modalbox{width:min(780px,100%);max-height:93vh;overflow:auto;background:#fff;border-radius:20px;padding:20px}.modalhead{display:flex;align-items:center;margin-bottom:14px}.modalhead h3{margin:0}.close{margin-left:auto;border:0;background:#eee9e4;border-radius:10px;width:38px;height:38px}
+.modalfoot{display:flex;gap:9px;justify-content:flex-end;margin-top:17px}.toast{position:fixed;right:16px;bottom:16px;z-index:100;max-width:380px;padding:13px 15px;border-radius:12px;color:#fff;background:#30272c;box-shadow:var(--shadow);display:none}.toast.show{display:block}.toast.error{background:#9d2d22}
+.loginpage{min-height:100vh;display:grid;place-items:center;padding:20px;background:linear-gradient(135deg,#f6f1eb,#eadce1)}
+.loginbox{width:min(480px,100%);background:#fff;border:1px solid var(--line);border-radius:26px;padding:28px;box-shadow:0 20px 60px rgba(35,25,30,.12)}
+.brand{font-size:37px;font-weight:900}.gold{color:var(--gold);font-size:23px;font-weight:850;margin-top:5px}.sub{color:var(--muted);margin:8px 0 22px}
+.loginbox .field{margin-bottom:13px}.loginbox .btn{width:100%;padding:13px;margin-top:7px}.msg{min-height:22px;margin-top:9px;font-weight:650}.msg.error{color:var(--danger)}.msg.ok{color:var(--ok)}
+.mobileOnly{display:none}.userchip{font-size:13px;color:#e4d9de}
+.autoTotal{font-size:18px;font-weight:850;margin-top:5px}.hint{font-size:12px;color:var(--muted);margin-top:4px}
+@media(max-width:900px){.layout{grid-template-columns:1fr}.sidebar{position:fixed;left:0;top:68px;bottom:0;width:260px;transform:translateX(-105%);transition:.2s;z-index:30}.sidebar.open{transform:translateX(0)}.mobileOnly{display:block}.stats{grid-template-columns:1fr 1fr}.quick,.alertgrid,.summarygrid{grid-template-columns:1fr}.main{padding:14px}}
+@media(max-width:560px){.topbar{padding:0 10px}.topbar h1{font-size:16px}.userchip{display:none}.pagehead h2{font-size:23px}.formgrid{grid-template-columns:1fr}.field.full{grid-column:auto}.photoGrid{grid-template-columns:1fr}.photo,.photoPlaceholder{height:160px}.loginbox{padding:22px}.brand{font-size:30px}}
 </style>
 </head>
 <body>
+
 <div id="loginPage" class="loginpage">
 <section class="loginbox">
 <div class="brand">NEW FASHION</div><div class="gold">TAILORING INDUSTRY</div>
@@ -19,12 +60,14 @@
 <form id="loginForm">
 <div class="field"><label>Email</label><input id="loginEmail" class="input" type="email" autocomplete="email" required placeholder="உங்கள் Email"></div>
 <div class="field"><label>Password</label><input id="loginPassword" class="input" type="password" autocomplete="current-password" required placeholder="Password"></div>
-<button class="btn primary" id="loginBtn" type="submit">🔐 LOGIN</button><div id="loginMsg" class="msg"></div>
+<button class="btn primary" id="loginBtn" type="submit">🔐 LOGIN</button>
+<div id="loginMsg" class="msg"></div>
 </form>
-<button id="forgotBtn" class="btn secondary" style="width:100%;margin-top:10px">Forgot password?</button><div id="recoveryBox" class="hidden" style="margin-top:14px"><div class="field"><label>New password</label><input id="newPassword" class="input" type="password" minlength="6" autocomplete="new-password"></div><button id="changePasswordBtn" class="btn primary" style="width:100%;margin-top:8px">Set New Password</button><div id="recoveryMsg" class="msg"></div></div>
-</section></div>
+<button id="forgotBtn" class="btn secondary" style="width:100%;margin-top:10px">Forgot password?</button>
+</section>
+</div>
 
-<div id="app" class="app hidden">
+<div id="app" class="hidden">
 <header class="topbar">
 <button id="menuBtn" class="iconbtn mobileOnly">☰</button>
 <div><h1>NEW FASHION TAILORING</h1><small>ONLINE MANAGEMENT</small></div>
@@ -42,24 +85,43 @@
 <button class="navbtn" data-view="designs">🎨 Designs</button>
 <button class="navbtn logout" id="sideLogout">⎋ Logout</button>
 </aside>
-<main class="main">
 
+<main class="main">
 <section id="view-dashboard" class="view active">
-<div class="pagehead"><div><h2>Dashboard</h2><p>உங்கள் online tailoring data இங்கே தெரியும்.</p></div></div>
+<div class="pagehead"><div><h2>Dashboard</h2><p>உங்கள் tailoring வேலை, delivery reminder, collection, balance எல்லாம் இங்கே தெரியும்.</p></div></div>
+
 <div class="stats">
 <div class="stat"><div class="label">Customers</div><div id="statCustomers" class="num">0</div></div>
 <div class="stat"><div class="label">Orders</div><div id="statOrders" class="num">0</div></div>
+<div class="stat"><div class="label">Today Collection</div><div id="statTodayCollection" class="num">₹0</div></div>
 <div class="stat"><div class="label">Pending Balance</div><div id="statBalance" class="num">₹0</div></div>
-<div class="stat"><div class="label">Payments</div><div id="statPayments" class="num">0</div></div>
 </div>
+
+<div class="summarygrid">
+<div class="summary"><div class="mini">Total blouse / pieces</div><b id="statPieces">0</b></div>
+<div class="summary"><div class="mini">Total order value</div><b id="statSales">₹0</b></div>
+<div class="summary"><div class="mini">Late orders</div><b id="statLate">0</b></div>
+</div>
+
+<div class="alertgrid">
+<div class="alertbox today"><h3>🔔 Today Delivery</h3><b id="dueTodayCount" class="big">0</b><div id="dueTodayList"></div></div>
+<div class="alertbox soon"><h3>⏰ Next 5 Days</h3><b id="dueSoonCount" class="big">0</b><div id="dueSoonList"></div></div>
+<div class="alertbox late"><h3>🚨 Pending / Late</h3><b id="lateCount" class="big">0</b><div id="lateList"></div></div>
+</div>
+
 <div class="quick">
 <button onclick="openModal('customer')"><b>➕ Add Customer</b><br><span class="mini">புதிய customer</span></button>
-<button onclick="openModal('order')"><b>➕ New Order</b><br><span class="mini">புதிய tailoring order</span></button>
+<button onclick="openModal('order')"><b>➕ New Order</b><br><span class="mini">Delivery date + quantity + price + reminder</span></button>
 <button onclick="openModal('measurement')"><b>➕ Measurement</b><br><span class="mini">அளவு சேமிக்க</span></button>
 </div>
-<div id="dashboardMedia" class="dashboard-media"></div>
-<div id="deadlineReminders" class="reminders"></div>
-<div class="card" style="margin-top:16px"><div class="pagehead"><div><h2 style="font-size:20px">Recent Orders</h2></div></div><div id="recentOrders"></div></div>
+
+<div class="photoGrid">
+<div class="photoCard"><b>👤 Owner — உங்கள் புகைப்படம்</b><div id="ownerPhotoBox" style="margin-top:9px"></div><input id="ownerPhotoInput" type="file" accept="image/*" capture="user" class="input" style="margin-top:9px"><div class="hint">📱 Phone-ல் gallery-லிருந்து photo தேர்வு செய்யலாம் அல்லது camera மூலம் எடுக்கலாம்.</div><button class="btn secondary" onclick="clearPhoto('owner')" style="margin-top:7px">Remove</button></div>
+<div class="photoCard"><b>🏪 Shop — கடை புகைப்படம்</b><div id="shopPhotoBox" style="margin-top:9px"></div><input id="shopPhotoInput" type="file" accept="image/*" capture="environment" class="input" style="margin-top:9px"><div class="hint">📱 Phone-ல் gallery-லிருந்து photo தேர்வு செய்யலாம் அல்லது camera மூலம் எடுக்கலாம்.</div><button class="btn secondary" onclick="clearPhoto('shop')" style="margin-top:7px">Remove</button></div>
+</div>
+
+<div class="card" style="margin-top:14px"><div class="pagehead"><div><h2 style="font-size:20px">Daily Update</h2><p>இன்றைய நிலவரம்</p></div></div><div id="dailyUpdate"></div></div>
+<div class="card" style="margin-top:14px"><div class="pagehead"><div><h2 style="font-size:20px">Recent Orders</h2></div></div><div id="recentOrders"></div></div>
 </section>
 
 <section id="view-customers" class="view">
@@ -73,8 +135,8 @@
 </section>
 
 <section id="view-orders" class="view">
-<div class="pagehead"><div><h2>Orders</h2><p>Order, delivery, amount and status.</p></div><div class="spacer"></div><button class="btn primary" onclick="openModal('order')">＋ New Order</button></div>
-<div class="card"><div class="toolbar"><input id="orderSearch" class="input search" placeholder="Search order no / customer / garment"><select id="orderStatusFilter" style="max-width:180px"><option value="">All status</option><option>Pending</option><option>In Progress</option><option>Ready</option><option>Delivered</option><option>Cancelled</option></select><button class="btn secondary" onclick="loadAll()">↻ Refresh</button></div><div id="ordersTable"></div></div>
+<div class="pagehead"><div><h2>Orders</h2><p>Delivery reminder, quantity, rate, collection and balance.</p></div><div class="spacer"></div><button class="btn primary" onclick="openModal('order')">＋ New Order</button></div>
+<div class="card"><div class="toolbar"><input id="orderSearch" class="input search" placeholder="Search order / customer / garment"><select id="orderStatusFilter" style="max-width:190px"><option value="">All status</option><option>Pending</option><option>In Progress</option><option>Ready</option><option>Delivered</option><option>Cancelled</option></select><button class="btn secondary" onclick="loadAll()">↻ Refresh</button></div><div id="ordersTable"></div></div>
 </section>
 
 <section id="view-alterations" class="view">
@@ -83,7 +145,7 @@
 </section>
 
 <section id="view-payments" class="view">
-<div class="pagehead"><div><h2>Payments</h2><p>Online database-ல் payment history.</p></div><div class="spacer"></div><button class="btn primary" onclick="openModal('payment')">＋ Add Payment</button></div>
+<div class="pagehead"><div><h2>Payments</h2><p>Today collection மற்றும் payment history.</p></div><div class="spacer"></div><button class="btn primary" onclick="openModal('payment')">＋ Add Payment</button></div>
 <div class="card"><div class="toolbar"><input id="paymentSearch" class="input search" placeholder="Search order / payment method / reference"><button class="btn secondary" onclick="loadAll()">↻ Refresh</button></div><div id="paymentsTable"></div></div>
 </section>
 
@@ -91,7 +153,6 @@
 <div class="pagehead"><div><h2>Designs</h2><p>Design catalogue and prices.</p></div><div class="spacer"></div><button class="btn primary" onclick="openModal('design')">＋ Add Design</button></div>
 <div class="card"><div class="toolbar"><input id="designSearch" class="input search" placeholder="Search design no / name / category"><button class="btn secondary" onclick="loadAll()">↻ Refresh</button></div><div id="designsTable"></div></div>
 </section>
-
 </main></div></div>
 
 <div id="modal" class="modal"><div class="modalbox">
@@ -107,15 +168,13 @@ const SUPABASE_URL="https://pdlsicwzfmartkwcwozx.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY="sb_publishable_eCKne6Tzs6-QYSXpJb-aSQ_6AHe8n9O";
 const supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
 const state={user:null,customers:[],orders:[],measurements:[],alterations:[],payments:[],designs:[],editing:null};
-// Optional dashboard photos. Paste public image URLs here later if desired.
-const OWNER_PHOTO_URL="";
-const SHOP_PHOTO_URL="";
 const $=id=>document.getElementById(id);
 const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
-const safeUrl=v=>{try{const u=new URL(String(v||""),location.href);return ["http:","https:"].includes(u.protocol)?u.href:""}catch{return ""}};
 const money=n=>"₹"+Number(n||0).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2});
-const dateText=v=>v?new Date(v+"T00:00:00").toLocaleDateString("en-IN"):"—";
-function toast(m,error=false){const t=$("toast");t.textContent=m;t.className="toast show"+(error?" error":"");clearTimeout(window.__toast);window.__toast=setTimeout(()=>t.className="toast",3000)}
+const localDate=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`};
+const dateText=v=>v?new Date(v+"T00:00:00").toLocaleDateString("ta-IN"):"—";
+const daysBetween=(a,b)=>Math.round((new Date(b+"T00:00:00")-new Date(a+"T00:00:00"))/86400000);
+function toast(m,error=false){const t=$("toast");t.textContent=m;t.className="toast show"+(error?" error":"");clearTimeout(window.__toast);window.__toast=setTimeout(()=>t.className="toast",3200)}
 function showLogin(){state.user=null;$("app").classList.add("hidden");$("loginPage").classList.remove("hidden")}
 function showApp(u){state.user=u;$("loginPage").classList.add("hidden");$("app").classList.remove("hidden");$("userChip").textContent=u?.email||""}
 function setLoginMsg(m,error=false){$("loginMsg").textContent=m;$("loginMsg").className="msg "+(error?"error":"ok")}
@@ -123,69 +182,202 @@ function setLoginMsg(m,error=false){$("loginMsg").textContent=m;$("loginMsg").cl
 $("loginForm").addEventListener("submit",async e=>{
 e.preventDefault();setLoginMsg("");const b=$("loginBtn");b.disabled=true;b.textContent="Logging in...";
 try{const {data,error}=await supabaseClient.auth.signInWithPassword({email:$("loginEmail").value.trim(),password:$("loginPassword").value});if(error)throw error;showApp(data.user);await loadAll();setLoginMsg("Login successful")}catch(err){setLoginMsg("Login failed: "+err.message,true)}finally{b.disabled=false;b.textContent="🔐 LOGIN"}});
-$("forgotBtn").addEventListener("click",async()=>{const email=$("loginEmail").value.trim();if(!email){setLoginMsg("முதலில் Email உள்ளிடுங்கள்.",true);return}const {error}=await supabaseClient.auth.resetPasswordForEmail(email,{redirectTo:location.href});if(error)setLoginMsg("Reset failed: "+error.message,true);else setLoginMsg("Password reset email அனுப்பப்பட்டது.")});
-async function handlePasswordRecovery(){if(!location.hash)return;const params=new URLSearchParams(location.hash.slice(1));if(params.get("type")==="recovery")$("recoveryBox").classList.remove("hidden")}
-$("changePasswordBtn").onclick=async()=>{const p=$("newPassword").value;if(!p||p.length<6){$("recoveryMsg").textContent="Password குறைந்தது 6 characters இருக்க வேண்டும்.";$("recoveryMsg").className="msg error";return}const {error}=await supabaseClient.auth.updateUser({password:p});if(error){$("recoveryMsg").textContent="Password change failed: "+error.message;$("recoveryMsg").className="msg error"}else{$("recoveryMsg").textContent="Password changed successfully. இப்போது Login செய்யலாம்.";$("recoveryMsg").className="msg ok"}}
-handlePasswordRecovery();
+$("forgotBtn").addEventListener("click",async()=>{const email=$("loginEmail").value.trim();if(!email){setLoginMsg("முதலில் Email உள்ளிடுங்கள்.",true);return}const {error}=await supabaseClient.auth.resetPasswordForEmail(email,{redirectTo:location.href});if(error)setLoginMsg("Reset failed: "+error.message,true);else setLoginMsg("Password reset email அனுப்பப்பட்டது. Spam/Promotions-ஐயும் பாருங்கள்.")});
 async function logout(){const {error}=await supabaseClient.auth.signOut();if(error)toast(error.message,true);else showLogin()}
-$("logoutBtn").onclick=logout;$("sideLogout").onclick=logout;$("reloadBtn").onclick=()=>loadAll(true);
-$("menuBtn").onclick=()=>$("sidebar").classList.toggle("open");
+$("logoutBtn").onclick=logout;$("sideLogout").onclick=logout;$("reloadBtn").onclick=()=>loadAll(true);$("menuBtn").onclick=()=>$("sidebar").classList.toggle("open");
 document.querySelectorAll(".navbtn[data-view]").forEach(b=>b.addEventListener("click",()=>{document.querySelectorAll(".navbtn[data-view]").forEach(x=>x.classList.remove("active"));b.classList.add("active");document.querySelectorAll(".view").forEach(x=>x.classList.remove("active"));$("view-"+b.dataset.view).classList.add("active");$("sidebar").classList.remove("open")}));
 
-async function getTable(name){const {data,error}=await supabaseClient.from(name).select("*");if(error)throw new Error(name+": "+error.message);return data||[]}
-async function loadAll(silent=false){if(!state.user)return;try{const [customers,orders,measurements,alterations,payments,designs]=await Promise.all([getTable("customers"),getTable("orders"),getTable("measurements"),getTable("alterations"),getTable("payments"),getTable("designs")]);Object.assign(state,{customers,orders,measurements,alterations,payments,designs});
-state.customers.sort((a,b)=>String(b.created_at||b.id||"").localeCompare(String(a.created_at||a.id||"")));
-state.orders.sort((a,b)=>String(b.created_at||b.order_date||b.id||"").localeCompare(String(a.created_at||a.order_date||a.id||"")));
-state.payments.sort((a,b)=>String(b.created_at||b.payment_date||b.id||"").localeCompare(String(a.created_at||a.payment_date||a.id||"")));
-renderAll();if(!silent)toast("Online data loaded")}catch(err){toast("Database load error: "+err.message,true)}}
+async function getTable(name){
+const {data,error}=await supabaseClient.from(name).select("*").order("created_at",{ascending:false});
+if(error)throw new Error(name+": "+error.message);return data||[];
+}
+async function loadAll(silent=false){
+if(!state.user)return;
+try{
+const [customers,orders,measurements,alterations,payments,designs]=await Promise.all([
+getTable("customers"),getTable("orders"),getTable("measurements"),getTable("alterations"),getTable("payments"),getTable("designs")
+]);
+Object.assign(state,{customers,orders,measurements,alterations,payments,designs});renderAll();if(!silent)toast("Online data loaded");
+}catch(err){toast("Database load error: "+err.message,true)}
+}
 function customerName(id){return state.customers.find(x=>x.id===id)?.name||"Unknown"}
 function orderLabel(id){const o=state.orders.find(x=>x.id===id);return o?`${o.order_no} — ${customerName(o.customer_id)}`:"Unknown"}
-function statusPill(s){const c=["Delivered","Completed","Ready"].includes(s)?"ok":s==="Cancelled"?"bad":["Pending","In Progress"].includes(s)?"warn":"";return `<span class="pill ${c}">${esc(s)}</span>`}
-
-function daysLeft(date){if(!date)return null;const d=new Date(date+'T23:59:59');const now=new Date();return Math.ceil((d-now)/86400000)}
-function deadlineInfo(date,status){if(!date)return {text:"தேதி இல்லை",cls:""};if(["Delivered","Completed","Cancelled"].includes(status))return {text:status,cls:"ok"};const n=daysLeft(date);if(n<0)return {text:`${Math.abs(n)} நாள் தாமதம்`,cls:"bad"};if(n===0)return {text:"இன்று கொடுக்க வேண்டும்",cls:"bad"};if(n<=2)return {text:`இன்னும் ${n} நாள் — URGENT`,cls:"bad"};if(n<=5)return {text:`இன்னும் ${n} நாட்கள்`,cls:"warn"};return {text:`இன்னும் ${n} நாட்கள்`,cls:"ok"}}
-function renderDashboard(){
-  $("statCustomers").textContent=state.customers.length;
-  $("statOrders").textContent=state.orders.length;
-  $("statPayments").textContent=state.payments.length;
-  $("statBalance").textContent=money(state.orders.reduce((a,o)=>a+Number(o.balance_amount||0),0));
-  const media=[];
-  media.push(safeUrl(OWNER_PHOTO_URL)?`<div class="media-card"><img src="${esc(safeUrl(OWNER_PHOTO_URL))}" alt="Owner"><div><b>Owner</b><div class="mini">உங்கள் புகைப்படம்</div></div></div>`:`<div class="media-card"><div class="media-placeholder">👤</div><div><b>Owner Photo</b><div class="mini">பின்னர் photo URL சேர்க்கலாம்</div></div></div>`);
-  media.push(safeUrl(SHOP_PHOTO_URL)?`<div class="media-card"><img src="${esc(safeUrl(SHOP_PHOTO_URL))}" alt="Shop"><div><b>Shop</b><div class="mini">கடை புகைப்படம்</div></div></div>`:`<div class="media-card"><div class="media-placeholder">🏪</div><div><b>Shop Photo</b><div class="mini">பின்னர் shop photo URL சேர்க்கலாம்</div></div></div>`);
-  $("dashboardMedia").innerHTML=media.join("");
-  const active=state.orders.filter(o=>!["Delivered","Completed","Cancelled"].includes(o.status)&&o.delivery_date).sort((a,b)=>String(a.delivery_date).localeCompare(String(b.delivery_date)));
-  const urgent=active.filter(o=>{const n=daysLeft(o.delivery_date);return n<=5;}).slice(0,8);
-  $("deadlineReminders").innerHTML=urgent.length?`<div class="card"><h3 style="margin:0">⏰ Delivery Reminders</h3>${urgent.map(o=>{const d=deadlineInfo(o.delivery_date,o.status);return `<div class="reminder ${d.cls}"><b>${esc(o.order_no||"Order")}</b> — ${esc(customerName(o.customer_id))}<br><span class="deadline ${d.cls}">${d.text}</span> · ${dateText(o.delivery_date)} · ${esc(o.status||"")}</div>`}).join("")}</div>`:`<div class="card"><b>⏰ Delivery Reminders</b><div class="mini" style="margin-top:6px">அடுத்த 5 நாட்களுக்குள் delivery உள்ள orders இல்லை.</div></div>`;
-  const r=state.orders.slice(0,8);
-  $("recentOrders").innerHTML=r.length?`<div class="tablewrap"><table class="table"><thead><tr><th>Order</th><th>Customer</th><th>Garment</th><th>Delivery</th><th>Days left</th><th>Status</th><th>Balance</th></tr></thead><tbody>${r.map(o=>{const d=deadlineInfo(o.delivery_date,o.status);return `<tr><td>${esc(o.order_no)}</td><td>${esc(customerName(o.customer_id))}</td><td>${esc(o.garment_type)}</td><td>${dateText(o.delivery_date)}</td><td><span class="deadline ${d.cls}">${d.text}</span></td><td>${statusPill(o.status)}</td><td>${money(o.balance_amount)}</td></tr>`}).join("")}</tbody></table></div>`:`<div class="empty">No orders yet.</div>`;
+function isFinished(o){return ["Delivered","Cancelled"].includes(String(o.status||""))}
+function dueInfo(o){
+if(!o.delivery_date||isFinished(o))return null;
+const d=daysBetween(localDate(),o.delivery_date);
+if(d<0)return {kind:"late",days:Math.abs(d)};
+if(d===0)return {kind:"today",days:0};
+if(d<=5)return {kind:"soon",days:d};
+return null;
 }
-function renderCustomers(){const q=($("customerSearch").value||"").toLowerCase(),r=state.customers.filter(x=>[x.name,x.phone,x.address].join(" ").toLowerCase().includes(q));$("customersTable").innerHTML=r.length?`<div class="tablewrap"><table class="table"><thead><tr><th>Name</th><th>Phone</th><th>Address</th><th>Notes</th><th>Created</th><th>Actions</th></tr></thead><tbody>${r.map(x=>`<tr><td><b>${esc(x.name)}</b></td><td>${esc(x.phone)}</td><td>${esc(x.address)}</td><td>${esc(x.notes)}</td><td>${dateText(x.created_at?.slice(0,10))}</td><td><div class="actions"><button class="btn secondary" onclick="openModal('customer','${x.id}')">Edit</button><button class="btn danger" onclick="removeRow('customers','${x.id}')">Delete</button></div></td></tr>`).join("")}</tbody></table></div>`:`<div class="empty">No customers found.</div>`}
-function renderMeasurements(){const q=($("measurementSearch").value||"").toLowerCase(),r=state.measurements.filter(x=>[customerName(x.customer_id),x.garment_type,x.notes].join(" ").toLowerCase().includes(q));$("measurementsTable").innerHTML=r.length?`<div class="tablewrap"><table class="table"><thead><tr><th>Customer</th><th>Garment</th><th>Chest</th><th>Waist</th><th>Shoulder</th><th>Length</th><th>Notes</th><th>Actions</th></tr></thead><tbody>${r.map(x=>`<tr><td>${esc(customerName(x.customer_id))}</td><td>${esc(x.garment_type)}</td><td>${x.chest??"—"}</td><td>${x.waist??"—"}</td><td>${x.shoulder??"—"}</td><td>${x.shirt_length??x.pant_length??"—"}</td><td>${esc(x.notes)}</td><td><div class="actions"><button class="btn secondary" onclick="openModal('measurement','${x.id}')">Edit</button><button class="btn danger" onclick="removeRow('measurements','${x.id}')">Delete</button></div></td></tr>`).join("")}</tbody></table></div>`:`<div class="empty">No measurements found.</div>`}
-function renderOrders(){const q=($("orderSearch").value||"").toLowerCase(),sf=$("orderStatusFilter").value,r=state.orders.filter(x=>(!sf||x.status===sf)&&[x.order_no,customerName(x.customer_id),x.garment_type,x.status].join(" ").toLowerCase().includes(q));$("ordersTable").innerHTML=r.length?`<div class="tablewrap"><table class="table"><thead><tr><th>Order No</th><th>Customer</th><th>Garment</th><th>Order</th><th>Delivery</th><th>Total</th><th>Advance</th><th>Balance</th><th>Status</th><th>Actions</th></tr></thead><tbody>${r.map(x=>`<tr><td><b>${esc(x.order_no)}</b></td><td>${esc(customerName(x.customer_id))}</td><td>${esc(x.garment_type)}</td><td>${dateText(x.order_date)}</td><td>${dateText(x.delivery_date)}</td><td>${money(x.total_amount)}</td><td>${money(x.advance_amount)}</td><td>${money(x.balance_amount)}</td><td>${statusPill(x.status)}</td><td><div class="actions"><button class="btn secondary" onclick="openModal('order','${x.id}')">Edit</button><button class="btn danger" onclick="removeRow('orders','${x.id}')">Delete</button></div></td></tr>`).join("")}</tbody></table></div>`:`<div class="empty">No orders found.</div>`}
-function renderAlterations(){const q=($("alterationSearch").value||"").toLowerCase(),r=state.alterations.filter(x=>[customerName(x.customer_id),x.alteration_details,x.status].join(" ").toLowerCase().includes(q));$("alterationsTable").innerHTML=r.length?`<div class="tablewrap"><table class="table"><thead><tr><th>Customer</th><th>Order</th><th>Details</th><th>Date</th><th>Delivery</th><th>Amount</th><th>Status</th><th>Actions</th></tr></thead><tbody>${r.map(x=>`<tr><td>${esc(customerName(x.customer_id))}</td><td>${esc(orderLabel(x.order_id))}</td><td>${esc(x.alteration_details)}</td><td>${dateText(x.alteration_date)}</td><td>${dateText(x.delivery_date)}</td><td>${money(x.amount)}</td><td>${statusPill(x.status)}</td><td><div class="actions"><button class="btn secondary" onclick="openModal('alteration','${x.id}')">Edit</button><button class="btn danger" onclick="removeRow('alterations','${x.id}')">Delete</button></div></td></tr>`).join("")}</tbody></table></div>`:`<div class="empty">No alterations found.</div>`}
-function renderPayments(){const q=($("paymentSearch").value||"").toLowerCase(),r=state.payments.filter(x=>[orderLabel(x.order_id),x.payment_method,x.reference_no].join(" ").toLowerCase().includes(q));$("paymentsTable").innerHTML=r.length?`<div class="tablewrap"><table class="table"><thead><tr><th>Order</th><th>Date</th><th>Amount</th><th>Method</th><th>Reference</th><th>Notes</th><th>Actions</th></tr></thead><tbody>${r.map(x=>`<tr><td>${esc(orderLabel(x.order_id))}</td><td>${dateText(x.payment_date)}</td><td><b>${money(x.amount)}</b></td><td>${esc(x.payment_method)}</td><td>${esc(x.reference_no)}</td><td>${esc(x.notes)}</td><td><div class="actions"><button class="btn secondary" onclick="openModal('payment','${x.id}')">Edit</button><button class="btn danger" onclick="removeRow('payments','${x.id}')">Delete</button></div></td></tr>`).join("")}</tbody></table></div>`:`<div class="empty">No payments found.</div>`}
-function renderDesigns(){const q=($("designSearch").value||"").toLowerCase(),r=state.designs.filter(x=>[x.design_no,x.design_name,x.category,x.description].join(" ").toLowerCase().includes(q));$("designsTable").innerHTML=r.length?`<div class="tablewrap"><table class="table"><thead><tr><th>Photo</th><th>Design No</th><th>Name</th><th>Category</th><th>Description</th><th>Price</th><th>Actions</th></tr></thead><tbody>${r.map(x=>`<tr><td>${safeUrl(x.image_url)?`<img class="design-thumb" src="${esc(safeUrl(x.image_url))}" alt="Design" onerror="this.style.display='none'">`:`—`}</td><td>${esc(x.design_no)}</td><td><b>${esc(x.design_name)}</b></td><td>${esc(x.category)}</td><td>${esc(x.description)}</td><td>${money(x.price)}</td><td><div class="actions"><button class="btn secondary" onclick="openModal('design','${x.id}')">Edit</button><button class="btn danger" onclick="removeRow('designs','${x.id}')">Delete</button></div></td></tr>`).join("")}</tbody></table></div>`:`<div class="empty">No designs found.</div>`}
+function statusPill(s){const c=["Delivered","Completed"].includes(s)?"ok":s==="Cancelled"?"bad":["Pending","In Progress"].includes(s)?"warn":s==="Ready"?"ok":"";return `<span class="pill ${c}">${esc(s||"Pending")}</span>`}
+function orderTotal(o){const q=Number(o.quantity||0),u=Number(o.unit_price||0);return Number(o.total_amount||0)||q*u}
+function totalPieces(){return state.orders.reduce((a,o)=>a+Number(o.quantity||0),0)}
+function totalSales(){return state.orders.reduce((a,o)=>a+orderTotal(o),0)}
+function totalBalance(){return state.orders.reduce((a,o)=>a+Math.max(0,Number(o.balance_amount||0)),0)}
+function todayCollection(){const t=localDate();return state.payments.filter(p=>p.payment_date===t).reduce((a,p)=>a+Number(p.amount||0),0)}
+
+function renderDashboard(){
+$("statCustomers").textContent=state.customers.length;
+$("statOrders").textContent=state.orders.length;
+$("statTodayCollection").textContent=money(todayCollection());
+$("statBalance").textContent=money(totalBalance());
+$("statPieces").textContent=totalPieces();
+$("statSales").textContent=money(totalSales());
+const late=state.orders.filter(o=>dueInfo(o)?.kind==="late"),today=state.orders.filter(o=>dueInfo(o)?.kind==="today"),soon=state.orders.filter(o=>dueInfo(o)?.kind==="soon");
+$("statLate").textContent=late.length;
+$("dueTodayCount").textContent=today.length;$("dueSoonCount").textContent=soon.length;$("lateCount").textContent=late.length;
+$("dueTodayList").innerHTML=smallOrderList(today,"இன்று கொடுக்க வேண்டும்");
+$("dueSoonList").innerHTML=smallOrderList(soon,"இன்னும்");
+$("lateList").innerHTML=smallOrderList(late,"late");
+const delivered=state.orders.filter(o=>String(o.status)==="Delivered").length;
+$("dailyUpdate").innerHTML=`<p>📅 இன்று: <b>${dateText(localDate())}</b></p>
+<p>💰 Today collection: <b>${money(todayCollection())}</b></p>
+<p>👗 மொத்த pieces: <b>${totalPieces()}</b> &nbsp; | &nbsp; மொத்த order value: <b>${money(totalSales())}</b></p>
+<p>💳 Customers கொடுக்க வேண்டிய balance: <b>${money(totalBalance())}</b></p>
+<p>🚨 Late orders: <b>${late.length}</b> &nbsp; | &nbsp; ✅ Delivered: <b>${delivered}</b></p>`;
+const recent=state.orders.slice().sort((a,b)=>String(b.created_at||"").localeCompare(String(a.created_at||""))).slice(0,8);
+$("recentOrders").innerHTML=recent.length?`<div class="tablewrap"><table class="table"><thead><tr><th>Order</th><th>Customer</th><th>Garment</th><th>Qty</th><th>Delivery</th><th>Total</th><th>Balance</th><th>Status</th></tr></thead><tbody>${recent.map(o=>`<tr><td><b>${esc(o.order_no)}</b></td><td>${esc(customerName(o.customer_id))}</td><td>${esc(o.garment_type)}</td><td>${Number(o.quantity||0)}</td><td>${dateText(o.delivery_date)}</td><td>${money(orderTotal(o))}</td><td>${money(o.balance_amount)}</td><td>${statusPill(o.status)}</td></tr>`).join("")}</tbody></table></div>`:`<div class="empty">No orders yet.</div>`;
+renderPhotos();
+}
+function smallOrderList(list,label){
+if(!list.length)return `<div class="mini" style="margin-top:8px">எதுவும் இல்லை.</div>`;
+return list.slice(0,5).map(o=>{const d=dueInfo(o);const extra=d?.kind==="late"?`${d.days} நாள் late`:d?.kind==="today"?label:`${d.days} நாள் உள்ளது`;return `<div class="alertrow"><b>${esc(customerName(o.customer_id))}</b> — ${esc(o.garment_type)}<br><span class="mini">${esc(o.order_no)} · ${Number(o.quantity||0)} pcs · ${extra}</span></div>`}).join("")+(list.length>5?`<div class="mini" style="margin-top:7px">+ ${list.length-5} more</div>`:"");
+}
+
+function renderCustomers(){
+const q=($("customerSearch").value||"").toLowerCase(),r=state.customers.filter(x=>[x.name,x.phone,x.address].join(" ").toLowerCase().includes(q));
+$("customersTable").innerHTML=r.length?`<div class="tablewrap"><table class="table"><thead><tr><th>Name</th><th>Phone</th><th>Address</th><th>Notes</th><th>Created</th><th>Actions</th></tr></thead><tbody>${r.map(x=>`<tr><td><b>${esc(x.name)}</b></td><td>${esc(x.phone)}</td><td>${esc(x.address)}</td><td>${esc(x.notes)}</td><td>${dateText(x.created_at?.slice(0,10))}</td><td><div class="actions"><button class="btn secondary" onclick="openModal('customer','${x.id}')">Edit</button><button class="btn danger" onclick="removeRow('customers','${x.id}')">Delete</button></div></td></tr>`).join("")}</tbody></table></div>`:`<div class="empty">No customers found.</div>`;
+}
+function renderMeasurements(){
+const q=($("measurementSearch").value||"").toLowerCase(),r=state.measurements.filter(x=>[customerName(x.customer_id),x.garment_type,x.notes].join(" ").toLowerCase().includes(q));
+$("measurementsTable").innerHTML=r.length?`<div class="tablewrap"><table class="table"><thead><tr><th>Customer</th><th>Garment</th><th>Chest</th><th>Waist</th><th>Shoulder</th><th>Length</th><th>Notes</th><th>Actions</th></tr></thead><tbody>${r.map(x=>`<tr><td>${esc(customerName(x.customer_id))}</td><td>${esc(x.garment_type)}</td><td>${x.chest??"—"}</td><td>${x.waist??"—"}</td><td>${x.shoulder??"—"}</td><td>${x.shirt_length??x.pant_length??"—"}</td><td>${esc(x.notes)}</td><td><div class="actions"><button class="btn secondary" onclick="openModal('measurement','${x.id}')">Edit</button><button class="btn danger" onclick="removeRow('measurements','${x.id}')">Delete</button></div></td></tr>`).join("")}</tbody></table></div>`:`<div class="empty">No measurements found.</div>`;
+}
+function renderOrders(){
+const q=($("orderSearch").value||"").toLowerCase(),sf=$("orderStatusFilter").value;
+const r=state.orders.filter(x=>(!sf||x.status===sf)&&[x.order_no,customerName(x.customer_id),x.garment_type,x.status].join(" ").toLowerCase().includes(q));
+$("ordersTable").innerHTML=r.length?`<div class="tablewrap"><table class="table"><thead><tr><th>Order</th><th>Customer</th><th>Garment</th><th>Cloth received</th><th>Delivery</th><th>Qty</th><th>Rate</th><th>Total</th><th>Advance</th><th>Balance</th><th>Status</th><th>Actions</th></tr></thead><tbody>${r.map(o=>{
+const d=dueInfo(o);const reminder=d?`<br><span class="pill ${d.kind==="late"?"bad":d.kind==="today"?"warn":""}">${d.kind==="late"?d.days+" நாள் late":d.kind==="today"?"இன்று":d.days+" நாள்"}</span>`:"";
+return `<tr><td><b>${esc(o.order_no)}</b></td><td>${esc(customerName(o.customer_id))}</td><td>${esc(o.garment_type)}</td><td>${dateText(o.cloth_received_date)}</td><td>${dateText(o.delivery_date)}${reminder}</td><td>${Number(o.quantity||0)}</td><td>${money(o.unit_price)}</td><td>${money(orderTotal(o))}</td><td>${money(o.advance_amount)}</td><td>${money(o.balance_amount)}</td><td>${statusPill(o.status)}</td><td><div class="actions"><button class="btn secondary" onclick="openModal('order','${o.id}')">Edit</button>${!isFinished(o)?`<button class="btn success" onclick="markDelivered('${o.id}')">Delivered</button>`:""}<button class="btn danger" onclick="removeRow('orders','${o.id}')">Delete</button></div></td></tr>`;
+}).join("")}</tbody></table></div>`:`<div class="empty">No orders found.</div>`;
+}
+function renderAlterations(){
+const q=($("alterationSearch").value||"").toLowerCase(),r=state.alterations.filter(x=>[customerName(x.customer_id),x.alteration_details,x.status].join(" ").toLowerCase().includes(q));
+$("alterationsTable").innerHTML=r.length?`<div class="tablewrap"><table class="table"><thead><tr><th>Customer</th><th>Order</th><th>Details</th><th>Date</th><th>Delivery</th><th>Amount</th><th>Status</th><th>Actions</th></tr></thead><tbody>${r.map(x=>`<tr><td>${esc(customerName(x.customer_id))}</td><td>${esc(orderLabel(x.order_id))}</td><td>${esc(x.alteration_details)}</td><td>${dateText(x.alteration_date)}</td><td>${dateText(x.delivery_date)}</td><td>${money(x.amount)}</td><td>${statusPill(x.status)}</td><td><div class="actions"><button class="btn secondary" onclick="openModal('alteration','${x.id}')">Edit</button><button class="btn danger" onclick="removeRow('alterations','${x.id}')">Delete</button></div></td></tr>`).join("")}</tbody></table></div>`:`<div class="empty">No alterations found.</div>`;
+}
+function renderPayments(){
+const q=($("paymentSearch").value||"").toLowerCase(),r=state.payments.filter(x=>[orderLabel(x.order_id),x.payment_method,x.reference_no].join(" ").toLowerCase().includes(q));
+$("paymentsTable").innerHTML=r.length?`<div class="tablewrap"><table class="table"><thead><tr><th>Order</th><th>Date</th><th>Amount</th><th>Method</th><th>Reference</th><th>Notes</th><th>Actions</th></tr></thead><tbody>${r.map(x=>`<tr><td>${esc(orderLabel(x.order_id))}</td><td>${dateText(x.payment_date)}</td><td><b>${money(x.amount)}</b></td><td>${esc(x.payment_method)}</td><td>${esc(x.reference_no)}</td><td>${esc(x.notes)}</td><td><div class="actions"><button class="btn secondary" onclick="openModal('payment','${x.id}')">Edit</button><button class="btn danger" onclick="removeRow('payments','${x.id}')">Delete</button></div></td></tr>`).join("")}</tbody></table></div>`:`<div class="empty">No payments found.</div>`;
+}
+function renderDesigns(){
+const q=($("designSearch").value||"").toLowerCase(),r=state.designs.filter(x=>[x.design_no,x.design_name,x.category,x.description].join(" ").toLowerCase().includes(q));
+$("designsTable").innerHTML=r.length?`<div class="tablewrap"><table class="table"><thead><tr><th>Design No</th><th>Name</th><th>Category</th><th>Description</th><th>Price</th><th>Actions</th></tr></thead><tbody>${r.map(x=>`<tr><td>${esc(x.design_no)}</td><td><b>${esc(x.design_name)}</b></td><td>${esc(x.category)}</td><td>${esc(x.description)}</td><td>${money(x.price)}</td><td><div class="actions"><button class="btn secondary" onclick="openModal('design','${x.id}')">Edit</button><button class="btn danger" onclick="removeRow('designs','${x.id}')">Delete</button></div></td></tr>`).join("")}</tbody></table></div>`:`<div class="empty">No designs found.</div>`;
+}
 function renderAll(){renderDashboard();renderCustomers();renderMeasurements();renderOrders();renderAlterations();renderPayments();renderDesigns()}
-["customerSearch","measurementSearch","orderSearch","alterationSearch","paymentSearch","designSearch"].forEach(id=>$(id).addEventListener("input",renderAll));$("orderStatusFilter").addEventListener("change",renderAll);
+
+["customerSearch","measurementSearch","orderSearch","alterationSearch","paymentSearch","designSearch"].forEach(id=>$(id).addEventListener("input",renderAll));
+$("orderStatusFilter").addEventListener("change",renderAll);
 
 const formDefs={
 customer:{title:"Customer",table:"customers",fields:[["name","Customer Name","text",true],["phone","Phone","tel"],["address","Address","text"],["notes","Notes","textarea"]]},
 measurement:{title:"Measurement",table:"measurements",fields:[["customer_id","Customer","customer",true],["garment_type","Garment Type","text",true],["neck","Neck","number"],["shoulder","Shoulder","number"],["chest","Chest","number"],["waist","Waist","number"],["hip","Hip","number"],["sleeve","Sleeve","number"],["armhole","Armhole","number"],["shirt_length","Shirt Length","number"],["pant_length","Pant Length","number"],["inseam","Inseam","number"],["thigh","Thigh","number"],["knee","Knee","number"],["bottom","Bottom","number"],["notes","Notes","textarea"]]},
-order:{title:"Order",table:"orders",fields:[["customer_id","Customer","customer",true],["order_no","Order No","text",true],["garment_type","Garment Type","text",true],["order_date","Order Date","date",true],["delivery_date","Delivery Date","date"],["status","Status","orderstatus",true],["total_amount","Total Amount","number",true],["advance_amount","Advance Amount","number",true],["notes","Notes","textarea"]]},
+order:{title:"Order",table:"orders",fields:[
+["customer_id","Customer","customer",true],["order_no","Order No","text",true],["garment_type","Garment Type","text",true],
+["order_date","Order Date","date",true],["cloth_received_date","துணி பெற்ற / கொடுத்த தேதி","date"],
+["delivery_date","Delivery Date","date",true],["quantity","Quantity / Pieces","number",true],["unit_price","ஒரு blouse / piece விலை","number",true],
+["total_amount","மொத்த தொகை","number",true],["advance_amount","Advance / Paid","number",true],["status","Status","orderstatus",true],["notes","Notes","textarea"]
+]},
 alteration:{title:"Alteration",table:"alterations",fields:[["customer_id","Customer","customer",true],["order_id","Order","order"],["alteration_details","Alteration Details","textarea",true],["alteration_date","Alteration Date","date",true],["delivery_date","Delivery Date","date"],["status","Status","alterstatus",true],["amount","Amount","number"],["notes","Notes","textarea"]]},
 payment:{title:"Payment",table:"payments",fields:[["order_id","Order","order",true],["payment_date","Payment Date","date",true],["amount","Amount","number",true],["payment_method","Payment Method","paymentmethod",true],["reference_no","Reference No","text"],["notes","Notes","textarea"]]},
 design:{title:"Design",table:"designs",fields:[["design_no","Design No","text",true],["design_name","Design Name","text",true],["category","Category","text"],["description","Description","textarea"],["image_url","Image URL","url"],["price","Price","number"]]}
 };
-function inputHTML(f,val){const [key,label,type,required]=f,v=val??"";if(type==="textarea")return `<div class="field full"><label>${label}</label><textarea class="input" name="${key}" ${required?"required":""}>${esc(v)}</textarea></div>`;if(type==="customer")return `<div class="field"><label>${label}</label><select class="input" name="${key}" ${required?"required":""}><option value="">Select customer</option>${state.customers.map(c=>`<option value="${c.id}" ${v===c.id?"selected":""}>${esc(c.name)}${c.phone?" — "+esc(c.phone):""}</option>`).join("")}</select></div>`;if(type==="order")return `<div class="field"><label>${label}</label><select class="input" name="${key}" ${required?"required":""}><option value="">Select order</option>${state.orders.map(o=>`<option value="${o.id}" ${v===o.id?"selected":""}>${esc(o.order_no)} — ${esc(customerName(o.customer_id))}</option>`).join("")}</select></div>`;const opts={orderstatus:["Pending","In Progress","Ready","Delivered","Cancelled"],alterstatus:["Pending","In Progress","Ready","Completed","Cancelled"],paymentmethod:["Cash","UPI","Card","Bank Transfer","Other"]};if(opts[type])return `<div class="field"><label>${label}</label><select class="input" name="${key}" ${required?"required":""}>${opts[type].map(o=>`<option ${v===o?"selected":""}>${o}</option>`).join("")}</select></div>`;return `<div class="field"><label>${label}</label><input class="input" name="${key}" type="${type}" value="${esc(v)}" ${required?"required":""} ${type==="number"?'step="0.01" min="0"':''}></div>`}
-function openModal(type,id=null){state.editing={type,id};const def=formDefs[type];let row=null;if(id)row=state[type+"s"]?.find(x=>x.id===id)||null;$("modalTitle").textContent=(id?"Edit ":"Add ")+def.title;$("formMsg").textContent="";$("formMsg").className="msg";const today=new Date().toISOString().slice(0,10);$("formFields").innerHTML=def.fields.map(f=>{let val=row?.[f[0]];if(val==null&&["order_date","alteration_date","payment_date"].includes(f[0]))val=today;if(val==null&&["status"].includes(f[0]))val="Pending";if(val==null&&["total_amount","advance_amount","amount","price"].includes(f[0]))val=0;return inputHTML(f,val)}).join("");$("modal").classList.add("open")}
+
+function inputHTML(f,val){
+const [key,label,type,required]=f,v=val??"";
+if(type==="textarea")return `<div class="field full"><label>${label}</label><textarea class="input" name="${key}" ${required?"required":""}>${esc(v)}</textarea></div>`;
+if(type==="customer")return `<div class="field"><label>${label}</label><select class="input" name="${key}" ${required?"required":""}><option value="">Select customer</option>${state.customers.map(c=>`<option value="${c.id}" ${v===c.id?"selected":""}>${esc(c.name)}${c.phone?" — "+esc(c.phone):""}</option>`).join("")}</select></div>`;
+if(type==="order")return `<div class="field"><label>${label}</label><select class="input" name="${key}" ${required?"required":""}><option value="">Select order</option>${state.orders.map(o=>`<option value="${o.id}" ${v===o.id?"selected":""}>${esc(o.order_no)} — ${esc(customerName(o.customer_id))}</option>`).join("")}</select></div>`;
+const opts={orderstatus:["Pending","In Progress","Ready","Delivered","Cancelled"],alterstatus:["Pending","In Progress","Ready","Completed","Cancelled"],paymentmethod:["Cash","UPI","Card","Bank Transfer","Other"]};
+if(opts[type])return `<div class="field"><label>${label}</label><select class="input" name="${key}" ${required?"required":""}>${opts[type].map(o=>`<option ${v===o?"selected":""}>${o}</option>`).join("")}</select></div>`;
+return `<div class="field"><label>${label}</label><input class="input" name="${key}" type="${type}" value="${esc(v)}" ${required?"required":""} ${type==="number"?'step="0.01" min="0"':''}></div>`;
+}
+
+function openModal(type,id=null){
+state.editing={type,id};const def=formDefs[type];let row=null;
+if(id){const list=state[type+"s"]||[];row=list.find(x=>x.id===id)||null}
+$("modalTitle").textContent=(id?"Edit ":"Add ")+def.title;$("formMsg").textContent="";$("formMsg").className="msg";
+const today=localDate();
+$("formFields").innerHTML=def.fields.map(f=>{
+let val=row?.[f[0]];
+if(val==null&&["order_date","alteration_date","payment_date"].includes(f[0]))val=today;
+if(val==null&&f[0]==="status")val="Pending";
+if(val==null&&["quantity"].includes(f[0]))val=1;
+if(val==null&&["total_amount","advance_amount","amount","price","unit_price"].includes(f[0]))val=0;
+return inputHTML(f,val);
+}).join("");
+if(type==="order"){
+const q=$('formFields').querySelector('[name="quantity"]'),u=$('formFields').querySelector('[name="unit_price"]'),t=$('formFields').querySelector('[name="total_amount"]'),a=$('formFields').querySelector('[name="advance_amount"]');
+if(t)t.readOnly=true;
+const recalc=()=>{const total=Math.max(0,Number(q?.value||0)*Number(u?.value||0));if(t)t.value=total.toFixed(2);};
+q?.addEventListener("input",recalc);u?.addEventListener("input",recalc);
+const note=document.createElement("div");note.className="field full hint";note.textContent="Quantity × Unit Price = Total. உதாரணம்: 5 blouse × ₹300 = ₹1,500.";
+t?.parentElement?.appendChild(note);
+const bal=document.createElement("div");bal.className="field full";bal.innerHTML='<label>Balance (auto)</label><div id="liveBalance" class="autoTotal">₹0.00</div>';
+t?.parentElement?.parentElement?.appendChild(bal);
+const updateBal=()=>{const total=Number(t?.value||0),adv=Number(a?.value||0);$("liveBalance").textContent=money(Math.max(0,total-adv));};
+q?.addEventListener("input",updateBal);u?.addEventListener("input",updateBal);a?.addEventListener("input",updateBal);updateBal();
+}
+$("modal").classList.add("open");
+}
 function closeModal(){$("modal").classList.remove("open");state.editing=null}
 $("modal").addEventListener("click",e=>{if(e.target===$("modal"))closeModal()});
-$("dataForm").addEventListener("submit",async e=>{e.preventDefault();if(!state.editing)return;const {type,id}=state.editing,def=formDefs[type],fd=new FormData(e.target),payload={};def.fields.forEach(f=>{let v=fd.get(f[0]);if(v==="")v=null;if(f[2]==="number"&&v!==null)v=Number(v);payload[f[0]]=v});if(type==="order")payload.balance_amount=Math.max(0,Number(payload.total_amount||0)-Number(payload.advance_amount||0));
-if(!id)payload.user_id=state.user.id;
 
-const b=$("saveBtn");b.disabled=true;b.textContent="Saving...";try{let result=id?await supabaseClient.from(def.table).update(payload).eq("id",id).select().single():await supabaseClient.from(def.table).insert(payload).select().single();if(result.error)throw result.error;closeModal();await loadAll(true);toast(id?"Updated online":"Saved online")}catch(err){$("formMsg").textContent="Save failed: "+err.message;$("formMsg").className="msg error"}finally{b.disabled=false;b.textContent="Save"}});
-async function removeRow(table,id){if(!confirm("இந்த record-ஐ delete செய்ய வேண்டுமா?"))return;try{const {error}=await supabaseClient.from(table).delete().eq("id",id);if(error)throw error;await loadAll(true);toast("Deleted online")}catch(err){toast("Delete failed: "+err.message,true)}}
-window.setInterval(()=>{if(state.user)loadAll(true)},60000);
+$("dataForm").addEventListener("submit",async e=>{
+e.preventDefault();if(!state.editing)return;
+const {type,id}=state.editing,def=formDefs[type],fd=new FormData(e.target),payload={};
+def.fields.forEach(f=>{let v=fd.get(f[0]);if(v==="")v=null;if(f[2]==="number"&&v!==null)v=Number(v);payload[f[0]]=v});
+if(type==="order"){
+payload.total_amount=Math.max(0,Number(payload.quantity||0)*Number(payload.unit_price||0));
+payload.balance_amount=Math.max(0,payload.total_amount-Number(payload.advance_amount||0));
+if(!payload.status)payload.status="Pending";
+}
+const b=$("saveBtn");b.disabled=true;b.textContent="Saving...";
+try{
+let result=id?await supabaseClient.from(def.table).update(payload).eq("id",id).select().single():await supabaseClient.from(def.table).insert(payload).select().single();
+if(result.error)throw result.error;
+closeModal();await loadAll(true);toast(id?"Updated online":"Saved online");
+}catch(err){$("formMsg").textContent="Save failed: "+err.message;$("formMsg").className="msg error"}
+finally{b.disabled=false;b.textContent="Save"}
+});
+
+async function markDelivered(id){
+if(!confirm("இந்த order-ஐ Delivered என்று மாற்றவா?"))return;
+const {error}=await supabaseClient.from("orders").update({status:"Delivered"}).eq("id",id);
+if(error)toast("Update failed: "+error.message,true);else{await loadAll(true);toast("Order Delivered என்று சேமிக்கப்பட்டது")}
+}
+async function removeRow(table,id){
+if(!confirm("இந்த record-ஐ delete செய்ய வேண்டுமா?"))return;
+try{const {error}=await supabaseClient.from(table).delete().eq("id",id);if(error)throw error;await loadAll(true);toast("Deleted online")}catch(err){toast("Delete failed: "+err.message,true)}
+}
+
+function photoKey(kind){return "newfashion_"+kind+"_photo"}
+function renderPhotos(){
+["owner","shop"].forEach(kind=>{
+const box=$(kind+"PhotoBox"),src=localStorage.getItem(photoKey(kind));
+box.innerHTML=src?`<img class="photo" src="${src}" alt="${kind} photo">`:`<div class="photoPlaceholder">${kind==="owner"?"உங்கள் புகைப்படம்":"கடை புகைப்படம்"}</div>`;
+});
+}
+function clearPhoto(kind){localStorage.removeItem(photoKey(kind));renderPhotos()}
+function savePhoto(kind,file){
+if(!file)return;
+if(!file.type.startsWith("image/")){toast("Image file மட்டும் தேர்வு செய்யுங்கள்.",true);return}
+if(file.size>2*1024*1024){toast("Photo 2MB-க்கு குறைவாக இருக்க வேண்டும்.",true);return}
+const reader=new FileReader();reader.onload=()=>{localStorage.setItem(photoKey(kind),reader.result);renderPhotos();toast(kind==="owner"?"Owner photo saved":"Shop photo saved")};reader.readAsDataURL(file);
+}
+$("ownerPhotoInput").addEventListener("change",e=>savePhoto("owner",e.target.files[0]));
+$("shopPhotoInput").addEventListener("change",e=>savePhoto("shop",e.target.files[0]));
+
 supabaseClient.auth.onAuthStateChange((_event,session)=>{if(session?.user){showApp(session.user);setTimeout(()=>loadAll(true),0)}else showLogin()});
 (async()=>{const {data}=await supabaseClient.auth.getSession();if(data?.session?.user){showApp(data.session.user);await loadAll(true)}else showLogin()})();
 </script>
