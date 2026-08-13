@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="ta">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+
+<title>NEW FASHION TAILORING INDUSTRY</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+*{box-sizing:border-box}
+
+body{
+  margin:0;
+  font-family:Arial,sans-serif;
+  background:#f6f1ea;
+  color:#292329;
+}
+
+.wrap{
+  max-width:720px;
+  margin:auto;
+  padding:25px 16px;
+}
+
+.card{
+  background:#fff;
+  border:1px solid #ddd3cb;
+  border-radius:28px;
+  padding:28px 22px;
+  box-shadow:0 8px 30px #00000012;
+}
+
+h1{
+  margin:0;
+  font-size:38px;
+  line-height:1.05;
+}
+
+h2{
+  margin:8px 0 0;
+  color:#d9ad51;
+  font-size:38px;
+  line-height:1.05;
+}
+
+.sub{
+  font-size:21px;
+  color:#766e6e;
+  margin:24px 0;
+}
+
+label{
+  display:block;
+  font-weight:bold;
+  font-size:17px;
+  margin:18px 0 8px;
+}
+
+input{
+  width:100%;
+  padding:16px;
+  border:1px solid #d5cdc7;
+  border-radius:14px;
+  font-size:17px;
+}
+
+button{
+  width:100%;
+  margin-top:14px;
+  padding:16px;
+  border:0;
+  border-radius:14px;
+  background:#a83f61;
+  color:white;
+  font-size:18px;
+  font-weight:bold;
+  cursor:pointer;
+}
+
+button:active{
+  transform:scale(.98);
+}
+
+.hidden{
+  display:none;
+}
+
+.msg{
+  margin-top:16px;
+  font-size:16px;
+  line-height:1.5;
+}
+
+.ok{
+  color:#16723b;
+}
+
+.err{
+  color:#b3261e;
+}
+
+.success-box{
+  margin-top:20px;
+  padding:18px;
+  border-radius:18px;
+  background:#faf8f5;
+  border:1px solid #ddd3cb;
+}
+
+.success-box strong{
+  font-size:20px;
+}
+
+.grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:14px;
+  margin-top:20px;
+}
+
+.stat{
+  background:#fff;
+  border:1px solid #ddd3cb;
+  border-radius:20px;
+  padding:20px;
+  min-height:130px;
+}
+
+.stat-title{
+  color:#766e6e;
+  font-size:17px;
+}
+
+.stat-number{
+  font-size:36px;
+  font-weight:bold;
+  margin-top:10px;
+  color:#a83f61;
+}
+
+.refresh{
+  background:#d9ad51;
+  color:#292329;
+  margin-top:22px;
+}
+
+.logout{
+  background:#555;
+  margin-top:12px;
+}
+
+.note{
+  margin-top:18px;
+  font-size:14px;
+  color:#777;
+  line-height:1.5;
+}
+
+@media(max-width:500px){
+  h1,h2{
+    font-size:32px;
+  }
+
+  .grid{
+    grid-template-columns:1fr 1fr;
+  }
+
+  .card{
+    padding:25px 18px;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<div class="wrap">
+
+<!-- LOGIN -->
+<div class="card" id="loginCard">
+
+  <h1>NEW FASHION</h1>
+  <h2>TAILORING INDUSTRY</h2>
+
+  <div class="sub">Mobile Tailoring Software</div>
+
+  <label>Email</label>
+  <input
+    id="email"
+    type="email"
+    placeholder="உங்கள் Email"
+    autocomplete="email"
+  >
+
+  <label>Password</label>
+  <input
+    id="password"
+    type="password"
+    placeholder="Password"
+    autocomplete="current-password"
+  >
+
+  <button id="loginBtn">🔐 LOGIN</button>
+
+  <div id="loginMsg" class="msg"></div>
+
+</div>
+
+
+<!-- DASHBOARD -->
+<div class="card hidden" id="dashboard">
+
+  <h1>NEW FASHION</h1>
+  <h2>TAILORING INDUSTRY</h2>
+
+  <div class="sub">Dashboard</div>
+
+  <div class="success-box">
+    <strong>Login successful ✅</strong>
+
+    <p id="userEmail">Email:</p>
+
+    <p>
+      Supabase Authentication connected successfully.
+    </p>
+  </div>
+
+
+  <!-- DASHBOARD COUNTS -->
+  <div class="grid">
+
+    <div class="stat">
+      <div class="stat-title">Customers</div>
+      <div class="stat-number" id="customersCount">0</div>
+    </div>
+
+    <div class="stat">
+      <div class="stat-title">Orders</div>
+      <div class="stat-number" id="ordersCount">0</div>
+    </div>
+
+    <div class="stat">
+      <div class="stat-title">Measurements</div>
+      <div class="stat-number" id="measurementsCount">0</div>
+    </div>
+
+    <div class="stat">
+      <div class="stat-title">Payments</div>
+      <div class="stat-number" id="paymentsCount">0</div>
+    </div>
+
+    <div class="stat">
+      <div class="stat-title">Alterations</div>
+      <div class="stat-number" id="alterationsCount">0</div>
+    </div>
+
+    <div class="stat">
+      <div class="stat-title">Designs</div>
+      <div class="stat-number" id="designsCount">0</div>
+    </div>
+
+  </div>
+
+
+  <button class="refresh" id="refreshBtn">
+    🔄 Refresh Dashboard
+  </button>
+
+  <button class="logout" id="logoutBtn">
+    LOGOUT
+  </button>
+
+  <div id="dashMsg" class="msg"></div>
+
+</div>
+
+</div>
+
+
+<script>
+
+/* ================================
+   SUPABASE CONFIGURATION
+================================ */
+
+const SUPABASE_URL =
+"YOUR_SUPABASE_URL";
+
+const SUPABASE_ANON_KEY =
+"YOUR_SUPABASE_ANON_KEY";
+
+
+const supabaseClient =
+supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_ANON_KEY
+);
+
+
+/* ================================
+   ELEMENTS
+================================ */
+
+const loginCard =
+document.getElementById("loginCard");
+
+const dashboard =
+document.getElementById("dashboard");
+
+const loginBtn =
+document.getElementById("loginBtn");
+
+const logoutBtn =
+document.getElementById("logoutBtn");
+
+const refreshBtn =
+document.getElementById("refreshBtn");
+
+const loginMsg =
+document.getElementById("loginMsg");
+
+const dashMsg =
+document.getElementById("dashMsg");
+
+const userEmail =
+document.getElementById("userEmail");
+
+
+/* ================================
+   LOGIN
+================================ */
+
+loginBtn.addEventListener("click", async function(){
+
+  const email =
+    document.getElementById("email").value.trim();
+
+  const password =
+    document.getElementById("password").value;
+
+  loginMsg.className="msg";
+
+  if(!email || !password){
+
+    loginMsg.textContent =
+      "Email மற்றும் Password இரண்டையும் உள்ளிடவும்.";
+
+    loginMsg.classList.add("err");
+
+    return;
+  }
+
+  loginBtn.disabled=true;
+  loginBtn.textContent="Logging in...";
+
+  const {data,error} =
+    await supabaseClient.auth.signInWithPassword({
+      email:email,
+      password:password
+    });
+
+  loginBtn.disabled=false;
+  loginBtn.textContent="🔐 LOGIN";
+
+  if(error){
+
+    loginMsg.textContent =
+      "Login failed: " + error.message;
+
+    loginMsg.classList.add("err");
+
+    return;
+  }
+
+  showDashboard(data.user);
+
+});
+
+
+/* ================================
+   SHOW DASHBOARD
+================================ */
+
+function showDashboard(user){
+
+  loginCard.classList.add("hidden");
+
+  dashboard.classList.remove("hidden");
+
+  userEmail.textContent =
+    "Email: " + (user.email || "");
+
+  loadDashboard();
+
+}
+
+
+/* ================================
+   DASHBOARD DATA
+================================ */
+
+async function loadDashboard(){
+
+  dashMsg.className="msg";
+  dashMsg.textContent="";
+
+  await loadCount(
+    "customers",
+    "customersCount"
+  );
+
+  await loadCount(
+    "orders",
+    "ordersCount"
+  );
+
+  await loadCount(
+    "measurements",
+    "measurementsCount"
+  );
+
+  await loadCount(
+    "payments",
+    "paymentsCount"
+  );
+
+  await loadCount(
+    "alterations",
+    "alterationsCount"
+  );
+
+  await loadCount(
+    "designs",
+    "designsCount"
+  );
+
+  dashMsg.textContent =
+    "Dashboard updated successfully ✅";
+
+  dashMsg.classList.add("ok");
+
+}
+
+
+/* ================================
+   TABLE COUNT
+================================ */
+
+async function loadCount(table,id){
+
+  const element =
+    document.getElementById(id);
+
+  try{
+
+    const {count,error} =
+      await supabaseClient
+        .from(table)
+        .select("*",{count:"exact",head:true});
+
+    if(error){
+
+      console.log(
+        "Table error:",
+        table,
+        error.message
+      );
+
+      element.textContent="0";
+
+      return;
+    }
+
+    element.textContent =
+      count ?? 0;
+
+  }catch(err){
+
+    console.log(err);
+
+    element.textContent="0";
+  }
+
+}
+
+
+/* ================================
+   REFRESH
+================================ */
+
+refreshBtn.addEventListener(
+  "click",
+  loadDashboard
+);
+
+
+/* ================================
+   LOGOUT
+================================ */
+
+logoutBtn.addEventListener(
+  "click",
+  async function(){
+
+    const {error} =
+      await supabaseClient.auth.signOut();
+
+    if(error){
+
+      dashMsg.textContent =
+        "Logout failed: " + error.message;
+
+      dashMsg.className="msg err";
+
+      return;
+    }
+
+    dashboard.classList.add("hidden");
+
+    loginCard.classList.remove("hidden");
+
+    document.getElementById("password").value="";
+
+    loginMsg.textContent =
+      "Logged out successfully.";
+
+    loginMsg.className="msg ok";
+
+  }
+);
+
+
+/* ================================
+   CHECK EXISTING SESSION
+================================ */
+
+async function checkSession(){
+
+  const {data} =
+    await supabaseClient.auth.getSession();
+
+  if(data && data.session){
+
+    showDashboard(
+      data.session.user
+    );
+
+  }
+
+}
+
+
+/* ================================
+   AUTH STATE CHANGE
+================================ */
+
+supabaseClient.auth.onAuthStateChange(
+  function(event,session){
+
+    if(session){
+
+      showDashboard(
+        session.user
+      );
+
+    }
+
+  }
+);
+
+
+/* ================================
+   START
+================================ */
+
+checkSession();
+
+</script>
+
+</body>
+  </html>
