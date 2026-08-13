@@ -55,8 +55,8 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}.hidden{display:
 .customerStat{background:#faf8f6;border:1px solid var(--line);border-radius:11px;padding:9px}.customerStat b{display:block;font-size:18px}.customerStat span{font-size:11px;color:var(--muted)}
 .customerSection{margin-top:13px;padding-top:13px;border-top:1px solid var(--line)}.customerSection h4{margin:0 0 8px}
 .customerActions{display:flex;gap:7px;flex-wrap:wrap}.customerDesignGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
-.customerDesignThumb{position:relative;border-radius:10px;overflow:hidden;background:#eee9e4;aspect-ratio:1}
-.customerDesignThumb img{width:100%;height:100%;object-fit:cover}.customerDesignThumb span{position:absolute;left:4px;right:4px;bottom:4px;background:rgba(0,0,0,.62);color:#fff;border-radius:7px;padding:3px 5px;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.customerDesignThumb{position:relative;border-radius:10px;overflow:visible;background:#eee9e4;aspect-ratio:1;min-width:0}
+.customerDesignThumb img{width:100%;height:100%;object-fit:cover;border-radius:10px;display:block}.customerDesignThumb span{position:absolute;left:4px;right:4px;bottom:4px;background:rgba(0,0,0,.62);color:#fff;border-radius:7px;padding:3px 5px;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.designDeleteBtn{position:absolute;top:6px;right:6px;width:32px;height:32px;border:0;border-radius:50%;background:#fff;color:#b42318;box-shadow:0 2px 8px rgba(0,0,0,.25);font-size:16px;display:grid;place-items:center;z-index:2}.designDeleteBtn:active{transform:scale(.94)}
 .customerReminder{border-radius:12px;padding:10px;background:#fff7df}.customerReminder.late{background:#fff0ee}.customerReminder.ok{background:#e8f6ef}
 .customerOrderLine{padding:8px 0;border-bottom:1px dashed var(--line)}.customerOrderLine:last-child{border-bottom:0}
 .customerSearchBox{margin-bottom:12px}
@@ -368,7 +368,7 @@ $("dailyUpdate").innerHTML=`<p>📅 இன்று: <b>${dateText(localDate())}
 const recent=state.orders.slice().sort((a,b)=>String(b.created_at||"").localeCompare(String(a.created_at||""))).slice(0,8);
 $("recentOrders").innerHTML=recent.length?`<div class="tablewrap"><table class="table"><thead><tr><th>Order</th><th>Customer</th><th>Garment</th><th>Qty</th><th>Delivery</th><th>Total</th><th>Balance</th><th>Status</th></tr></thead><tbody>${recent.map(o=>`<tr><td><b>${esc(o.order_no)}</b></td><td>${esc(customerName(o.customer_id))}</td><td>${esc(o.garment_type)}</td><td>${Number(o.quantity||0)}</td><td>${dateText(o.delivery_date)}</td><td>${money(orderTotal(o))}</td><td>${money(o.balance_amount)}</td><td>${statusPill(o.status)}</td></tr>`).join("")}</tbody></table></div>`:`<div class="empty">No orders yet.</div>`;
 renderPhotos();
-if(localStorage.getItem("nf_notification_enabled")==="1")runPhoneReminders();
+if(localStorage.getItem("nf_notification_enabled")==="1")startReminderScheduler();
 }
 function smallOrderList(list,label){
  if(!list.length)return `<div class="mini" style="margin-top:8px">எதுவும் இல்லை.</div>`;
@@ -522,7 +522,7 @@ function openCustomerOrder(id){openModal("order");setTimeout(()=>{const s=docume
 function customerCard(id){
  const c=state.customers.find(x=>x.id===id),st=customerStats(id),designs=customerDesigns(id);
  const village=c.village||localStorage.getItem("nf_village_"+id)||"",address=c.address||"முகவரி இல்லை";
- const designHtml=designs.length?designs.slice(0,18).map((d,i)=>`<div class="customerDesignThumb">${d.src?`<img src="${esc(d.src)}" alt="${esc(d.name||"Design")}">`:`<div class="photoPlaceholder" style="height:100%">No photo</div>`}<span>${esc(d.name||"Design")}</span><button type="button" class="btn danger" style="margin-top:5px;padding:5px 8px;font-size:11px" onclick="removeCustomerDesign('${id}',${i})">🗑 Remove</button></div>`).join(""):`<div class="mini">இந்த customer-க்கு design save செய்யவில்லை.</div>`;
+ const designHtml=designs.length?designs.slice(0,18).map((d,i)=>`<div class="customerDesignThumb">${d.src?`<img src="${esc(d.src)}" alt="${esc(d.name||"Design")}">`:`<div class="photoPlaceholder" style="height:100%">No photo</div>`}<span>${esc(d.name||"Design")}</span><button type="button" class="designDeleteBtn" title="Delete design" aria-label="Delete design" onclick="removeCustomerDesign('${id}',${i})">🗑️</button></div>`).join(""):`<div class="mini">இந்த customer-க்கு design save செய்யவில்லை.</div>`;
  const ordersHtml=st.os.slice().sort((a,b)=>String(b.created_at||"").localeCompare(String(a.created_at||""))).slice(0,8).map(o=>{
   const d=dueInfo(o),rem=d?(d.kind==="late"?`<span class="pill bad">${d.days} நாள் late</span>`:d.kind==="today"?`<span class="pill warn">இன்று</span>`:`<span class="pill">${d.days} நாள்</span>`):"";
   const lining=o.lining_cloth_source?`<br><span class="mini">🧵 Lining cloth: ${o.lining_cloth_source==="customer"?"Customer கொடுத்தது":"நாம் வாங்கியது"} · ${Number(o.lining_cloth_qty||0)}</span>`:"";
@@ -853,19 +853,31 @@ if(!("Notification" in window)){toast("இந்த browser phone notification s
 if(Notification.permission==="granted")return "granted";
 try{return await Notification.requestPermission()}catch{return "denied"}
 }
+const REMINDER_TIMES=["08:00","09:30","11:00","12:30","14:00","15:30","17:00","18:30","20:00","21:30"];
+let reminderTimer=null;
 function runPhoneReminders(){
-if(!("Notification" in window)||Notification.permission!=="granted")return;
-const today=localDate(),last=localStorage.getItem("nf_last_reminder_date"),time=localStorage.getItem("nf_reminder_time")||"09:00";
-if(last===today)return;
-const active=state.orders.filter(o=>!isFinished(o)&&o.delivery_date);
-const late=active.filter(o=>dueInfo(o)?.kind==="late");
-const dueToday=active.filter(o=>dueInfo(o)?.kind==="today");
-const dueSoon=active.filter(o=>dueInfo(o)?.kind==="soon");
-if(!late.length&&!dueToday.length&&!dueSoon.length)return;
-const body=`🚨 Late: ${late.length} | 🔔 Today: ${dueToday.length} | ⏰ Next 5 days: ${dueSoon.length}. Reminder time: ${time}`;
-try{new Notification("New Fashion Tailoring — Daily Reminder",{body,icon:""});localStorage.setItem("nf_last_reminder_date",today)}catch{}
+ if(!("Notification" in window)||Notification.permission!=="granted")return;
+ const active=state.orders.filter(o=>!isFinished(o)&&o.delivery_date);
+ const late=active.filter(o=>dueInfo(o)?.kind==="late");
+ const dueToday=active.filter(o=>dueInfo(o)?.kind==="today");
+ const dueSoon=active.filter(o=>dueInfo(o)?.kind==="soon");
+ if(!late.length&&!dueToday.length&&!dueSoon.length)return;
+ const now=new Date();
+ const hh=String(now.getHours()).padStart(2,"0"),mm=String(now.getMinutes()).padStart(2,"0");
+ const slot=`${hh}:${mm}`;
+ if(!REMINDER_TIMES.includes(slot))return;
+ const today=localDate(),key=`nf_reminder_slot_${today}_${slot}`;
+ if(localStorage.getItem(key)==="1")return;
+ const body=`🚨 Late: ${late.length} | 🔔 Today: ${dueToday.length} | ⏰ Next 5 days: ${dueSoon.length}`;
+ try{new Notification("New Fashion Tailoring — Daily Reminder",{body,icon:""});localStorage.setItem(key,"1")}catch{}
 }
-function enableDailyNotifications(){requestNotificationPermission().then(p=>{if(p==="granted"){localStorage.setItem("nf_notification_enabled","1");runPhoneReminders();toast("Phone notification permission enabled.")}else toast("Notification permission கிடைக்கவில்லை.",true)})}
+function startReminderScheduler(){
+ if(reminderTimer)clearInterval(reminderTimer);
+ if(localStorage.getItem("nf_notification_enabled")!=="1")return;
+ runPhoneReminders();
+ reminderTimer=setInterval(runPhoneReminders,30000);
+}
+function enableDailyNotifications(){requestNotificationPermission().then(p=>{if(p==="granted"){localStorage.setItem("nf_notification_enabled","1");startReminderScheduler();toast("ஒரு நாளில் 10 Daily Reminder நேரங்கள் இயக்கப்பட்டன.")}else toast("Notification permission கிடைக்கவில்லை.",true)})}
 updateBackButton();
 supabaseClient.auth.onAuthStateChange((_event,session)=>{if(session?.user){showApp(session.user);setTimeout(()=>loadAll(true),0)}else showLogin()});
 (async()=>{const {data}=await supabaseClient.auth.getSession();if(data?.session?.user){showApp(data.session.user);await loadAll(true)}else showLogin()})();
