@@ -101,6 +101,13 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}.hidden{display:
 .designSearchNote{background:#fff7df;border:1px solid #efd89a;padding:10px;border-radius:11px;margin-top:10px;line-height:1.45}
 .customerOrderLine .orderActions{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
 @media(max-width:560px){.rateGrid{grid-template-columns:1fr}.calcBar input{min-width:140px}}
+
+.kpiDetails{margin-top:12px;display:grid;gap:7px;text-align:left;max-height:300px;overflow:auto}
+.kpiDetailRow{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.22);border-radius:11px;padding:9px;color:#fff}
+.kpiDetailRow b{display:block;font-size:14px}
+.kpiDetailRow span{display:block;font-size:12px;opacity:.95;margin-top:2px}
+.kpiDetailRow .lateTxt{font-weight:800}
+.photoActions{display:flex;gap:7px;flex-wrap:wrap;margin-top:8px}
 </style>
 </head>
 <body>
@@ -123,7 +130,7 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}.hidden{display:
 <header class="topbar">
 <button id="menuBtn" class="iconbtn mobileOnly">☰</button>
 <div><h1>NEW FASHION TAILORING</h1><small>ONLINE MANAGEMENT</small></div>
-<div class="spacer"></div><div id="userChip" class="userchip"></div>
+<button id="backBtn" class="iconbtn" title="Back" aria-label="Back">‹</button><div class="spacer"></div><div id="userChip" class="userchip"></div>
 <button id="reloadBtn" class="iconbtn" title="Refresh">↻</button><button id="logoutBtn" class="iconbtn" title="Logout">⎋</button>
 </header>
 <div class="layout">
@@ -155,9 +162,9 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}.hidden{display:
 <div class="summary"><div class="mini">Late orders</div><b id="statLate">0</b></div>
 </div>
 <div class="kpiGrid">
-<div class="kpiCard kpiPending clickable" role="button" tabindex="0" onclick="goView('orders')"><div class="kpiTitle">🔴 Pending Orders</div><div id="kpiPending" class="kpiNum">0</div><div id="kpiPendingSmall" class="kpiSmall">வேலை முடிக்க வேண்டிய orders</div></div>
+<div class="kpiCard kpiPending clickable" role="button" tabindex="0" onclick="goView('orders')"><div class="kpiTitle">🔴 Pending Orders</div><div id="kpiPending" class="kpiNum">0</div><div id="kpiPendingSmall" class="kpiSmall">வேலை முடிக்க வேண்டிய orders</div><div id="kpiPendingDetails" class="kpiDetails"></div></div>
 <div class="kpiCard kpiToday clickable" role="button" tabindex="0" onclick="goView('payments')"><div class="kpiTitle">💰 Today Collection</div><div id="kpiToday" class="kpiNum">₹0</div><div class="kpiSmall">இன்று பெற்ற payment</div></div>
-<div class="kpiCard kpiDelivery clickable" role="button" tabindex="0" onclick="goView('orders')"><div class="kpiTitle">🚚 Today Delivery</div><div id="kpiDelivery" class="kpiNum">0</div><div class="kpiSmall">இன்று கொடுக்க வேண்டியவை</div></div>
+<div class="kpiCard kpiDelivery clickable" role="button" tabindex="0" onclick="goView('orders')"><div class="kpiTitle">🚚 Today Delivery</div><div id="kpiDelivery" class="kpiNum">0</div><div class="kpiSmall">இன்று கொடுக்க வேண்டியவை</div><div id="kpiDeliveryDetails" class="kpiDetails"></div></div>
 <div class="kpiCard kpiReminder clickable" role="button" tabindex="0" onclick="goView('orders')"><div class="kpiTitle">🔔 Daily Reminder</div><div id="kpiReminder" class="kpiNum">0</div><div class="kpiSmall">அடுத்த 5 நாட்கள் + late</div></div>
 <div class="kpiCard kpiMonthly clickable" role="button" tabindex="0" onclick="goView('payments')"><div class="kpiTitle">📅 Monthly Collection</div><div id="kpiMonthly" class="kpiNum">₹0</div><div id="kpiMonthlySmall" class="kpiSmall">இந்த மாதம்</div></div>
 <div class="kpiCard kpiBalance clickable" role="button" tabindex="0" onclick="goView('customers')"><div class="kpiTitle">💳 Customer Balance</div><div id="kpiBalance" class="kpiNum">₹0</div><div class="kpiSmall">Customers கொடுக்க வேண்டியது</div></div>
@@ -170,14 +177,13 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}.hidden{display:
 </div>
 
 <div class="quick">
-<button onclick="openModal('customer')"><b>➕ Add Customer</b><br><span class="mini">புதிய customer</span></button>
-<button onclick="openModal('order')"><b>➕ New Order</b><br><span class="mini">Delivery date + quantity + price + reminder</span></button>
-<button onclick="openModal('measurement')"><b>➕ Measurement</b><br><span class="mini">அளவு சேமிக்க</span></button>
+<button onclick="openModal('customer')"><b>➕ Add Customer</b><br><span class="mini">புதிய customer — எல்லா order-களும் customer card-ல்</span></button>
+<button onclick="goView('customers')"><b>👤 Customer Cards</b><br><span class="mini">Customer-ஐ திறந்து New Order / Measurement / Payment செய்யலாம்</span></button>
 </div>
 
 <div class="photoGrid">
-<div class="photoCard"><b>👤 Owner — உங்கள் புகைப்படம்</b><div id="ownerPhotoBox" style="margin-top:9px"></div><input id="ownerPhotoInput" type="file" accept="image/*" class="input" style="margin-top:9px"><div class="hint">📱 Phone-ல் gallery-லிருந்து photo தேர்வு செய்யலாம் அல்லது camera மூலம் எடுக்கலாம்.</div><button class="btn secondary" onclick="clearPhoto('owner')" style="margin-top:7px">Remove</button></div>
-<div class="photoCard"><b>🏪 Shop — கடை புகைப்படம்</b><div id="shopPhotoBox" style="margin-top:9px"></div><input id="shopPhotoInput" type="file" accept="image/*" class="input" style="margin-top:9px"><div class="hint">📱 Phone-ல் gallery-லிருந்து photo தேர்வு செய்யலாம் அல்லது camera மூலம் எடுக்கலாம்.</div><button class="btn secondary" onclick="clearPhoto('shop')" style="margin-top:7px">Remove</button></div>
+<div class="photoCard"><b>👤 Owner — உங்கள் புகைப்படம்</b><div id="ownerPhotoBox" style="margin-top:9px"></div><div class="photoActions"><label class="btn secondary">🖼️ Gallery<input id="ownerPhotoInput" type="file" accept="image/*" style="display:none"></label><label class="btn secondary">📷 Camera<input id="ownerCameraInput" type="file" accept="image/*" capture="environment" style="display:none"></label><button class="btn secondary" onclick="clearPhoto('owner')">Remove</button></div></div>
+<div class="photoCard"><b>🏪 Shop — கடை புகைப்படம்</b><div id="shopPhotoBox" style="margin-top:9px"></div><div class="photoActions"><label class="btn secondary">🖼️ Gallery<input id="shopPhotoInput" type="file" accept="image/*" style="display:none"></label><label class="btn secondary">📷 Camera<input id="shopCameraInput" type="file" accept="image/*" capture="environment" style="display:none"></label><button class="btn secondary" onclick="clearPhoto('shop')">Remove</button></div></div>
 </div>
 
 <div class="card" style="margin-top:14px"><div class="pagehead"><div><h2 style="font-size:20px">Daily Update</h2><p>இன்றைய நிலவரம்</p></div></div><div id="dailyUpdate"></div></div>
@@ -270,7 +276,7 @@ function goView(view,push=true){
  if(push&&history.state?.view!==view)history.pushState({view},"","#"+view);
  updateBackButton();
 }
-function updateBackButton(){const v=history.state?.view||"dashboard";$("backBtn").disabled=v==="dashboard";$("backBtn").title=v==="dashboard"?"Dashboard":"Back";}
+function updateBackButton(){const v=history.state?.view||"dashboard";const b=$("backBtn");if(!b)return;b.disabled=v==="dashboard";b.title=v==="dashboard"?"Dashboard":"Back";b.style.opacity=v==="dashboard"?".45":"1";}
 document.querySelectorAll(".navbtn[data-view]").forEach(b=>b.addEventListener("click",()=>goView(b.dataset.view)));
 $("backBtn").onclick=()=>{if((history.state?.view||"dashboard")!=="dashboard")history.back();};
 window.addEventListener("popstate",e=>goView(e.state?.view||"dashboard",false));
@@ -332,6 +338,16 @@ $("kpiPending").textContent=pendingOrdersCount();
 $("kpiToday").textContent=money(todayCollection());
 $("kpiDelivery").textContent=today.length;
 $("kpiReminder").textContent=soon.length+late.length;
+const pendingActive=state.orders.filter(o=>!isFinished(o)).sort((a,b)=>String(a.delivery_date||"").localeCompare(String(b.delivery_date||"")));
+$("kpiPendingDetails").innerHTML=pendingActive.length?pendingActive.map(o=>{
+ const c=state.customers.find(x=>x.id===o.customer_id)||{},d=dueInfo(o);
+ const due=d?.kind==="late"?`🚨 ${d.days} நாள் late`:d?.kind==="today"?"🔔 இன்று":`⏰ ${d?.days??"—"} நாள் உள்ளது`;
+ return `<div class="kpiDetailRow" onclick="goToOrderCustomer('${o.id}')"><b>👤 ${esc(c.name||"Unknown Customer")} · 📞 ${esc(c.phone||"Phone இல்லை")}</b><span>📅 ${dateText(o.delivery_date)} · ${due} · 👗 ${Number(o.quantity||0)} blouse</span></div>`;
+}).join(""):`<div class="kpiDetailRow">Pending orders இல்லை. 🎉</div>`;
+$("kpiDeliveryDetails").innerHTML=today.length?today.map(o=>{
+ const c=state.customers.find(x=>x.id===o.customer_id)||{};
+ return `<div class="kpiDetailRow" onclick="goToOrderCustomer('${o.id}')"><b>👤 ${esc(c.name||"Unknown Customer")} · 📞 ${esc(c.phone||"Phone இல்லை")}</b><span>📅 ${dateText(o.delivery_date)} · 👗 ${Number(o.quantity||0)} blouse</span></div>`;
+}).join(""):`<div class="kpiDetailRow">இன்று delivery இல்லை.</div>`;
 $("kpiMonthly").textContent=money(monthlyCollection());
 $("kpiBalance").textContent=money(totalBalance());
  renderDashboardDues();
@@ -354,12 +370,12 @@ if(localStorage.getItem("nf_notification_enabled")==="1")runPhoneReminders();
 }
 function smallOrderList(list,label){
  if(!list.length)return `<div class="mini" style="margin-top:8px">எதுவும் இல்லை.</div>`;
- return `<div class="dashboardOrderList">${list.slice(0,12).map(o=>{
+ return `<div class="dashboardOrderList">${list.map(o=>{
   const d=dueInfo(o),c=state.customers.find(x=>x.id===o.customer_id)||{};
   const when=d?.kind==="late"?`🚨 ${d.days} நாள் late`:d?.kind==="today"?"🔔 இன்று":`⏰ ${d?.days??"—"} நாள் உள்ளது`;
   const cls=d?.kind==="late"?"bad":d?.kind==="today"?"warn":"";
   return `<div class="dashboardOrderCard clickable" role="button" tabindex="0" onclick="goToOrderCustomer('${o.id}')"><div class="top"><div><div class="name">👤 ${esc(c.name||"Unknown Customer")}</div><div class="meta">📞 ${esc(c.phone||"Phone இல்லை")} · 📅 Delivery: ${dateText(o.delivery_date)}</div></div><span class="pill ${cls}">${esc(when)}</span></div><div class="meta">🧵 ${esc(o.garment_type||"Blouse")} · 👗 ${Number(o.quantity||0)} pcs · 🧾 ${esc(o.order_no||"")}</div></div>`;
- }).join("")}${list.length>12?`<div class="mini">+ ${list.length-12} more</div>`:""}</div>`;
+ }).join("")}</div>`;
 }
 function customerOrders(id){return state.orders.filter(o=>o.customer_id===id)}
 function customerPayments(id){
@@ -455,7 +471,7 @@ function openCustomerOrder(id){openModal("order");setTimeout(()=>{const s=docume
 function customerCard(id){
  const c=state.customers.find(x=>x.id===id),st=customerStats(id),designs=customerDesigns(id);
  const village=c.village||localStorage.getItem("nf_village_"+id)||"",address=c.address||"முகவரி இல்லை";
- const designHtml=designs.length?designs.slice(0,9).map(d=>`<div class="customerDesignThumb">${d.src?`<img src="${esc(d.src)}" alt="${esc(d.name||"Design")}">`:`<div class="photoPlaceholder" style="height:100%">No photo</div>`}<span>${esc(d.name||"Design")}</span></div>`).join(""):`<div class="mini">இந்த customer-க்கு design save செய்யவில்லை.</div>`;
+ const designHtml=designs.length?designs.slice(0,18).map((d,i)=>`<div class="customerDesignThumb">${d.src?`<img src="${esc(d.src)}" alt="${esc(d.name||"Design")}">`:`<div class="photoPlaceholder" style="height:100%">No photo</div>`}<span>${esc(d.name||"Design")}</span><button type="button" class="btn danger" style="margin-top:5px;padding:5px 8px;font-size:11px" onclick="removeCustomerDesign('${id}',${i})">🗑 Remove</button></div>`).join(""):`<div class="mini">இந்த customer-க்கு design save செய்யவில்லை.</div>`;
  const ordersHtml=st.os.slice().sort((a,b)=>String(b.created_at||"").localeCompare(String(a.created_at||""))).slice(0,8).map(o=>{
   const d=dueInfo(o),rem=d?(d.kind==="late"?`<span class="pill bad">${d.days} நாள் late</span>`:d.kind==="today"?`<span class="pill warn">இன்று</span>`:`<span class="pill">${d.days} நாள்</span>`):"";
   const lining=o.lining_cloth_source?`<br><span class="mini">🧵 Lining cloth: ${o.lining_cloth_source==="customer"?"Customer கொடுத்தது":"நாம் வாங்கியது"} · ${Number(o.lining_cloth_qty||0)}</span>`:"";
@@ -475,7 +491,7 @@ function customerCard(id){
  </div><div class="customerActions" style="margin-top:10px"><button class="btn primary" onclick="saveQuickOrder('${id}')">💾 Save Order</button><button class="btn secondary" onclick="toggleQuickOrder('${id}')">Close</button></div></div></div>
  <div class="customerSection"><h4>💵 Blouse Rate List</h4><div class="rateGrid"><div class="rateBox"><label>Normal blouse</label><input id="rate-normal-${id}" type="number" min="0" step="1" value="${getRates().normal}"></div><div class="rateBox"><label>Lining blouse</label><input id="rate-lining-${id}" type="number" min="0" step="1" value="${getRates().lining}"></div><div class="rateBox"><label>Design blouse</label><input id="rate-design-${id}" type="number" min="0" step="1" value="${getRates().design}"></div></div><div class="customerActions" style="margin-top:8px"><button class="btn secondary" onclick="saveRates('${id}')">💾 Rate list Save</button></div></div>
  <div class="customerSection"><h4>⏰ Delivery Reminder</h4>${customerReminderHTML(st.os)}<div class="reminderSettings" style="margin-top:8px"><div class="field"><label class="mini">Reminder time</label><input class="input" type="time" id="remtime-${id}" value="${localStorage.getItem("nf_reminder_time")||"09:00"}"></div><button class="btn warning" onclick="saveReminderTime('${id}')">🔔 Daily Reminder</button></div></div>
- <div class="customerSection"><h4>🎨 இந்த customer-ன் Blouse Design</h4><div class="customerActions" style="margin-bottom:8px"><label class="btn secondary" style="display:inline-block">📷 Phone Gallery / Camera<input type="file" accept="image/*" style="display:none" onchange="uploadCustomerDesign('${id}',this.files[0])"></label><button class="btn secondary" onclick="searchDesignForCustomer('${id}')">🔎 Net-ல் Search</button></div><div id="customer-design-search-${id}" class="hidden" style="margin-bottom:8px"><div class="toolbar"><input class="input search" id="customer-design-q-${id}" placeholder="blouse design search"><button class="btn primary" onclick="runCustomerDesignSearch('${id}')">Search</button></div><div id="customer-design-results-${id}" class="customerDesignGrid"></div></div><div class="customerDesignGrid">${designHtml}</div></div>
+ <div class="customerSection"><h4>🎨 இந்த customer-ன் Blouse Design</h4><div class="photoActions"><label class="btn secondary">🖼️ Gallery<input type="file" accept="image/*" style="display:none" onchange="uploadCustomerDesign('${id}',this.files[0])"></label><label class="btn secondary">📷 Camera<input type="file" accept="image/*" capture="environment" style="display:none" onchange="uploadCustomerDesign('${id}',this.files[0])"></label><button class="btn secondary" onclick="searchDesignForCustomer('${id}')">🔎 Google Images Search</button></div><div class="hint">Gallery-ல் இருந்து photo தேர்வு செய்யலாம்; Camera மூலம் நேரடியாக photo எடுக்கலாம்.</div><div id="customer-design-search-${id}" class="hidden" style="margin-bottom:8px"><div class="toolbar"><input class="input search" id="customer-design-q-${id}" placeholder="blouse design search"><button class="btn primary" onclick="runCustomerDesignSearch('${id}')">Search</button></div><div id="customer-design-results-${id}" class="customerDesignGrid"></div></div><div class="customerDesignGrid">${designHtml}</div></div>
  <div class="customerSection"><h4>🧵 Recent Orders</h4>${ordersHtml}</div>
  </article>`;
 }
@@ -494,10 +510,16 @@ if(file.size>2*1024*1024){toast("Photo 2MB-க்கு குறைவாக �
 const r=new FileReader();r.onload=()=>saveCustomerDesignLocal(id,{src:r.result,name:file.name.replace(/\.[^.]+$/,""),savedAt:new Date().toISOString()});r.readAsDataURL(file);
 }
 function searchDesignForCustomer(id){$("customer-design-search-"+id).classList.remove("hidden");$("customer-design-q-"+id).focus()}
+function saveCustomerDesignFromUrl(id){
+ const url=$("customer-design-url-"+id)?.value.trim();
+ if(!url){toast("Image URL உள்ளிடுங்கள்.",true);return}
+ if(!/^https?:\/\//i.test(url)){toast("சரியான http/https Image URL வேண்டும்.",true);return}
+ saveCustomerDesignLocal(id,{src:url,name:"Google blouse design",savedAt:new Date().toISOString()});
+}
 async function runCustomerDesignSearch(id){
 const q=$("customer-design-q-"+id).value.trim(),box=$("customer-design-results-"+id);
 if(!q){toast("Search வார்த்தை உள்ளிடுங்கள்.",true);return}
-box.innerHTML=`<div class="designSearchNote"><b>🔎 Google Images</b><br>Google தனது image search page-ஐ app-க்குள் embed செய்ய அனுமதிப்பதில்லை. அதனால் முழு Google Images-ஐ கீழே உள்ள button மூலம் திறக்கலாம்.<br><button class="btn primary" style="margin-top:7px" onclick='window.open("https://www.google.com/search?tbm=isch&q="+encodeURIComponent(${JSON.stringify(q+" blouse design")}),"_blank","noopener")'>🌐 Open Google Images</button></div><div class="mini" style="margin-top:10px">கீழே save செய்யக்கூடிய online preview results-ம் வரும்.</div><div id="customer-design-online-${id}" class="customerDesignGrid" style="margin-top:8px"></div>`;
+box.innerHTML=`<div class="designSearchNote"><b>🔎 Google Images</b><br>Google Images-ல் எல்லா image results-ஐ பார்க்க கீழே tap செய்யுங்கள். Google-ன் results-ஐ app-க்குள் நேரடியாக embed செய்ய முடியாது.<br><button class="btn primary" style="margin-top:7px" onclick='window.open("https://www.google.com/search?tbm=isch&q="+encodeURIComponent(${JSON.stringify(q+" blouse design")}),"_blank","noopener")'>🌐 Open Google Images</button><div class="field" style="margin-top:10px"><label>Google-ல் பார்த்த photo-வின் Image URL (விருப்பம்)</label><input id="customer-design-url-${id}" class="input" type="url" placeholder="https://...jpg"></div><button class="btn success" style="margin-top:7px" onclick="saveCustomerDesignFromUrl('${id}')">💾 URL மூலம் Save</button></div><div class="mini" style="margin-top:10px">கீழே save செய்யக்கூடிய online preview results-ம் வரும்.</div><div id="customer-design-online-${id}" class="customerDesignGrid" style="margin-top:8px"></div>`;
 const online=$("customer-design-online-"+id);
 try{
 const url=`https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(q+" blouse design")}&gsrnamespace=6&gsrlimit=12&prop=imageinfo&iiprop=url|extmetadata&iiurlwidth=400&format=json&origin=*`;
@@ -644,16 +666,17 @@ calc.innerHTML=`<label>🧮 Quick Calculator — + − × ÷</label><div class="
 $("formFields").prepend(calc);
 }
 if(type==="order"){
-const q=$('formFields').querySelector('[name="quantity"]'),u=$('formFields').querySelector('[name="unit_price"]'),t=$('formFields').querySelector('[name="total_amount"]'),a=$('formFields').querySelector('[name="advance_amount"]');
+const q=$('formFields').querySelector('[name="quantity"]'),u=$('formFields').querySelector('[name="unit_price"]'),t=$('formFields').querySelector('[name="total_amount"]'),a=$('formFields').querySelector('[name="advance_amount"]'),rt=$('formFields').querySelector('[name="rate_type"]');
 if(t)t.readOnly=true;
 const recalc=()=>{const total=Math.max(0,Number(q?.value||0)*Number(u?.value||0));if(t)t.value=total.toFixed(2);};
-q?.addEventListener("input",recalc);u?.addEventListener("input",recalc);
+const setRate=()=>{if(u&&rt)u.value=rateForType(rt.value);recalc();};
+rt?.addEventListener("change",setRate);q?.addEventListener("input",recalc);u?.addEventListener("input",recalc);
 const note=document.createElement("div");note.className="field full hint";note.textContent="Quantity × Unit Price = Total. உதாரணம்: 5 blouse × ₹300 = ₹1,500.";
 t?.parentElement?.appendChild(note);
 const bal=document.createElement("div");bal.className="field full";bal.innerHTML='<label>Balance (auto)</label><div id="liveBalance" class="autoTotal">₹0.00</div>';
 t?.parentElement?.parentElement?.appendChild(bal);
 const updateBal=()=>{const total=Number(t?.value||0),adv=Number(a?.value||0);$("liveBalance").textContent=money(Math.max(0,total-adv));};
-q?.addEventListener("input",updateBal);u?.addEventListener("input",updateBal);a?.addEventListener("input",updateBal);updateBal();
+q?.addEventListener("input",updateBal);u?.addEventListener("input",updateBal);a?.addEventListener("input",updateBal);setRate();updateBal();
 }
 $("modal").classList.add("open");
 }
@@ -708,7 +731,9 @@ if(file.size>2*1024*1024){toast("Photo 2MB-க்கு குறைவாக �
 const reader=new FileReader();reader.onload=()=>{localStorage.setItem(photoKey(kind),reader.result);renderPhotos();toast(kind==="owner"?"Owner photo saved":"Shop photo saved")};reader.readAsDataURL(file);
 }
 $("ownerPhotoInput").addEventListener("change",e=>savePhoto("owner",e.target.files[0]));
+$("ownerCameraInput").addEventListener("change",e=>savePhoto("owner",e.target.files[0]));
 $("shopPhotoInput").addEventListener("change",e=>savePhoto("shop",e.target.files[0]));
+$("shopCameraInput").addEventListener("change",e=>savePhoto("shop",e.target.files[0]));
 
 
 async function requestNotificationPermission(){
