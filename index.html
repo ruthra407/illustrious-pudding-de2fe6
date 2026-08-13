@@ -78,6 +78,22 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}.hidden{display:
 .designGallery{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.designTile{border:1px solid var(--line);border-radius:15px;background:#fff;padding:10px}.designTile img{width:100%;height:190px;object-fit:cover;border-radius:10px;background:#eee9e4}.designTile .title{font-weight:850;margin-top:8px}
 @media(max-width:900px){.kpiGrid,.designSearchResults,.designGallery{grid-template-columns:1fr 1fr}}
 @media(max-width:560px){.kpiGrid,.designSearchResults,.designGallery{grid-template-columns:1fr}.designTools{grid-template-columns:1fr}.designResult img,.designTile img{height:220px}}
+
+.dashboardOrderList{display:grid;gap:8px;margin-top:9px}
+.dashboardOrderCard{background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px}
+.dashboardOrderCard .top{display:flex;gap:8px;justify-content:space-between;align-items:flex-start}
+.dashboardOrderCard .name{font-weight:850}
+.dashboardOrderCard .meta{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.5}
+.rateGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:9px}
+.rateBox{border:1px solid var(--line);background:#faf8f6;border-radius:11px;padding:9px}
+.rateBox label{display:block;font-size:11px;color:var(--muted);font-weight:750;margin-bottom:4px}
+.rateBox input{width:100%;border:1px solid #d5cec8;border-radius:9px;padding:8px;background:#fff}
+.calcBar{display:flex;gap:7px;flex-wrap:wrap;align-items:center;background:#faf8f6;border:1px solid var(--line);padding:8px;border-radius:11px;margin-bottom:10px}
+.calcBar input{flex:1;min-width:180px;border:1px solid #d5cec8;border-radius:9px;padding:9px}
+.calcKey{min-width:42px;height:40px;border:1px solid #d5cec8;border-radius:9px;background:#fff;font-weight:900}
+.designSearchNote{background:#fff7df;border:1px solid #efd89a;padding:10px;border-radius:11px;margin-top:10px;line-height:1.45}
+.customerOrderLine .orderActions{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+@media(max-width:560px){.rateGrid{grid-template-columns:1fr}.calcBar input{min-width:140px}}
 </style>
 </head>
 <body>
@@ -153,8 +169,8 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}.hidden{display:
 </div>
 
 <div class="photoGrid">
-<div class="photoCard"><b>👤 Owner — உங்கள் புகைப்படம்</b><div id="ownerPhotoBox" style="margin-top:9px"></div><input id="ownerPhotoInput" type="file" accept="image/*" capture="user" class="input" style="margin-top:9px"><div class="hint">📱 Phone-ல் gallery-லிருந்து photo தேர்வு செய்யலாம் அல்லது camera மூலம் எடுக்கலாம்.</div><button class="btn secondary" onclick="clearPhoto('owner')" style="margin-top:7px">Remove</button></div>
-<div class="photoCard"><b>🏪 Shop — கடை புகைப்படம்</b><div id="shopPhotoBox" style="margin-top:9px"></div><input id="shopPhotoInput" type="file" accept="image/*" capture="environment" class="input" style="margin-top:9px"><div class="hint">📱 Phone-ல் gallery-லிருந்து photo தேர்வு செய்யலாம் அல்லது camera மூலம் எடுக்கலாம்.</div><button class="btn secondary" onclick="clearPhoto('shop')" style="margin-top:7px">Remove</button></div>
+<div class="photoCard"><b>👤 Owner — உங்கள் புகைப்படம்</b><div id="ownerPhotoBox" style="margin-top:9px"></div><input id="ownerPhotoInput" type="file" accept="image/*" class="input" style="margin-top:9px"><div class="hint">📱 Phone-ல் gallery-லிருந்து photo தேர்வு செய்யலாம் அல்லது camera மூலம் எடுக்கலாம்.</div><button class="btn secondary" onclick="clearPhoto('owner')" style="margin-top:7px">Remove</button></div>
+<div class="photoCard"><b>🏪 Shop — கடை புகைப்படம்</b><div id="shopPhotoBox" style="margin-top:9px"></div><input id="shopPhotoInput" type="file" accept="image/*" class="input" style="margin-top:9px"><div class="hint">📱 Phone-ல் gallery-லிருந்து photo தேர்வு செய்யலாம் அல்லது camera மூலம் எடுக்கலாம்.</div><button class="btn secondary" onclick="clearPhoto('shop')" style="margin-top:7px">Remove</button></div>
 </div>
 
 <div class="card" style="margin-top:14px"><div class="pagehead"><div><h2 style="font-size:20px">Daily Update</h2><p>இன்றைய நிலவரம்</p></div></div><div id="dailyUpdate"></div></div>
@@ -193,8 +209,9 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}.hidden{display:
 <div class="designTools">
 <input id="onlineDesignQuery" class="input" placeholder="எ.கா. bridal blouse design / simple blouse design">
 <button class="btn primary" id="onlineDesignBtn">🔎 Search Designs</button>
+<button class="btn secondary" id="googleDesignBtn">🌐 Google Images</button>
 </div>
-<div class="mini">Search results இந்த app-க்குள்ளேயே காட்டப்படும். Save செய்த design database-ல் `image_url` ஆக சேமிக்கப்படும்.</div>
+<div class="mini">Google Images முழு results-ஐ Google-ல் திறக்கலாம். கீழே preview results-ல் save செய்யக்கூடிய படங்களும் வரும்.</div>
 <div id="onlineDesignResults" class="designSearchResults"></div>
 </div>
 <div class="card" style="margin-top:14px">
@@ -309,7 +326,14 @@ if(localStorage.getItem("nf_notification_enabled")==="1")runPhoneReminders();
 }
 function smallOrderList(list,label){
 if(!list.length)return `<div class="mini" style="margin-top:8px">எதுவும் இல்லை.</div>`;
-return list.slice(0,5).map(o=>{const d=dueInfo(o);const extra=d?.kind==="late"?`${d.days} நாள் late`:d?.kind==="today"?label:`${d.days} நாள் உள்ளது`;return `<div class="alertrow"><b>${esc(customerName(o.customer_id))}</b> — ${esc(o.garment_type)}<br><span class="mini">${esc(o.order_no)} · ${Number(o.quantity||0)} pcs · ${extra}</span></div>`}).join("")+(list.length>5?`<div class="mini" style="margin-top:7px">+ ${list.length-5} more</div>`:"");
+return `<div class="dashboardOrderList">${list.slice(0,8).map(o=>{
+const d=dueInfo(o),c=state.customers.find(x=>x.id===o.customer_id)||{};
+const when=d?.kind==="late"?`🚨 ${d.days} நாள் late`:d?.kind==="today"?"🔔 இன்று":`⏰ ${d.days} நாள் உள்ளது`;
+return `<div class="dashboardOrderCard">
+<div class="top"><div><div class="name">👤 ${esc(c.name||"Unknown Customer")}</div><div class="meta">📞 ${esc(c.phone||"Phone இல்லை")} · 📅 ${dateText(o.delivery_date)}</div></div><span class="pill ${d?.kind==="late"?"bad":d?.kind==="today"?"warn":""}">${esc(when)}</span></div>
+<div class="meta">🧵 ${esc(o.garment_type||"Blouse")} · 👗 ${Number(o.quantity||0)} pcs · 🧾 ${esc(o.order_no||"")}</div>
+</div>`;
+}).join("")}${list.length>8?`<div class="mini">+ ${list.length-8} more</div>`:""}</div>`;
 }
 
 function customerOrders(id){return state.orders.filter(o=>o.customer_id===id)}
@@ -338,6 +362,22 @@ function removeCustomerDesign(id,idx){
 const arr=customerDesigns(id);arr.splice(idx,1);localStorage.setItem("nf_customer_designs_"+id,JSON.stringify(arr));renderCustomers();
 }
 
+const DEFAULT_RATES={normal:300,lining:450,design:600};
+function getRates(){
+try{return {...DEFAULT_RATES,...JSON.parse(localStorage.getItem("nf_blouse_rates")||"{}")}}catch{return {...DEFAULT_RATES}}
+}
+function saveRates(id){
+const n=$(id?`rate-normal-${id}`:"rate-normal"),l=$(id?`rate-lining-${id}`:"rate-lining"),d=$(id?`rate-design-${id}`:"rate-design");
+const rates={normal:Number(n?.value||DEFAULT_RATES.normal),lining:Number(l?.value||DEFAULT_RATES.lining),design:Number(d?.value||DEFAULT_RATES.design)};
+localStorage.setItem("nf_blouse_rates",JSON.stringify(rates));toast("Blouse rate list சேமிக்கப்பட்டது.");
+}
+function rateForType(type){return getRates()[type]||0}
+function rateLabel(type){return type==="lining"?"Lining blouse":type==="design"?"Design blouse":"Normal blouse"}
+function updateQuickRate(id){
+const type=$("qo-rate-type-"+id)?.value||"normal",price=$("qo-price-"+id),q=$("qo-qty-"+id),t=$("qo-total-"+id);
+if(price)price.value=rateForType(type);
+if(t)t.textContent=money(Number(q?.value||0)*Number(price?.value||0));
+}
 function toggleQuickOrder(id){
 const box=$("quick-order-"+id);if(!box)return;
 box.classList.toggle("hidden");
@@ -356,9 +396,13 @@ const qty=Math.max(1,Number($("qo-qty-"+id)?.value||1));
 const price=Math.max(0,Number($("qo-price-"+id)?.value||0));
 const advance=Math.max(0,Number($("qo-advance-"+id)?.value||0));
 const status=$("qo-status-"+id)?.value||"Pending";
+const rateType=$("qo-rate-type-"+id)?.value||"normal";
+const liningSource=$("qo-lining-"+id)?.value||"";
 if(!delivery){toast("Delivery Date தேர்வு செய்யுங்கள்.",true);return}
 const total=qty*price,balance=Math.max(0,total-advance);
-const payload={customer_id:id,order_no:makeOrderNo(),garment_type:garment,order_date:localDate(),cloth_received_date:cloth,delivery_date:delivery,quantity:qty,unit_price:price,total_amount:total,advance_amount:advance,balance_amount:balance,status};
+const noteParts=[`Rate: ${rateLabel(rateType)}`];
+if(liningSource)noteParts.push(`Lining cloth: ${liningSource==="customer"?"Customer கொடுத்தது":"நாம் எடுத்தது"}`);
+const payload={customer_id:id,order_no:makeOrderNo(),garment_type:garment,order_date:localDate(),cloth_received_date:cloth,delivery_date:delivery,quantity:qty,unit_price:price,total_amount:total,advance_amount:advance,balance_amount:balance,status,notes:noteParts.join(" | ")};
 try{
 const {error}=await supabaseClient.from("orders").insert(payload);
 if(error)throw error;
@@ -381,10 +425,10 @@ const city=c.address||"முகவரி இல்லை";
 const designHtml=designs.length?designs.slice(0,6).map((d,i)=>`<div class="customerDesignThumb">${d.src?`<img src="${esc(d.src)}" alt="${esc(d.name||"Design")}">`:`<div class="photoPlaceholder" style="height:100%">No photo</div>`}<span>${esc(d.name||"Design")}</span></div>`).join(""):`<div class="mini">இந்த customer-க்கு design save செய்யவில்லை.</div>`;
 const ordersHtml=s.os.slice().sort((a,b)=>String(b.created_at||"").localeCompare(String(a.created_at||""))).slice(0,4).map(o=>{
 const d=dueInfo(o);const rem=d?(d.kind==="late"?`<span class="pill bad">${d.days} நாள் late</span>`:d.kind==="today"?`<span class="pill warn">இன்று</span>`:`<span class="pill">${d.days} நாள்</span>`):"";
-return `<div class="customerOrderLine"><b>${esc(o.order_no)}</b> · ${esc(o.garment_type)} · ${Number(o.quantity||0)} pcs ${rem}<br><span class="mini">துணி: ${dateText(o.cloth_received_date)} · Delivery: ${dateText(o.delivery_date)} · Balance: ${money(o.balance_amount)}</span></div>`;
+return `<div class="customerOrderLine"><b>${esc(o.order_no)}</b> · ${esc(o.garment_type)} · ${Number(o.quantity||0)} pcs ${rem}<br><span class="mini">துணி: ${dateText(o.cloth_received_date)} · Delivery: ${dateText(o.delivery_date)} · Rate: ${money(o.unit_price)} · Balance: ${money(o.balance_amount)}</span>${o.notes?`<br><span class="mini">🧵 ${esc(o.notes)}</span>`:""}<div class="orderActions"><button class="btn success" onclick="markDelivered('${o.id}')">Delivered</button><button class="btn secondary" onclick="openModal('order','${o.id}')">Edit</button></div></div>`;
 }).join("")||`<div class="mini">இன்னும் order இல்லை.</div>`;
 return `<article class="customerCard" id="customer-card-${id}">
-<div class="customerCardHead"><div class="customerAvatar">👤</div><div style="flex:1"><h3>${esc(c.name)}</h3><p>📞 ${esc(c.phone||"Phone இல்லை")} · 📍 ${esc(village||city)}</p><p>${esc(c.notes||"")}</p></div><button class="btn secondary" onclick="openModal('customer','${id}')">Edit</button></div>
+<div class="customerCardHead"><div class="customerAvatar">👤</div><div style="flex:1"><h3>${esc(c.name)}</h3><p>📞 ${esc(c.phone||"Phone இல்லை")} · 📍 ${esc(village||"ஊர் இல்லை")}</p><p>🏠 ${esc(city)}</p><p>${esc(c.notes||"")}</p></div><button class="btn secondary" onclick="openModal('customer','${id}')">Edit</button></div>
 <div class="customerStats">
 <div class="customerStat"><b>${s.given}</b><span>கொடுத்த blouse</span></div>
 <div class="customerStat"><b>${s.delivered}</b><span>நாம் கொடுத்தது</span></div>
@@ -401,16 +445,26 @@ return `<article class="customerCard" id="customer-card-${id}">
 <div class="field"><label>துணி கொடுத்த தேதி</label><input id="qo-cloth-${id}" class="input" type="date" value="${localDate()}"></div>
 <div class="field"><label>Delivery Date</label><input id="qo-delivery-${id}" class="input" type="date"></div>
 <div class="field"><label>எத்தனை blouse</label><input id="qo-qty-${id}" class="input" type="number" min="1" step="1" value="1"></div>
-<div class="field"><label>ஒரு blouse விலை</label><input id="qo-price-${id}" class="input" type="number" min="0" step="0.01" value="0"></div>
+<div class="field"><label>Blouse rate type</label><select id="qo-rate-type-${id}" class="input" onchange="updateQuickRate('${id}')"><option value="normal">Normal blouse</option><option value="lining">Lining blouse</option><option value="design">Design blouse</option></select></div>
+<div class="field"><label>ஒரு blouse விலை</label><input id="qo-price-${id}" class="input" type="number" min="0" step="0.01" value="${rateForType("normal")}"></div>
+<div class="field"><label>Lining cloth</label><select id="qo-lining-${id}" class="input"><option value="">தேவையில்லை</option><option value="customer">Customer கொடுத்தது</option><option value="shop">நாம் எடுத்தது</option></select></div>
 <div class="field"><label>Advance வாங்கியது</label><input id="qo-advance-${id}" class="input" type="number" min="0" step="0.01" value="0"></div>
 <div class="field"><label>Status</label><select id="qo-status-${id}" class="input"><option>Pending</option><option>In Progress</option><option>Ready</option><option>Delivered</option></select></div>
 <div class="field"><label>மொத்தம்</label><div id="qo-total-${id}" class="autoTotal">₹0.00</div></div>
 </div>
 <div class="customerActions" style="margin-top:10px"><button class="btn primary" onclick="saveQuickOrder('${id}')">💾 Save Order</button><button class="btn secondary" onclick="toggleQuickOrder('${id}')">Close</button></div>
 </div></div>
+<div class="customerSection"><h4>💵 Blouse Rate List</h4>
+<div class="rateGrid">
+<div class="rateBox"><label>Normal blouse</label><input id="rate-normal-${id}" type="number" min="0" step="1" value="${getRates().normal}"></div>
+<div class="rateBox"><label>Lining blouse</label><input id="rate-lining-${id}" type="number" min="0" step="1" value="${getRates().lining}"></div>
+<div class="rateBox"><label>Design blouse</label><input id="rate-design-${id}" type="number" min="0" step="1" value="${getRates().design}"></div>
+</div>
+<div class="customerActions" style="margin-top:8px"><button class="btn secondary" onclick="saveRates('${id}')">💾 Rate list Save</button></div>
+</div>
 <div class="customerSection"><h4>⏰ Delivery Reminder</h4>${customerReminderHTML(s.os)}<div class="reminderSettings" style="margin-top:8px"><div class="field"><label class="mini">Reminder time</label><input class="input" type="time" id="remtime-${id}" value="${localStorage.getItem("nf_reminder_time")||"09:00"}"></div><button class="btn warning" onclick="saveReminderTime('${id}')">🔔 Daily Reminder</button></div></div>
 <div class="customerSection"><h4>🎨 இந்த customer-ன் Blouse Design</h4>
-<div class="customerActions" style="margin-bottom:8px"><label class="btn secondary" style="display:inline-block">📷 Phone-லிருந்து Upload<input type="file" accept="image/*" capture="environment" style="display:none" onchange="uploadCustomerDesign('${id}',this.files[0])"></label><button class="btn secondary" onclick="searchDesignForCustomer('${id}')">🔎 Net-ல் Search</button></div>
+<div class="customerActions" style="margin-bottom:8px"><label class="btn secondary" style="display:inline-block">📷 Phone-லிருந்து Upload<input type="file" accept="image/*" style="display:none" onchange="uploadCustomerDesign('${id}',this.files[0])"></label><button class="btn secondary" onclick="searchDesignForCustomer('${id}')">🔎 Net-ல் Search</button></div>
 <div id="customer-design-search-${id}" class="hidden" style="margin-bottom:8px"><div class="toolbar"><input class="input search" id="customer-design-q-${id}" placeholder="blouse design search"><button class="btn primary" onclick="runCustomerDesignSearch('${id}')">Search</button></div><div id="customer-design-results-${id}" class="customerDesignGrid"></div></div>
 <div class="customerDesignGrid">${designHtml}</div>
 </div>
@@ -435,13 +489,17 @@ function searchDesignForCustomer(id){$("customer-design-search-"+id).classList.r
 async function runCustomerDesignSearch(id){
 const q=$("customer-design-q-"+id).value.trim(),box=$("customer-design-results-"+id);
 if(!q){toast("Search வார்த்தை உள்ளிடுங்கள்.",true);return}
-box.innerHTML='<div class="mini">Searching...</div>';
+box.innerHTML=`<div class="designSearchNote"><b>🔎 Google Images</b><br>Google தனது image search page-ஐ app-க்குள் embed செய்ய அனுமதிப்பதில்லை. அதனால் முழு Google Images-ஐ கீழே உள்ள button மூலம் திறக்கலாம்.<br><button class="btn primary" style="margin-top:7px" onclick='window.open("https://www.google.com/search?tbm=isch&q="+encodeURIComponent(${JSON.stringify(q+" blouse design")}),"_blank","noopener")'>🌐 Open Google Images</button></div><div class="mini" style="margin-top:10px">கீழே save செய்யக்கூடிய online preview results-ம் வரும்.</div><div id="customer-design-online-${id}" class="customerDesignGrid" style="margin-top:8px"></div>`;
+const online=$("customer-design-online-"+id);
 try{
-const url=`https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(q+" blouse design")}&gsrnamespace=6&gsrlimit=9&prop=imageinfo&iiprop=url|extmetadata&iiurlwidth=400&format=json&origin=*`;
+const url=`https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(q+" blouse design")}&gsrnamespace=6&gsrlimit=12&prop=imageinfo&iiprop=url|extmetadata&iiurlwidth=400&format=json&origin=*`;
 const res=await fetch(url);if(!res.ok)throw new Error("Online search failed");
 const data=await res.json(),pages=Object.values(data.query?.pages||{});
-box.innerHTML=pages.length?pages.map(p=>{const ii=p.imageinfo?.[0]||{},src=ii.thumburl||ii.url||"",name=(ii.extmetadata?.ImageDescription?.value||p.title||"Blouse Design").replace(/<[^>]*>/g,"").slice(0,90);return `<div class="customerDesignThumb" style="cursor:pointer" onclick='saveCustomerDesignLocal(${JSON.stringify(id)},${JSON.stringify({src,name,savedAt:new Date().toISOString()})})'>${src?`<img src="${esc(src)}" alt="${esc(name)}" loading="lazy">`:`<div class="photoPlaceholder" style="height:100%">No image</div>`}<span>💾 ${esc(name)}</span></div>`}).join(""):`<div class="mini">Design கிடைக்கவில்லை.</div>`;
-}catch(err){box.innerHTML=`<div class="mini">Search error: ${esc(err.message)}</div>`}
+online.innerHTML=pages.length?pages.map(p=>{
+const ii=p.imageinfo?.[0]||{},src=ii.thumburl||ii.url||"",name=(ii.extmetadata?.ImageDescription?.value||p.title||"Blouse Design").replace(/<[^>]*>/g,"").slice(0,90);
+return `<div class="customerDesignThumb" style="cursor:pointer" onclick='saveCustomerDesignLocal(${JSON.stringify(id)},${JSON.stringify({src,name,savedAt:new Date().toISOString()})})'>${src?`<img src="${esc(src)}" alt="${esc(name)}" loading="lazy">`:`<div class="photoPlaceholder" style="height:100%">No image</div>`}<span>💾 Save</span></div>`;
+}).join(""):`<div class="mini">Preview கிடைக்கவில்லை. Google Images button-ஐ பயன்படுத்துங்கள்.</div>`;
+}catch(err){online.innerHTML=`<div class="mini">Online preview கிடைக்கவில்லை. Google Images button-ஐ பயன்படுத்துங்கள்.</div>`}
 }
 function renderMeasurements(){
 const q=($("measurementSearch").value||"").toLowerCase(),r=state.measurements.filter(x=>[customerName(x.customer_id),x.garment_type,x.notes].join(" ").toLowerCase().includes(q));
@@ -503,6 +561,7 @@ function renderAll(){renderDashboard();renderCustomers();renderMeasurements();re
 
 ["customerSearch","measurementSearch","orderSearch","alterationSearch","paymentSearch","designSearch"].forEach(id=>$(id).addEventListener("input",renderAll));
 $("onlineDesignBtn").addEventListener("click",searchOnlineDesigns);
+$("googleDesignBtn").addEventListener("click",()=>{const q=$("onlineDesignQuery").value.trim();if(!q){toast("Search வார்த்தை உள்ளிடுங்கள்.",true);return}window.open("https://www.google.com/search?tbm=isch&q="+encodeURIComponent(q+" blouse design"),"_blank","noopener")});
 $("onlineDesignQuery").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();searchOnlineDesigns()}});
 $("orderStatusFilter").addEventListener("change",renderAll);
 
@@ -530,6 +589,20 @@ if(opts[type])return `<div class="field"><label>${label}</label><select class="i
 return `<div class="field"><label>${label}</label><input class="input" name="${key}" type="${type}" value="${esc(v)}" ${required?"required":""} ${type==="number"?'step="0.01" min="0"':''}></div>`;
 }
 
+function calcKey(k){
+const el=$("measurementCalc");if(!el)return;
+el.value+=(k==="*"?" * ":` ${k} `);el.focus();
+}
+function calculateMeasurement(){
+const el=$("measurementCalc"),out=$("measurementCalcResult");if(!el||!out)return;
+const expr=el.value.trim();
+if(!/^[0-9+\-*/().\s×÷]+$/.test(expr)){out.textContent="Numbers + − × ÷ மட்டும் பயன்படுத்துங்கள்.";return}
+try{
+const result=Function('"use strict";return ('+expr.replace(/×/g,"*").replace(/÷/g,"/")+')')();
+if(!Number.isFinite(result))throw new Error();
+out.textContent="Result: "+result;
+}catch{out.textContent="கணக்கு சரியாக இல்லை."}
+}
 function openModal(type,id=null){
 state.editing={type,id};const def=formDefs[type];let row=null;
 if(id){const list=state[type+"s"]||[];row=list.find(x=>x.id===id)||null}
@@ -545,7 +618,7 @@ return inputHTML(f,val);
  }).join("");
 if(type==="design"){
 const wrap=document.createElement("div");wrap.className="field full";
-wrap.innerHTML='<label>📷 Blouse Design Photo (phone gallery / camera)</label><input id="designPhotoFile" class="input" type="file" accept="image/*" capture="environment"><div id="designPhotoPreview" class="hint" style="margin-top:7px"></div>';
+wrap.innerHTML='<label>📷 Blouse Design Photo (phone gallery / camera)</label><input id="designPhotoFile" class="input" type="file" accept="image/*"><div id="designPhotoPreview" class="hint" style="margin-top:7px"></div>';
 $("formFields").appendChild(wrap);
 const existing=row?.image_url;
 if(existing)$("designPhotoPreview").innerHTML=`<img src="${esc(existing)}" style="width:100%;max-height:220px;object-fit:contain;border-radius:10px;background:#eee9e4" alt="design preview">`;
@@ -555,6 +628,11 @@ if(!f.type.startsWith("image/")){toast("Image file மட்டும் தே�
 if(f.size>2*1024*1024){toast("Photo 2MB-க்கு குறைவாக இருக்க வேண்டும்.",true);e.target.value="";return}
 const r=new FileReader();r.onload=()=>{$("designPhotoPreview").innerHTML=`<img src="${esc(r.result)}" style="width:100%;max-height:220px;object-fit:contain;border-radius:10px;background:#eee9e4" alt="design preview">`;$("designPhotoFile").dataset.dataUrl=r.result};r.readAsDataURL(f);
 });
+}
+if(type==="measurement"){
+const calc=document.createElement("div");calc.className="field full";
+calc.innerHTML=`<label>🧮 Quick Calculator — + − × ÷</label><div class="calcBar"><input id="measurementCalc" inputmode="decimal" placeholder="உதா: 36 + 2 - 1"><button type="button" class="calcKey" onclick="calcKey('+')">+</button><button type="button" class="calcKey" onclick="calcKey('-')">−</button><button type="button" class="calcKey" onclick="calcKey('*')">×</button><button type="button" class="calcKey" onclick="calcKey('/')">÷</button><button type="button" class="btn secondary" onclick="calculateMeasurement()">=</button></div><div id="measurementCalcResult" class="hint"></div>`;
+$("formFields").prepend(calc);
 }
 if(type==="order"){
 const q=$('formFields').querySelector('[name="quantity"]'),u=$('formFields').querySelector('[name="unit_price"]'),t=$('formFields').querySelector('[name="total_amount"]'),a=$('formFields').querySelector('[name="advance_amount"]');
