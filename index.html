@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -10,137 +10,72 @@
     body {
       margin: 0;
       min-height: 100vh;
-      font-family: Arial, Helvetica, sans-serif;
+      font-family: Arial, sans-serif;
       background: #f6f1eb;
       color: #241d25;
     }
-    .wrap {
-      width: min(920px, calc(100% - 28px));
-      margin: 28px auto;
-    }
+    .wrap { width: min(900px, 94%); margin: 30px auto; }
     .card {
       background: #fff;
-      border: 1px solid #ded7d0;
-      border-radius: 28px;
+      border: 1px solid #ddd6cf;
+      border-radius: 26px;
       padding: 30px;
-      box-shadow: 0 12px 35px rgba(0,0,0,.07);
+      box-shadow: 0 10px 30px rgba(0,0,0,.07);
     }
-    h1 {
-      margin: 0;
-      font-size: clamp(30px, 7vw, 54px);
-      line-height: 1;
-      letter-spacing: -1px;
-    }
-    .gold {
-      color: #d4aa4f;
-      margin-top: 14px;
-      font-size: clamp(28px, 6vw, 48px);
-      font-weight: 800;
-    }
-    .sub {
-      color: #6f6a6e;
-      font-size: 22px;
-      margin: 34px 0 26px;
-    }
-    label {
-      display: block;
-      font-weight: 700;
-      font-size: 18px;
-      margin: 18px 0 8px;
-    }
+    h1 { margin: 0; font-size: 44px; }
+    h2 { margin: 0; font-size: 30px; }
+    .gold { margin-top: 12px; color: #d4aa4f; font-size: 38px; font-weight: 800; }
+    .sub { margin: 28px 0; color: #706a6e; font-size: 22px; }
+    label { display: block; margin: 16px 0 8px; font-weight: 700; }
     input {
       width: 100%;
-      padding: 17px 18px;
+      padding: 16px;
       border: 1px solid #d5d0ca;
-      border-radius: 16px;
+      border-radius: 14px;
       font-size: 17px;
-      outline: none;
-      background: #fff;
-    }
-    input:focus { border-color: #b23e62; box-shadow: 0 0 0 3px rgba(178,62,98,.12); }
-    .password-row { position: relative; }
-    .toggle {
-      position: absolute;
-      right: 10px;
-      top: 9px;
-      border: 0;
-      background: transparent;
-      padding: 10px;
-      cursor: pointer;
-      font-size: 16px;
     }
     button {
       border: 0;
-      border-radius: 16px;
-      padding: 16px 20px;
-      font-size: 17px;
+      border-radius: 14px;
+      padding: 15px 20px;
+      font-size: 16px;
       font-weight: 700;
       cursor: pointer;
     }
-    .login {
+    #loginBtn {
       width: 100%;
-      margin-top: 24px;
+      margin-top: 22px;
       background: #b23e62;
-      color: #fff;
+      color: white;
     }
-    button:disabled { opacity: .65; cursor: not-allowed; }
-    .msg {
-      min-height: 24px;
-      margin-top: 14px;
-      font-size: 15px;
-      font-weight: 600;
-    }
-    .err { color: #b42318; }
-    .ok { color: #16794c; }
-    .hidden { display: none !important; }
-    .dash-head {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 15px;
-      flex-wrap: wrap;
-    }
-    .dash-head h2 { margin: 0; font-size: 30px; }
-    .email { color: #6f6a6e; margin-top: 7px; word-break: break-word; }
-    .actions { display: flex; gap: 10px; }
-    .refresh { background: #eee9e4; color: #241d25; }
-    .logout { background: #b23e62; color: #fff; }
-    .status {
-      margin-top: 24px;
-      padding: 13px 16px;
-      border-radius: 14px;
-      background: #f1f8f4;
-      color: #16794c;
-      font-weight: 700;
-    }
+    .row { display: flex; gap: 10px; margin-top: 22px; }
+    .row button { flex: 1; }
+    #refreshBtn { background: #eee9e4; }
+    #logoutBtn { background: #b23e62; color: white; }
+    .msg { min-height: 24px; margin-top: 12px; font-weight: 600; }
+    .error { color: #b42318; }
+    .success { color: #16794c; }
+    .hidden { display: none; }
+    .email { color: #706a6e; margin-top: 8px; word-break: break-word; }
     .grid {
       display: grid;
-      grid-template-columns: repeat(2, minmax(0,1fr));
-      gap: 16px;
-      margin-top: 22px;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 14px;
+      margin-top: 24px;
     }
     .stat {
-      border: 1px solid #e0dad4;
-      border-radius: 18px;
       padding: 20px;
-      background: #fff;
+      border: 1px solid #e0dad4;
+      border-radius: 16px;
     }
-    .stat-title { color: #6f6a6e; font-weight: 700; }
-    .stat-number { font-size: 34px; font-weight: 800; margin-top: 8px; }
-    .note {
-      margin-top: 22px;
-      padding: 16px;
-      border-radius: 14px;
-      background: #faf7f3;
-      color: #625c60;
-      line-height: 1.5;
-    }
+    .stat-title { color: #706a6e; font-weight: 700; }
+    .stat-number { margin-top: 8px; font-size: 30px; font-weight: 800; }
     @media (max-width: 600px) {
-      .wrap { width: min(100% - 16px, 920px); margin: 8px auto; }
-      .card { padding: 22px; border-radius: 22px; }
+      .wrap { width: 96%; margin: 10px auto; }
+      .card { padding: 22px; }
+      h1 { font-size: 34px; }
+      .gold { font-size: 29px; }
       .grid { grid-template-columns: 1fr; }
-      .actions { width: 100%; }
-      .actions button { flex: 1; }
     }
   </style>
 </head>
@@ -151,34 +86,22 @@
       <div class="gold">TAILORING INDUSTRY</div>
       <div class="sub">Mobile Tailoring Software</div>
 
-      <form id="loginForm" novalidate>
+      <form id="loginForm">
         <label for="email">Email</label>
-        <input id="email" type="email" autocomplete="email" placeholder="உங்கள் Email" required>
+        <input id="email" type="email" autocomplete="email" placeholder="உங்கள் Email">
 
         <label for="password">Password</label>
-        <div class="password-row">
-          <input id="password" type="password" autocomplete="current-password" placeholder="Password" required>
-          <button id="togglePassword" class="toggle" type="button" aria-label="Show password">👁️</button>
-        </div>
+        <input id="password" type="password" autocomplete="current-password" placeholder="Password">
 
-        <button id="loginBtn" class="login" type="submit">🔐 LOGIN</button>
-        <div id="loginMsg" class="msg" aria-live="polite"></div>
+        <button id="loginBtn" type="submit">🔐 LOGIN</button>
+        <div id="loginMsg" class="msg"></div>
       </form>
     </section>
 
     <section id="dashboard" class="card hidden">
-      <div class="dash-head">
-        <div>
-          <h2>NEW FASHION TAILORING</h2>
-          <div id="userEmail" class="email"></div>
-        </div>
-        <div class="actions">
-          <button id="refreshBtn" class="refresh" type="button">↻ Refresh</button>
-          <button id="logoutBtn" class="logout" type="button">LOGOUT</button>
-        </div>
-      </div>
-
-      <div id="dashMsg" class="status">✓ Logged in successfully</div>
+      <h2>NEW FASHION TAILORING</h2>
+      <div id="userEmail" class="email"></div>
+      <div id="dashMsg" class="msg success">Login successful</div>
 
       <div class="grid">
         <div class="stat">
@@ -199,20 +122,20 @@
         </div>
       </div>
 
-      <div class="note">
-        Login and logout are connected to Supabase Authentication.
-        The dashboard cards are intentionally left without database queries until the exact table names are confirmed.
+      <div class="row">
+        <button id="refreshBtn" type="button">↻ Refresh</button>
+        <button id="logoutBtn" type="button">LOGOUT</button>
       </div>
     </section>
   </main>
 
   <script>
     const SUPABASE_URL = "https://yjkyflusegxaqfvpeklb.supabase.co";
-    const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_-NK1gubUvsc47KKDV8DNKQ_I5pbx-sR";
+    const SUPABASE_KEY = "sb_publishable_-NK1gubUvsc47KKDV8DNKQ_I5pbx-sR";
 
     const supabaseClient = window.supabase.createClient(
       SUPABASE_URL,
-      SUPABASE_PUBLISHABLE_KEY
+      SUPABASE_KEY
     );
 
     const loginCard = document.getElementById("loginCard");
@@ -222,29 +145,25 @@
     const passwordInput = document.getElementById("password");
     const loginBtn = document.getElementById("loginBtn");
     const loginMsg = document.getElementById("loginMsg");
-    const togglePassword = document.getElementById("togglePassword");
-    const logoutBtn = document.getElementById("logoutBtn");
-    const refreshBtn = document.getElementById("refreshBtn");
     const userEmail = document.getElementById("userEmail");
     const dashMsg = document.getElementById("dashMsg");
+    const refreshBtn = document.getElementById("refreshBtn");
+    const logoutBtn = document.getElementById("logoutBtn");
 
     function showLogin() {
       loginCard.classList.remove("hidden");
       dashboard.classList.add("hidden");
-      userEmail.textContent = "";
     }
 
     function showDashboard(user) {
       loginCard.classList.add("hidden");
       dashboard.classList.remove("hidden");
       userEmail.textContent = user && user.email ? user.email : "";
-      dashMsg.textContent = "✓ Logged in successfully";
-      dashMsg.className = "status";
     }
 
-    function showLoginError(message) {
+    function showError(message) {
       loginMsg.textContent = message;
-      loginMsg.className = "msg err";
+      loginMsg.className = "msg error";
     }
 
     loginForm.addEventListener("submit", async function (event) {
@@ -257,7 +176,7 @@
       loginMsg.className = "msg";
 
       if (!email || !password) {
-        showLoginError("Email மற்றும் Password இரண்டையும் உள்ளிடுங்கள்.");
+        showError("Email மற்றும் Password இரண்டையும் உள்ளிடுங்கள்.");
         return;
       }
 
@@ -271,50 +190,34 @@
         });
 
         if (result.error) {
-          showLoginError("Login failed: " + result.error.message);
+          showError("Login failed: " + result.error.message);
           return;
         }
 
-        if (!result.data || !result.data.user) {
-          showLoginError("Login failed: User session was not returned.");
-          return;
+        if (result.data && result.data.user) {
+          showDashboard(result.data.user);
+        } else {
+          showError("Login failed: User was not returned.");
         }
-
-        showDashboard(result.data.user);
       } catch (error) {
-        showLoginError("Login failed: " + (error.message || "Unknown error"));
+        showError("Login failed: " + error.message);
       } finally {
         loginBtn.disabled = false;
         loginBtn.textContent = "🔐 LOGIN";
       }
     });
 
-    togglePassword.addEventListener("click", function () {
-      const isPassword = passwordInput.type === "password";
-      passwordInput.type = isPassword ? "text" : "password";
-      togglePassword.textContent = isPassword ? "🙈" : "👁️";
-    });
-
     logoutBtn.addEventListener("click", async function () {
-      logoutBtn.disabled = true;
+      const result = await supabaseClient.auth.signOut();
 
-      try {
-        const result = await supabaseClient.auth.signOut();
-
-        if (result.error) {
-          dashMsg.textContent = "Logout failed: " + result.error.message;
-          dashMsg.className = "status err";
-          return;
-        }
-
-        showLogin();
-        passwordInput.value = "";
-      } catch (error) {
-        dashMsg.textContent = "Logout failed: " + (error.message || "Unknown error");
-        dashMsg.className = "status err";
-      } finally {
-        logoutBtn.disabled = false;
+      if (result.error) {
+        dashMsg.textContent = "Logout failed: " + result.error.message;
+        dashMsg.className = "msg error";
+        return;
       }
+
+      passwordInput.value = "";
+      showLogin();
     });
 
     refreshBtn.addEventListener("click", async function () {
@@ -326,7 +229,8 @@
       }
 
       showDashboard(result.data.user);
-      dashMsg.textContent = "✓ Session is active";
+      dashMsg.textContent = "Session is active";
+      dashMsg.className = "msg success";
     });
 
     supabaseClient.auth.onAuthStateChange(function (_event, session) {
@@ -337,16 +241,15 @@
       }
     });
 
-    (async function init() {
+    async function startApp() {
       try {
         const result = await supabaseClient.auth.getSession();
 
-        if (result.error) {
-          showLogin();
-          return;
-        }
-
-        if (result.data && result.data.session && result.data.session.user) {
+        if (
+          result.data &&
+          result.data.session &&
+          result.data.session.user
+        ) {
           showDashboard(result.data.session.user);
         } else {
           showLogin();
@@ -354,7 +257,9 @@
       } catch (error) {
         showLogin();
       }
-    })();
+    }
+
+    startApp();
   </script>
 </body>
 </html>
