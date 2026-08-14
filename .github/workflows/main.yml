@@ -40,6 +40,7 @@ jobs:
           EOF
 
           mkdir -p www
+
           cp index.html www/
           cp manifest.json www/
           cp icon-192.png www/
@@ -47,6 +48,37 @@ jobs:
 
       - name: Add Android platform
         run: npx cap add android
+
+      - name: Add native Android back handling
+        run: |
+          MAIN_ACTIVITY="android/app/src/main/java/com/ruthra407/tailoring/MainActivity.java"
+
+          cat > "$MAIN_ACTIVITY" <<'EOF'
+          package com.ruthra407.tailoring;
+
+          import android.os.Bundle;
+          import com.getcapacitor.BridgeActivity;
+
+          public class MainActivity extends BridgeActivity {
+
+              @Override
+              public void onCreate(Bundle savedInstanceState) {
+                  super.onCreate(savedInstanceState);
+              }
+
+              @Override
+              public void onBackPressed() {
+                  if (getBridge() != null && getBridge().getWebView() != null) {
+                      if (getBridge().getWebView().canGoBack()) {
+                          getBridge().getWebView().goBack();
+                          return;
+                      }
+                  }
+
+                  super.onBackPressed();
+              }
+          }
+          EOF
 
       - name: Sync Android
         run: npx cap sync android
