@@ -2617,7 +2617,7 @@ async function saveQuickOrder(id){
  if(qty<=0){toast(garment==="Chudi"?"குறைந்தது 1 Chudi கொடுக்க வேண்டும்.":garment==="Saree"?"குறைந்தது 1 Saree கொடுக்க வேண்டும்.":"குறைந்தது 1 blouse கொடுக்க வேண்டும்.",true);return}
  let notes=garment==="Chudi"?"GARMENT_SPLIT:"+JSON.stringify({chudi:cq,chudiLining:cl,chudiLiningQty:clq,saree:0})+" | CHUDI_RATE:"+cr:garment==="Saree"?"GARMENT_SPLIT:"+JSON.stringify({chudi:0,chudiLining:"no",chudiLiningQty:0,saree:sq})+" | SAREE_RATE:"+sr:makeBlouseSplitNote(s,r,$("qo-notes-"+id)?.value||"");
  if(ls)notes+=` | Lining cloth: ${ls==="customer"?"Customer கொடுத்தது":"நாம் வாங்கியது"}`;
- const payload={customer_id:id,order_no:makeOrderNo(),garment_type:garment,order_date:localDate(),cloth_received_date:cloth,delivery_date:delivery,quantity:qty,unit_price:qty?total/qty:0,total_amount:total,advance_amount:advance,balance_amount:Math.max(0,total-advance),status,rate_type:garment==="Chudi"?"chudi":garment==="Saree"?"saree":(Object.values(s).filter(x=>x>0).length>1?"mixed":s.normal>0?"normal":s.lining>0?"lining":"design"),lining_cloth_source:ls||null,lining_cloth_qty:lq,notes};
+ const payload={customer_id:id,order_no:makeOrderNo(),garment_type:garment,order_date:localDate(),cloth_received_date:cloth,delivery_date:delivery,quantity:qty,unit_price:qty?total/qty:0,total_amount:total,advance_amount:advance,balance_amount:Math.max(0,total-advance),status,rate_type:garment==="Chudi"||garment==="Saree"?"normal":(Object.values(s).filter(x=>x>0).length>1?"mixed":s.normal>0?"normal":s.lining>0?"lining":"design"),lining_cloth_source:ls||null,lining_cloth_qty:lq,notes};
  try{const {error}=await supabaseClient.from("orders").insert(payload);if(error)throw error;await loadAll(true);toast("இந்த customer-க்கு New Order சேமிக்கப்பட்டது.");}catch(err){toast("Order save failed: "+err.message,true)}
 }
 
@@ -2890,7 +2890,7 @@ if(type==="order"){
    const totalQty=isChudi?cq:isSaree?sq:n+l+d;
    const total=isChudi?cq*cr:isSaree?sq*sr:n*rates.normal+l*rates.lining+d*rates.design;
    if(q){q.value=totalQty;q.readOnly=true} if(u){u.value=(totalQty?total/totalQty:0).toFixed(2);u.readOnly=true} if(t){t.value=total.toFixed(2);t.readOnly=true}
-   if(rt)rt.value=isChudi?"chudi":isSaree?"saree":(totalQty>0?((n>0?1:0)+(l>0?1:0)+(d>0?1:0)>1?"mixed":n>0?"normal":l>0?"lining":"design"):"normal");
+   if(rt)rt.value=isChudi||isSaree?"normal":(totalQty>0?((n>0?1:0)+(l>0?1:0)+(d>0?1:0)>1?"mixed":n>0?"normal":l>0?"lining":"design"):"normal");
    const live=$("liveBalance");if(live)live.textContent=money(Math.max(0,total-Number(a?.value||0)));
  };
  [["chudi_qty",0],["chudi_lining","no"],["chudi_lining_qty",0],["saree_qty",0],["chudi_rate",rates.chudi||0],["saree_rate",rates.saree||0]].forEach(([n,v])=>{const el=fields(n);if(el && (row==null || !el.value))el.value=v});
@@ -2932,10 +2932,10 @@ if(type==="order"){
  const cq=Math.max(0,Number(fd.get("chudi_qty")||0)),cl=fd.get("chudi_lining")==="yes"?"yes":"no",clq=Math.max(0,Number(fd.get("chudi_lining_qty")||0)),cr=Math.max(0,Number(fd.get("chudi_rate")||rates.chudi||0));
  const sq=Math.max(0,Number(fd.get("saree_qty")||0)),sr=Math.max(0,Number(fd.get("saree_rate")||rates.saree||0));
  if(garment==="chudi"){
-   payload.quantity=cq;payload.total_amount=cq*cr;payload.unit_price=cr;payload.rate_type="chudi";
+   payload.quantity=cq;payload.total_amount=cq*cr;payload.unit_price=cr;payload.rate_type="normal";
    payload.notes="GARMENT_SPLIT:"+JSON.stringify({chudi:cq,chudiLining:cl,chudiLiningQty:clq,saree:0})+" | CHUDI_RATE:"+cr;
  }else if(garment==="saree"){
-   payload.quantity=sq;payload.total_amount=sq*sr;payload.unit_price=sr;payload.rate_type="saree";
+   payload.quantity=sq;payload.total_amount=sq*sr;payload.unit_price=sr;payload.rate_type="normal";
    payload.notes="GARMENT_SPLIT:"+JSON.stringify({chudi:0,chudiLining:"no",chudiLiningQty:0,saree:sq})+" | SAREE_RATE:"+sr;
  }else{
    payload.quantity=split.normal+split.lining+split.design;
