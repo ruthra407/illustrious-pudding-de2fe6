@@ -1681,6 +1681,97 @@ body{
 }
 </style>
 
+
+
+<style id="phase4-overlap-fix">
+<style id="phase4-dashboard-drawer-card">
+@media(max-width:900px){
+  #sidebar .dashboardNav{
+    min-height:60px;
+    margin:0 8px 12px;
+    width:calc(100% - 16px);
+    padding:13px 16px;
+    border-radius:18px;
+    color:#fff;
+    background:linear-gradient(135deg,#7046ea 0%,#a34bd4 52%,#d03f86 100%);
+    box-shadow:0 10px 24px rgba(92,54,180,.28);
+    font-size:18px;
+    font-weight:900;
+  }
+  #sidebar .dashboardNav span{
+    font-weight:900;
+  }
+  #sidebar .dashboardNav:hover,
+  #sidebar .dashboardNav:focus{
+    color:#fff;
+    background:linear-gradient(135deg,#7046ea 0%,#a34bd4 52%,#d03f86 100%);
+  }
+  #sidebar .dashboardNav.active{
+    color:#fff;
+    background:linear-gradient(135deg,#7046ea 0%,#a34bd4 52%,#d03f86 100%);
+  }
+}
+</style>
+
+
+/* PHASE 4.1 — mobile overlap fix */
+@media (max-width:900px){
+  .topbar{
+    padding-top:env(safe-area-inset-top,0px);
+    height:calc(68px + env(safe-area-inset-top,0px));
+  }
+  .sidebar{
+    top:calc(68px + env(safe-area-inset-top,0px));
+    bottom:0;
+  }
+}
+@media (max-width:700px){
+  /* Drawer becomes a true modal panel: no content showing through beside it. */
+  .sidebar.open{
+    width:100vw;
+    max-width:100vw;
+    transform:translateX(0);
+    box-shadow:18px 0 40px rgba(20,12,35,.30);
+  }
+
+  /* When the drawer is open, mobile quick-nav and FAB cannot sit on top of it. */
+  body.drawer-open #p4MobileNav,
+  body.drawer-open #p4Fab{
+    display:none!important;
+  }
+
+  /* Dim the page behind the drawer. */
+  body.drawer-open::after{
+    content:"";
+    position:fixed;
+    inset:0;
+    z-index:29;
+    background:rgba(15,10,24,.34);
+    pointer-events:none;
+  }
+  .sidebar{z-index:30}
+
+  /* Prevent the drawer itself from inheriting the bottom page padding. */
+  body.drawer-open{
+    overflow:hidden;
+  }
+
+  /* Keep the title from colliding with action buttons on small screens. */
+  .topbar>div:nth-of-type(1){
+    min-width:0;
+    overflow:hidden;
+  }
+  .topbar h1{
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    max-width:calc(100vw - 260px);
+  }
+}
+
+/* Drawer-open state is synchronized by the existing menu button. */
+</style>
+
 </head>
 <body>
 
@@ -1707,7 +1798,7 @@ body{
 </header>
 <div class="layout">
 <aside id="sidebar" class="sidebar">
-<button class="navbtn active" data-view="dashboard">📊 Dashboard</button>
+<button class="navbtn dashboardNav active" data-view="dashboard">📊 <span>Dashboard</span></button>
 <button class="navbtn" data-view="customers">👥 Customers</button>
 <button class="navbtn" data-view="measurements">📏 Measurements</button>
 <button class="navbtn" data-view="orders">🧾 Orders</button>
@@ -2622,6 +2713,33 @@ supabaseClient.auth.onAuthStateChange((_event,session)=>{if(session?.user){showA
   }
 
   syncP4Nav((history.state && history.state.view) || "dashboard");
+})();
+</script>
+
+
+<script id="phase4-overlap-fix-js">
+(function(){
+  var menu=document.getElementById("menuBtn");
+  var drawer=document.getElementById("sidebar");
+  if(!menu || !drawer) return;
+
+  function sync(){
+    document.body.classList.toggle("drawer-open", drawer.classList.contains("open"));
+  }
+
+  menu.addEventListener("click", function(){
+    requestAnimationFrame(sync);
+  });
+
+  drawer.querySelectorAll(".navbtn").forEach(function(btn){
+    btn.addEventListener("click", function(){
+      requestAnimationFrame(sync);
+    });
+  });
+
+  var observer=new MutationObserver(sync);
+  observer.observe(drawer,{attributes:true,attributeFilter:["class"]});
+  sync();
 })();
 </script>
 
