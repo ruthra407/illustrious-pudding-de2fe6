@@ -3779,5 +3779,312 @@ supabaseClient.auth.onAuthStateChange((_event,session)=>{if(session?.user){showA
 })();
 </script>
 
+
+<style id="nf-chudi-saree-extension">
+.nf-extra-garment-box{
+  grid-column:1/-1;background:linear-gradient(135deg,#f3efff,#fff1f7);
+  border:1px solid #ddd4ff;border-radius:14px;padding:12px;margin-top:2px
+}
+.nf-extra-garment-box h4{margin:0 0 9px;font-size:15px}
+.nf-extra-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:9px}
+.nf-extra-grid .nf-extra-field{background:#fff;border:1px solid #e5e1ef;border-radius:11px;padding:8px}
+.nf-extra-field label{display:block;font-size:11px;font-weight:800;margin-bottom:5px;color:#5c5665}
+.nf-extra-field input,.nf-extra-field select{width:100%;min-height:42px;border:1px solid #dfe1ea;border-radius:10px;padding:8px;background:#fff}
+.nf-card-extra{margin-top:9px;display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
+.nf-card-extra .clothStat{background:#f1efff!important}
+.nf-pending-extra{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-top:5px}
+.nf-pending-extra span{padding:5px 4px;border-radius:8px;background:rgba(255,255,255,.08);font-size:9px;text-align:center}
+.nf-pending-extra b{display:block;font-size:14px;color:#fff}
+@media(max-width:560px){.nf-extra-grid,.nf-card-extra,.nf-pending-extra{grid-template-columns:1fr 1fr}}
+</style>
+<script id="nf-chudi-saree-extension">
+(function(){
+"use strict";
+
+function nfGarmentExtra(o){
+  var base={chudi:0,chudiLining:"no",chudiLiningQty:0,saree:0};
+  var m=String(o&&o.notes||"").match(/GARMENT_SPLIT:(\{[^}]+\})/);
+  if(!m)return base;
+  try{return Object.assign(base,JSON.parse(m[1]))}catch(e){return base}
+}
+
+function nfBlouseSplit(o){
+  if(typeof blouseSplit==="function")return blouseSplit(o||{});
+  return {normal:0,lining:0,design:0};
+}
+
+/* ---------- Order modal: add new garment options without replacing the old form ---------- */
+(function(){
+  var originalOpen=window.openModal;
+  if(typeof originalOpen!=="function")return;
+
+  window.openModal=function(type,id){
+    originalOpen.apply(this,arguments);
+    if(type!=="order")return;
+
+    var form=document.getElementById("formFields");
+    if(!form || form.querySelector(".nf-extra-garment-box"))return;
+
+    var garment=form.querySelector('[name="garment_type"]');
+    if(garment){
+      var select=document.createElement("select");
+      select.className=garment.className||"input";
+      select.name="garment_type";
+      ["Blouse","Chudi","Saree"].forEach(function(v){
+        var op=document.createElement("option");
+        op.value=v;op.textContent=v;
+        if(String(garment.value||"Blouse").toLowerCase()===v.toLowerCase())op.selected=true;
+        select.appendChild(op);
+      });
+      garment.replaceWith(select);
+    }
+
+    var row=(id && window.state && state.orders||[]).find(function(o){return o.id===id;});
+    var x=nfGarmentExtra(row||{});
+    var box=document.createElement("div");
+    box.className="nf-extra-garment-box";
+    box.innerHTML=
+      '<h4>👚 Chudi / 🥻 Saree — புதிய எண்ணிக்கை</h4>'+
+      '<div class="hint" style="margin-bottom:8px">பழைய blouse கணக்கீடு மாறாது. Chudi மற்றும் Saree எண்ணிக்கை தனியாக சேமிக்கப்படும்.</div>'+
+      '<div class="nf-extra-grid">'+
+        '<div class="nf-extra-field"><label>👚 எத்தனை Chudi / சுடிதார்</label><input name="nf_chudi_qty" type="number" min="0" step="1" value="'+Number(x.chudi||0)+'"></div>'+
+        '<div class="nf-extra-field"><label>🧵 Chudi-க்கு lining கொடுத்தாரா?</label><select name="nf_chudi_lining"><option value="no" '+(x.chudiLining!=="yes"?"selected":"")+'>இல்லை</option><option value="yes" '+(x.chudiLining==="yes"?"selected":"")+'>ஆம்</option></select></div>'+
+        '<div class="nf-extra-field"><label>🧵 Chudi lining எத்தனை</label><input name="nf_chudi_lining_qty" type="number" min="0" step="1" value="'+Number(x.chudiLiningQty||0)+'"></div>'+
+        '<div class="nf-extra-field"><label>🥻 எத்தனை Saree / சேலை</label><input name="nf_saree_qty" type="number" min="0" step="1" value="'+Number(x.saree||0)+'"></div>'+
+      '</div>';
+    form.appendChild(box);
+  };
+})();
+
+/* ---------- Save the new values through the existing order save pipeline ----------
+   The current DB schema is preserved; the new counts live in the existing Notes
+   column as a compact marker. */
+(function(){
+  var form=document.getElementById("dataForm");
+  if(!form)return;
+  form.addEventListener("submit",function(){
+    if(!window.state || !state.editing || state.editing.type!=="order")return;
+    var get=function(n){return form.querySelector('[name="'+n+'"]')?.value||""};
+    var notes=form.querySelector('[name="notes"]');
+    if(!notes)return;
+
+    var extra={
+      chudi:Math.max(0,Number(get("nf_chudi_qty")||0)),
+      chudiLining:get("nf_chudi_lining")==="yes"?"yes":"no",
+      chudiLiningQty:Math.max(0,Number(get("nf_chudi_lining_qty")||0)),
+      saree:Math.max(0,Number(get("nf_saree_qty")||0))
+    };
+    var clean=String(notes.value||"").replace(/GARMENT_SPLIT:\{[^}]+\}\s*\|?\s*/,"").trim();
+    notes.value="GARMENT_SPLIT:"+JSON.stringify(extra)+(clean?" | "+clean:"");
+  },true);
+})();
+
+/* ---------- Quick Order: add the same four fields to the customer card ---------- */
+function nfEnhanceQuickOrders(){
+  if(!window.state || !Array.isArray(state.customers))return;
+
+  state.customers.forEach(function(c){
+    var box=document.getElementById("quick-order-"+c.id);
+    if(!box || box.querySelector(".nf-extra-garment-box"))return;
+
+    var garment=document.getElementById("qo-garment-"+c.id);
+    if(garment && garment.tagName==="INPUT"){
+      var sel=document.createElement("select");
+      sel.id=garment.id;sel.className=garment.className||"input";
+      ["Blouse","Chudi","Saree"].forEach(function(v){
+        var op=document.createElement("option");op.value=v;op.textContent=v;sel.appendChild(op);
+      });
+      sel.value=garment.value||"Blouse";
+      garment.replaceWith(sel);
+    }
+
+    var box2=document.createElement("div");
+    box2.className="nf-extra-garment-box";
+    box2.innerHTML=
+      '<h4>👚 Chudi / 🥻 Saree</h4>'+
+      '<div class="nf-extra-grid">'+
+        '<div class="nf-extra-field"><label>👚 Chudi / சுடிதார் எத்தனை</label><input id="qo-nf-chudi-'+c.id+'" type="number" min="0" step="1" value="0"></div>'+
+        '<div class="nf-extra-field"><label>🧵 Chudi lining</label><select id="qo-nf-chudi-lining-'+c.id+'"><option value="no">இல்லை</option><option value="yes">ஆம்</option></select></div>'+
+        '<div class="nf-extra-field"><label>🧵 Chudi lining எத்தனை</label><input id="qo-nf-chudi-lining-qty-'+c.id+'" type="number" min="0" step="1" value="0"></div>'+
+        '<div class="nf-extra-field"><label>🥻 Saree / சேலை எத்தனை</label><input id="qo-nf-saree-'+c.id+'" type="number" min="0" step="1" value="0"></div>'+
+      '</div>';
+    var actions=box.querySelector(".customerActions");
+    box.insertBefore(box2,actions||null);
+  });
+}
+
+/* Wrap the existing quick-save function; the original pricing/blouse logic is untouched. */
+(function(){
+  var originalSave=window.saveQuickOrder;
+  if(typeof originalSave!=="function")return;
+  window.saveQuickOrder=function(id){
+    var notes=document.getElementById("qo-notes-"+id);
+    var extra={
+      chudi:Math.max(0,Number(document.getElementById("qo-nf-chudi-"+id)?.value||0)),
+      chudiLining:document.getElementById("qo-nf-chudi-lining-"+id)?.value==="yes"?"yes":"no",
+      chudiLiningQty:Math.max(0,Number(document.getElementById("qo-nf-chudi-lining-qty-"+id)?.value||0)),
+      saree:Math.max(0,Number(document.getElementById("qo-nf-saree-"+id)?.value||0))
+    };
+    if(notes){
+      var clean=String(notes.value||"").replace(/GARMENT_SPLIT:\{[^}]+\}\s*\|?\s*/,"").trim();
+      notes.value="GARMENT_SPLIT:"+JSON.stringify(extra)+(clean?" | "+clean:"");
+    }
+    return originalSave.apply(this,arguments);
+  };
+})();
+
+/* ---------- Customer cards: show separate Chudi/Saree totals ---------- */
+function nfAddCustomerGarmentSummary(){
+  if(!window.state || !Array.isArray(state.customers))return;
+  state.customers.forEach(function(c){
+    var card=document.getElementById("customer-card-"+c.id);
+    if(!card || card.querySelector(".nf-card-extra"))return;
+
+    var orders=(state.orders||[]).filter(function(o){return o.customer_id===c.id;});
+    var totalChudi=0,totalChudiLining=0,totalSaree=0;
+    orders.forEach(function(o){
+      var x=nfGarmentExtra(o);
+      totalChudi+=Number(x.chudi||0);
+      totalChudiLining+=Number(x.chudiLiningQty||0);
+      totalSaree+=Number(x.saree||0);
+    });
+
+    var section=document.createElement("div");
+    section.className="customerSection nf-card-extra-section";
+    section.innerHTML=
+      '<h4>👚 Chudi / 🥻 Saree Count</h4>'+
+      '<div class="nf-card-extra">'+
+        '<div class="clothStat"><b>'+totalChudi+'</b><span>Chudi / சுடிதார்</span></div>'+
+        '<div class="clothStat"><b>'+totalChudiLining+'</b><span>Chudi lining</span></div>'+
+        '<div class="clothStat"><b>'+totalSaree+'</b><span>Saree / சேலை</span></div>'+
+      '</div>';
+    var firstSection=card.querySelector(".customerSection");
+    if(firstSection)firstSection.parentNode.insertBefore(section,firstSection.nextSibling);
+    else card.appendChild(section);
+  });
+}
+
+/* ---------- Pending Customer card: include all six requested pending types ---------- */
+function nfPendingData(id){
+  var orders=(state.orders||[]).filter(function(o){
+    return o.customer_id===id && typeof isFinished==="function" && !isFinished(o);
+  });
+  var r={normal:0,lining:0,design:0,chudi:0,chudiLining:0,saree:0,total:0};
+  orders.forEach(function(o){
+    var b=nfBlouseSplit(o),x=nfGarmentExtra(o);
+    r.normal+=Number(b.normal||0);r.lining+=Number(b.lining||0);r.design+=Number(b.design||0);
+    r.chudi+=Number(x.chudi||0);r.chudiLining+=Number(x.chudiLiningQty||0);r.saree+=Number(x.saree||0);
+  });
+  r.total=r.normal+r.lining+r.design+r.chudi+r.saree;
+  return {orders:orders,stats:r};
+}
+
+window.renderPendingCustomerCard=function(){
+  var list=document.getElementById("nfPendingList"),badge=document.getElementById("nfPendingBadge");
+  if(!list)return;
+  var rows=[];
+  (state.customers||[]).forEach(function(c){
+    var d=nfPendingData(c.id);
+    if(!d.stats.total)return;
+    var since=typeof getPendingSince==="function"?getPendingSince(c.id,d.orders):"";
+    rows.push({c:c,d:d,since:since});
+  });
+  rows.sort(function(a,b){return String(a.since||"9999").localeCompare(String(b.since||"9999"));});
+  if(badge)badge.textContent=String(rows.length);
+  if(!rows.length){list.innerHTML='<div class="nfPendingEmpty">✅ Pending work இல்லை.</div>';return;}
+
+  list.innerHTML=rows.map(function(r){
+    var c=r.c,s=r.d.stats;
+    var lines=r.d.orders.slice().sort(function(a,b){return String(a.delivery_date||"9999").localeCompare(String(b.delivery_date||"9999"));}).slice(0,5).map(function(o){
+      var b=nfBlouseSplit(o),x=nfGarmentExtra(o),parts=[];
+      if(b.normal)parts.push("Normal "+b.normal);
+      if(b.lining)parts.push("Lining "+b.lining);
+      if(b.design)parts.push("Design "+b.design);
+      if(x.chudi)parts.push("Chudi "+x.chudi);
+      if(x.chudiLiningQty)parts.push("Chudi lining "+x.chudiLiningQty);
+      if(x.saree)parts.push("Saree "+x.saree);
+      return '<div class="nfPendingOrderLine">• '+esc(c.name)+' — '+esc(parts.join(" · ")||String(Number(o.quantity||0))+" pcs")+(o.delivery_date?' · Delivery '+dateText(o.delivery_date):'')+'</div>';
+    }).join("");
+
+    return '<div class="nfPendingCustomer">'+
+      '<div class="nfPendingName">👤 '+esc(c.name)+'</div>'+
+      '<div class="nfPendingTotal">மொத்த Pending: <b>'+s.total+'</b></div>'+
+      '<div class="nfPendingTypes">'+
+        '<div class="nfPendingType"><b>'+s.normal+'</b>Normal blouse</div>'+
+        '<div class="nfPendingType"><b>'+s.lining+'</b>Lining blouse</div>'+
+        '<div class="nfPendingType"><b>'+s.design+'</b>Design blouse</div>'+
+        '<div class="nfPendingType"><b>'+s.chudi+'</b>Chudi</div>'+
+        '<div class="nfPendingType"><b>'+s.chudiLining+'</b>Chudi lining</div>'+
+        '<div class="nfPendingType"><b>'+s.saree+'</b>Saree</div>'+
+      '</div>'+
+      '<div class="nfPendingDate"><label>📅 Pending since</label><div class="nfPendingDateRow"><input id="nf-pending-date-'+esc(c.id)+'" type="date" value="'+esc(r.since||'')+'"><button class="nfPendingSave" type="button" onclick=\'savePendingSince("'+String(c.id).replace(/"/g,'&quot;')+'")\'>Update</button></div></div>'+
+      (lines?'<div class="nfPendingOrders">'+lines+'</div>':'')+
+    '</div>';
+  }).join("");
+};
+
+/* ---------- Detailed 10-times-per-day notifications ---------- */
+window.runPhoneReminders=function(){
+  if(!("Notification" in window)||Notification.permission!=="granted")return;
+  var active=(state.orders||[]).filter(function(o){return !isFinished(o)&&o.delivery_date;});
+  var relevant=active.filter(function(o){return daysBetween(localDate(),o.delivery_date)<=5;});
+  if(!relevant.length)return;
+
+  var now=new Date();
+  var slot=String(now.getHours()).padStart(2,"0")+":"+String(now.getMinutes()).padStart(2,"0");
+  if(!REMINDER_TIMES.includes(slot))return;
+
+  var key="nf_detailed_reminder_"+localDate()+"_"+slot;
+  if(localStorage.getItem(key)==="1")return;
+
+  var body=relevant.slice(0,30).map(function(o){
+    var c=(state.customers||[]).find(function(x){return x.id===o.customer_id;})||{};
+    var b=nfBlouseSplit(o),x=nfGarmentExtra(o),parts=[];
+    if(b.normal)parts.push("Normal blouse "+b.normal);
+    if(b.lining)parts.push("Lining blouse "+b.lining);
+    if(b.design)parts.push("Design blouse "+b.design);
+    if(x.chudi)parts.push("Chudi "+x.chudi);
+    if(x.chudiLiningQty)parts.push("Chudi lining "+x.chudiLiningQty);
+    if(x.saree)parts.push("Saree "+x.saree);
+    var d=daysBetween(localDate(),o.delivery_date);
+    var when=d<0?"Late "+Math.abs(d)+" நாள்":d===0?"இன்று":d+" நாள்";
+    return "📅 "+dateText(o.delivery_date)+" · 👤 "+(c.name||"Customer")+" · "+(parts.join(" · ")||Number(o.quantity||0)+" pcs")+" · "+when;
+  }).join("\n");
+
+  try{
+    new Notification("New Fashion Tailoring — Delivery Reminder",{body:body,icon:""});
+    localStorage.setItem(key,"1");
+  }catch(e){}
+};
+
+/* ---------- Re-render hooks; old render functions remain intact ---------- */
+(function(){
+  var oldRender=window.renderAll;
+  if(typeof oldRender==="function"){
+    window.renderAll=function(){
+      oldRender.apply(this,arguments);
+      try{
+        nfEnhanceQuickOrders();
+        nfAddCustomerGarmentSummary();
+        renderPendingCustomerCard();
+      }catch(e){console.log("New garment extension:",e)}
+    };
+  }
+  document.addEventListener("DOMContentLoaded",function(){
+    try{
+      nfEnhanceQuickOrders();
+      nfAddCustomerGarmentSummary();
+      renderPendingCustomerCard();
+    }catch(e){}
+  },{once:true});
+})();
+
+/* Important browser limitation:
+   Web Notification from a plain HTML page requires permission and the page
+   must remain running. This extension keeps the ten existing daily time
+   slots, but does not claim OS-level delivery when the page is fully closed. */
+})();
+</script>
+
 </body>
 </html>
