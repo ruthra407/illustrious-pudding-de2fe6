@@ -2040,6 +2040,77 @@ body{
 }
 </style>
 
+
+<style id="phase4-5-user-fixes">
+/* =========================================================
+   PHASE 4.5 — CLOCK + MOBILE MODAL LAYER FIX
+   - slightly larger, contrasting live clock
+   - keeps Add Order modal below the header on phones
+   - prevents the modal title / close button from hiding
+   ========================================================= */
+
+/* Bigger, more readable clock without taking over the header. */
+#liveClock{
+  min-width:100px !important;
+  height:30px !important;
+  padding:3px 10px !important;
+  font-size:14px !important;
+  font-weight:900 !important;
+  line-height:1 !important;
+  color:#3a214b !important;
+  background:linear-gradient(135deg,#ffd76a,#ffb15c) !important;
+  border:1px solid rgba(255,255,255,.65) !important;
+  box-shadow:0 4px 14px rgba(255,177,92,.28) !important;
+  border-radius:999px !important;
+  letter-spacing:.1px !important;
+}
+
+@media(max-width:700px){
+  /* The header remains visible; the modal begins immediately below it. */
+  .modal{
+    inset:88px 0 0 0 !important;
+    z-index:90 !important;
+    align-items:flex-start !important;
+    justify-content:center !important;
+    padding:8px !important;
+  }
+
+  .modalbox{
+    width:100% !important;
+    max-width:780px !important;
+    max-height:calc(100dvh - 96px) !important;
+    border-radius:18px !important;
+    padding:16px !important;
+  }
+
+  #liveClock{
+    min-width:94px !important;
+    height:28px !important;
+    padding:3px 9px !important;
+    font-size:13px !important;
+  }
+}
+
+@media(max-width:390px){
+  .modal{
+    inset:84px 0 0 0 !important;
+    padding:7px !important;
+  }
+
+  .modalbox{
+    max-height:calc(100dvh - 91px) !important;
+    padding:15px !important;
+  }
+
+  #liveClock{
+    min-width:88px !important;
+    height:27px !important;
+    padding:3px 8px !important;
+    font-size:12.5px !important;
+  }
+}
+</style>
+
 </head>
 <body>
 
