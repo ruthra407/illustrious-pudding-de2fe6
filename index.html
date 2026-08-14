@@ -1910,207 +1910,6 @@ body{
 }
 </style>
 
-
-<style id="phase4-4-final-mobile-fix">
-/* =========================================================
-   PHASE 4.4 — FINAL MOBILE HEADER + REAL CLOCK
-   - protects status-bar/safe-area space
-   - keeps shop name readable without 3-line collision
-   - keeps action buttons inside the header
-   - preserves the colorful dashboard cards
-   ========================================================= */
-.topbar{
-  position:sticky;
-  top:0;
-  z-index:100;
-  min-height:76px;
-  height:auto;
-  padding-top:max(10px,env(safe-area-inset-top,0px));
-  padding-bottom:10px;
-}
-.topbar .brandBlock{
-  flex:1 1 auto;
-  min-width:0;
-  overflow:hidden;
-}
-.topbar .brandBlock h1{
-  margin:0;
-  line-height:1.02;
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
-}
-.topbar .brandBlock small{
-  display:flex;
-  align-items:center;
-  gap:5px;
-  min-width:0;
-  margin-top:5px;
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
-}
-#liveClock{
-  flex:0 0 auto;
-  min-width:94px;
-  height:26px;
-  margin-left:2px;
-  padding:2px 9px;
-  font-size:12px;
-  line-height:1;
-  white-space:nowrap;
-}
-@media(max-width:700px){
-  .topbar{
-    min-height:88px;
-    padding-left:10px;
-    padding-right:10px;
-    padding-top:max(10px,env(safe-area-inset-top,0px));
-    padding-bottom:10px;
-    gap:8px;
-  }
-  .topbar .mobileOnly.iconbtn{
-    width:44px;height:44px;flex:0 0 44px;
-  }
-  .topbar .brandBlock{
-    flex:1 1 0;
-    min-width:0;
-  }
-  .topbar .brandBlock h1{
-    font-size:17px;
-    line-height:1.04;
-    white-space:normal;
-    display:-webkit-box;
-    -webkit-box-orient:vertical;
-    -webkit-line-clamp:2;
-    overflow:hidden;
-    text-overflow:ellipsis;
-    max-width:100%;
-    letter-spacing:-.3px;
-  }
-  .topbar .brandBlock small{
-    font-size:9px;
-    line-height:1;
-    margin-top:4px;
-    gap:3px;
-  }
-  #liveClock{
-    min-width:82px;
-    height:22px;
-    padding:2px 6px;
-    font-size:10px;
-  }
-  /* Back/refresh stay available; setup/logout live in the menu on phones. */
-  #passkeySetupBtn,#logoutBtn{display:none!important}
-  .topbar .spacer{display:none}
-  .topbar #backBtn{
-    width:42px;height:42px;flex:0 0 42px;
-  }
-  #reloadBtn{
-    width:42px;height:42px;flex:0 0 42px;
-  }
-}
-@media(max-width:390px){
-  .topbar{min-height:84px;padding-left:8px;padding-right:8px;gap:6px}
-  .topbar .mobileOnly.iconbtn{width:42px;height:42px;flex-basis:42px}
-  .topbar .brandBlock h1{font-size:16px}
-  .topbar .brandBlock small{font-size:8.5px}
-  #liveClock{min-width:76px;font-size:9.5px}
-  .topbar #backBtn,#reloadBtn{width:40px;height:40px;flex-basis:40px}
-}
-@media(min-width:701px){
-  .topbar{padding-top:12px;padding-bottom:12px;min-height:84px}
-}
-/* The management content must always begin below the enlarged header. */
-@media(max-width:700px){
-  .layout{min-height:calc(100dvh - 88px)}
-  .main{padding-top:14px}
-  .sidebar{
-    top:calc(88px + env(safe-area-inset-top,0px));
-    height:calc(100dvh - 88px - env(safe-area-inset-top,0px));
-  }
-  body.drawer-open .sidebar{top:calc(88px + env(safe-area-inset-top,0px))}
-}
-@media(max-width:390px){
-  .layout{min-height:calc(100dvh - 84px)}
-  .sidebar{
-    top:calc(84px + env(safe-area-inset-top,0px));
-    height:calc(100dvh - 84px - env(safe-area-inset-top,0px));
-  }
-}
-</style>
-
-
-<style id="phase4-5-user-fixes">
-/* =========================================================
-   PHASE 4.5 — CLOCK + MOBILE MODAL LAYER FIX
-   - slightly larger, contrasting live clock
-   - keeps Add Order modal below the header on phones
-   - prevents the modal title / close button from hiding
-   ========================================================= */
-
-/* Bigger, more readable clock without taking over the header. */
-#liveClock{
-  min-width:100px !important;
-  height:30px !important;
-  padding:3px 10px !important;
-  font-size:14px !important;
-  font-weight:900 !important;
-  line-height:1 !important;
-  color:#3a214b !important;
-  background:linear-gradient(135deg,#ffd76a,#ffb15c) !important;
-  border:1px solid rgba(255,255,255,.65) !important;
-  box-shadow:0 4px 14px rgba(255,177,92,.28) !important;
-  border-radius:999px !important;
-  letter-spacing:.1px !important;
-}
-
-@media(max-width:700px){
-  /* The header remains visible; the modal begins immediately below it. */
-  .modal{
-    inset:88px 0 0 0 !important;
-    z-index:90 !important;
-    align-items:flex-start !important;
-    justify-content:center !important;
-    padding:8px !important;
-  }
-
-  .modalbox{
-    width:100% !important;
-    max-width:780px !important;
-    max-height:calc(100dvh - 96px) !important;
-    border-radius:18px !important;
-    padding:16px !important;
-  }
-
-  #liveClock{
-    min-width:94px !important;
-    height:28px !important;
-    padding:3px 9px !important;
-    font-size:13px !important;
-  }
-}
-
-@media(max-width:390px){
-  .modal{
-    inset:84px 0 0 0 !important;
-    padding:7px !important;
-  }
-
-  .modalbox{
-    max-height:calc(100dvh - 91px) !important;
-    padding:15px !important;
-  }
-
-  #liveClock{
-    min-width:88px !important;
-    height:27px !important;
-    padding:3px 8px !important;
-    font-size:12.5px !important;
-  }
-}
-</style>
-
 </head>
 <body>
 
@@ -2300,116 +2099,52 @@ function goView(view,push=true){
  document.querySelectorAll(".navbtn[data-view]").forEach(x=>x.classList.toggle("active",x.dataset.view===view));
  document.querySelectorAll(".view").forEach(x=>x.classList.remove("active"));
  target.classList.add("active");$("sidebar").classList.remove("open");
- document.body.classList.remove("drawer-open");
  window.scrollTo({top:0,behavior:"smooth"});
- if(push){
-   const current=(location.hash||"").replace(/^#/,'').split("?",1)[0]||"dashboard";
-   if(current!==view){
-     /* IMPORTANT: use a real URL-fragment history entry. Android WebView/TWA
-        back gestures reliably traverse hash entries; this avoids the native
-        APK falling through and closing the Activity while normal browsers
-        continue to behave like the same SPA. */
-     location.hash="#"+view;
-     return;
-   }
+ if(push&&history.state?.view!==view){
+   history.pushState({view,__nfView:true},"","#"+view);
  }
- history.replaceState({view:view,__nfView:true,__nfApp:true},"",location.hash||("#"+view));
  updateBackButton();
 }
 function updateBackButton(){
- const v=(location.hash||"#dashboard").replace(/^#/,'').split("?",1)[0]||"dashboard";
+ const v=history.state?.view||"dashboard";
  const b=$("backBtn");if(!b)return;
  b.disabled=v==="dashboard";
  b.title=v==="dashboard"?"Dashboard":"Back";
- b.style.opacity=v==="dashboard"?.45:1;
+ b.style.opacity=v==="dashboard"?".45":"1";
  b.classList.toggle("dashboardBackHidden",v==="dashboard");
 }
 document.querySelectorAll(".navbtn[data-view]").forEach(b=>b.addEventListener("click",()=>goView(b.dataset.view)));
-$("backBtn").onclick=()=>history.back();
+$("backBtn").onclick=()=>{if((history.state?.view||"dashboard")!=="dashboard")history.back();};
 
-/* =========================================================
-   PHASE 4.7 — ANDROID EDGE-BACK / MODAL HISTORY FIX
-   ---------------------------------------------------------
-   Root cause found in the previous index:
-   - the browser was using pushState/popstate;
-   - the APK's Android back gesture was not consistently surfacing that
-     state transition to the page, so the host Activity could finish;
-   - modal entries were also using the same URL/hash as their parent screen.
-
-   Fix:
-   - screen navigation uses actual hash history entries;
-   - modal navigation uses a distinct hash entry;
-   - hashchange closes an open modal before changing screens;
-   - dashboard remains a guarded root entry;
-   - no touch listener claims Android's left-edge system gesture.
-   ========================================================= */
-(function installAndroidHashBackBridge(){
- "use strict";
- const validViews=new Set(["dashboard","customers","orders","payments","measurements","alterations","designs"]);
- let syncing=false;
- let boot=true;
-
- function parseHash(){
-   const raw=(location.hash||"#dashboard").replace(/^#/,'');
-   const parts=raw.split("?");
-   const view=validViews.has(parts[0])?parts[0]:"dashboard";
-   const params=new URLSearchParams(parts[1]||"");
-   const modalType=params.get("modal");
-   return {view,modalType};
+/* Keep Android/browser back gestures inside the SPA.
+   Dashboard is the protected root, so a left-edge system gesture
+   cannot accidentally close/navigate away from the app document. */
+window.addEventListener("popstate",e=>{
+ const s=e.state||{};
+ /* A Back/edge-swipe from an open New Order (or any modal) closes only the modal.
+    It must never jump past the current screen or close the app. */
+ if($('modal')?.classList.contains('open')){
+   $('modal').classList.remove('open');
+   state.editing=null;
  }
- function syncState(view,modalType){
-   const stateObj={view,__nfApp:true,__nfView:true};
-   if(modalType)Object.assign(stateObj,{__nfModal:true,modalType});
-   history.replaceState(stateObj,"",location.hash||("#"+view));
+ if(s.__nfRoot){
+   history.pushState({view:"dashboard",__nfGuard:true},"","#dashboard");
+   goView("dashboard",false);
+   return;
  }
- function applyHash(){
-   if(syncing)return;
-   syncing=true;
-   try{
-     const h=parseHash();
-     const modal=$("modal");
-     const modalOpen=!!(modal&&modal.classList.contains("open"));
-
-     if(h.modalType){
-       /* Modal was opened by openModal(); do not rebuild its form here. */
-       syncState(h.view,h.modalType);
-       if(typeof goView==="function")goView(h.view,false);
-       return;
-     }
-
-     /* Back from Add Customer/Add Order: close only the modal and stay on
-        the screen that launched it. */
-     if(modalOpen){
-       modal.classList.remove("open");
-       state.editing=null;
-       document.body.classList.remove("modal-open");
-     }
-     if(typeof goView==="function")goView(h.view,false);
-     syncState(h.view,null);
-   }finally{
-     syncing=false;
-   }
- }
- window.addEventListener("hashchange",applyHash,{passive:true});
- window.addEventListener("pageshow",function(){
-   try{applyHash();}catch(_){updateBackButton();}
- },{passive:true});
-
- /* Preserve the current screen on cold load, but create a protected
-    dashboard/root entry before the current screen. */
- const initial=parseHash();
- const initialHash="#"+initial.view+(initial.modalType?"?modal="+encodeURIComponent(initial.modalType):"");
- if(!location.hash){
-   history.replaceState({view:"dashboard",__nfRoot:true,__nfApp:true},"","#dashboard");
-   history.pushState({view:"dashboard",__nfGuard:true,__nfApp:true},"","#dashboard");
- }
- if(initial.view!=="dashboard" && !initial.modalType){
-   history.replaceState({view:"dashboard",__nfRoot:true,__nfApp:true},"","#dashboard");
-   history.pushState({view:initial.view,__nfView:true,__nfApp:true},"",initialHash);
- }
- boot=false;
+ goView(s.view||"dashboard",false);
+});
+if(!history.state?.view){
+ history.replaceState({view:"dashboard",__nfRoot:true},"","#dashboard");
+ history.pushState({view:"dashboard",__nfGuard:true},"","#dashboard");
+}else if(!history.state.__nfRoot && !history.state.__nfGuard && !history.state.__nfView){
+ const currentView=history.state.view||"dashboard";
+ history.replaceState({view:"dashboard",__nfRoot:true},"","#dashboard");
+ history.pushState({view:currentView,__nfGuard:true},"","#"+currentView);
+ goView(currentView,false);
+}else{
  updateBackButton();
-})();
+}
 
 async function getTable(name){
 const {data,error}=await supabaseClient.from(name).select("*").order("created_at",{ascending:false});
@@ -2902,19 +2637,19 @@ if(type==="order"){
  recalc();
 }
 $("modal").classList.add("open");
- /* PHASE 4.7: modal gets a distinct hash history entry so Android edge-back
-    can pop the modal without finishing the host Activity. */
- const baseView=(location.hash||"#dashboard").replace(/^#/,'').split("?",1)[0]||"dashboard";
- const modalHash="#"+baseView+"?modal="+encodeURIComponent(type);
- if(location.hash!==modalHash) location.hash=modalHash;
+ /* Give every modal its own history entry. Android/browser edge-back therefore
+    closes the form first (Order -> Orders) instead of popping the whole screen. */
+ const base=history.state||{view:"dashboard"};
+ if(!base.__nfModal){
+   history.pushState({...base,__nfModal:true,modalType:type,modalId:id||null},"",location.hash||"#"+(base.view||"dashboard"));
+ }
 }
 function closeModal(skipHistory=false){
  const wasOpen=$("modal").classList.contains("open");
  $("modal").classList.remove("open");
  state.editing=null;
- if(wasOpen && !skipHistory){
-   const h=(location.hash||"#dashboard").replace(/^#/,'');
-   if(h.includes("?modal=")) history.back();
+ if(wasOpen && !skipHistory && history.state?.__nfModal){
+   history.back();
  }
 }
 $("modal").addEventListener("click",e=>{if(e.target===$("modal"))closeModal()});
@@ -3075,13 +2810,10 @@ supabaseClient.auth.onAuthStateChange((_event,session)=>{if(session?.user){showA
     startY = t.clientY;
     dragging = false;
     if(isOpen(el)){
-      // When the drawer is already open, a left swipe may close the drawer.
       mode = "close";
+    }else if(t.clientX <= EDGE){
+      mode = "open";
     }else{
-      // IMPORTANT: do not claim the left-edge gesture while the drawer is closed.
-      // Android/Chrome uses that gesture for SPA/browser Back navigation.
-      // Hijacking it here can make the app appear to close instead of returning
-      // from New Order -> Orders -> Dashboard.
       mode = "";
     }
   }
@@ -3269,31 +3001,19 @@ supabaseClient.auth.onAuthStateChange((_event,session)=>{if(session?.user){showA
   var modal=document.getElementById("modal");
   var box=modal && modal.querySelector(".modalbox");
   if(modal && box){
-    var sx=0,sy=0,drag=false,edgeSystemBack=false;
-    var SYSTEM_BACK_EDGE=36;
+    var sx=0,sy=0,drag=false;
     box.addEventListener("touchstart",function(e){
       var t=e.touches[0];
       sx=t.clientX; sy=t.clientY; drag=false;
-      /* IMPORTANT: a swipe that starts at the extreme left edge belongs to
-         Android/Chrome system Back. Never also close the modal ourselves,
-         otherwise one gesture can trigger two history.back() calls and exit
-         the app instead of returning to the previous screen. */
-      edgeSystemBack=sx<=SYSTEM_BACK_EDGE;
     },{passive:true});
     box.addEventListener("touchmove",function(e){
       var t=e.touches[0],dx=t.clientX-sx,dy=t.clientY-sy;
-      if(edgeSystemBack)return;
       if(Math.abs(dx)>Math.abs(dy) && Math.abs(dx)>12){
         drag=true;
         if(e.cancelable)e.preventDefault();
       }
     },{passive:false});
     box.addEventListener("touchend",function(e){
-      if(edgeSystemBack){
-        edgeSystemBack=false;
-        drag=false;
-        return;
-      }
       if(!drag)return;
       var t=e.changedTouches[0],dx=t.clientX-sx;
       if(Math.abs(dx)>=85){
@@ -3303,10 +3023,6 @@ supabaseClient.auth.onAuthStateChange((_event,session)=>{if(session?.user){showA
           box.classList.remove("swipe-closing");
         },160);
       }
-      drag=false;
-    },{passive:true});
-    box.addEventListener("touchcancel",function(){
-      edgeSystemBack=false;
       drag=false;
     },{passive:true});
   }
@@ -3553,6 +3269,5 @@ supabaseClient.auth.onAuthStateChange((_event,session)=>{if(session?.user){showA
   }
 })();
 </script>
-
 </body>
 </html>
