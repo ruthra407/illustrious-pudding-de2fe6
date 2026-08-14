@@ -1771,6 +1771,60 @@ body{
 /* Drawer-open state is synchronized by the existing menu button. */
 </style>
 
+
+<style id="phase4-2-premium-fixes">
+/* PHASE 4.2 — premium header, real-time clock, and mobile back UX */
+.brandBlock{min-width:0}
+#liveClock{font-variant-numeric:tabular-nums;letter-spacing:.2px;opacity:.95}
+@media(max-width:700px){
+  html,body{
+    overscroll-behavior-x:none;
+  }
+  .topbar{
+    gap:7px;
+  }
+  .topbar .brandBlock{
+    flex:1;
+    min-width:0;
+    overflow:hidden;
+  }
+  .topbar h1{
+    font-size:18px;
+    line-height:1.08;
+    white-space:normal;
+    overflow:visible;
+    text-overflow:clip;
+    max-width:none;
+    letter-spacing:-.35px;
+  }
+  .topbar small{
+    display:block;
+    font-size:10px;
+    line-height:1.15;
+    margin-top:3px;
+  }
+  .topbar #backBtn.dashboardBackHidden{
+    display:none;
+  }
+  .topbar .iconbtn{
+    width:46px;
+    height:46px;
+    flex:none;
+  }
+}
+@media(max-width:390px){
+  .topbar h1{font-size:17px}
+  .topbar small{font-size:9.5px}
+  .topbar .iconbtn{width:43px;height:43px}
+}
+/* Modal panels can also be dismissed with a horizontal swipe. */
+.modalbox{touch-action:pan-y}
+.modalbox.swipe-closing{
+  transition:transform .18s ease,opacity .18s ease!important;
+  transform:translateX(32%);
+  opacity:0;
+}
+</style>
 </head>
 <body>
 
@@ -1791,7 +1845,7 @@ body{
 <div id="app" class="hidden">
 <header class="topbar">
 <button id="menuBtn" class="iconbtn mobileOnly">☰</button>
-<div><h1>NEW FASHION TAILORING</h1><small>ONLINE MANAGEMENT</small></div>
+<div class="brandBlock"><h1>NEW FASHION TAILORING</h1><small>ONLINE MANAGEMENT · <span id="liveClock">--:--:--</span></small></div>
 <button id="backBtn" class="iconbtn" title="Back" aria-label="Back">‹</button><div class="spacer"></div><div id="userChip" class="userchip"></div>
 <button id="reloadBtn" class="iconbtn" title="Refresh">↻</button><button id="logoutBtn" class="iconbtn" title="Logout">⎋</button>
 </header>
@@ -1948,11 +2002,40 @@ function goView(view,push=true){
  if(push&&history.state?.view!==view)history.pushState({view},"","#"+view);
  updateBackButton();
 }
-function updateBackButton(){const v=history.state?.view||"dashboard";const b=$("backBtn");if(!b)return;b.disabled=v==="dashboard";b.title=v==="dashboard"?"Dashboard":"Back";b.style.opacity=v==="dashboard"?".45":"1";}
+function updateBackButton(){
+ const v=history.state?.view||"dashboard";
+ const b=$("backBtn");if(!b)return;
+ b.disabled=v==="dashboard";
+ b.title=v==="dashboard"?"Dashboard":"Back";
+ b.style.opacity=v==="dashboard"?".45":"1";
+ b.classList.toggle("dashboardBackHidden",v==="dashboard");
+}
 document.querySelectorAll(".navbtn[data-view]").forEach(b=>b.addEventListener("click",()=>goView(b.dataset.view)));
 $("backBtn").onclick=()=>{if((history.state?.view||"dashboard")!=="dashboard")history.back();};
-window.addEventListener("popstate",e=>goView(e.state?.view||"dashboard",false));
-if(!history.state?.view)history.replaceState({view:"dashboard"},"","#dashboard");
+
+/* Keep Android/browser back gestures inside the SPA.
+   Dashboard is the protected root, so a left-edge system gesture
+   cannot accidentally close/navigate away from the app document. */
+window.addEventListener("popstate",e=>{
+ const s=e.state||{};
+ if(s.__nfRoot){
+   history.pushState({view:"dashboard",__nfGuard:true},"","#dashboard");
+   goView("dashboard",false);
+   return;
+ }
+ goView(s.view||"dashboard",false);
+});
+if(!history.state?.view){
+ history.replaceState({view:"dashboard",__nfRoot:true},"","#dashboard");
+ history.pushState({view:"dashboard",__nfGuard:true},"","#dashboard");
+}else if(!history.state.__nfRoot && !history.state.__nfGuard){
+ const currentView=history.state.view||"dashboard";
+ history.replaceState({view:"dashboard",__nfRoot:true},"","#dashboard");
+ history.pushState({view:currentView,__nfGuard:true},"","#"+currentView);
+ goView(currentView,false);
+}else{
+ updateBackButton();
+}
 
 async function getTable(name){
 const {data,error}=await supabaseClient.from(name).select("*").order("created_at",{ascending:false});
@@ -2604,7 +2687,7 @@ supabaseClient.auth.onAuthStateChange((_event,session)=>{if(session?.user){showA
     startX = lastX = t.clientX;
     startY = t.clientY;
     dragging = false;
-    mode = (startX <= EDGE && !isOpen(el)) ? "open" : (isOpen(el) ? "close" : "");
+    mode = isOpen(el) ? "close" : "";
   }
 
   function onMove(e){
@@ -2661,7 +2744,7 @@ supabaseClient.auth.onAuthStateChange((_event,session)=>{if(session?.user){showA
   document.addEventListener("touchcancel", onEnd, {passive:true});
 
   // Add a dedicated invisible left-edge touch zone for easier opening.
-  if(!document.getElementById("drawer-swipe-edge")){
+  if(false && !document.getElementById("drawer-swipe-edge")){
     const edge = document.createElement("div");
     edge.id = "drawer-swipe-edge";
     edge.setAttribute("aria-hidden","true");
@@ -2742,5 +2825,55 @@ supabaseClient.auth.onAuthStateChange((_event,session)=>{if(session?.user){showA
 })();
 </script>
 
+
+<script id="phase4-2-realtime-back-js">
+(function(){
+  /* Real-time app clock — updates every second. */
+  function tickClock(){
+    var el=document.getElementById("liveClock");
+    if(!el)return;
+    el.textContent=new Date().toLocaleTimeString("en-IN",{
+      hour:"2-digit",minute:"2-digit",second:"2-digit",hour12:true
+    });
+  }
+  tickClock();
+  setInterval(tickClock,1000);
+
+  /* Swipe a white modal/form away from the right/left without requiring X. */
+  var modal=document.getElementById("modal");
+  var box=modal && modal.querySelector(".modalbox");
+  if(modal && box){
+    var sx=0,sy=0,drag=false;
+    box.addEventListener("touchstart",function(e){
+      var t=e.touches[0]; sx=t.clientX; sy=t.clientY; drag=false;
+    },{passive:true});
+    box.addEventListener("touchmove",function(e){
+      var t=e.touches[0],dx=t.clientX-sx,dy=t.clientY-sy;
+      if(Math.abs(dx)>Math.abs(dy) && Math.abs(dx)>12){
+        drag=true;
+        if(e.cancelable)e.preventDefault();
+      }
+    },{passive:false});
+    box.addEventListener("touchend",function(e){
+      if(!drag)return;
+      var t=e.changedTouches[0],dx=t.clientX-sx;
+      if(Math.abs(dx)>=85){
+        box.classList.add("swipe-closing");
+        setTimeout(function(){
+          if(typeof closeModal==="function")closeModal();
+          box.classList.remove("swipe-closing");
+        },160);
+      }
+      drag=false;
+    },{passive:true});
+  }
+
+  /* Disable the old "left-edge opens drawer" behaviour.
+     The hamburger button remains the reliable drawer opener;
+     the phone's edge gesture is reserved for Back. */
+  var oldEdge=document.getElementById("drawer-swipe-edge");
+  if(oldEdge)oldEdge.style.display="none";
+})();
+</script>
 </body>
 </html>
