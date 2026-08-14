@@ -2111,112 +2111,6 @@ body{
 }
 </style>
 
-
-<style id="nf-pending-side-card-css">
-/* Pending blouse summary card - does not alter the existing drawer swipe logic */
-.nfPendingSideCard{
-  margin:14px 4px 12px;
-  padding:13px;
-  border:1px solid rgba(255,255,255,.12);
-  border-radius:16px;
-  background:linear-gradient(145deg,rgba(255,255,255,.10),rgba(255,255,255,.045));
-  box-shadow:0 10px 24px rgba(0,0,0,.16);
-  color:#fff;
-}
-.nfPendingSideHead{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:8px;
-  margin-bottom:10px;
-}
-.nfPendingSideTitle{
-  font-weight:900;
-  font-size:14px;
-}
-.nfPendingSideTotal{
-  min-width:30px;
-  padding:4px 8px;
-  border-radius:999px;
-  background:#ef4f8a;
-  color:#fff;
-  text-align:center;
-  font-size:12px;
-  font-weight:900;
-}
-.nfPendingTypeGrid{
-  display:grid;
-  grid-template-columns:repeat(3,1fr);
-  gap:6px;
-  margin-bottom:10px;
-}
-.nfPendingType{
-  padding:8px 5px;
-  border-radius:10px;
-  background:rgba(255,255,255,.08);
-  border:1px solid rgba(255,255,255,.10);
-  text-align:center;
-}
-.nfPendingType b{
-  display:block;
-  font-size:18px;
-  line-height:1.1;
-}
-.nfPendingType span{
-  display:block;
-  margin-top:3px;
-  font-size:9px;
-  color:#ddd7e6;
-  line-height:1.15;
-}
-.nfPendingCustomers{
-  max-height:190px;
-  overflow:auto;
-  -webkit-overflow-scrolling:touch;
-}
-.nfPendingCustomer{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:8px;
-  padding:8px 2px;
-  border-top:1px solid rgba(255,255,255,.09);
-  cursor:pointer;
-}
-.nfPendingCustomer:first-child{border-top:0}
-.nfPendingCustomerName{
-  min-width:0;
-  font-size:12px;
-  font-weight:800;
-  overflow:hidden;
-  text-overflow:ellipsis;
-  white-space:nowrap;
-}
-.nfPendingCustomerMeta{
-  margin-top:2px;
-  font-size:10px;
-  color:#cfc8d8;
-}
-.nfPendingCustomerQty{
-  flex:none;
-  padding:4px 7px;
-  border-radius:8px;
-  background:rgba(239,79,138,.18);
-  color:#ffd7e4;
-  font-size:11px;
-  font-weight:900;
-}
-.nfPendingEmpty{
-  padding:8px 2px 2px;
-  color:#cfc8d8;
-  font-size:11px;
-  text-align:center;
-}
-@media(max-width:700px){
-  .nfPendingSideCard{margin-left:8px;margin-right:8px}
-}
-</style>
-
 </head>
 <body>
 
@@ -2255,22 +2149,6 @@ body{
 <button class="navbtn" data-view="alterations">✏️ Alterations</button>
 <button class="navbtn" data-view="payments">💰 Payments</button>
 <button class="navbtn" data-view="designs">🎨 Designs</button>
-
-<div id="nfPendingSideCard" class="nfPendingSideCard" aria-label="Pending blouse summary">
-  <div class="nfPendingSideHead">
-    <div class="nfPendingSideTitle">👗 Pending Blouse</div>
-    <div id="nfPendingTotal" class="nfPendingSideTotal">0</div>
-  </div>
-  <div class="nfPendingTypeGrid">
-    <div class="nfPendingType"><b id="nfPendingNormal">0</b><span>Normal</span></div>
-    <div class="nfPendingType"><b id="nfPendingLining">0</b><span>Lining</span></div>
-    <div class="nfPendingType"><b id="nfPendingDesign">0</b><span>Design</span></div>
-  </div>
-  <div id="nfPendingCustomers" class="nfPendingCustomers">
-    <div class="nfPendingEmpty">Pending blouse இல்லை.</div>
-  </div>
-</div>
-
 <button class="navbtn logout" id="sideLogout">⎋ Logout</button>
 </aside>
 
@@ -2540,7 +2418,6 @@ $("kpiDeliveryDetails").innerHTML=today.length?today.map(o=>{
 $("kpiMonthly").textContent=money(monthlyCollection());
 $("kpiBalance").textContent=money(totalBalance());
  renderDashboardDues();
-renderPendingSideCard?.();
 $("kpiMonthlySmall").textContent=new Date().toLocaleDateString("ta-IN",{month:"long",year:"numeric"});
 $("dueTodayCount").textContent=today.length;$("dueSoonCount").textContent=soon.length;$("lateCount").textContent=late.length;
 $("dueTodayList").innerHTML=smallOrderList(today,"இன்று கொடுக்க வேண்டும்");
@@ -3714,81 +3591,6 @@ supabaseClient.auth.onAuthStateChange((_event,session)=>{if(session?.user){showA
       return true;
     }
   };
-})();
-</script>
-
-
-<script id="nf-pending-side-card-js">
-(function(){
-  function renderPendingSideCard(){
-    const totalEl=document.getElementById("nfPendingTotal");
-    const normalEl=document.getElementById("nfPendingNormal");
-    const liningEl=document.getElementById("nfPendingLining");
-    const designEl=document.getElementById("nfPendingDesign");
-    const listEl=document.getElementById("nfPendingCustomers");
-    if(!totalEl||!normalEl||!liningEl||!designEl||!listEl)return;
-
-    const rows=[];
-    let total=0,normal=0,lining=0,design=0;
-
-    (state.customers||[]).forEach(function(c){
-      const orders=(state.orders||[]).filter(function(o){
-        return o.customer_id===c.id && !isFinished(o);
-      });
-
-      let n=0,l=0,d=0;
-      orders.forEach(function(o){
-        const s=blouseSplit(o);
-        n+=s.normal;
-        l+=s.lining;
-        d+=s.design;
-      });
-
-      const pending=n+l+d;
-      if(pending>0){
-        rows.push({id:c.id,name:c.name||"Customer",phone:c.phone||"",pending,n,l,d});
-        total+=pending;
-        normal+=n;
-        lining+=l;
-        design+=d;
-      }
-    });
-
-    totalEl.textContent=total;
-    normalEl.textContent=normal;
-    liningEl.textContent=lining;
-    designEl.textContent=design;
-
-    rows.sort(function(a,b){return b.pending-a.pending || a.name.localeCompare(b.name);});
-
-    if(!rows.length){
-      listEl.innerHTML='<div class="nfPendingEmpty">✅ Pending blouse இல்லை.</div>';
-      return;
-    }
-
-    listEl.innerHTML=rows.map(function(x){
-      const detail=[
-        x.n?("Normal "+x.n):"",
-        x.l?("Lining "+x.l):"",
-        x.d?("Design "+x.d):""
-      ].filter(Boolean).join(" · ");
-
-      return '<div class="nfPendingCustomer" role="button" tabindex="0" '+
-        'onclick="goToCustomer(\''+String(x.id).replace(/'/g,"\\'")+'\')" '+
-        'onkeydown="if(event.key===\\'Enter\\')goToCustomer(\''+String(x.id).replace(/'/g,"\\'")+'\')">'+
-        '<div style="min-width:0">'+
-          '<div class="nfPendingCustomerName">👤 '+esc(x.name)+'</div>'+
-          '<div class="nfPendingCustomerMeta">'+esc(detail)+'</div>'+
-        '</div>'+
-        '<div class="nfPendingCustomerQty">'+x.pending+'</div>'+
-      '</div>';
-    }).join("");
-  }
-
-  window.renderPendingSideCard=renderPendingSideCard;
-  document.addEventListener("DOMContentLoaded",function(){
-    setTimeout(renderPendingSideCard,300);
-  });
 })();
 </script>
 
