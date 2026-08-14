@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>New Fashion Tailoring – Online Management | Phase 4.3</title>
+<title>New Fashion Tailoring – Online Management | Phase 3</title>
 <link rel="manifest" href="manifest.json">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -1826,220 +1826,6 @@ body{
   opacity:0;
 }
 </style>
-
-<style id="phase4-3-passkey-clock-css">
-/* =========================================================
-   PHASE 4.3 — REAL CLOCK + DEVICE PASSKEY UNLOCK
-   ========================================================= */
-#liveClock{
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  min-width:94px;
-  padding:3px 9px;
-  margin-left:5px;
-  border-radius:999px;
-  background:rgba(255,255,255,.14);
-  border:1px solid rgba(255,255,255,.20);
-  color:#fff;
-  font-weight:850;
-  font-variant-numeric:tabular-nums;
-  letter-spacing:.15px;
-}
-.passkeyPanel{
-  margin-top:12px;
-  padding-top:12px;
-  border-top:1px solid var(--line);
-}
-.passkeyPanel .btn{
-  width:100%;
-}
-.passkeyHint{
-  margin-top:7px;
-  font-size:12px;
-  line-height:1.45;
-  color:var(--muted);
-}
-.passkeyBadge{
-  display:none;
-  margin-top:8px;
-  padding:8px 10px;
-  border-radius:10px;
-  background:#e8f6ef;
-  color:#16794c;
-  font-size:12px;
-  font-weight:800;
-}
-.passkeyBadge.show{display:block}
-.passkeyGate{
-  position:fixed;
-  inset:0;
-  z-index:200;
-  display:none;
-  place-items:center;
-  padding:20px;
-  background:
-    radial-gradient(circle at 10% 15%,rgba(108,77,246,.22),transparent 20rem),
-    radial-gradient(circle at 90% 20%,rgba(239,79,138,.20),transparent 20rem),
-    rgba(20,16,30,.72);
-  backdrop-filter:blur(12px);
-  -webkit-backdrop-filter:blur(12px);
-}
-.passkeyGate.open{display:grid}
-.passkeyGateBox{
-  width:min(420px,100%);
-  background:#fff;
-  border-radius:26px;
-  padding:24px;
-  text-align:center;
-  box-shadow:0 30px 90px rgba(0,0,0,.25);
-}
-.passkeyIcon{
-  width:68px;height:68px;margin:0 auto 12px;
-  border-radius:20px;
-  display:grid;place-items:center;
-  font-size:32px;
-  background:linear-gradient(135deg,#6c4df6,#ef4f8a);
-  color:#fff;
-}
-.passkeyGateBox h3{margin:0;font-size:22px}
-.passkeyGateBox p{color:var(--muted);line-height:1.5;margin:8px 0 16px}
-.passkeyGateMsg{min-height:22px;font-size:13px;font-weight:750}
-@media(max-width:560px){
-  #liveClock{min-width:82px;font-size:11px;padding:3px 7px}
-}
-</style>
-
-
-<style id="phase4-4-final-mobile-fix">
-/* =========================================================
-   PHASE 4.4 — FINAL MOBILE HEADER + REAL CLOCK
-   - protects status-bar/safe-area space
-   - keeps shop name readable without 3-line collision
-   - keeps action buttons inside the header
-   - preserves the colorful dashboard cards
-   ========================================================= */
-.topbar{
-  position:sticky;
-  top:0;
-  z-index:100;
-  min-height:76px;
-  height:auto;
-  padding-top:max(10px,env(safe-area-inset-top,0px));
-  padding-bottom:10px;
-}
-.topbar .brandBlock{
-  flex:1 1 auto;
-  min-width:0;
-  overflow:hidden;
-}
-.topbar .brandBlock h1{
-  margin:0;
-  line-height:1.02;
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
-}
-.topbar .brandBlock small{
-  display:flex;
-  align-items:center;
-  gap:5px;
-  min-width:0;
-  margin-top:5px;
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
-}
-#liveClock{
-  flex:0 0 auto;
-  min-width:94px;
-  height:26px;
-  margin-left:2px;
-  padding:2px 9px;
-  font-size:12px;
-  line-height:1;
-  white-space:nowrap;
-}
-@media(max-width:700px){
-  .topbar{
-    min-height:88px;
-    padding-left:10px;
-    padding-right:10px;
-    padding-top:max(10px,env(safe-area-inset-top,0px));
-    padding-bottom:10px;
-    gap:8px;
-  }
-  .topbar .mobileOnly.iconbtn{
-    width:44px;height:44px;flex:0 0 44px;
-  }
-  .topbar .brandBlock{
-    flex:1 1 0;
-    min-width:0;
-  }
-  .topbar .brandBlock h1{
-    font-size:17px;
-    line-height:1.04;
-    white-space:normal;
-    display:-webkit-box;
-    -webkit-box-orient:vertical;
-    -webkit-line-clamp:2;
-    overflow:hidden;
-    text-overflow:ellipsis;
-    max-width:100%;
-    letter-spacing:-.3px;
-  }
-  .topbar .brandBlock small{
-    font-size:9px;
-    line-height:1;
-    margin-top:4px;
-    gap:3px;
-  }
-  #liveClock{
-    min-width:82px;
-    height:22px;
-    padding:2px 6px;
-    font-size:10px;
-  }
-  /* Back/refresh stay available; setup/logout live in the menu on phones. */
-  #passkeySetupBtn,#logoutBtn{display:none!important}
-  .topbar .spacer{display:none}
-  .topbar #backBtn{
-    width:42px;height:42px;flex:0 0 42px;
-  }
-  #reloadBtn{
-    width:42px;height:42px;flex:0 0 42px;
-  }
-}
-@media(max-width:390px){
-  .topbar{min-height:84px;padding-left:8px;padding-right:8px;gap:6px}
-  .topbar .mobileOnly.iconbtn{width:42px;height:42px;flex-basis:42px}
-  .topbar .brandBlock h1{font-size:16px}
-  .topbar .brandBlock small{font-size:8.5px}
-  #liveClock{min-width:76px;font-size:9.5px}
-  .topbar #backBtn,#reloadBtn{width:40px;height:40px;flex-basis:40px}
-}
-@media(min-width:701px){
-  .topbar{padding-top:12px;padding-bottom:12px;min-height:84px}
-}
-/* The management content must always begin below the enlarged header. */
-@media(max-width:700px){
-  .layout{min-height:calc(100dvh - 88px)}
-  .main{padding-top:14px}
-  .sidebar{
-    top:calc(88px + env(safe-area-inset-top,0px));
-    height:calc(100dvh - 88px - env(safe-area-inset-top,0px));
-  }
-  body.drawer-open .sidebar{top:calc(88px + env(safe-area-inset-top,0px))}
-}
-@media(max-width:390px){
-  .layout{min-height:calc(100dvh - 84px)}
-  .sidebar{
-    top:calc(84px + env(safe-area-inset-top,0px));
-    height:calc(100dvh - 84px - env(safe-area-inset-top,0px));
-  }
-}
-</style>
-
 </head>
 <body>
 
@@ -2054,11 +1840,6 @@ body{
 <div id="loginMsg" class="msg"></div>
 </form>
 <button id="forgotBtn" class="btn secondary" style="width:100%;margin-top:10px">Forgot password?</button>
-<div class="passkeyPanel">
-  <button id="passkeyLoginBtn" class="btn secondary" type="button">🔐 Sign in with Passkey</button>
-  <div id="passkeyLoginHint" class="passkeyHint">முதலில் ஒருமுறை Email + Password மூலம் Login செய்து Passkey உருவாக்குங்கள். அதன் பிறகு இந்த சாதனத்தின் Fingerprint / Face / Screen Lock மூலம் unlock செய்யலாம்.</div>
-</div>
-
 </section>
 </div>
 
@@ -2066,7 +1847,7 @@ body{
 <header class="topbar">
 <button id="menuBtn" class="iconbtn mobileOnly">☰</button>
 <div class="brandBlock"><h1>NEW FASHION TAILORING</h1><small>ONLINE MANAGEMENT · <span id="liveClock">--:--:--</span></small></div>
-<button id="backBtn" class="iconbtn" title="Back" aria-label="Back">‹</button><div class="spacer"></div><div id="userChip" class="userchip"></div><button id="passkeySetupBtn" class="iconbtn" title="Passkey" aria-label="Passkey">🔑</button>
+<button id="backBtn" class="iconbtn" title="Back" aria-label="Back">‹</button><div class="spacer"></div><div id="userChip" class="userchip"></div>
 <button id="reloadBtn" class="iconbtn" title="Refresh">↻</button><button id="logoutBtn" class="iconbtn" title="Logout">⎋</button>
 </header>
 <div class="layout">
@@ -2191,17 +1972,6 @@ body{
 </div></div>
 <div id="toast" class="toast"></div>
 
-<div id="passkeyGate" class="passkeyGate" aria-hidden="true">
-  <section class="passkeyGateBox">
-    <div class="passkeyIcon">🔐</div>
-    <h3>NEW FASHION</h3>
-    <p>இந்த சாதனத்தின் Fingerprint / Face / Screen Lock மூலம் App-ஐ unlock செய்யுங்கள்.</p>
-    <button id="passkeyUnlockBtn" class="btn primary" type="button">Unlock with Passkey</button>
-    <div id="passkeyGateMsg" class="passkeyGateMsg"></div>
-  </section>
-</div>
-
-
 <script>
 const SUPABASE_URL="https://pdlsicwzfmartkwcwozx.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY="sb_publishable_eCKne6Tzs6-QYSXpJb-aSQ_6AHe8n9O";
@@ -2222,7 +1992,7 @@ $("loginForm").addEventListener("submit",async e=>{
 e.preventDefault();setLoginMsg("");const b=$("loginBtn");b.disabled=true;b.textContent="Logging in...";
 try{const {data,error}=await supabaseClient.auth.signInWithPassword({email:$("loginEmail").value.trim(),password:$("loginPassword").value});if(error)throw error;showApp(data.user);await loadAll();setLoginMsg("Login successful")}catch(err){setLoginMsg("Login failed: "+err.message,true)}finally{b.disabled=false;b.textContent="🔐 LOGIN"}});
 $("forgotBtn").addEventListener("click",async()=>{const email=$("loginEmail").value.trim();if(!email){setLoginMsg("முதலில் Email உள்ளிடுங்கள்.",true);return}const {error}=await supabaseClient.auth.resetPasswordForEmail(email,{redirectTo:location.href});if(error)setLoginMsg("Reset failed: "+error.message,true);else setLoginMsg("Password reset email அனுப்பப்பட்டது. Spam/Promotions-ஐயும் பாருங்கள்.")});
-async function logout(){sessionStorage.removeItem("nf_passkey_unlocked");const {error}=await supabaseClient.auth.signOut();if(error)toast(error.message,true);else showLogin()}
+async function logout(){const {error}=await supabaseClient.auth.signOut();if(error)toast(error.message,true);else showLogin()}
 $("logoutBtn").onclick=logout;$("sideLogout").onclick=logout;$("reloadBtn").onclick=()=>loadAll(true);$("menuBtn").onclick=()=>$("sidebar").classList.toggle("open");
 function goView(view,push=true){
  const target=$("view-"+view);if(!target)return;
@@ -2251,20 +2021,18 @@ $("backBtn").onclick=()=>{if((history.state?.view||"dashboard")!=="dashboard")hi
    cannot accidentally close/navigate away from the app document. */
 window.addEventListener("popstate",e=>{
  const s=e.state||{};
- const modal=$("modal");
- /* Android/Chrome Back gesture: modal first, then current screen, then dashboard root. */
- if(modal?.classList.contains("open")){
-   modal.classList.remove("open");
+ /* A Back/edge-swipe from an open New Order (or any modal) closes only the modal.
+    It must never jump past the current screen or close the app. */
+ if($('modal')?.classList.contains('open')){
+   $('modal').classList.remove('open');
    state.editing=null;
-   goView(s.view||history.state?.view||"dashboard",false);
-   return;
  }
- if(s.__nfRoot || !s.view){
+ if(s.__nfRoot){
    history.pushState({view:"dashboard",__nfGuard:true},"","#dashboard");
    goView("dashboard",false);
    return;
  }
- goView(s.view,false);
+ goView(s.view||"dashboard",false);
 });
 if(!history.state?.view){
  history.replaceState({view:"dashboard",__nfRoot:true},"","#dashboard");
@@ -2942,13 +2710,10 @@ supabaseClient.auth.onAuthStateChange((_event,session)=>{if(session?.user){showA
     startY = t.clientY;
     dragging = false;
     if(isOpen(el)){
-      // When the drawer is already open, a left swipe may close the drawer.
       mode = "close";
+    }else if(t.clientX <= EDGE){
+      mode = "open";
     }else{
-      // IMPORTANT: do not claim the left-edge gesture while the drawer is closed.
-      // Android/Chrome uses that gesture for SPA/browser Back navigation.
-      // Hijacking it here can make the app appear to close instead of returning
-      // from New Order -> Orders -> Dashboard.
       mode = "";
     }
   }
@@ -3089,57 +2854,26 @@ supabaseClient.auth.onAuthStateChange((_event,session)=>{if(session?.user){showA
 </script>
 
 
-
-<script id="phase4-3-realtime-passkey-js">
+<script id="phase4-2-realtime-back-js">
 (function(){
-  "use strict";
-
-  /* ---------------- REAL-TIME CLOCK ----------------
-     Uses the device's current local time and keeps running after
-     login, tab visibility changes, and Android WebView redraws.
-  ---------------------------------------------------- */
-  function formatClock(){
-    try{
-      return new Intl.DateTimeFormat("en-IN",{
-        hour:"2-digit",
-        minute:"2-digit",
-        second:"2-digit",
-        hour12:true
-      }).format(new Date());
-    }catch(e){
-      return new Date().toLocaleTimeString();
-    }
-  }
-
+  /* Real-time app clock — updates every second. */
   function tickClock(){
     var el=document.getElementById("liveClock");
     if(!el)return;
-    el.textContent=formatClock();
-    el.setAttribute("datetime",new Date().toISOString());
+    el.textContent=new Date().toLocaleTimeString("en-IN",{
+      hour:"2-digit",minute:"2-digit",second:"2-digit",hour12:true
+    });
   }
+  tickClock();
+  setInterval(tickClock,1000);
 
-  function startClock(){
-    tickClock();
-    if(window.__nfClockTimer) clearInterval(window.__nfClockTimer);
-    window.__nfClockTimer=setInterval(tickClock,1000);
-  }
-
-  if(document.readyState==="loading"){
-    document.addEventListener("DOMContentLoaded",startClock,{once:true});
-  }else{
-    startClock();
-  }
-  document.addEventListener("visibilitychange",tickClock,{passive:true});
-  window.addEventListener("pageshow",tickClock,{passive:true});
-
-  /* ---------------- MODAL SWIPE ---------------- */
+  /* Swipe a white modal/form away from the right/left without requiring X. */
   var modal=document.getElementById("modal");
   var box=modal && modal.querySelector(".modalbox");
   if(modal && box){
     var sx=0,sy=0,drag=false;
     box.addEventListener("touchstart",function(e){
-      var t=e.touches[0];
-      sx=t.clientX; sy=t.clientY; drag=false;
+      var t=e.touches[0]; sx=t.clientX; sy=t.clientY; drag=false;
     },{passive:true});
     box.addEventListener("touchmove",function(e){
       var t=e.touches[0],dx=t.clientX-sx,dy=t.clientY-sy;
@@ -3162,286 +2896,12 @@ supabaseClient.auth.onAuthStateChange((_event,session)=>{if(session?.user){showA
     },{passive:true});
   }
 
+  /* Disable the old "left-edge opens drawer" behaviour.
+     The hamburger button remains the reliable drawer opener;
+     the phone's edge gesture is reserved for Back. */
   var oldEdge=document.getElementById("drawer-swipe-edge");
   if(oldEdge)oldEdge.style.display="none";
-
-  /* =========================================================
-     PASSKEY / BIOMETRIC DEVICE UNLOCK
-     IMPORTANT:
-     This is a device-local WebAuthn unlock layer.
-     Supabase password authentication remains the real account
-     authentication. A server-verified WebAuthn flow requires a
-     WebAuthn verification endpoint/Edge Function.
-     ========================================================= */
-  var STORAGE_KEY="nf_tailoring_passkey_v1";
-
-  function b64url(bytes){
-    var bin="";
-    for(var i=0;i<bytes.length;i++)bin+=String.fromCharCode(bytes[i]);
-    return btoa(bin).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
-  }
-  function fromB64url(str){
-    var s=str.replace(/-/g,"+").replace(/_/g,"/");
-    while(s.length%4)s+="=";
-    var bin=atob(s),a=new Uint8Array(bin.length);
-    for(var i=0;i<bin.length;i++)a[i]=bin.charCodeAt(i);
-    return a;
-  }
-  function randomBytes(n){
-    var a=new Uint8Array(n);
-    crypto.getRandomValues(a);
-    return a;
-  }
-  function supported(){
-    return !!(window.PublicKeyCredential && navigator.credentials &&
-      typeof navigator.credentials.create==="function" &&
-      typeof navigator.credentials.get==="function");
-  }
-  async function platformReady(){
-    if(!supported())return false;
-    try{
-      if(PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable){
-        return await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
-      }
-    }catch(e){}
-    return true;
-  }
-  function getRecord(){
-    try{return JSON.parse(localStorage.getItem(STORAGE_KEY)||"null");}
-    catch(e){return null;}
-  }
-  function setMsg(id,msg,error){
-    var el=document.getElementById(id);
-    if(!el)return;
-    el.textContent=msg||"";
-    el.style.color=error?"#b42318":"#16794c";
-  }
-  function currentUserEmail(){
-    return (window.state && state.user && state.user.email) ||
-           (document.getElementById("loginEmail")||{}).value || "";
-  }
-
-  async function createPasskey(){
-    if(!supported())throw new Error("இந்த browser/device Passkey (WebAuthn) support செய்யவில்லை.");
-    if(!(await platformReady()))throw new Error("இந்த சாதனத்தில் Fingerprint / Face / Screen Lock authenticator கிடைக்கவில்லை.");
-
-    var email=currentUserEmail().trim();
-    if(!email)throw new Error("முதலில் account-ல் login செய்யுங்கள்.");
-
-    var challenge=randomBytes(32);
-    var userId=randomBytes(16);
-
-    var cred=await navigator.credentials.create({
-      publicKey:{
-        challenge:challenge,
-        rp:{name:"New Fashion Tailoring"},
-        user:{
-          id:userId,
-          name:email,
-          displayName:email
-        },
-        pubKeyCredParams:[
-          {type:"public-key",alg:-7},
-          {type:"public-key",alg:-257}
-        ],
-        authenticatorSelection:{
-          authenticatorAttachment:"platform",
-          residentKey:"required",
-          requireResidentKey:true,
-          userVerification:"required"
-        },
-        timeout:60000,
-        attestation:"none"
-      }
-    });
-
-    if(!cred)throw new Error("Passkey உருவாக்கப்படவில்லை.");
-
-    var rec={
-      id:b64url(new Uint8Array(cred.rawId)),
-      email:email,
-      createdAt:new Date().toISOString()
-    };
-    localStorage.setItem(STORAGE_KEY,JSON.stringify(rec));
-    return rec;
-  }
-
-  async function unlockPasskey(){
-    var rec=getRecord();
-    if(!rec)throw new Error("இந்த சாதனத்தில் Passkey அமைக்கப்படவில்லை.");
-
-    var assertion=await navigator.credentials.get({
-      publicKey:{
-        challenge:randomBytes(32),
-        allowCredentials:[{
-          type:"public-key",
-          id:fromB64url(rec.id),
-          transports:["internal"]
-        }],
-        userVerification:"required",
-        timeout:60000
-      }
-    });
-
-    if(!assertion)throw new Error("Passkey unlock தோல்வியடைந்தது.");
-
-    /* Browser has completed the platform biometric / screen-lock check. */
-    sessionStorage.setItem("nf_passkey_unlocked","1");
-    return true;
-  }
-
-  function openGate(){
-    var gate=document.getElementById("passkeyGate");
-    if(!gate)return;
-    gate.classList.add("open");
-    gate.setAttribute("aria-hidden","false");
-  }
-  function closeGate(){
-    var gate=document.getElementById("passkeyGate");
-    if(!gate)return;
-    gate.classList.remove("open");
-    gate.setAttribute("aria-hidden","true");
-  }
-
-  async function setup(){
-    try{
-      setMsg("passkeyGateMsg","Passkey உருவாக்கப்படுகிறது…");
-      var rec=await createPasskey();
-      setMsg("passkeyGateMsg","✅ Passkey உருவாக்கப்பட்டது: "+rec.email);
-      var hint=document.getElementById("passkeyLoginHint");
-      if(hint)hint.textContent="இந்த சாதனத்தில் Passkey தயாராக உள்ளது. Fingerprint / Face / Screen Lock மூலம் unlock செய்யலாம்.";
-      var badge=document.getElementById("passkeyBadge");
-      if(badge)badge.classList.add("show");
-    }catch(e){
-      setMsg("passkeyGateMsg",e.message||"Passkey setup failed.",true);
-      throw e;
-    }
-  }
-
-  async function loginWithPasskey(){
-    try{
-      if(!getRecord())throw new Error("முதலில் normal Login செய்து Passkey உருவாக்க வேண்டும்.");
-      await unlockPasskey();
-
-      /* A Supabase session must still exist. */
-      if(typeof supabaseClient!=="undefined"){
-        var sessionResult=await supabaseClient.auth.getSession();
-        var session=sessionResult && sessionResult.data && sessionResult.data.session;
-        if(!session)throw new Error("Session இல்லை. முதலில் Email + Password Login செய்யுங்கள்.");
-        var user=session.user;
-        if(typeof showApp==="function")showApp(user);
-        if(typeof loadAll==="function")await loadAll();
-      }
-      var btn=document.getElementById("passkeyLoginBtn");
-      if(btn)btn.textContent="🔐 Passkey Login";
-    }catch(e){
-      sessionStorage.removeItem("nf_passkey_unlocked");
-      setLoginMsg(e.message||"Passkey login failed.",true);
-    }
-  }
-
-  async function bootPasskeyState(){
-    var rec=getRecord();
-    var loginBtn=document.getElementById("passkeyLoginBtn");
-    var setupBtn=document.getElementById("passkeySetupBtn");
-    if(loginBtn){
-      loginBtn.style.display=rec?"block":"block";
-      loginBtn.onclick=loginWithPasskey;
-    }
-    if(setupBtn){
-      setupBtn.onclick=async function(){
-        try{
-          await setup();
-          alert("✅ Passkey உருவாக்கப்பட்டது. அடுத்த முறை Fingerprint / Face / Screen Lock மூலம் unlock செய்யலாம்.");
-        }catch(e){}
-      };
-    }
-
-    /* If a Supabase session is already restored, require the local
-       passkey before exposing the app. */
-    if(rec && typeof supabaseClient!=="undefined"){
-      try{
-        var r=await supabaseClient.auth.getSession();
-        var session=r && r.data && r.data.session;
-        if(session && !sessionStorage.getItem("nf_passkey_unlocked")){
-          /* Existing app code may have already shown the app. Hide it
-             until the device biometric check succeeds. */
-          var app=document.getElementById("app");
-          if(app)app.classList.add("hidden");
-          openGate();
-        }
-      }catch(e){}
-    }
-  }
-
-  var unlockBtn=document.getElementById("passkeyUnlockBtn");
-  if(unlockBtn){
-    unlockBtn.addEventListener("click",async function(){
-      unlockBtn.disabled=true;
-      unlockBtn.textContent="Checking…";
-      setMsg("passkeyGateMsg","");
-      try{
-        await unlockPasskey();
-        closeGate();
-        var r=await supabaseClient.auth.getSession();
-        var session=r && r.data && r.data.session;
-        if(!session)throw new Error("Session expired. Please login again.");
-        if(typeof showApp==="function")showApp(session.user);
-        if(typeof loadAll==="function")await loadAll();
-      }catch(e){
-        setMsg("passkeyGateMsg",e.message||"Unlock failed.",true);
-      }finally{
-        unlockBtn.disabled=false;
-        unlockBtn.textContent="Unlock with Passkey";
-      }
-    });
-  }
-
-  if(document.readyState==="loading"){
-    document.addEventListener("DOMContentLoaded",bootPasskeyState,{once:true});
-  }else{
-    bootPasskeyState();
-  }
 })();
 </script>
-
-<script id="phase4-4-navigation-guard">
-(function(){
-  "use strict";
-
-  /*
-   * Android/Chrome left-edge Back must stay inside the SPA.
-   * The earlier drawer swipe listener is intentionally prevented from
-   * claiming the edge gesture while the drawer is closed.
-   */
-  function currentView(){
-    return (history.state && history.state.view) || "dashboard";
-  }
-
-  function closeDrawerOnly(){
-    var drawer=document.getElementById("sidebar");
-    if(drawer && drawer.classList.contains("open")){
-      drawer.classList.remove("open");
-      document.body.classList.remove("drawer-open");
-      return true;
-    }
-    return false;
-  }
-
-  // Keep the clock visible and correct even after BFCache/page redraws.
-  function refreshClockNow(){
-    var el=document.getElementById("liveClock");
-    if(!el)return;
-    try{
-      el.textContent=new Intl.DateTimeFormat("en-IN",{
-        hour:"2-digit",minute:"2-digit",second:"2-digit",hour12:true
-      }).format(new Date());
-    }catch(_){el.textContent=new Date().toLocaleTimeString()}
-  }
-  refreshClockNow();
-  window.addEventListener("pageshow",refreshClockNow,{passive:true});
-})();
-</script>
-
 </body>
 </html>
