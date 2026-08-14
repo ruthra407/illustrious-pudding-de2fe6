@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>New Fashion Tailoring – Online Management | Phase 4.3</title>
+<title>New Fashion Tailoring – Online Management | Phase 4.6</title>
 <link rel="manifest" href="manifest.json">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -2111,6 +2111,15 @@ body{
 }
 </style>
 
+
+<style id="phase4-6-android-back-fix">
+/* Android system edge-back owns the left screen edge. The page never blocks it. */
+html,body{overscroll-behavior-x:none;}
+body.modal-open{overflow:hidden;}
+@media(max-width:900px){
+  #sidebar{touch-action:pan-y;}
+}
+</style>
 </head>
 <body>
 
@@ -2300,9 +2309,13 @@ function goView(view,push=true){
  document.querySelectorAll(".navbtn[data-view]").forEach(x=>x.classList.toggle("active",x.dataset.view===view));
  document.querySelectorAll(".view").forEach(x=>x.classList.remove("active"));
  target.classList.add("active");$("sidebar").classList.remove("open");
+ document.body.classList.remove("drawer-open");
  window.scrollTo({top:0,behavior:"smooth"});
  if(push&&history.state?.view!==view){
-   history.pushState({view,__nfView:true},"","#"+view);
+   /* Every real screen gets its own WebView history entry.  This is
+      important for Android edge-back: it must return inside the SPA,
+      not fall through to the host APK/activity. */
+   history.pushState({view,__nfView:true,__nfApp:true},"","#"+view);
  }
  updateBackButton();
 }
@@ -2311,43 +2324,98 @@ function updateBackButton(){
  const b=$("backBtn");if(!b)return;
  b.disabled=v==="dashboard";
  b.title=v==="dashboard"?"Dashboard":"Back";
- b.style.opacity=v==="dashboard"?".45":"1";
+ b.style.opacity=v==="dashboard"?.45:1;
  b.classList.toggle("dashboardBackHidden",v==="dashboard");
 }
 document.querySelectorAll(".navbtn[data-view]").forEach(b=>b.addEventListener("click",()=>goView(b.dataset.view)));
-$("backBtn").onclick=()=>{if((history.state?.view||"dashboard")!=="dashboard")history.back();};
+$("backBtn").onclick=()=>{
+ const s=history.state||{};
+ if(s.__nfModal){ history.back(); return; }
+ if((s.view||"dashboard")!=="dashboard") history.back();
+};
 
-/* Keep Android/browser back gestures inside the SPA.
-   Dashboard is the protected root, so a left-edge system gesture
-   cannot accidentally close/navigate away from the app document. */
-window.addEventListener("popstate",e=>{
- const s=e.state||{};
- const modal=$("modal");
- /* Android/Chrome Back gesture: modal first, then current screen, then dashboard root. */
- if(modal?.classList.contains("open")){
-   modal.classList.remove("open");
-   state.editing=null;
-   goView(s.view||history.state?.view||"dashboard",false);
-   return;
+/* =========================================================
+   ANDROID / WEBVIEW SPA BACK GUARD — HARDENED
+   ---------------------------------------------------------
+   The browser version was already working, but the APK/WebView was
+   allowing the Android edge-back gesture to fall through and close the
+   host activity.  Keep a protected dashboard root + guard entry and
+   handle modal entries separately.  Do NOT intercept the left-edge
+   touch gesture itself; Android owns that gesture.
+   ========================================================= */
+(function installNavigationGuard(){
+ "use strict";
+ var booting=true;
+ function stateView(s){return (s&&s.view)||"dashboard";}
+ function isModalState(s){return !!(s&&s.__nfModal);}
+ function showView(v){
+   if(typeof goView==="function") goView(v,false);
+   updateBackButton();
  }
- if(s.__nfRoot || !s.view){
-   history.pushState({view:"dashboard",__nfGuard:true},"","#dashboard");
-   goView("dashboard",false);
-   return;
+
+ window.addEventListener("popstate",function(e){
+   var s=e.state||{};
+   var modal=$("modal");
+
+   /* 1) Modal/form is always the first thing Back closes. */
+   if(modal && modal.classList.contains("open")){
+     modal.classList.remove("open");
+     state.editing=null;
+     document.body.classList.remove("modal-open");
+     showView(stateView(s));
+
+     /* If WebView returned to a modal-less entry that is not a real view,
+        immediately restore the protected current-view entry. */
+     if(!s.view){
+       history.replaceState({view:"dashboard",__nfRoot:true,__nfApp:true},"","#dashboard");
+       history.pushState({view:"dashboard",__nfGuard:true,__nfApp:true},"","#dashboard");
+     }
+     return;
+   }
+
+   /* 2) Protected dashboard root: never let Back leave the document. */
+   if(s.__nfRoot || !s.view){
+     history.pushState({view:"dashboard",__nfGuard:true,__nfApp:true},"","#dashboard");
+     showView("dashboard");
+     return;
+   }
+
+   /* 3) Normal SPA screen. */
+   showView(s.view);
+ });
+
+ /* Re-arm the history stack after a cold load/BFCache/WebView restore. */
+ try{
+   var st=history.state;
+   var hash=(location.hash||"").replace(/^#/,'');
+   var validViews=["dashboard","customers","orders","payments","measurements","alterations","designs"];
+   var initialView=validViews.indexOf(hash)>=0?hash:(st&&st.view)||"dashboard";
+
+   if(!st || !st.__nfApp){
+     history.replaceState({view:"dashboard",__nfRoot:true,__nfApp:true},"","#dashboard");
+     history.pushState({view:initialView,__nfGuard:true,__nfApp:true},"","#"+initialView);
+     showView(initialView);
+   }else{
+     updateBackButton();
+   }
+ }catch(_){
+   /* Never break app startup because history APIs are unavailable. */
  }
- goView(s.view,false);
-});
-if(!history.state?.view){
- history.replaceState({view:"dashboard",__nfRoot:true},"","#dashboard");
- history.pushState({view:"dashboard",__nfGuard:true},"","#dashboard");
-}else if(!history.state.__nfRoot && !history.state.__nfGuard && !history.state.__nfView){
- const currentView=history.state.view||"dashboard";
- history.replaceState({view:"dashboard",__nfRoot:true},"","#dashboard");
- history.pushState({view:currentView,__nfGuard:true},"","#"+currentView);
- goView(currentView,false);
-}else{
- updateBackButton();
-}
+
+ window.addEventListener("pageshow",function(){
+   try{
+     var st=history.state;
+     var v=stateView(st);
+     if(!st || !st.__nfApp){
+       history.replaceState({view:"dashboard",__nfRoot:true,__nfApp:true},"","#dashboard");
+       history.pushState({view:v,__nfGuard:true,__nfApp:true},"","#"+v);
+     }
+     showView(v);
+   }catch(_){ }
+ });
+
+ booting=false;
+})();
 
 async function getTable(name){
 const {data,error}=await supabaseClient.from(name).select("*").order("created_at",{ascending:false});
@@ -2840,16 +2908,18 @@ if(type==="order"){
  recalc();
 }
 $("modal").classList.add("open");
- /* Give every modal its own history entry. Android/browser edge-back therefore
-    closes the form first (Order -> Orders) instead of popping the whole screen. */
- const base=history.state||{view:"dashboard"};
+ document.body.classList.add("modal-open");
+ /* One dedicated history entry per open form. Android edge-back consumes
+    only this entry and returns to the current SPA screen. */
+ const base=history.state||{view:"dashboard",__nfApp:true};
  if(!base.__nfModal){
-   history.pushState({...base,__nfModal:true,modalType:type,modalId:id||null},"",location.hash||"#"+(base.view||"dashboard"));
+   history.pushState({...base,__nfModal:true,__nfApp:true,modalType:type,modalId:id||null},"",location.hash||"#"+(base.view||"dashboard"));
  }
 }
 function closeModal(skipHistory=false){
  const wasOpen=$("modal").classList.contains("open");
  $("modal").classList.remove("open");
+ document.body.classList.remove("modal-open");
  state.editing=null;
  if(wasOpen && !skipHistory && history.state?.__nfModal){
    history.back();
@@ -3492,56 +3562,6 @@ supabaseClient.auth.onAuthStateChange((_event,session)=>{if(session?.user){showA
 })();
 </script>
 
-<script id="phase4-4-navigation-guard">
-(function(){
-  "use strict";
-
-  /*
-   * Android/Chrome left-edge Back must stay inside the SPA.
-   * The earlier drawer swipe listener is intentionally prevented from
-   * claiming the edge gesture while the drawer is closed.
-   */
-  function currentView(){
-    return (history.state && history.state.view) || "dashboard";
-  }
-
-  function closeDrawerOnly(){
-    var drawer=document.getElementById("sidebar");
-    if(drawer && drawer.classList.contains("open")){
-      drawer.classList.remove("open");
-      document.body.classList.remove("drawer-open");
-      return true;
-    }
-    return false;
-  }
-
-  // Keep the clock visible and correct even after BFCache/page redraws.
-  function refreshClockNow(){
-    var el=document.getElementById("liveClock");
-    if(!el)return;
-    try{
-      el.textContent=new Intl.DateTimeFormat("en-IN",{
-        hour:"2-digit",minute:"2-digit",second:"2-digit",hour12:true
-      }).format(new Date());
-    }catch(_){el.textContent=new Date().toLocaleTimeString()}
-  }
-  refreshClockNow();
-  window.addEventListener("pageshow",function(){
-    refreshClockNow();
-    /* If the browser/WebView restored the document with a plain history
-       entry, re-arm the SPA guard so the next edge-back cannot leave the app. */
-    try{
-      var st=history.state||{};
-      if(!st.__nfRoot && !st.__nfGuard && !st.__nfModal && !st.__nfView){
-        var v=st.view||"dashboard";
-        history.replaceState({view:"dashboard",__nfRoot:true},"","#dashboard");
-        history.pushState({view:v,__nfGuard:true},"","#"+v);
-        if(typeof goView==="function")goView(v,false);
-      }
-    }catch(_){}
-  },{passive:true});
-})();
-</script>
 
 </body>
 </html>
