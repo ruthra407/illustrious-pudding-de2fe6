@@ -1441,6 +1441,246 @@ body{
 }
 </style>
 
+
+<style id="phase4-premium-ux">
+/* =========================================================
+   PHASE 4 — PREMIUM APP UX
+   Keeps Phase 3 colours, adds mobile navigation, quick action,
+   sticky toolbars, smoother transitions and compact cards.
+   ========================================================= */
+
+:root{
+  --p4-violet:#6c45e8;
+  --p4-pink:#e94678;
+  --p4-blue:#249ed0;
+  --p4-orange:#f5a12b;
+  --p4-green:#25a56f;
+  --p4-ink:#171827;
+  --p4-muted:#77758a;
+  --p4-glass:rgba(255,255,255,.86);
+  --p4-border:rgba(69,56,95,.11);
+}
+
+/* Smooth screen changes without changing existing logic */
+.view.active{
+  animation:p4PageIn .24s ease both;
+}
+@keyframes p4PageIn{
+  from{opacity:0;transform:translateY(5px)}
+  to{opacity:1;transform:none}
+}
+
+/* More premium content surfaces */
+.card{
+  background:rgba(255,255,255,.94);
+  border-color:var(--p4-border);
+  box-shadow:0 9px 28px rgba(54,39,84,.07);
+}
+.pagehead h2{
+  letter-spacing:-.7px;
+}
+
+/* Sticky toolbar on long management screens */
+#view-customers > .card.customerSearchBox,
+#view-measurements > .card,
+#view-orders > .card,
+#view-alterations > .card,
+#view-payments > .card{
+  overflow:visible;
+}
+#view-customers > .card.customerSearchBox .toolbar,
+#view-measurements > .card .toolbar,
+#view-orders > .card .toolbar,
+#view-alterations > .card .toolbar,
+#view-payments > .card .toolbar{
+  position:sticky;
+  top:80px;
+  z-index:8;
+  padding:7px;
+  margin:-7px;
+  margin-bottom:8px;
+  background:rgba(246,244,251,.86);
+  backdrop-filter:blur(14px);
+  -webkit-backdrop-filter:blur(14px);
+  border-radius:14px;
+}
+
+/* Better status pills */
+.pill{
+  border:1px solid transparent;
+  box-shadow:0 2px 8px rgba(30,20,45,.04);
+}
+.pill.ok{border-color:rgba(22,121,76,.10)}
+.pill.warn{border-color:rgba(138,98,0,.10)}
+.pill.bad{border-color:rgba(180,35,24,.10)}
+
+/* Customer cards feel like app profiles */
+.customerCard{
+  position:relative;
+  overflow:hidden;
+  transition:transform .18s ease,box-shadow .18s ease;
+}
+.customerCard::after{
+  content:"";
+  position:absolute;
+  width:120px;height:120px;border-radius:50%;
+  right:-48px;top:-55px;
+  background:linear-gradient(135deg,rgba(108,69,232,.08),rgba(233,70,120,.05));
+  pointer-events:none;
+}
+.customerCard:hover{
+  transform:translateY(-2px);
+  box-shadow:0 15px 34px rgba(54,39,84,.11);
+}
+
+/* Orders/payments tables become cleaner */
+.table th{
+  position:sticky;
+  top:0;
+  z-index:2;
+}
+.table td,.table th{
+  line-height:1.35;
+}
+
+/* Mobile bottom navigation */
+#p4MobileNav{
+  display:none;
+}
+
+/* Floating quick action */
+#p4Fab{
+  display:none;
+}
+
+/* Small section headers */
+.p4-section-tag{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding:6px 9px;
+  border-radius:999px;
+  background:#f0ebff;
+  color:#6542d9;
+  font-size:11px;
+  font-weight:850;
+  margin-bottom:8px;
+}
+
+/* Mobile refinements */
+@media(max-width:700px){
+  body{
+    padding-bottom:68px;
+  }
+  .main{
+    padding-bottom:20px;
+  }
+
+  #view-customers > .card.customerSearchBox .toolbar,
+  #view-measurements > .card .toolbar,
+  #view-orders > .card .toolbar,
+  #view-alterations > .card .toolbar,
+  #view-payments > .card .toolbar{
+    top:72px;
+  }
+
+  #p4MobileNav{
+    position:fixed;
+    left:8px;
+    right:8px;
+    bottom:8px;
+    height:58px;
+    z-index:80;
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:4px;
+    padding:5px;
+    border:1px solid rgba(255,255,255,.5);
+    border-radius:19px;
+    background:rgba(31,24,42,.90);
+    box-shadow:0 15px 38px rgba(22,16,35,.28);
+    backdrop-filter:blur(18px);
+    -webkit-backdrop-filter:blur(18px);
+  }
+  #p4MobileNav button{
+    border:0;
+    border-radius:14px;
+    background:transparent;
+    color:#d8d3df;
+    font-size:10px;
+    font-weight:800;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:2px;
+    min-width:0;
+  }
+  #p4MobileNav button .p4Icon{
+    font-size:18px;
+    line-height:18px;
+  }
+  #p4MobileNav button.active{
+    color:#fff;
+    background:linear-gradient(135deg,#7046ea,#c03f86);
+    box-shadow:0 5px 16px rgba(120,67,220,.28);
+  }
+
+  #p4Fab{
+    position:fixed;
+    right:16px;
+    bottom:78px;
+    z-index:79;
+    width:50px;height:50px;
+    display:grid;
+    place-items:center;
+    border:0;
+    border-radius:17px;
+    color:#fff;
+    font-size:24px;
+    background:linear-gradient(135deg,#6c45e8,#e94678);
+    box-shadow:0 10px 26px rgba(91,53,181,.30);
+  }
+  #p4Fab:active{
+    transform:scale(.94);
+  }
+
+  /* Compact customer/order/payment cards on narrow screens */
+  .customerCard{
+    box-shadow:0 7px 22px rgba(54,39,84,.07);
+  }
+  .tablewrap{
+    box-shadow:none;
+  }
+}
+
+/* Very small phones */
+@media(max-width:390px){
+  #p4MobileNav{
+    left:5px;right:5px;bottom:5px;
+  }
+  #p4MobileNav button{
+    font-size:9px;
+  }
+  #p4Fab{
+    right:12px;
+    bottom:76px;
+  }
+}
+
+/* Desktop keeps normal sidebar; mobile-only controls stay hidden */
+@media(min-width:701px){
+  body{
+    padding-bottom:0;
+  }
+}
+
+/* Reduced motion */
+@media(prefers-reduced-motion:reduce){
+  .view.active{animation:none}
+}
+</style>
+
 </head>
 <body>
 
@@ -1568,6 +1808,16 @@ body{
 </div>
 </section>
 </main></div></div>
+
+
+<!-- PHASE 4 MOBILE UX CONTROLS -->
+<nav id="p4MobileNav" aria-label="Quick navigation">
+  <button data-p4-view="dashboard"><span class="p4Icon">⌂</span><span>Home</span></button>
+  <button data-p4-view="customers"><span class="p4Icon">👥</span><span>Customers</span></button>
+  <button data-p4-view="orders"><span class="p4Icon">🧾</span><span>Orders</span></button>
+  <button data-p4-view="payments"><span class="p4Icon">₹</span><span>Payments</span></button>
+</nav>
+<button id="p4Fab" type="button" aria-label="Quick add">＋</button>
 
 <div id="modal" class="modal"><div class="modalbox">
 <div class="modalhead"><h3 id="modalTitle">Add</h3><button class="close" onclick="closeModal()">✕</button></div>
@@ -2330,5 +2580,50 @@ supabaseClient.auth.onAuthStateChange((_event,session)=>{if(session?.user){showA
 })();
 
 </script>
+
+<script id="phase4-premium-ux-js">
+(function(){
+  function syncP4Nav(view){
+    document.querySelectorAll("#p4MobileNav [data-p4-view]").forEach(function(btn){
+      btn.classList.toggle("active", btn.dataset.p4View === view);
+    });
+  }
+
+  document.querySelectorAll("#p4MobileNav [data-p4-view]").forEach(function(btn){
+    btn.addEventListener("click",function(){
+      if(typeof goView === "function") goView(btn.dataset.p4View);
+      syncP4Nav(btn.dataset.p4View);
+    });
+  });
+
+  var fab=document.getElementById("p4Fab");
+  if(fab){
+    fab.addEventListener("click",function(){
+      var current=history.state && history.state.view ? history.state.view : "dashboard";
+      var map={
+        customers:"customer",
+        orders:"order",
+        payments:"payment",
+        measurements:"measurement",
+        alterations:"alteration",
+        designs:"design"
+      };
+      if(typeof openModal === "function") openModal(map[current] || "customer");
+    });
+  }
+
+  /* Keep the mobile nav in sync even when existing code calls goView(). */
+  var originalGoView=window.goView;
+  if(typeof originalGoView === "function"){
+    window.goView=function(view,push){
+      originalGoView(view,push);
+      syncP4Nav(view);
+    };
+  }
+
+  syncP4Nav((history.state && history.state.view) || "dashboard");
+})();
+</script>
+
 </body>
 </html>
