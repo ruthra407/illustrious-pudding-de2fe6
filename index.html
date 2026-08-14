@@ -231,6 +231,91 @@ body { min-width: 0; }
   }
 }
 
+
+/* ===== PHASE 1 UI POLISH ===== */
+:root{
+  --shadow-soft:0 8px 24px rgba(35,25,30,.07);
+  --shadow-hover:0 14px 32px rgba(35,25,30,.12);
+}
+html{scroll-behavior:smooth}
+body{-webkit-tap-highlight-color:transparent}
+button,.btn,.iconbtn,.navbtn,.clickable{transition:transform .14s ease,box-shadow .18s ease,background-color .18s ease,border-color .18s ease,opacity .18s ease}
+button:active,.btn:active,.iconbtn:active,.navbtn:active{transform:scale(.98)}
+button:disabled{cursor:not-allowed}
+:focus-visible{outline:3px solid rgba(178,62,98,.28);outline-offset:2px}
+
+.card,.stat,.summary,.customerCard,.photoCard,.alertbox,.designResult,.designTile{
+  box-shadow:var(--shadow-soft);
+  transition:transform .16s ease,box-shadow .18s ease,border-color .18s ease;
+}
+@media (hover:hover) and (pointer:fine){
+  .card:hover,.stat:hover,.summary:hover,.customerCard:hover,.photoCard:hover,.alertbox:hover,.designResult:hover,.designTile:hover{
+    box-shadow:var(--shadow-hover);
+    border-color:#d8c9ce;
+  }
+}
+.kpiCard{box-shadow:var(--shadow-soft);transition:transform .16s ease,box-shadow .18s ease,filter .18s ease}
+@media (hover:hover) and (pointer:fine){
+  .kpiCard:hover{transform:translateY(-2px);box-shadow:var(--shadow-hover);filter:saturate(1.03)}
+}
+.sidebar.open{box-shadow:12px 0 32px rgba(20,15,18,.22)}
+.navbtn{min-height:44px}
+.iconbtn,.backbtn{min-width:42px;min-height:42px}
+.btn{min-height:42px}
+.input,select,textarea{min-height:44px}
+.table th{position:sticky;top:0;z-index:1}
+.modal{backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}
+.modalbox{animation:phase1ModalIn .18s ease-out}
+.toast{animation:phase1ToastIn .18s ease-out}
+@keyframes phase1ModalIn{
+  from{opacity:0;transform:translateY(10px) scale(.985)}
+  to{opacity:1;transform:translateY(0) scale(1)}
+}
+@keyframes phase1ToastIn{
+  from{opacity:0;transform:translateY(8px)}
+  to{opacity:1;transform:translateY(0)}
+}
+@media(max-width:900px){
+  .topbar{
+    box-shadow:0 2px 14px rgba(20,15,18,.16);
+  }
+  .main{
+    padding-bottom:calc(18px + env(safe-area-inset-bottom));
+  }
+  .sidebar{
+    box-shadow:12px 0 32px rgba(20,15,18,.22);
+  }
+}
+@media(max-width:560px){
+  .topbar{gap:5px}
+  .topbar>div:nth-of-type(2){flex:1;min-width:0}
+  .topbar h1{white-space:nowrap;text-overflow:ellipsis;overflow:hidden}
+  .topbar small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .pagehead{gap:9px}
+  .card{padding:14px}
+  .stat{padding:13px}
+  .summary{padding:13px}
+  .kpiCard{border-radius:16px}
+  .modal{padding:0;align-items:flex-end}
+  .modalbox{
+    max-height:94dvh;
+    padding:16px 14px calc(16px + env(safe-area-inset-bottom));
+  }
+  .modalfoot{gap:8px}
+  .modalfoot .btn{min-height:44px}
+  .customerCard{padding:14px}
+  .customerActions .btn,.photoActions .btn,.designPhotoActions .btn{min-height:42px}
+}
+@media(prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  *,*::before,*::after{
+    animation-duration:.01ms!important;
+    animation-iteration-count:1!important;
+    transition-duration:.01ms!important;
+    scroll-behavior:auto!important;
+  }
+}
+
 </style>
 </head>
 <body>
