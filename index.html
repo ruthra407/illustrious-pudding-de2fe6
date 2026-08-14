@@ -1776,6 +1776,7 @@ body{
 /* PHASE 4.2 — premium header, real-time clock, and mobile back UX */
 .brandBlock{min-width:0}
 #liveClock{font-variant-numeric:tabular-nums;letter-spacing:.2px;opacity:.95}
+#liveClock{display:inline-flex;align-items:center;justify-content:center;min-width:82px;padding:3px 8px;margin-left:5px;border-radius:999px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.16);font-weight:800;}
 @media(max-width:700px){
   html,body{
     overscroll-behavior-x:none;
@@ -1999,7 +2000,9 @@ function goView(view,push=true){
  document.querySelectorAll(".view").forEach(x=>x.classList.remove("active"));
  target.classList.add("active");$("sidebar").classList.remove("open");
  window.scrollTo({top:0,behavior:"smooth"});
- if(push&&history.state?.view!==view)history.pushState({view},"","#"+view);
+ if(push&&history.state?.view!==view){
+   history.pushState({view,__nfView:true},"","#"+view);
+ }
  updateBackButton();
 }
 function updateBackButton(){
@@ -2018,6 +2021,12 @@ $("backBtn").onclick=()=>{if((history.state?.view||"dashboard")!=="dashboard")hi
    cannot accidentally close/navigate away from the app document. */
 window.addEventListener("popstate",e=>{
  const s=e.state||{};
+ /* A Back/edge-swipe from an open New Order (or any modal) closes only the modal.
+    It must never jump past the current screen or close the app. */
+ if($('modal')?.classList.contains('open')){
+   $('modal').classList.remove('open');
+   state.editing=null;
+ }
  if(s.__nfRoot){
    history.pushState({view:"dashboard",__nfGuard:true},"","#dashboard");
    goView("dashboard",false);
@@ -2028,7 +2037,7 @@ window.addEventListener("popstate",e=>{
 if(!history.state?.view){
  history.replaceState({view:"dashboard",__nfRoot:true},"","#dashboard");
  history.pushState({view:"dashboard",__nfGuard:true},"","#dashboard");
-}else if(!history.state.__nfRoot && !history.state.__nfGuard){
+}else if(!history.state.__nfRoot && !history.state.__nfGuard && !history.state.__nfView){
  const currentView=history.state.view||"dashboard";
  history.replaceState({view:"dashboard",__nfRoot:true},"","#dashboard");
  history.pushState({view:currentView,__nfGuard:true},"","#"+currentView);
@@ -2528,8 +2537,21 @@ if(type==="order"){
  recalc();
 }
 $("modal").classList.add("open");
+ /* Give every modal its own history entry. Android/browser edge-back therefore
+    closes the form first (Order -> Orders) instead of popping the whole screen. */
+ const base=history.state||{view:"dashboard"};
+ if(!base.__nfModal){
+   history.pushState({...base,__nfModal:true,modalType:type,modalId:id||null},"",location.hash||"#"+(base.view||"dashboard"));
+ }
 }
-function closeModal(){$("modal").classList.remove("open");state.editing=null}
+function closeModal(skipHistory=false){
+ const wasOpen=$("modal").classList.contains("open");
+ $("modal").classList.remove("open");
+ state.editing=null;
+ if(wasOpen && !skipHistory && history.state?.__nfModal){
+   history.back();
+ }
+}
 $("modal").addEventListener("click",e=>{if(e.target===$("modal"))closeModal()});
 
 $("dataForm").addEventListener("submit",async e=>{
@@ -2687,7 +2709,13 @@ supabaseClient.auth.onAuthStateChange((_event,session)=>{if(session?.user){showA
     startX = lastX = t.clientX;
     startY = t.clientY;
     dragging = false;
-    mode = isOpen(el) ? "close" : "";
+    if(isOpen(el)){
+      mode = "close";
+    }else if(t.clientX <= EDGE){
+      mode = "open";
+    }else{
+      mode = "";
+    }
   }
 
   function onMove(e){
