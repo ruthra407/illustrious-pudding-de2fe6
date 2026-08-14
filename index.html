@@ -71,7 +71,19 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}.hidden{display:
 .customerDesignThumb{position:relative;border-radius:10px;overflow:visible;background:#eee9e4;aspect-ratio:1;min-width:0}
 .customerDesignThumb img{width:100%;height:100%;object-fit:cover;border-radius:10px;display:block}.customerDesignThumb span{position:absolute;left:4px;right:4px;bottom:4px;background:rgba(0,0,0,.62);color:#fff;border-radius:7px;padding:3px 5px;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.designDeleteBtn{position:absolute;top:6px;right:6px;width:32px;height:32px;border:0;border-radius:50%;background:#fff;color:#b42318;box-shadow:0 2px 8px rgba(0,0,0,.25);font-size:16px;display:grid;place-items:center;z-index:2}.designDeleteBtn:active{transform:scale(.94)}
 .customerReminder{border-radius:12px;padding:10px;background:#fff7df}.customerReminder.late{background:#fff0ee}.customerReminder.ok{background:#e8f6ef}
-.customerOrderLine{padding:8px 0;border-bottom:1px dashed var(--line)}.customerOrderLine:last-child{border-bottom:0}
+.customerOrderLine{padding:8px 0;border-bottom:1px dashed var(--line)} .customerOrderLine:last-child{border-bottom:0}
+.customerOrderLine.nf-order-focus{
+  background:linear-gradient(135deg,#fff3b8,#ffe7ef);
+  border:2px solid #6c4df6;
+  border-radius:12px;
+  padding:10px;
+  box-shadow:0 0 0 4px rgba(108,77,246,.12),0 10px 28px rgba(108,77,246,.18);
+  animation:nfOrderFocus .55s ease;
+}
+@keyframes nfOrderFocus{
+  0%{transform:scale(.985);opacity:.78}
+  100%{transform:scale(1);opacity:1}
+}
 .customerSearchBox{margin-bottom:12px}
 .reminderSettings{display:flex;gap:8px;align-items:end;flex-wrap:wrap}.reminderSettings .field{min-width:150px}.reminderTimesGrid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;margin-top:6px}.reminderTimeChip{background:#fff7df;border:1px solid #f0d58a;border-radius:9px;padding:7px 8px;text-align:center;font-weight:750;font-size:12px}@media(max-width:560px){.reminderTimesGrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:900px){.customerCards{grid-template-columns:1fr}}
@@ -2409,7 +2421,24 @@ Object.assign(state,{customers,orders,measurements,alterations,payments,designs}
 }
 function customerName(id){return state.customers.find(x=>x.id===id)?.name||"Unknown"}
 function goToCustomer(id){goView("customers");setTimeout(()=>document.getElementById("customer-card-"+id)?.scrollIntoView({behavior:"smooth",block:"start"}),120);}
-function goToOrderCustomer(orderId){const o=state.orders.find(x=>x.id===orderId);if(o)goToCustomer(o.customer_id);else goView("orders");}
+function goToOrderCustomer(orderId){
+ const o=state.orders.find(x=>x.id===orderId);
+ if(!o){goView("orders");return}
+ goToView("customers");
+ setTimeout(()=>{
+   const card=document.getElementById("customer-card-"+o.customer_id);
+   const target=document.getElementById("customer-order-"+orderId);
+   if(target){
+     target.scrollIntoView({behavior:"smooth",block:"center"});
+     target.classList.remove("nf-order-focus");
+     void target.offsetWidth;
+     target.classList.add("nf-order-focus");
+     setTimeout(()=>target.classList.remove("nf-order-focus"),1800);
+   }else if(card){
+     card.scrollIntoView({behavior:"smooth",block:"start"});
+   }
+ },140);
+}
 
 function orderLabel(id){const o=state.orders.find(x=>x.id===id);return o?`${o.order_no} — ${customerName(o.customer_id)}`:"Unknown"}
 function isFinished(o){return ["Delivered","Cancelled"].includes(String(o.status||""))}
@@ -2643,7 +2672,7 @@ function customerCard(id){
   const gx=typeof nfGarmentExtra==="function"?nfGarmentExtra(o):{chudi:0,chudiLiningQty:0,saree:0};
   const g=String(o.garment_type||"Blouse");
   const detail=g==="Chudi"?`👚 Chudi ${Number(gx.chudi||o.quantity||0)} · Lining ${Number(gx.chudiLiningQty||0)} · விலை ${money(o.unit_price)}`:g==="Saree"?`🥻 Saree ${Number(gx.saree||o.quantity||0)} · விலை ${money(o.unit_price)}`:`👗 ${blouseSplitText(o)} · Rate ${money(o.unit_price)}`;
-  return `<div class="customerOrderLine"><b>${esc(o.order_no)}</b> · ${esc(g)} · ${detail} ${rem}<br><span class="mini">துணி: ${dateText(o.cloth_received_date)} · Delivery: ${dateText(o.delivery_date)} · Balance: ${money(o.balance_amount)}</span>${lining}${cleanOrderNotes(o.notes)?`<br><span class="mini">📝 ${esc(cleanOrderNotes(o.notes).replace(/CHUDI_RATE:[^|]+\s*\|?\s*/,"").replace(/SAREE_RATE:[^|]+\s*\|?\s*/,""))}</span>`:""}<div class="orderActions"><button class="btn success" onclick="markDelivered('${o.id}')">Delivered</button><button class="btn secondary" onclick="openModal('order','${o.id}')">Edit</button></div></div>`;
+  return `<div class="customerOrderLine" id="customer-order-${esc(o.id)}"><b>${esc(o.order_no)}</b> · ${esc(g)} · ${detail} ${rem}<br><span class="mini">துணி: ${dateText(o.cloth_received_date)} · Delivery: ${dateText(o.delivery_date)} · Balance: ${money(o.balance_amount)}</span>${lining}${cleanOrderNotes(o.notes)?`<br><span class="mini">📝 ${esc(cleanOrderNotes(o.notes).replace(/CHUDI_RATE:[^|]+\s*\|?\s*/,"").replace(/SAREE_RATE:[^|]+\s*\|?\s*/,""))}</span>`:""}<div class="orderActions"><button class="btn success" onclick="markDelivered('${o.id}')">Delivered</button><button class="btn secondary" onclick="openModal('order','${o.id}')">Edit</button></div></div>`;
  }).join("")||`<div class="mini">இன்னும் order இல்லை.</div>`;
  return `<article class="customerCard" id="customer-card-${id}">
  <div class="customerCardHead"><div class="customerAvatar">👤</div><div style="flex:1"><h3>${esc(c.name)}</h3><p>📞 ${esc(c.phone||"Phone இல்லை")} · 📍 ${esc(village||"ஊர் இல்லை")}</p><p>🏠 ${esc(address)}</p><p>${esc(c.notes||"")}</p></div><button class="btn secondary" onclick="openModal('customer','${id}')">Edit</button></div>
