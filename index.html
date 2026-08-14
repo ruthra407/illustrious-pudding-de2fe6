@@ -316,6 +316,334 @@ button:disabled{cursor:not-allowed}
   }
 }
 
+
+/* =========================================================
+   PHASE 2 — VISUAL REDESIGN
+   Base: Phase 1 UI
+   Logic / Supabase / forms intentionally unchanged.
+   ========================================================= */
+
+:root{
+  --p2-ink:#211b20;
+  --p2-muted:#756b70;
+  --p2-border:#e8dfe3;
+  --p2-soft:#fbf8f9;
+  --p2-brand:#b23e62;
+  --p2-brand-soft:#f7e9ee;
+  --p2-shadow:0 10px 28px rgba(38,27,33,.07);
+  --p2-shadow-strong:0 16px 38px rgba(38,27,33,.11);
+}
+
+/* Global visual language */
+body{
+  background:
+    radial-gradient(circle at 100% 0%,rgba(178,62,98,.045),transparent 28rem),
+    var(--bg);
+}
+.main{max-width:1540px}
+.card,.stat,.summary,.customerCard,.photoCard,.alertbox,.designResult,.designTile{
+  border-color:var(--p2-border);
+  box-shadow:var(--p2-shadow);
+}
+.pagehead h2{
+  font-weight:900;
+  letter-spacing:-.55px;
+}
+.pagehead p{
+  color:var(--p2-muted);
+}
+
+/* Dashboard stats — stronger hierarchy */
+.stats{gap:14px}
+.stat{
+  position:relative;
+  overflow:hidden;
+  min-height:112px;
+  padding:18px;
+  background:linear-gradient(145deg,#fff,#fcfafb);
+}
+.stat::after{
+  content:"";
+  position:absolute;
+  right:-35px;bottom:-45px;
+  width:120px;height:120px;
+  border-radius:50%;
+  background:var(--p2-brand-soft);
+  opacity:.7;
+}
+.stat .label{
+  position:relative;z-index:1;
+  font-size:13px;
+  letter-spacing:.15px;
+}
+.stat .num{
+  position:relative;z-index:1;
+  font-size:32px;
+  letter-spacing:-.6px;
+}
+
+/* Summary cards */
+.summarygrid{gap:14px}
+.summary{
+  min-height:94px;
+  background:#fff;
+  padding:16px;
+}
+.summary b{
+  display:block;
+  margin-top:7px;
+  font-size:22px;
+  line-height:1.15;
+}
+
+/* KPI cards */
+.kpiGrid{gap:14px}
+.kpiCard{
+  min-height:138px;
+  padding:18px;
+  border:1px solid rgba(255,255,255,.18);
+  position:relative;
+  overflow:hidden;
+}
+.kpiCard::before{
+  content:"";
+  position:absolute;
+  inset:auto -30px -55px auto;
+  width:150px;height:150px;
+  border-radius:50%;
+  background:rgba(255,255,255,.10);
+}
+.kpiCard .kpiTitle{
+  position:relative;
+  z-index:1;
+  font-size:14px;
+  letter-spacing:.15px;
+}
+.kpiCard .kpiNum{
+  position:relative;
+  z-index:1;
+  font-size:34px;
+  letter-spacing:-.8px;
+}
+.kpiCard .kpiSmall{
+  position:relative;
+  z-index:1;
+}
+
+/* Toolbar */
+.toolbar{
+  background:rgba(255,255,255,.9);
+  border:1px solid var(--p2-border);
+  border-radius:16px;
+  padding:10px;
+  box-shadow:0 6px 20px rgba(38,27,33,.045);
+}
+.toolbar .btn{min-height:44px}
+
+/* Customer cards — profile feel */
+.customerCards{gap:16px}
+.customerCard{
+  padding:18px;
+  border-radius:20px;
+  background:linear-gradient(145deg,#fff,#fdfafb);
+}
+.customerCard::before{
+  content:"";
+  position:absolute;
+  left:0;top:18px;bottom:18px;
+  width:4px;
+  border-radius:0 5px 5px 0;
+  background:linear-gradient(180deg,var(--p2-brand),#d9a9b9);
+}
+.customerCardHead{
+  padding-left:5px;
+  align-items:center;
+}
+.customerAvatar{
+  width:58px;height:58px;
+  border-radius:17px;
+  background:linear-gradient(145deg,#f7e8ed,#f0dce4);
+  box-shadow:0 7px 18px rgba(178,62,98,.12);
+}
+.customerCardHead h3{
+  font-size:20px;
+  letter-spacing:-.2px;
+}
+.customerStats{
+  gap:8px;
+  margin-top:15px;
+}
+.customerStat{
+  min-height:70px;
+  padding:10px;
+  border-radius:13px;
+  background:#faf7f8;
+}
+.customerStat b{font-size:20px}
+.customerSection{
+  margin-top:15px;
+  padding-top:15px;
+}
+.customerSection h4{
+  font-size:14px;
+  font-weight:850;
+}
+
+/* Money / cloth mini cards */
+.customerMoneyGrid,.customerClothGrid{gap:8px}
+.moneyStat,.clothStat{
+  min-height:64px;
+  border-radius:13px;
+  padding:10px;
+}
+.moneyStat b,.clothStat b{font-size:17px}
+
+/* Orders / dashboard lists */
+.dashboardOrderList{gap:10px}
+.dashboardOrderCard{
+  border-radius:15px;
+  padding:13px;
+  box-shadow:0 6px 18px rgba(38,27,33,.05);
+}
+.dashboardOrderCard .name{
+  font-size:15px;
+}
+.dashboardOrderCard .meta{
+  line-height:1.55;
+}
+
+/* Alerts */
+.alertgrid{gap:14px}
+.alertbox{
+  border-radius:17px;
+  padding:16px;
+}
+.alertbox h3{
+  font-size:16px;
+}
+
+/* Designs */
+.designGallery,.designSearchResults{gap:14px}
+.designTile,.designResult{
+  border-radius:17px;
+  padding:11px;
+}
+.designTile img,.designResult img{
+  border-radius:13px;
+}
+.designTile .title{
+  font-size:14px;
+  line-height:1.35;
+}
+
+/* Inputs and forms */
+.input,select,textarea{
+  border-color:#dcd2d7;
+  border-radius:13px;
+}
+.input:focus,select:focus,textarea:focus{
+  border-color:var(--p2-brand);
+  box-shadow:0 0 0 4px rgba(178,62,98,.10);
+}
+.field label{
+  color:#4f454a;
+}
+
+/* Buttons */
+.btn{
+  border-radius:12px;
+  min-height:44px;
+}
+.primary{
+  box-shadow:0 6px 14px rgba(178,62,98,.16);
+}
+.secondary{
+  border:1px solid #e3dadd;
+}
+
+/* Tables */
+.tablewrap{
+  border-color:var(--p2-border);
+  box-shadow:var(--p2-shadow);
+  background:#fff;
+}
+.table th{
+  background:#faf7f8;
+  font-weight:850;
+}
+.table td,.table th{
+  padding:12px 13px;
+}
+
+/* Modal */
+.modal{
+  background:rgba(24,18,22,.58);
+}
+.modalbox{
+  border:1px solid rgba(255,255,255,.45);
+  box-shadow:0 24px 70px rgba(20,15,18,.25);
+}
+
+/* Mobile visual tuning */
+@media(max-width:900px){
+  .main{padding:14px 12px 26px}
+  .stats{gap:10px}
+  .kpiGrid{gap:10px}
+  .customerCards{gap:12px}
+}
+
+@media(max-width:560px){
+  .main{padding:10px 9px 26px}
+  .pagehead{margin-bottom:13px}
+  .pagehead h2{font-size:23px}
+  .stats{gap:8px}
+  .stat{
+    min-height:96px;
+    padding:13px;
+    border-radius:15px;
+  }
+  .stat .num{font-size:25px}
+  .summarygrid{gap:8px}
+  .summary{min-height:76px;padding:13px}
+  .summary b{font-size:20px}
+  .kpiGrid{gap:8px}
+  .kpiCard{
+    min-height:112px;
+    padding:14px;
+    border-radius:17px;
+  }
+  .kpiCard .kpiNum{font-size:29px}
+  .customerCard{
+    padding:15px 13px 15px 16px;
+    border-radius:18px;
+  }
+  .customerCard::before{
+    top:15px;bottom:15px;width:3px;
+  }
+  .customerAvatar{
+    width:52px;height:52px;border-radius:15px;
+  }
+  .customerCardHead h3{font-size:18px}
+  .customerStats{gap:7px;margin-top:12px}
+  .customerStat{min-height:62px;padding:9px}
+  .customerStat b{font-size:18px}
+  .customerMoneyGrid,.customerClothGrid{gap:7px}
+  .moneyStat,.clothStat{min-height:58px;padding:8px}
+  .toolbar{padding:8px;border-radius:14px}
+  .dashboardOrderCard{padding:11px}
+}
+
+/* Gentle motion, with accessibility fallback */
+@media(prefers-reduced-motion:no-preference){
+  .stat,.summary,.kpiCard,.customerCard,.dashboardOrderCard,.designTile,.designResult{
+    transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease;
+  }
+  .stat:hover,.summary:hover,.customerCard:hover,.dashboardOrderCard:hover,.designTile:hover,.designResult:hover{
+    transform:translateY(-2px);
+    box-shadow:var(--p2-shadow-strong);
+  }
+}
+
 </style>
 </head>
 <body>
