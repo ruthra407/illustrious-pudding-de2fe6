@@ -1910,6 +1910,136 @@ body{
 }
 </style>
 
+
+<style id="phase4-4-final-mobile-fix">
+/* =========================================================
+   PHASE 4.4 — FINAL MOBILE HEADER + REAL CLOCK
+   - protects status-bar/safe-area space
+   - keeps shop name readable without 3-line collision
+   - keeps action buttons inside the header
+   - preserves the colorful dashboard cards
+   ========================================================= */
+.topbar{
+  position:sticky;
+  top:0;
+  z-index:100;
+  min-height:76px;
+  height:auto;
+  padding-top:max(10px,env(safe-area-inset-top,0px));
+  padding-bottom:10px;
+}
+.topbar .brandBlock{
+  flex:1 1 auto;
+  min-width:0;
+  overflow:hidden;
+}
+.topbar .brandBlock h1{
+  margin:0;
+  line-height:1.02;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.topbar .brandBlock small{
+  display:flex;
+  align-items:center;
+  gap:5px;
+  min-width:0;
+  margin-top:5px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+#liveClock{
+  flex:0 0 auto;
+  min-width:94px;
+  height:26px;
+  margin-left:2px;
+  padding:2px 9px;
+  font-size:12px;
+  line-height:1;
+  white-space:nowrap;
+}
+@media(max-width:700px){
+  .topbar{
+    min-height:88px;
+    padding-left:10px;
+    padding-right:10px;
+    padding-top:max(10px,env(safe-area-inset-top,0px));
+    padding-bottom:10px;
+    gap:8px;
+  }
+  .topbar .mobileOnly.iconbtn{
+    width:44px;height:44px;flex:0 0 44px;
+  }
+  .topbar .brandBlock{
+    flex:1 1 0;
+    min-width:0;
+  }
+  .topbar .brandBlock h1{
+    font-size:17px;
+    line-height:1.04;
+    white-space:normal;
+    display:-webkit-box;
+    -webkit-box-orient:vertical;
+    -webkit-line-clamp:2;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    max-width:100%;
+    letter-spacing:-.3px;
+  }
+  .topbar .brandBlock small{
+    font-size:9px;
+    line-height:1;
+    margin-top:4px;
+    gap:3px;
+  }
+  #liveClock{
+    min-width:82px;
+    height:22px;
+    padding:2px 6px;
+    font-size:10px;
+  }
+  /* Back/refresh stay available; setup/logout live in the menu on phones. */
+  #passkeySetupBtn,#logoutBtn{display:none!important}
+  .topbar .spacer{display:none}
+  .topbar #backBtn{
+    width:42px;height:42px;flex:0 0 42px;
+  }
+  #reloadBtn{
+    width:42px;height:42px;flex:0 0 42px;
+  }
+}
+@media(max-width:390px){
+  .topbar{min-height:84px;padding-left:8px;padding-right:8px;gap:6px}
+  .topbar .mobileOnly.iconbtn{width:42px;height:42px;flex-basis:42px}
+  .topbar .brandBlock h1{font-size:16px}
+  .topbar .brandBlock small{font-size:8.5px}
+  #liveClock{min-width:76px;font-size:9.5px}
+  .topbar #backBtn,#reloadBtn{width:40px;height:40px;flex-basis:40px}
+}
+@media(min-width:701px){
+  .topbar{padding-top:12px;padding-bottom:12px;min-height:84px}
+}
+/* The management content must always begin below the enlarged header. */
+@media(max-width:700px){
+  .layout{min-height:calc(100dvh - 88px)}
+  .main{padding-top:14px}
+  .sidebar{
+    top:calc(88px + env(safe-area-inset-top,0px));
+    height:calc(100dvh - 88px - env(safe-area-inset-top,0px));
+  }
+  body.drawer-open .sidebar{top:calc(88px + env(safe-area-inset-top,0px))}
+}
+@media(max-width:390px){
+  .layout{min-height:calc(100dvh - 84px)}
+  .sidebar{
+    top:calc(84px + env(safe-area-inset-top,0px));
+    height:calc(100dvh - 84px - env(safe-area-inset-top,0px));
+  }
+}
+</style>
+
 </head>
 <body>
 
@@ -2121,18 +2251,20 @@ $("backBtn").onclick=()=>{if((history.state?.view||"dashboard")!=="dashboard")hi
    cannot accidentally close/navigate away from the app document. */
 window.addEventListener("popstate",e=>{
  const s=e.state||{};
- /* A Back/edge-swipe from an open New Order (or any modal) closes only the modal.
-    It must never jump past the current screen or close the app. */
- if($('modal')?.classList.contains('open')){
-   $('modal').classList.remove('open');
+ const modal=$("modal");
+ /* Android/Chrome Back gesture: modal first, then current screen, then dashboard root. */
+ if(modal?.classList.contains("open")){
+   modal.classList.remove("open");
    state.editing=null;
+   goView(s.view||history.state?.view||"dashboard",false);
+   return;
  }
- if(s.__nfRoot){
+ if(s.__nfRoot || !s.view){
    history.pushState({view:"dashboard",__nfGuard:true},"","#dashboard");
    goView("dashboard",false);
    return;
  }
- goView(s.view||"dashboard",false);
+ goView(s.view,false);
 });
 if(!history.state?.view){
  history.replaceState({view:"dashboard",__nfRoot:true},"","#dashboard");
@@ -2810,10 +2942,13 @@ supabaseClient.auth.onAuthStateChange((_event,session)=>{if(session?.user){showA
     startY = t.clientY;
     dragging = false;
     if(isOpen(el)){
+      // When the drawer is already open, a left swipe may close the drawer.
       mode = "close";
-    }else if(t.clientX <= EDGE){
-      mode = "open";
     }else{
+      // IMPORTANT: do not claim the left-edge gesture while the drawer is closed.
+      // Android/Chrome uses that gesture for SPA/browser Back navigation.
+      // Hijacking it here can make the app appear to close instead of returning
+      // from New Order -> Orders -> Dashboard.
       mode = "";
     }
   }
@@ -3269,5 +3404,44 @@ supabaseClient.auth.onAuthStateChange((_event,session)=>{if(session?.user){showA
   }
 })();
 </script>
+
+<script id="phase4-4-navigation-guard">
+(function(){
+  "use strict";
+
+  /*
+   * Android/Chrome left-edge Back must stay inside the SPA.
+   * The earlier drawer swipe listener is intentionally prevented from
+   * claiming the edge gesture while the drawer is closed.
+   */
+  function currentView(){
+    return (history.state && history.state.view) || "dashboard";
+  }
+
+  function closeDrawerOnly(){
+    var drawer=document.getElementById("sidebar");
+    if(drawer && drawer.classList.contains("open")){
+      drawer.classList.remove("open");
+      document.body.classList.remove("drawer-open");
+      return true;
+    }
+    return false;
+  }
+
+  // Keep the clock visible and correct even after BFCache/page redraws.
+  function refreshClockNow(){
+    var el=document.getElementById("liveClock");
+    if(!el)return;
+    try{
+      el.textContent=new Intl.DateTimeFormat("en-IN",{
+        hour:"2-digit",minute:"2-digit",second:"2-digit",hour12:true
+      }).format(new Date());
+    }catch(_){el.textContent=new Date().toLocaleTimeString()}
+  }
+  refreshClockNow();
+  window.addEventListener("pageshow",refreshClockNow,{passive:true});
+})();
+</script>
+
 </body>
 </html>
