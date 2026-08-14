@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>New Fashion Tailoring – Online Management</title>
+<title>New Fashion Tailoring – Online Management | Phase 3</title>
 <link rel="manifest" href="manifest.json">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -641,6 +641,424 @@ body{
   .stat:hover,.summary:hover,.customerCard:hover,.dashboardOrderCard:hover,.designTile:hover,.designResult:hover{
     transform:translateY(-2px);
     box-shadow:var(--p2-shadow-strong);
+  }
+}
+
+
+/* =========================================================
+   PHASE 3 — FULL COLORFUL UI REDESIGN
+   UI/CSS only — existing Supabase, forms and JS logic preserved.
+   ========================================================= */
+
+:root{
+  --p3-bg:#f6f7fb;
+  --p3-ink:#171923;
+  --p3-muted:#6f7482;
+  --p3-white:#ffffff;
+  --p3-purple:#6c4df6;
+  --p3-pink:#ef4f8a;
+  --p3-orange:#ff8a3d;
+  --p3-yellow:#f5c84b;
+  --p3-cyan:#19b8d7;
+  --p3-blue:#4285f4;
+  --p3-green:#28b47e;
+  --p3-red:#ef4f5f;
+  --p3-line:#e8eaf2;
+  --p3-shadow:0 12px 34px rgba(40,38,68,.08);
+  --p3-shadow2:0 18px 46px rgba(40,38,68,.13);
+}
+
+html{background:var(--p3-bg)}
+body{
+  background:
+    radial-gradient(circle at 8% 5%,rgba(108,77,246,.10),transparent 22rem),
+    radial-gradient(circle at 96% 8%,rgba(239,79,138,.10),transparent 24rem),
+    radial-gradient(circle at 55% 100%,rgba(25,184,215,.07),transparent 28rem),
+    var(--p3-bg);
+  color:var(--p3-ink);
+}
+
+/* ---------- Top bar ---------- */
+.topbar{
+  height:76px;
+  padding:0 18px;
+  gap:12px;
+  background:linear-gradient(105deg,#241b45 0%,#4d2c78 42%,#9b345f 100%);
+  box-shadow:0 5px 24px rgba(45,28,68,.20);
+  border-bottom:1px solid rgba(255,255,255,.14);
+}
+.topbar h1{font-size:18px;font-weight:900;letter-spacing:.2px}
+.topbar small{color:#eadff5;font-weight:650}
+.topbar .iconbtn{
+  width:44px;height:44px;
+  border-radius:14px;
+  border:1px solid rgba(255,255,255,.18);
+  background:rgba(255,255,255,.11);
+  backdrop-filter:blur(10px);
+  color:#fff;
+}
+.topbar .iconbtn:hover{background:rgba(255,255,255,.19);box-shadow:0 8px 20px rgba(0,0,0,.14)}
+.backbtn{border-color:rgba(255,255,255,.18);background:rgba(255,255,255,.11)}
+
+/* ---------- Sidebar ---------- */
+.layout{grid-template-columns:250px 1fr;min-height:calc(100vh - 76px)}
+.sidebar{
+  background:
+    radial-gradient(circle at 20% 0%,rgba(108,77,246,.28),transparent 18rem),
+    linear-gradient(180deg,#211a39,#171827 70%,#20253a);
+  padding:18px 13px;
+  border-right:1px solid rgba(255,255,255,.07);
+}
+.navbtn{
+  color:#cfd2df;
+  min-height:48px;
+  padding:12px 14px;
+  border-radius:14px;
+  font-weight:750;
+  margin-bottom:6px;
+}
+.navbtn:hover{background:rgba(255,255,255,.08);color:#fff}
+.navbtn.active{
+  background:linear-gradient(100deg,#7054ff,#b74b9b);
+  color:#fff;
+  box-shadow:0 9px 22px rgba(108,77,246,.25);
+}
+.sidebar .logout{
+  background:linear-gradient(100deg,#d94061,#ef6b63);
+  color:#fff;
+  margin-top:26px;
+}
+
+/* ---------- Main / headings ---------- */
+.main{max-width:1600px;padding:24px}
+.pagehead{margin-bottom:18px}
+.pagehead h2{
+  font-size:30px;
+  font-weight:950;
+  letter-spacing:-.8px;
+  color:#171923;
+}
+.pagehead p{color:var(--p3-muted);line-height:1.55}
+
+/* ---------- Universal cards ---------- */
+.card,.summary,.photoCard,.alertbox,.designResult,.designTile,.customerCard{
+  border:1px solid var(--p3-line);
+  box-shadow:var(--p3-shadow);
+}
+.card{
+  border-radius:22px;
+  background:rgba(255,255,255,.94);
+}
+.card:hover{box-shadow:var(--p3-shadow2)}
+
+/* ---------- Dashboard stat cards ---------- */
+.stats{gap:15px}
+.stat{
+  min-height:128px;
+  padding:19px;
+  border:0;
+  border-radius:21px;
+  color:#fff;
+  overflow:hidden;
+  box-shadow:var(--p3-shadow);
+}
+.stat::after{
+  width:145px;height:145px;
+  right:-42px;bottom:-58px;
+  background:rgba(255,255,255,.17);
+  opacity:1;
+}
+.stat::before{
+  content:"";
+  position:absolute;
+  left:-22px;top:-25px;
+  width:70px;height:70px;
+  border-radius:50%;
+  background:rgba(255,255,255,.10);
+}
+.stat .label,.stat .num{color:#fff}
+.stat .label{font-size:14px;font-weight:800}
+.stat .num{font-size:35px;font-weight:950;margin-top:9px}
+.stats .stat:nth-child(1){background:linear-gradient(135deg,#6750ef,#9b55df)}
+.stats .stat:nth-child(2){background:linear-gradient(135deg,#ef4f8a,#f56b6d)}
+.stats .stat:nth-child(3){background:linear-gradient(135deg,#ff8a3d,#f5b83d)}
+.stats .stat:nth-child(4){background:linear-gradient(135deg,#14aebd,#3d83ef)}
+
+/* ---------- Summary cards ---------- */
+.summarygrid{gap:15px}
+.summary{
+  min-height:105px;
+  border-radius:20px;
+  padding:17px;
+  position:relative;
+  overflow:hidden;
+  background:#fff;
+}
+.summary::after{
+  content:"";
+  position:absolute;
+  width:90px;height:90px;
+  right:-28px;bottom:-35px;
+  border-radius:50%;
+  background:#f0edff;
+}
+.summary:nth-child(2)::after{background:#fff0e6}
+.summary:nth-child(3)::after{background:#e5f8f6}
+.summary .mini,.summary b{position:relative;z-index:1}
+.summary .mini{font-weight:700;color:#737887}
+.summary b{font-size:24px;color:#20212a}
+
+/* ---------- KPI cards ---------- */
+.kpiGrid{gap:15px}
+.kpiCard{
+  min-height:150px;
+  border:0;
+  border-radius:21px;
+  padding:19px;
+  box-shadow:var(--p3-shadow);
+}
+.kpiCard:hover{transform:translateY(-3px);box-shadow:var(--p3-shadow2)}
+.kpiCard::before{width:170px;height:170px;opacity:.95}
+.kpiPending{background:linear-gradient(135deg,#e83f68,#b83291)}
+.kpiToday{background:linear-gradient(135deg,#ff7a39,#f3b43f)}
+.kpiDelivery{background:linear-gradient(135deg,#167fca,#36b8d1)}
+.kpiReminder{background:linear-gradient(135deg,#6950e8,#9d62d8)}
+.kpiMonthly{background:linear-gradient(135deg,#18a56f,#41c58b)}
+.kpiBalance{background:linear-gradient(135deg,#4556b9,#697ee6)}
+.kpiCard .kpiTitle{font-size:14px;font-weight:850}
+.kpiCard .kpiNum{font-size:35px;font-weight:950}
+.kpiDetails{max-height:250px}
+
+/* ---------- Quick actions ---------- */
+.quick{gap:14px}
+.quick button{
+  border:1px solid var(--p3-line);
+  border-radius:18px;
+  padding:17px;
+  background:#fff;
+  box-shadow:var(--p3-shadow);
+  transition:.18s ease;
+}
+.quick button:first-child{
+  background:linear-gradient(135deg,#f1edff,#fff);
+  border-color:#dcd4ff;
+}
+.quick button:hover{transform:translateY(-2px);box-shadow:var(--p3-shadow2)}
+
+/* ---------- Alerts ---------- */
+.alertgrid{gap:15px}
+.alertbox{
+  border-radius:19px;
+  padding:17px;
+  position:relative;
+  overflow:hidden;
+}
+.alertbox.today{background:linear-gradient(135deg,#fff9e9,#fff);border-color:#f4df9c}
+.alertbox.soon{background:linear-gradient(135deg,#eaf8ff,#fff);border-color:#c9eaf5}
+.alertbox.late{background:linear-gradient(135deg,#fff0f2,#fff);border-color:#f4c8d0}
+.alertbox h3{font-size:16px;font-weight:900}
+.alertbox b.big{font-size:30px}
+
+/* ---------- Dashboard due/recent cards ---------- */
+.dashboardOrderCard{
+  border:1px solid var(--p3-line);
+  border-radius:16px;
+  background:#fff;
+  box-shadow:0 7px 20px rgba(40,38,68,.06);
+}
+.dashboardOrderCard:hover{transform:translateY(-2px);box-shadow:var(--p3-shadow2)}
+.dueCustomer{padding:13px 0}
+.dueCustomer .dueName{font-weight:900}
+
+/* ---------- Customer cards ---------- */
+.customerCards{gap:16px}
+.customerCard{
+  position:relative;
+  overflow:hidden;
+  border-radius:22px;
+  padding:19px 18px 18px 21px;
+  background:linear-gradient(145deg,#fff,#fbfaff);
+}
+.customerCard::before{
+  width:5px;
+  top:0;bottom:0;left:0;
+  background:linear-gradient(180deg,#6c4df6,#ef4f8a,#ff9b45);
+}
+.customerAvatar{
+  width:60px;height:60px;
+  border-radius:18px;
+  color:#fff;
+  background:linear-gradient(135deg,#6c4df6,#ef4f8a);
+  box-shadow:0 10px 22px rgba(108,77,246,.22);
+}
+.customerCardHead h3{font-size:20px;font-weight:950}
+.customerStats{gap:8px}
+.customerStat{
+  border:0;
+  border-radius:14px;
+  min-height:72px;
+  background:#f7f7fb;
+}
+.customerStat:nth-child(1){background:#f0edff}
+.customerStat:nth-child(2){background:#fff0f6}
+.customerStat:nth-child(3){background:#e9f9f5}
+.customerMoneyGrid,.customerClothGrid{gap:8px}
+.moneyStat,.clothStat{
+  border:0;
+  border-radius:13px;
+  background:#f7f8fc;
+}
+
+/* ---------- Toolbar / search ---------- */
+.toolbar{
+  gap:10px;
+  background:linear-gradient(135deg,#fff,#faf9ff);
+  border:1px solid var(--p3-line);
+  border-radius:17px;
+  padding:10px;
+  box-shadow:0 7px 20px rgba(40,38,68,.05);
+}
+.input,select,textarea{
+  min-height:46px;
+  border:1px solid #dfe1ea;
+  border-radius:13px;
+  background:#fff;
+  color:#22232c;
+}
+.input:focus,select:focus,textarea:focus{
+  border-color:#6c4df6;
+  box-shadow:0 0 0 4px rgba(108,77,246,.11);
+}
+
+/* ---------- Buttons ---------- */
+.btn{
+  min-height:44px;
+  border-radius:13px;
+  font-weight:850;
+}
+.primary{
+  background:linear-gradient(135deg,#6c4df6,#9b55df);
+  box-shadow:0 8px 18px rgba(108,77,246,.20);
+}
+.primary:hover{filter:saturate(1.08);transform:translateY(-1px)}
+.secondary{
+  background:#f4f4f8;
+  border:1px solid #e1e2e9;
+}
+.success{background:#e5f8f1;color:#117452}
+.warning{background:#fff4d9;color:#8b6500}
+.danger{background:#ffebee;color:#b4233c}
+
+/* ---------- Pills / status ---------- */
+.pill{padding:6px 10px;border-radius:999px;font-size:12px}
+.pill.ok{background:#dff8ed;color:#117452}
+.pill.warn{background:#fff0c7;color:#8a6100}
+.pill.bad{background:#ffe3e8;color:#b4233c}
+
+/* ---------- Tables ---------- */
+.tablewrap{
+  border-radius:18px;
+  border-color:var(--p3-line);
+  box-shadow:var(--p3-shadow);
+}
+.table th{
+  background:linear-gradient(180deg,#f5f3ff,#faf9ff);
+  color:#4f4a67;
+  font-weight:900;
+}
+.table td,.table th{padding:13px}
+
+/* ---------- Design Studio ---------- */
+.designTools{
+  padding:4px;
+  border-radius:17px;
+}
+.designGallery,.designSearchResults{gap:15px}
+.designTile,.designResult{
+  border-radius:19px;
+  padding:11px;
+  background:#fff;
+  box-shadow:var(--p3-shadow);
+}
+.designTile:hover,.designResult:hover{transform:translateY(-3px);box-shadow:var(--p3-shadow2)}
+.designTile img,.designResult img{
+  border-radius:14px;
+}
+.designTile .title{font-weight:900}
+
+/* ---------- Photo cards ---------- */
+.photoGrid{gap:15px}
+.photoCard{
+  border-radius:20px;
+  background:linear-gradient(145deg,#fff,#fbfaff);
+}
+
+/* ---------- Modal ---------- */
+.modal{background:rgba(26,20,38,.62);backdrop-filter:blur(8px)}
+.modalbox{
+  border:1px solid rgba(255,255,255,.6);
+  border-radius:24px;
+  box-shadow:0 28px 80px rgba(20,15,35,.30);
+}
+.modalhead h3{font-size:22px;font-weight:950}
+
+/* ---------- Login screen ---------- */
+.loginpage{
+  background:
+    radial-gradient(circle at 10% 15%,rgba(108,77,246,.25),transparent 20rem),
+    radial-gradient(circle at 90% 20%,rgba(239,79,138,.24),transparent 20rem),
+    linear-gradient(135deg,#f4f0ff,#fff1f5 52%,#fff8ee);
+}
+.loginbox{
+  border:1px solid rgba(255,255,255,.85);
+  border-radius:30px;
+  box-shadow:0 30px 90px rgba(60,38,85,.16);
+}
+.brand{
+  background:linear-gradient(90deg,#6248ee,#e84f88);
+  -webkit-background-clip:text;
+  background-clip:text;
+  color:transparent;
+}
+.gold{
+  color:#d28a24;
+}
+
+/* ---------- Responsive ---------- */
+@media(max-width:900px){
+  .layout{grid-template-columns:1fr}
+  .sidebar{
+    background:
+      radial-gradient(circle at 15% 5%,rgba(108,77,246,.30),transparent 18rem),
+      linear-gradient(180deg,#211a39,#171827);
+    box-shadow:16px 0 40px rgba(20,15,35,.28);
+  }
+  .main{padding:16px 12px 28px}
+}
+@media(max-width:560px){
+  .topbar{height:70px;padding:0 8px}
+  .topbar h1{font-size:14px}
+  .topbar small{font-size:9px}
+  .topbar .iconbtn{width:40px;height:40px;flex:0 0 40px}
+  .main{padding:11px 9px 28px}
+  .pagehead h2{font-size:24px}
+  .stats{gap:8px}
+  .stat{min-height:104px;padding:14px;border-radius:17px}
+  .stat .num{font-size:27px}
+  .summary{min-height:82px;border-radius:17px}
+  .kpiCard{min-height:118px;border-radius:18px;padding:15px}
+  .kpiCard .kpiNum{font-size:30px}
+  .customerCard{border-radius:19px;padding:16px 14px 16px 18px}
+  .customerAvatar{width:53px;height:53px;border-radius:16px}
+  .toolbar{border-radius:15px}
+}
+
+/* Accessibility: respect reduced-motion */
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{
+    animation-duration:.01ms!important;
+    animation-iteration-count:1!important;
+    transition-duration:.01ms!important;
   }
 }
 
