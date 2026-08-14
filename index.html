@@ -2111,6 +2111,39 @@ body{
 }
 </style>
 
+
+<style id="nf-pending-customer-card">
+/* ===== ADD-ON: Pending Customer side-menu card =====
+   Existing app styles and logic are intentionally untouched. */
+#nfPendingMenuBtn{position:relative}
+#nfPendingBadge{margin-left:auto;min-width:24px;height:24px;padding:0 7px;border-radius:999px;display:inline-grid;place-items:center;background:linear-gradient(135deg,#ef4f8a,#ff8a3d);color:#fff;font-size:11px;font-weight:900}
+#nfPendingCard{display:none;margin:8px 2px 12px;padding:10px;border:1px solid rgba(255,255,255,.12);border-radius:16px;background:rgba(255,255,255,.07);box-shadow:0 10px 24px rgba(0,0,0,.16);color:#fff}
+#nfPendingCard.open{display:block}
+#nfPendingCardHead{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+#nfPendingCardHead b{font-size:13px}
+#nfPendingCardHead span{font-size:10px;color:#c9c5d3}
+.nfPendingCustomer{padding:10px 0;border-top:1px solid rgba(255,255,255,.10)}
+.nfPendingCustomer:first-child{border-top:0;padding-top:2px}
+.nfPendingName{font-weight:900;font-size:13px;line-height:1.3}
+.nfPendingTotal{margin-top:3px;font-size:11px;color:#ffd8e5}
+.nfPendingTypes{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;margin-top:7px}
+.nfPendingType{padding:5px 4px;border-radius:8px;background:rgba(255,255,255,.08);font-size:9px;text-align:center;line-height:1.25}
+.nfPendingType b{display:block;font-size:14px;color:#fff}
+.nfPendingDate{margin-top:7px}
+.nfPendingDate label{display:block;font-size:9px;color:#c9c5d3;margin-bottom:3px}
+.nfPendingDateRow{display:grid;grid-template-columns:1fr auto;gap:4px}
+.nfPendingDate input{width:100%;min-width:0;height:34px;padding:5px 6px;border:1px solid rgba(255,255,255,.16);border-radius:8px;background:rgba(255,255,255,.08);color:#fff;font-size:10px}
+.nfPendingDate input::-webkit-calendar-picker-indicator{filter:invert(1);opacity:.8}
+.nfPendingSave{height:34px;border:0;border-radius:8px;padding:0 8px;background:linear-gradient(135deg,#6c4df6,#ef4f8a);color:#fff;font-size:10px;font-weight:850}
+.nfPendingOrders{margin-top:6px;font-size:9px;color:#c9c5d3;line-height:1.45}
+.nfPendingOrderLine{padding-top:3px}
+#nfPendingList{max-height:46vh;overflow:auto;padding-right:2px}
+#nfPendingList::-webkit-scrollbar{width:4px}
+#nfPendingList::-webkit-scrollbar-thumb{background:rgba(255,255,255,.22);border-radius:9px}
+.nfPendingEmpty{padding:12px 4px;text-align:center;font-size:11px;color:#c9c5d3}
+@media(max-width:900px){#nfPendingList{max-height:42vh}}
+</style>
+
 </head>
 <body>
 
@@ -2148,6 +2181,11 @@ body{
 <button class="navbtn" data-view="orders">🧾 Orders</button>
 <button class="navbtn" data-view="alterations">✏️ Alterations</button>
 <button class="navbtn" data-view="payments">💰 Payments</button>
+<button class="navbtn" id="nfPendingMenuBtn" type="button" onclick="togglePendingCustomerCard()">🧵 <span>Pending Customer</span><span id="nfPendingBadge">0</span></button>
+<div id="nfPendingCard" aria-label="Pending Customer card">
+  <div id="nfPendingCardHead"><b>🧵 Pending blouse</b><span>Card-லேயே date update</span></div>
+  <div id="nfPendingList"><div class="nfPendingEmpty">Pending blouse இல்லை.</div></div>
+</div>
 <button class="navbtn" data-view="designs">🎨 Designs</button>
 <button class="navbtn logout" id="sideLogout">⎋ Logout</button>
 </aside>
@@ -3591,6 +3629,153 @@ supabaseClient.auth.onAuthStateChange((_event,session)=>{if(session?.user){showA
       return true;
     }
   };
+})();
+</script>
+
+
+<script id="nf-pending-customer-addon">
+/* ===== ADD-ON: Pending Customer side-menu card =====
+   This reads the existing state.orders/state.customers data only.
+   It does not change, delete, or rewrite existing customer/order logic. */
+(function(){
+  "use strict";
+
+  var PENDING_DATE_KEY="nf_pending_since_v1_";
+
+  function pendingOrdersForCustomer(id){
+    return (window.state && Array.isArray(state.orders) ? state.orders : [])
+      .filter(function(o){
+        return o.customer_id===id && typeof isFinished==="function" && !isFinished(o);
+      });
+  }
+
+  function pendingStatsForCustomer(id){
+    var orders=pendingOrdersForCustomer(id);
+    var out={normal:0,lining:0,design:0,total:0};
+    orders.forEach(function(o){
+      var s=typeof blouseSplit==="function" ? blouseSplit(o) : {normal:0,lining:0,design:0};
+      out.normal+=Number(s.normal||0);
+      out.lining+=Number(s.lining||0);
+      out.design+=Number(s.design||0);
+    });
+    out.total=out.normal+out.lining+out.design;
+    return {orders:orders,stats:out};
+  }
+
+  function autoPendingDate(orders){
+    var dates=orders.map(function(o){
+      return String(o.cloth_received_date||o.order_date||o.created_at||"").slice(0,10);
+    }).filter(function(v){return /^\d{4}-\d{2}-\d{2}$/.test(v);}).sort();
+    return dates[0]||"";
+  }
+
+  function getPendingSince(id,orders){
+    try{
+      var saved=localStorage.getItem(PENDING_DATE_KEY+id);
+      if(saved && /^\d{4}-\d{2}-\d{2}$/.test(saved))return saved;
+    }catch(e){}
+    return autoPendingDate(orders);
+  }
+
+  window.savePendingSince=function(id){
+    var input=document.getElementById("nf-pending-date-"+id);
+    if(!input)return;
+    var value=input.value||"";
+    if(!value){
+      if(typeof toast==="function")toast("Pending date தேர்வு செய்யுங்கள்.",true);
+      return;
+    }
+    try{
+      localStorage.setItem(PENDING_DATE_KEY+id,value);
+    }catch(e){
+      if(typeof toast==="function")toast("Pending date சேமிக்க முடியவில்லை.",true);
+      return;
+    }
+    renderPendingCustomerCard();
+    if(typeof toast==="function")toast("Pending date update செய்யப்பட்டது.");
+  };
+
+  window.togglePendingCustomerCard=function(){
+    var card=document.getElementById("nfPendingCard");
+    if(!card)return;
+    card.classList.toggle("open");
+    var btn=document.getElementById("nfPendingMenuBtn");
+    if(btn)btn.setAttribute("aria-expanded",card.classList.contains("open")?"true":"false");
+    if(card.classList.contains("open"))renderPendingCustomerCard();
+  };
+
+  window.renderPendingCustomerCard=function(){
+    var list=document.getElementById("nfPendingList");
+    var badge=document.getElementById("nfPendingBadge");
+    if(!list)return;
+
+    var customers=(window.state && Array.isArray(state.customers))?state.customers:[];
+    var rows=[];
+    customers.forEach(function(c){
+      var data=pendingStatsForCustomer(c.id);
+      if(data.stats.total<=0)return;
+      var since=getPendingSince(c.id,data.orders);
+      rows.push({customer:c,data:data,since:since});
+    });
+
+    rows.sort(function(a,b){
+      return String(a.since||"9999-99-99").localeCompare(String(b.since||"9999-99-99"));
+    });
+
+    if(badge)badge.textContent=String(rows.length);
+    if(!rows.length){
+      list.innerHTML='<div class="nfPendingEmpty">✅ Pending blouse இல்லை.</div>';
+      return;
+    }
+
+    list.innerHTML=rows.map(function(row){
+      var c=row.customer,s=row.data.stats,orders=row.data.orders;
+      var orderLines=orders.slice().sort(function(a,b){
+        return String(a.delivery_date||"9999-99-99").localeCompare(String(b.delivery_date||"9999-99-99"));
+      }).slice(0,4).map(function(o){
+        var split=typeof blouseSplit==="function"?blouseSplit(o):{normal:0,lining:0,design:0};
+        var parts=[];
+        if(split.normal)parts.push("Normal "+split.normal);
+        if(split.lining)parts.push("Lining "+split.lining);
+        if(split.design)parts.push("Design "+split.design);
+        var detail=parts.length?parts.join(" · "):String(Number(o.quantity||0))+" pcs";
+        return '<div class="nfPendingOrderLine">• '+esc(c.name)+': '+esc(detail)+(o.delivery_date?' · Delivery '+dateText(o.delivery_date):'')+'</div>';
+      }).join("");
+
+      return '<div class="nfPendingCustomer">'
+        +'<div class="nfPendingName">👤 '+esc(c.name)+'</div>'
+        +'<div class="nfPendingTotal">மொத்த Pending: <b>'+s.total+'</b> blouse</div>'
+        +'<div class="nfPendingTypes">'
+          +'<div class="nfPendingType"><b>'+s.normal+'</b>Normal</div>'
+          +'<div class="nfPendingType"><b>'+s.lining+'</b>Lining</div>'
+          +'<div class="nfPendingType"><b>'+s.design+'</b>Design</div>'
+        +'</div>'
+        +'<div class="nfPendingDate">'
+          +'<label>📅 Pending since</label>'
+          +'<div class="nfPendingDateRow">'
+            +'<input id="nf-pending-date-'+esc(c.id)+'" type="date" value="'+esc(row.since)+'">'
+            +'<button class="nfPendingSave" type="button" onclick=\'savePendingSince("'+String(c.id).replace(/"/g,'&quot;')+'")\'>Update</button>'
+          +'</div>'
+        +'</div>'
+        +(orderLines?'<div class="nfPendingOrders">'+orderLines+'</div>':'')
+        +'</div>';
+    }).join("");
+  };
+
+  /* Add the new card as a non-invasive render step after the existing renderAll. */
+  var oldRenderAll=window.renderAll;
+  if(typeof oldRenderAll==="function"){
+    window.renderAll=function(){
+      oldRenderAll.apply(this,arguments);
+      try{renderPendingCustomerCard();}catch(e){console.log("Pending customer card:",e)}
+    };
+  }else{
+    document.addEventListener("DOMContentLoaded",function(){renderPendingCustomerCard();},{once:true});
+  }
+
+  document.addEventListener("DOMContentLoaded",function(){
+    try{renderPendingCustomerCard();}catch(e){}
+  },{once:true});
 })();
 </script>
 
