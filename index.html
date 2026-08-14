@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>New Fashion Tailoring – Online Management | Phase 4.6</title>
+<title>New Fashion Tailoring – Online Management | Phase 4.3</title>
 <link rel="manifest" href="manifest.json">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -2111,15 +2111,6 @@ body{
 }
 </style>
 
-
-<style id="phase4-6-android-back-fix">
-/* Android system edge-back owns the left screen edge. The page never blocks it. */
-html,body{overscroll-behavior-x:none;}
-body.modal-open{overflow:hidden;}
-@media(max-width:900px){
-  #sidebar{touch-action:pan-y;}
-}
-</style>
 </head>
 <body>
 
@@ -2311,16 +2302,22 @@ function goView(view,push=true){
  target.classList.add("active");$("sidebar").classList.remove("open");
  document.body.classList.remove("drawer-open");
  window.scrollTo({top:0,behavior:"smooth"});
- if(push&&history.state?.view!==view){
-   /* Every real screen gets its own WebView history entry.  This is
-      important for Android edge-back: it must return inside the SPA,
-      not fall through to the host APK/activity. */
-   history.pushState({view,__nfView:true,__nfApp:true},"","#"+view);
+ if(push){
+   const current=(location.hash||"").replace(/^#/,'').split("?",1)[0]||"dashboard";
+   if(current!==view){
+     /* IMPORTANT: use a real URL-fragment history entry. Android WebView/TWA
+        back gestures reliably traverse hash entries; this avoids the native
+        APK falling through and closing the Activity while normal browsers
+        continue to behave like the same SPA. */
+     location.hash="#"+view;
+     return;
+   }
  }
+ history.replaceState({view:view,__nfView:true,__nfApp:true},"",location.hash||("#"+view));
  updateBackButton();
 }
 function updateBackButton(){
- const v=history.state?.view||"dashboard";
+ const v=(location.hash||"#dashboard").replace(/^#/,'').split("?",1)[0]||"dashboard";
  const b=$("backBtn");if(!b)return;
  b.disabled=v==="dashboard";
  b.title=v==="dashboard"?"Dashboard":"Back";
@@ -2328,93 +2325,90 @@ function updateBackButton(){
  b.classList.toggle("dashboardBackHidden",v==="dashboard");
 }
 document.querySelectorAll(".navbtn[data-view]").forEach(b=>b.addEventListener("click",()=>goView(b.dataset.view)));
-$("backBtn").onclick=()=>{
- const s=history.state||{};
- if(s.__nfModal){ history.back(); return; }
- if((s.view||"dashboard")!=="dashboard") history.back();
-};
+$("backBtn").onclick=()=>history.back();
 
 /* =========================================================
-   ANDROID / WEBVIEW SPA BACK GUARD — HARDENED
+   PHASE 4.7 — ANDROID EDGE-BACK / MODAL HISTORY FIX
    ---------------------------------------------------------
-   The browser version was already working, but the APK/WebView was
-   allowing the Android edge-back gesture to fall through and close the
-   host activity.  Keep a protected dashboard root + guard entry and
-   handle modal entries separately.  Do NOT intercept the left-edge
-   touch gesture itself; Android owns that gesture.
+   Root cause found in the previous index:
+   - the browser was using pushState/popstate;
+   - the APK's Android back gesture was not consistently surfacing that
+     state transition to the page, so the host Activity could finish;
+   - modal entries were also using the same URL/hash as their parent screen.
+
+   Fix:
+   - screen navigation uses actual hash history entries;
+   - modal navigation uses a distinct hash entry;
+   - hashchange closes an open modal before changing screens;
+   - dashboard remains a guarded root entry;
+   - no touch listener claims Android's left-edge system gesture.
    ========================================================= */
-(function installNavigationGuard(){
+(function installAndroidHashBackBridge(){
  "use strict";
- var booting=true;
- function stateView(s){return (s&&s.view)||"dashboard";}
- function isModalState(s){return !!(s&&s.__nfModal);}
- function showView(v){
-   if(typeof goView==="function") goView(v,false);
-   updateBackButton();
+ const validViews=new Set(["dashboard","customers","orders","payments","measurements","alterations","designs"]);
+ let syncing=false;
+ let boot=true;
+
+ function parseHash(){
+   const raw=(location.hash||"#dashboard").replace(/^#/,'');
+   const parts=raw.split("?");
+   const view=validViews.has(parts[0])?parts[0]:"dashboard";
+   const params=new URLSearchParams(parts[1]||"");
+   const modalType=params.get("modal");
+   return {view,modalType};
  }
-
- window.addEventListener("popstate",function(e){
-   var s=e.state||{};
-   var modal=$("modal");
-
-   /* 1) Modal/form is always the first thing Back closes. */
-   if(modal && modal.classList.contains("open")){
-     modal.classList.remove("open");
-     state.editing=null;
-     document.body.classList.remove("modal-open");
-     showView(stateView(s));
-
-     /* If WebView returned to a modal-less entry that is not a real view,
-        immediately restore the protected current-view entry. */
-     if(!s.view){
-       history.replaceState({view:"dashboard",__nfRoot:true,__nfApp:true},"","#dashboard");
-       history.pushState({view:"dashboard",__nfGuard:true,__nfApp:true},"","#dashboard");
-     }
-     return;
-   }
-
-   /* 2) Protected dashboard root: never let Back leave the document. */
-   if(s.__nfRoot || !s.view){
-     history.pushState({view:"dashboard",__nfGuard:true,__nfApp:true},"","#dashboard");
-     showView("dashboard");
-     return;
-   }
-
-   /* 3) Normal SPA screen. */
-   showView(s.view);
- });
-
- /* Re-arm the history stack after a cold load/BFCache/WebView restore. */
- try{
-   var st=history.state;
-   var hash=(location.hash||"").replace(/^#/,'');
-   var validViews=["dashboard","customers","orders","payments","measurements","alterations","designs"];
-   var initialView=validViews.indexOf(hash)>=0?hash:(st&&st.view)||"dashboard";
-
-   if(!st || !st.__nfApp){
-     history.replaceState({view:"dashboard",__nfRoot:true,__nfApp:true},"","#dashboard");
-     history.pushState({view:initialView,__nfGuard:true,__nfApp:true},"","#"+initialView);
-     showView(initialView);
-   }else{
-     updateBackButton();
-   }
- }catch(_){
-   /* Never break app startup because history APIs are unavailable. */
+ function syncState(view,modalType){
+   const stateObj={view,__nfApp:true,__nfView:true};
+   if(modalType)Object.assign(stateObj,{__nfModal:true,modalType});
+   history.replaceState(stateObj,"",location.hash||("#"+view));
  }
-
- window.addEventListener("pageshow",function(){
+ function applyHash(){
+   if(syncing)return;
+   syncing=true;
    try{
-     var st=history.state;
-     var v=stateView(st);
-     if(!st || !st.__nfApp){
-       history.replaceState({view:"dashboard",__nfRoot:true,__nfApp:true},"","#dashboard");
-       history.pushState({view:v,__nfGuard:true,__nfApp:true},"","#"+v);
-     }
-     showView(v);
-   }catch(_){ }
- });
+     const h=parseHash();
+     const modal=$("modal");
+     const modalOpen=!!(modal&&modal.classList.contains("open"));
 
- booting=false;
+     if(h.modalType){
+       /* Modal was opened by openModal(); do not rebuild its form here. */
+       syncState(h.view,h.modalType);
+       if(typeof goView==="function")goView(h.view,false);
+       return;
+     }
+
+     /* Back from Add Customer/Add Order: close only the modal and stay on
+        the screen that launched it. */
+     if(modalOpen){
+       modal.classList.remove("open");
+       state.editing=null;
+       document.body.classList.remove("modal-open");
+     }
+     if(typeof goView==="function")goView(h.view,false);
+     syncState(h.view,null);
+   }finally{
+     syncing=false;
+   }
+ }
+ window.addEventListener("hashchange",applyHash,{passive:true});
+ window.addEventListener("pageshow",function(){
+   try{applyHash();}catch(_){updateBackButton();}
+ },{passive:true});
+
+ /* Preserve the current screen on cold load, but create a protected
+    dashboard/root entry before the current screen. */
+ const initial=parseHash();
+ const initialHash="#"+initial.view+(initial.modalType?"?modal="+encodeURIComponent(initial.modalType):"");
+ if(!location.hash){
+   history.replaceState({view:"dashboard",__nfRoot:true,__nfApp:true},"","#dashboard");
+   history.pushState({view:"dashboard",__nfGuard:true,__nfApp:true},"","#dashboard");
+ }
+ if(initial.view!=="dashboard" && !initial.modalType){
+   history.replaceState({view:"dashboard",__nfRoot:true,__nfApp:true},"","#dashboard");
+   history.pushState({view:initial.view,__nfView:true,__nfApp:true},"",initialHash);
+ }
+ boot=false;
+ updateBackButton();
 })();
 
 async function getTable(name){
@@ -2908,21 +2902,19 @@ if(type==="order"){
  recalc();
 }
 $("modal").classList.add("open");
- document.body.classList.add("modal-open");
- /* One dedicated history entry per open form. Android edge-back consumes
-    only this entry and returns to the current SPA screen. */
- const base=history.state||{view:"dashboard",__nfApp:true};
- if(!base.__nfModal){
-   history.pushState({...base,__nfModal:true,__nfApp:true,modalType:type,modalId:id||null},"",location.hash||"#"+(base.view||"dashboard"));
- }
+ /* PHASE 4.7: modal gets a distinct hash history entry so Android edge-back
+    can pop the modal without finishing the host Activity. */
+ const baseView=(location.hash||"#dashboard").replace(/^#/,'').split("?",1)[0]||"dashboard";
+ const modalHash="#"+baseView+"?modal="+encodeURIComponent(type);
+ if(location.hash!==modalHash) location.hash=modalHash;
 }
 function closeModal(skipHistory=false){
  const wasOpen=$("modal").classList.contains("open");
  $("modal").classList.remove("open");
- document.body.classList.remove("modal-open");
  state.editing=null;
- if(wasOpen && !skipHistory && history.state?.__nfModal){
-   history.back();
+ if(wasOpen && !skipHistory){
+   const h=(location.hash||"#dashboard").replace(/^#/,'');
+   if(h.includes("?modal=")) history.back();
  }
 }
 $("modal").addEventListener("click",e=>{if(e.target===$("modal"))closeModal()});
@@ -3561,7 +3553,6 @@ supabaseClient.auth.onAuthStateChange((_event,session)=>{if(session?.user){showA
   }
 })();
 </script>
-
 
 </body>
 </html>
