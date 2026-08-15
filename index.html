@@ -2462,6 +2462,36 @@ return state.payments.filter(p=>String(p.payment_date||"").slice(0,7)===ym).redu
 }
 function pendingOrdersCount(){return state.orders.filter(o=>!isFinished(o)).length}
 
+/* Dashboard order quantity label: always reflect the garment the customer actually gave.
+   Chudi/Saree counts are stored in GARMENT_SPLIT inside notes; blouse counts use
+   the existing blouse split. Never label a Chudi/Saree order as "blouse". */
+function dashboardOrderGarmentText(o){
+ const garment=String(o?.garment_type||"").trim().toLowerCase();
+ const notes=String(o?.notes||"");
+ let split=null;
+ const m=notes.match(/GARMENT_SPLIT:(\{[^}]+\})/);
+ if(m){try{split=JSON.parse(m[1])}catch(e){split=null}}
+ if(garment==="chudi"){
+   const qty=Math.max(0,Number(split?.chudi||0))||Math.max(0,Number(o?.quantity||0));
+   return `👗 ${qty} Chudi`;
+ }
+ if(garment==="saree"){
+   const qty=Math.max(0,Number(split?.saree||0))||Math.max(0,Number(o?.quantity||0));
+   return `🥻 ${qty} Saree`;
+ }
+ if(garment==="blouse"){
+   let qty=0;
+   if(typeof blouseSplit==="function"){
+     const b=blouseSplit(o||{});
+     qty=Math.max(0,Number(b.normal||0))+Math.max(0,Number(b.lining||0))+Math.max(0,Number(b.design||0));
+   }
+   qty=qty||Math.max(0,Number(o?.quantity||0));
+   return `👗 ${qty} blouse`;
+ }
+ const label=String(o?.garment_type||"Garment");
+ return `👗 ${Math.max(0,Number(o?.quantity||0))} ${label}`;
+}
+
 function renderDashboardDues(){
  const rows=state.customers.map(c=>({c,s:customerStats(c.id)})).filter(x=>x.s.balance>0).sort((a,b)=>b.s.balance-a.s.balance);
  $("dashboardDuesList").innerHTML=rows.length?rows.slice(0,15).map(x=>`<div class="dueCustomer clickable" role="button" tabindex="0" onclick="goToCustomer('${x.c.id}')"><div><div class="dueName">👤 ${esc(x.c.name)}</div><div class="dueMeta">📞 ${esc(x.c.phone||"Phone இல்லை")} · Pending garment: ${x.s.pending}</div></div><b>${money(x.s.balance)}</b></div>`).join(""):`<div class="empty">Customer balance இல்லை. 🎉</div>`;
@@ -2483,11 +2513,11 @@ const pendingActive=state.orders.filter(o=>!isFinished(o)).sort((a,b)=>String(a.
 $("kpiPendingDetails").innerHTML=pendingActive.length?pendingActive.map(o=>{
  const c=state.customers.find(x=>x.id===o.customer_id)||{},d=dueInfo(o);
  const due=d?.kind==="late"?`🚨 ${d.days} நாள் late`:d?.kind==="today"?"🔔 இன்று":`⏰ ${d?.days??"—"} நாள் உள்ளது`;
- const age=o.delivery_date?Math.max(0,daysBetween(o.delivery_date,localDate())):0;const ageText=d?.kind==="late"?` · ${age} நாள் ஆகிறது`:"";return `<div class="kpiDetailRow" onclick="goToOrderCustomer('${o.id}')"><b>👤 ${esc(c.name||"Unknown Customer")} · 📞 ${esc(c.phone||"Phone இல்லை")}</b><span>📅 ${dateText(o.delivery_date)} · ${due}${ageText} · 👗 ${Number(o.quantity||0)} blouse</span></div>`;
+ const age=o.delivery_date?Math.max(0,daysBetween(o.delivery_date,localDate())):0;const ageText=d?.kind==="late"?` · ${age} நாள் ஆகிறது`:"";return `<div class="kpiDetailRow" onclick="goToOrderCustomer('${o.id}')"><b>👤 ${esc(c.name||"Unknown Customer")} · 📞 ${esc(c.phone||"Phone இல்லை")}</b><span>📅 ${dateText(o.delivery_date)} · ${due}${ageText} · ${dashboardOrderGarmentText(o)}</span></div>`;
 }).join(""):`<div class="kpiDetailRow">Pending orders இல்லை. 🎉</div>`;
 $("kpiDeliveryDetails").innerHTML=today.length?today.map(o=>{
  const c=state.customers.find(x=>x.id===o.customer_id)||{};
- return `<div class="kpiDetailRow" onclick="goToOrderCustomer('${o.id}')"><b>👤 ${esc(c.name||"Unknown Customer")} · 📞 ${esc(c.phone||"Phone இல்லை")}</b><span>📅 ${dateText(o.delivery_date)} · 👗 ${Number(o.quantity||0)} blouse</span></div>`;
+ return `<div class="kpiDetailRow" onclick="goToOrderCustomer('${o.id}')"><b>👤 ${esc(c.name||"Unknown Customer")} · 📞 ${esc(c.phone||"Phone இல்லை")}</b><span>📅 ${dateText(o.delivery_date)} · ${dashboardOrderGarmentText(o)}</span></div>`;
 }).join(""):`<div class="kpiDetailRow">இன்று delivery இல்லை.</div>`;
 $("kpiMonthly").textContent=money(monthlyCollection());
 $("kpiBalance").textContent=money(totalBalance());
