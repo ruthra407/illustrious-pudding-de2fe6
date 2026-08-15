@@ -2707,7 +2707,7 @@ async function saveQuickOrder(id){
  let notes=garment==="Chudi"?"GARMENT_SPLIT:"+JSON.stringify({chudi:cq,chudiLining:cl,chudiLiningQty:clq,saree:0})+" | CHUDI_RATE:"+cr:garment==="Saree"?"GARMENT_SPLIT:"+JSON.stringify({chudi:0,chudiLining:"no",chudiLiningQty:0,saree:sq})+" | SAREE_RATE:"+sr:makeBlouseSplitNote(s,r,$("qo-notes-"+id)?.value||"");
  if(ls)notes+=` | Lining cloth: ${ls==="customer"?"Customer கொடுத்தது":"நாம் வாங்கியது"}`;
  if(ls==="shop")notes+=` | LINING_COST:${JSON.stringify({source:ls,qty:lq,rate:lr,total:liningTotal})}`;
- const payload={customer_id:id,order_no:makeOrderNo(),garment_type:garment,order_date:localDate(),cloth_received_date:cloth,delivery_date:delivery,quantity:qty,unit_price:qty?garmentTotal/qty:0,total_amount:total,advance_amount:advance,balance_amount:Math.max(0,total-advance),status,rate_type:garment==="Chudi"||garment==="Saree"?"normal":(Object.values(s).filter(x=>x>0).length>1?"mixed":s.normal>0?"normal":s.lining>0?"lining":"design"),lining_cloth_source:ls||null,lining_cloth_qty:lq,notes};
+ const payload={customer_id:id,order_no:makeOrderNo(),garment_type:garment,order_date:localDate(),cloth_received_date:cloth,delivery_date:delivery,quantity:qty,unit_price:qty?garmentTotal/qty:0,total_amount:total,advance_amount:advance,balance_amount:Math.max(0,total-advance),status,rate_type:garment==="Chudi"||garment==="Saree"?"normal":(s.normal>0?"normal":s.lining>0?"lining":s.design>0?"design":"normal"),lining_cloth_source:ls||null,lining_cloth_qty:lq,notes};
  try{const {error}=await supabaseClient.from("orders").insert(payload);if(error)throw error;await loadAll(true);toast("இந்த customer-க்கு New Order சேமிக்கப்பட்டது.");}catch(err){toast("Order save failed: "+err.message,true)}
 }
 
@@ -3086,7 +3086,7 @@ if(type==="order"){
    payload.total_amount=split.normal*rates.normal+split.lining*rates.lining+split.design*rates.design;
    payload.unit_price=payload.quantity?payload.total_amount/payload.quantity:0;
    const active=["normal","lining","design"].filter(k=>split[k]>0);
-   payload.rate_type=active.length>1?"mixed":active[0]||"normal";
+   payload.rate_type=active[0]||"normal";
    payload.notes=makeBlouseSplitNote(split,rates,payload.notes||"");
  }
  payload.balance_amount=Math.max(0,payload.total_amount-Number(payload.advance_amount||0));
@@ -4619,6 +4619,19 @@ window.runPhoneReminders=function(){
    * removed or replaced.
    */
 })();
+</script>
+
+
+<script id="nf-rate-type-db-compatibility-fix">
+/*
+  Database compatibility fix:
+  The orders.rate_type CHECK constraint in the connected database rejects
+  "mixed".  The item-wise blouse split is already stored in BLOUSE_SPLIT and
+  BLOUSE_RATES, so rate_type does not need to represent "mixed".
+  For multi-type blouse orders we keep the first valid legacy rate_type
+  (normal/lining/design) and preserve the complete split in notes.
+  Chudi/Saree continue to use "normal".
+*/
 </script>
 
 </body>
