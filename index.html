@@ -5149,5 +5149,276 @@ window.runPhoneReminders=function(){
 }
 </style>
 
+
+<!-- PHASE 4.5 — DESIGN BLOUSE: 3 INDEPENDENT PRICE SLOTS -->
+<style id="nf-design-3slot-css">
+.nf-design-3slot{margin-top:9px;padding:11px;border-radius:14px;border:1px solid #ddd5ff;background:linear-gradient(135deg,#f7f4ff,#fff1f7)}
+.nf-design-3slot-head{font-weight:900;font-size:14px;margin-bottom:7px}
+.nf-design-3slot-hint{font-size:11px;color:#6f6a7c;line-height:1.4;margin-bottom:8px}
+.nf-design-3slot-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.nf-design-slot-card{min-width:0;padding:9px;border:1px solid #e4def5;border-radius:12px;background:#fff}
+.nf-design-slot-card h5{margin:0 0 6px;font-size:12px;font-weight:900}
+.nf-design-slot-card label{display:block;font-size:10px;font-weight:800;color:#77758a;margin:5px 0 3px}
+.nf-design-slot-card input{width:100%;min-height:40px}
+.nf-design-slot-sub{margin-top:6px;padding:6px;border-radius:8px;background:#f7f7fb;text-align:right;font-size:11px;font-weight:850}
+.nf-design-3slot-total{display:flex;justify-content:space-between;gap:8px;margin-top:8px;padding:9px 10px;border-radius:10px;background:linear-gradient(135deg,#6c4df6,#ef4f8a);color:#fff;font-weight:900}
+@media(max-width:700px){.nf-design-3slot-grid{grid-template-columns:1fr}}
+</style>
+
+<script id="nf-design-3slot-js">
+(function(){
+"use strict";
+const N=v=>{const n=Number(v);return Number.isFinite(n)?Math.max(0,n):0};
+const M=v=>{try{return money(N(v))}catch(e){return "₹"+N(v).toFixed(2)}};
+const E=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+function designItemsFromOrder(o){
+  const notes=String(o?.notes||"");
+  const m=notes.match(/DESIGN_ITEMS:(\[[^\]]*\])/);
+  if(m){try{
+    const a=JSON.parse(m[1]);
+    if(Array.isArray(a))return a.slice(0,3).map(x=>({name:String(x?.name||""),qty:N(x?.qty),rate:N(x?.rate)}));
+  }catch(e){}}
+  const rm=notes.match(/DESIGN_RATES:(\[[^\]]*\])/);
+  let rates=[];
+  if(rm){try{const a=JSON.parse(rm[1]);if(Array.isArray(a))rates=a.map(N)}catch(e){}}
+  const s=typeof blouseSplit==="function"?blouseSplit(o||{}):{design:0};
+  const q=N(s.design);
+  if(!rates.length){
+    let r=0;try{r=N((typeof nfOrderRates==="function"?nfOrderRates(o||{}):getRates()).design)}catch(e){}
+    for(let i=0;i<q;i++)rates.push(r);
+  }
+  const out=[];let i=0;
+  while(i<rates.length && out.length<3){
+    const r=N(rates[i]);let count=1;
+    while(i+count<rates.length && N(rates[i+count])===r)count++;
+    out.push({name:"",qty:count,rate:r});i+=count;
+  }
+  if(i<rates.length && out.length)out[out.length-1].qty+=rates.length-i;
+  return out;
+}
+
+function slotMarkup(items){
+  items=Array.isArray(items)?items:[];
+  let h='<div class="nf-design-3slot">'+
+    '<div class="nf-design-3slot-head">🎨 Design blouse — 3 தனித்தனி design slots</div>'+
+    '<div class="nf-design-3slot-hint">Design 1, 2, 3-க்கு தனித்தனி பெயர், எண்ணிக்கை, ஒன்றின் விலை கொடுக்கலாம். மொத்த Design blouse எண்ணிக்கையும் விலையும் தானாக கணக்காகும்.</div>'+
+    '<div class="nf-design-3slot-grid">';
+  for(let i=0;i<3;i++){
+    const x=items[i]||{name:"",qty:0,rate:0};
+    h+=`<div class="nf-design-slot-card"><h5>Design ${i+1}</h5>
+      <label>Design பெயர் / குறிப்பு</label>
+      <input class="input nf-di-name" type="text" value="${E(x.name)}" placeholder="எ.கா. Aari / Model">
+      <label>எத்தனை</label>
+      <input class="input nf-di-qty" type="number" min="0" step="1" value="${N(x.qty)}">
+      <label>இந்த design-க்கு ஒன்றின் விலை</label>
+      <input class="input nf-di-rate" type="number" min="0" step="0.01" value="${N(x.rate)}">
+      <div class="nf-design-slot-sub">Subtotal: <span class="nf-di-sub">${M(N(x.qty)*N(x.rate))}</span></div>
+    </div>`;
+  }
+  return h+'</div><div class="nf-design-3slot-total"><span>Design blouse Total</span><b class="nf-di-total">'+M(0)+'</b></div></div>';
+}
+
+function readBox(box){
+  if(!box)return [];
+  return [...box.querySelectorAll(".nf-design-slot-card")].map(c=>({
+    name:c.querySelector(".nf-di-name")?.value?.trim()||"",
+    qty:N(c.querySelector(".nf-di-qty")?.value),
+    rate:N(c.querySelector(".nf-di-rate")?.value)
+  }));
+}
+function recalcBox(box){
+  const items=readBox(box);
+  let qty=0,total=0;
+  [...box.querySelectorAll(".nf-design-slot-card")].forEach((c,i)=>{
+    const x=items[i],sub=x.qty*x.rate;qty+=x.qty;total+=sub;
+    const el=c.querySelector(".nf-di-sub");if(el)el.textContent=M(sub);
+  });
+  const t=box.querySelector(".nf-di-total");if(t)t.textContent=M(total);
+  return {items,qty,total};
+}
+
+window.nfDesignItems=designItemsFromOrder;
+
+function buildQuick(id,items){
+  const host=document.getElementById("qo-design-rates-box-"+id);
+  if(!host)return;
+  host.innerHTML=slotMarkup(items);
+  host.style.display="";
+  const box=host.querySelector(".nf-design-3slot");
+  box.querySelectorAll("input").forEach(el=>el.addEventListener("input",()=>updateQuick(id)));
+  updateQuick(id);
+}
+function updateQuick(id){
+  const host=document.getElementById("qo-design-rates-box-"+id);
+  if(!host)return;
+  const g=document.getElementById("qo-garment-"+id)?.value||"Blouse";
+  host.style.display=g==="Blouse"?"":"none";
+  if(g!=="Blouse")return;
+  const r=getQuickBlouseRates(id);
+  const d=recalcBox(host.querySelector(".nf-design-3slot"));
+  const n=N(document.getElementById("qo-normal-"+id)?.value),l=N(document.getElementById("qo-lining-"+id)?.value);
+  const qty=n+l+d.qty, garment=n*r.normal+l*r.lining+d.total;
+  const ls=document.getElementById("qo-lining-source-"+id)?.value||"";
+  const lq=N(document.getElementById("qo-lining-qty-"+id)?.value),lr=N(document.getElementById("qo-lining-rate-"+id)?.value);
+  const lining=ls==="shop"?lq*lr:0;
+  const q=document.getElementById("qo-qty-"+id),gt=document.getElementById("qo-garment-total-"+id),tt=document.getElementById("qo-total-"+id);
+  if(q){q.value=qty;q.readOnly=true}
+  if(gt)gt.textContent=M(garment);
+  if(tt)tt.textContent=M(garment+lining);
+  const lt=document.getElementById("qo-lining-total-"+id);if(lt)lt.textContent=M(lining);
+  const ltd=document.getElementById("qo-lining-total-display-"+id);if(ltd)ltd.textContent=M(lining);
+  return d;
+}
+
+/* The rest of the existing app asks this helper for one rate per design blouse. */
+window.getQuickDesignRates=function(id,qty,fallback){
+  const host=document.getElementById("qo-design-rates-box-"+id);
+  const box=host?.querySelector(".nf-design-3slot");
+  if(!box){
+    const q=N(qty),r=N(document.getElementById("qo-design-rate-"+id)?.value||fallback||0);
+    return Array.from({length:q},()=>r);
+  }
+  return readBox(box).reduce((a,x)=>{for(let i=0;i<x.qty;i++)a.push(x.rate);return a},[]);
+};
+window.renderQuickDesignRates=function(id,rates){
+  const host=document.getElementById("qo-design-rates-box-"+id);
+  if(!host)return;
+  if(!host.querySelector(".nf-design-3slot"))host.innerHTML=slotMarkup([]);
+  host.style.display="";
+  const arr=[];let i=0;
+  rates=Array.isArray(rates)?rates:[];
+  while(i<rates.length && arr.length<3){
+    const r=N(rates[i]);let q=1;
+    while(i+q<rates.length && N(rates[i+q])===r)q++;
+    arr.push({name:"",qty:q,rate:r});i+=q;
+  }
+  if(i<rates.length&&arr.length)arr[arr.length-1].qty+=rates.length-i;
+  const cards=host.querySelectorAll(".nf-design-slot-card");
+  arr.forEach((x,i)=>{
+    if(!cards[i])return;
+    cards[i].querySelector(".nf-di-qty").value=x.qty;
+    cards[i].querySelector(".nf-di-rate").value=x.rate;
+  });
+  cards.forEach(c=>c.querySelectorAll("input").forEach(el=>el.addEventListener("input",()=>updateQuick(id))));
+  updateQuick(id);
+};
+
+const oldPopulate=window.populateQuickOrderEditor;
+if(typeof oldPopulate==="function"){
+  window.populateQuickOrderEditor=function(id,o){
+    oldPopulate.apply(this,arguments);
+    buildQuick(id,designItemsFromOrder(o),);
+  };
+}
+
+/* Rebuild after customer cards are rendered. */
+const oldRenderCustomers=window.renderCustomers;
+if(typeof oldRenderCustomers==="function"){
+  window.renderCustomers=function(){
+    oldRenderCustomers.apply(this,arguments);
+    (state.customers||[]).forEach(c=>{
+      const q=document.getElementById("qo-design-"+c.id);
+      if(q&&!document.querySelector("#quick-order-"+c.id+" .nf-design-3slot"))buildQuick(c.id,[]);
+    });
+  };
+}
+
+/* Save DESIGN_ITEMS after the existing save succeeds. */
+const oldSave=window.saveQuickOrder;
+if(typeof oldSave==="function"){
+  window.saveQuickOrder=async function(id){
+    const host=document.getElementById("qo-design-rates-box-"+id);
+    const items=host?.querySelector(".nf-design-3slot")?readBox(host.querySelector(".nf-design-3slot")).filter(x=>x.qty>0).slice(0,3):[];
+    const editId=host?.closest("#quick-order-"+id)?.dataset?.editOrderId||"";
+    const result=await oldSave.apply(this,arguments);
+    if(!items.length)return result;
+    try{
+      let order=editId?(state.orders||[]).find(x=>x.id===editId):null;
+      if(!order)order=(state.orders||[]).filter(x=>x.customer_id===id).slice().sort((a,b)=>String(b.created_at||b.order_date||"").localeCompare(String(a.created_at||a.order_date||"")))[0];
+      if(order){
+        let notes=String(order.notes||"").replace(/\s*\|\s*DESIGN_ITEMS:\[[^\]]*\]/,"").trim();
+        notes+=(notes?" | ":"")+"DESIGN_ITEMS:"+JSON.stringify(items);
+        const r=await supabaseClient.from("orders").update({notes}).eq("id",order.id);
+        if(r.error)throw r.error;
+        await loadAll(true);
+      }
+    }catch(e){toast("Design slot save failed: "+e.message,true)}
+    return result;
+  };
+}
+
+/* Order modal: same three slots and same storage marker. */
+const oldOpen=window.openModal;
+if(typeof oldOpen==="function"){
+  window.openModal=function(type,id){
+    oldOpen.apply(this,arguments);
+    if(type!=="order")return;
+    setTimeout(()=>{
+      const form=document.getElementById("formFields"),dq=form?.querySelector('[name="design_qty"]');
+      if(!form||!dq||form.querySelector(".nf-modal-design-3slot"))return;
+      const row=id?(state.orders||[]).find(x=>x.id===id):null;
+      const holder=document.createElement("div");holder.className="field full nf-modal-design-3slot";
+      holder.innerHTML=slotMarkup(designItemsFromOrder(row||{}));
+      const wrap=dq.closest(".field");
+      (wrap?.parentNode||form).insertBefore(holder,wrap?.nextSibling||null);
+      const box=holder.querySelector(".nf-design-3slot"),fields=n=>form.querySelector(`[name="${n}"]`);
+      const recalc=()=>{
+        const g=String(fields("garment_type")?.value||"Blouse").toLowerCase();
+        holder.classList.toggle("nf-field-hidden",g!=="blouse");
+        if(g!=="blouse")return;
+        const r=recalcBox(box),n=N(fields("normal_qty")?.value),l=N(fields("lining_qty")?.value),rates=getRates();
+        const qty=n+l+r.qty,total=n*rates.normal+l*rates.lining+r.total;
+        dq.value=qty;dq.readOnly=true;
+        const t=fields("total_amount"),u=fields("unit_price");
+        if(t)t.value=total.toFixed(2);
+        if(u)u.value=(qty?total/qty:0).toFixed(2);
+      };
+      box.querySelectorAll("input").forEach(el=>el.addEventListener("input",recalc));
+      ["garment_type","normal_qty","lining_qty"].forEach(n=>fields(n)?.addEventListener("input",recalc));
+      fields("garment_type")?.addEventListener("change",recalc);
+      recalc();
+      form.addEventListener("submit",()=>{
+        if(String(fields("garment_type")?.value||"Blouse").toLowerCase()!=="blouse")return;
+        const items=recalcBox(box).items.filter(x=>x.qty>0).slice(0,3);
+        const notes=fields("notes");
+        if(notes){
+          let clean=String(notes.value||"").replace(/\s*\|\s*DESIGN_ITEMS:\[[^\]]*\]/,"").replace(/\s*\|\s*DESIGN_RATES:\[[^\]]*\]/,"").trim();
+          if(items.length)clean+=(clean?" | ":"")+"DESIGN_ITEMS:"+JSON.stringify(items);
+          notes.value=clean;
+        }
+      },true);
+    },30);
+  };
+}
+
+/* Customer summary: show each design slot separately. */
+const oldSummary=window.nfCustomerWorkSummaryHTML;
+if(typeof oldSummary==="function"){
+  window.nfCustomerWorkSummaryHTML=function(st){
+    let html=oldSummary.apply(this,arguments),rows=[];
+    (st.os||[]).forEach(o=>{
+      const s=typeof blouseSplit==="function"?blouseSplit(o):{};
+      if(N(s.design)<=0)return;
+      designItemsFromOrder(o).forEach((x,i)=>{
+        if(x.qty>0)rows.push(`<div class="customerRateRow"><span class="rateLabel">🎨 Design ${i+1}${x.name?" — "+E(x.name):""} · ${x.qty}</span><span class="rateMath">${x.qty} × ${M(x.rate)} = <b>${M(x.qty*x.rate)}</b></span></div>`);
+      });
+    });
+    if(rows.length){
+      const block='<div class="customerWorkSection"><h4>🎨 Design blouse — தனித்தனி விலை</h4><div class="customerRateList">'+rows.join("")+'</div></div>';
+      html=html.replace('<div class="customerWorkSection"><h4>👚 Chudi Section</h4>',block+'<div class="customerWorkSection"><h4>👚 Chudi Section</h4>');
+    }
+    return html;
+  };
+}
+document.addEventListener("DOMContentLoaded",()=>setTimeout(()=>{
+  (state.customers||[]).forEach(c=>{
+    const q=document.getElementById("qo-design-"+c.id);
+    if(q&&!document.querySelector("#quick-order-"+c.id+" .nf-design-3slot"))buildQuick(c.id,[]);
+  });
+},80),{once:true});
+})();
+</script>
+
 </body>
 </html>
