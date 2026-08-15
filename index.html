@@ -2337,8 +2337,10 @@ const $=id=>document.getElementById(id);
 const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
 const money=n=>"₹"+Number(n||0).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2});
 const localDate=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`};
-const dateText=v=>v?new Date(v+"T00:00:00").toLocaleDateString("ta-IN"):"—";
-const daysBetween=(a,b)=>Math.round((new Date(b+"T00:00:00")-new Date(a+"T00:00:00"))/86400000);
+/* Safe date helpers: old/partial Supabase rows must never break the whole render. */
+const cleanDate=v=>{const x=String(v??"").trim();return /^\d{4}-\d{2}-\d{2}$/.test(x)?x:""};
+const dateText=v=>{const x=cleanDate(v);if(!x)return "—";const d=new Date(x+"T00:00:00");return Number.isNaN(d.getTime())?"—":d.toLocaleDateString("ta-IN")};
+const daysBetween=(a,b)=>{const aa=cleanDate(a),bb=cleanDate(b);if(!aa||!bb)return null;const da=new Date(aa+"T00:00:00"),db=new Date(bb+"T00:00:00");if(Number.isNaN(da.getTime())||Number.isNaN(db.getTime()))return null;return Math.round((db-da)/86400000)};
 function toast(m,error=false){const t=$("toast");t.textContent=m;t.className="toast show"+(error?" error":"");clearTimeout(window.__toast);window.__toast=setTimeout(()=>t.className="toast",3200)}
 function showLogin(){state.user=null;$("app").classList.add("hidden");$("loginPage").classList.remove("hidden")}
 function showApp(u){state.user=u;$("loginPage").classList.add("hidden");$("app").classList.remove("hidden");$("userChip").textContent=u?.email||""}
@@ -2410,12 +2412,26 @@ if(error)throw new Error(name+": "+error.message);return data||[];
 }
 async function loadAll(silent=false){
 if(!state.user)return;
+let loaded;
 try{
 const [customers,orders,measurements,alterations,payments,designs]=await Promise.all([
 getTable("customers"),getTable("orders"),getTable("measurements"),getTable("alterations"),getTable("payments"),getTable("designs")
 ]);
-Object.assign(state,{customers,orders,measurements,alterations,payments,designs});renderAll();if(!silent)toast("Online data loaded");
-}catch(err){toast("Database load error: "+err.message,true)}
+loaded={customers:Array.isArray(customers)?customers.filter(Boolean):[],orders:Array.isArray(orders)?orders.filter(Boolean):[],measurements:Array.isArray(measurements)?measurements.filter(Boolean):[],alterations:Array.isArray(alterations)?alterations.filter(Boolean):[],payments:Array.isArray(payments)?payments.filter(Boolean):[],designs:Array.isArray(designs)?designs.filter(Boolean):[]};
+Object.assign(state,loaded);
+}catch(err){
+ toast("Database load error: "+(err?.message||String(err)),true);
+ return;
+}
+/* Rendering is separate from the DB fetch. A bad legacy row must not make
+   the app look empty or be reported as a database failure. */
+try{renderAll();if(!silent)toast("Online data loaded");}
+catch(err){
+ console.error("Render error after database load:",err);
+ toast("Data loaded. Display error fixed — Refresh செய்யுங்கள்.",true);
+ try{renderCustomers()}catch(e){console.error("Customer render error:",e)}
+ try{renderOrders()}catch(e){console.error("Order render error:",e)}
+}
 }
 function customerName(id){return state.customers.find(x=>x.id===id)?.name||"Unknown"}
 function goToCustomer(id){goView("customers");setTimeout(()=>document.getElementById("customer-card-"+id)?.scrollIntoView({behavior:"smooth",block:"start"}),120);}
@@ -2441,8 +2457,9 @@ function goToOrderCustomer(orderId){
 function orderLabel(id){const o=state.orders.find(x=>x.id===id);return o?`${o.order_no} — ${customerName(o.customer_id)}`:"Unknown"}
 function isFinished(o){return ["Delivered","Cancelled"].includes(String(o.status||""))}
 function dueInfo(o){
-if(!o.delivery_date||isFinished(o))return null;
+if(!o||!o.delivery_date||isFinished(o))return null;
 const d=daysBetween(localDate(),o.delivery_date);
+if(d==null)return null;
 if(d<0)return {kind:"late",days:Math.abs(d)};
 if(d===0)return {kind:"today",days:0};
 if(d<=5)return {kind:"soon",days:d};
@@ -2510,7 +2527,7 @@ $("kpiReminder").textContent=soon.length+late.length;
 const pendingActive=state.orders.filter(o=>!isFinished(o)).sort((a,b)=>String(a.delivery_date||"").localeCompare(String(b.delivery_date||"")));
 $("kpiPendingDetails").innerHTML=pendingActive.length?pendingActive.map(o=>{
  const c=state.customers.find(x=>x.id===o.customer_id)||{},d=dueInfo(o);
- const due=d?.kind==="late"?`🚨 ${d.days} நாள் late`:d?.kind==="today"?"🔔 இன்று":`⏰ ${d?.days??"—"} நாள் உள்ளது`;
+ const due=d?.kind==="late"?`🚨 ${d?.days??"—"} நாள் late`:d?.kind==="today"?"🔔 இன்று":`⏰ ${d?.days??"—"} நாள் உள்ளது`;
  const age=o.delivery_date?Math.max(0,daysBetween(o.delivery_date,localDate())):0;const ageText=d?.kind==="late"?` · ${age} நாள் ஆகிறது`:"";return `<div class="kpiDetailRow" onclick="goToOrderCustomer('${o.id}')"><b>👤 ${esc(c.name||"Unknown Customer")} · 📞 ${esc(c.phone||"Phone இல்லை")}</b><span>📅 ${dateText(o.delivery_date)} · ${due}${ageText} · ${dashboardOrderGarmentText(o)}</span></div>`;
 }).join(""):`<div class="kpiDetailRow">Pending orders இல்லை. 🎉</div>`;
 $("kpiDeliveryDetails").innerHTML=today.length?today.map(o=>{
@@ -2537,7 +2554,7 @@ function smallOrderList(list,label){
  if(!list.length)return `<div class="mini" style="margin-top:8px">எதுவும் இல்லை.</div>`;
  return `<div class="dashboardOrderList">${list.map(o=>{
   const d=dueInfo(o),c=state.customers.find(x=>x.id===o.customer_id)||{};
-  const when=d?.kind==="late"?`🚨 ${d.days} நாள் late`:d?.kind==="today"?"🔔 இன்று":`⏰ ${d?.days??"—"} நாள் உள்ளது`;
+  const when=d?.kind==="late"?`🚨 ${d?.days??"—"} நாள் late`:d?.kind==="today"?"🔔 இன்று":`⏰ ${d?.days??"—"} நாள் உள்ளது`;
   const cls=d?.kind==="late"?"bad":d?.kind==="today"?"warn":"";
   return `<div class="dashboardOrderCard clickable" role="button" tabindex="0" onclick="goToOrderCustomer('${o.id}')"><div class="top"><div><div class="name">👤 ${esc(c.name||"Unknown Customer")}</div><div class="meta">📅 Delivery: ${dateText(o.delivery_date)}</div></div><span class="pill ${cls}">${esc(when)}</span></div><div class="meta">${dashboardOrderGarmentText(o)} · 🧾 ${esc(o.order_no||"")}</div></div>`;
  }).join("")}</div>`;
@@ -2715,7 +2732,7 @@ function customerReminderHTML(os){
 const active=os.filter(o=>!isFinished(o)&&o.delivery_date).sort((a,b)=>String(a.delivery_date).localeCompare(String(b.delivery_date)));
 if(!active.length)return `<div class="customerReminder ok">✅ Active delivery reminder இல்லை.</div>`;
 return active.slice(0,4).map(o=>{
-const d=dueInfo(o), label=d?.kind==="late"?`🚨 ${d.days} நாள் late`:d?.kind==="today"?"🔔 இன்று கொடுக்க வேண்டும்":`⏰ ${d.days} நாள் உள்ளது`;
+const d=dueInfo(o), label=d?.kind==="late"?`🚨 ${d?.days??"—"} நாள் late`:d?.kind==="today"?"🔔 இன்று கொடுக்க வேண்டும்":`⏰ ${d.days} நாள் உள்ளது`;
 const cls=d?.kind==="late"?"late":d?.kind==="today"?"":"ok";
 return `<div class="customerReminder ${cls}" style="margin-top:7px"><b>${esc(o.garment_type||"Blouse")}</b> · ${Number(o.quantity||0)} pcs<br><span class="mini">Delivery: ${dateText(o.delivery_date)} · ${label}</span></div>`;
 }).join("");
@@ -2919,7 +2936,24 @@ try{
  toast("Blouse design deleted.");
 }catch(err){toast("Design delete failed: "+err.message,true)}
 }
-function renderAll(){renderDashboard();renderCustomers();renderMeasurements();renderOrders();renderAlterations();renderPayments();renderDesigns()}
+function renderAll(){
+  const jobs=[
+    ["dashboard",renderDashboard],
+    ["customers",renderCustomers],
+    ["measurements",renderMeasurements],
+    ["orders",renderOrders],
+    ["alterations",renderAlterations],
+    ["payments",renderPayments],
+    ["designs",renderDesigns]
+  ];
+  jobs.forEach(([name,fn])=>{
+    try{fn()}catch(err){
+      console.error("Render error in "+name+":",err);
+      const msg=String(err?.message||err);
+      if(name==="dashboard" && /days/i.test(msg))console.warn("Ignored legacy/null delivery-date row:",err);
+    }
+  });
+}
 
 ["customerSearch","measurementSearch","orderSearch","alterationSearch","paymentSearch","designSearch"].forEach(id=>$(id).addEventListener("input",renderAll));
 $("onlineDesignBtn").addEventListener("click",searchOnlineDesigns);
