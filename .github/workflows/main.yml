@@ -1,0 +1,153 @@
+name: Build APK
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Create Node project
+        shell: bash
+        run: |
+          npm init -y
+          npm install @capacitor/core @capacitor/android
+          npm install --save-dev @capacitor/cli
+
+      - name: Prepare web assets
+        shell: bash
+        run: |
+          mkdir -p www
+
+          test -f index.html
+          cp index.html www/index.html
+
+          if [ -f manifest.json ]; then
+            cp manifest.json www/manifest.json
+          fi
+
+          if [ -f icon-192.png ]; then
+            cp icon-192.png www/icon-192.png
+          fi
+
+          if [ -f icon-512.png ]; then
+            cp icon-512.png www/icon-512.png
+          fi
+
+      - name: Create Capacitor config
+        shell: bash
+        run: |
+          cat > capacitor.config.json <<'EOF'
+          {
+            "appId": "com.ruthra407.tailoring",
+            "appName": "New Fashion Tailoring",
+            "webDir": "www"
+          }
+          EOF
+
+      - name: Create Android project
+        shell: bash
+        run: |
+          npx cap add android
+
+      - name: Configure Android Back
+        shell: bash
+        run: |
+          MAIN_ACTIVITY="android/app/src/main/java/com/ruthra407/tailoring/MainActivity.java"
+
+          mkdir -p "$(dirname "$MAIN_ACTIVITY")"
+
+          cat > "$MAIN_ACTIVITY" <<'EOF'
+          package com.ruthra407.tailoring;
+
+          import android.os.Bundle;
+          import android.webkit.WebView;
+
+          import androidx.activity.OnBackPressedCallback;
+
+          import com.getcapacitor.BridgeActivity;
+
+          public class MainActivity extends BridgeActivity {
+
+              @Override
+              public void onCreate(Bundle savedInstanceState) {
+                  super.onCreate(savedInstanceState);
+
+                  getOnBackPressedDispatcher().addCallback(
+                          this,
+                          new OnBackPressedCallback(true) {
+
+                              @Override
+                              public void handleOnBackPressed() {
+
+                                  WebView webView = getBridge() == null
+                                          ? null
+                                          : getBridge().getWebView();
+
+                                  if (webView == null) {
+                                      return;
+                                  }
+
+                                  webView.post(() -> {
+                                      webView.evaluateJavascript(
+                                              "(function(){"
+                                              + "if(typeof window.__nfAndroidBack === 'function'){"
+                                              + "window.__nfAndroidBack();"
+                                              + "}"
+                                              + "})();",
+                                              null
+                                      );
+                                  });
+                              }
+                          }
+                  );
+              }
+          }
+          EOF
+
+      - name: Sync Capacitor
+        shell: bash
+        run: |
+          npx cap sync android
+
+      - name: Build Debug APK
+        shell: bash
+        run: |
+          chmod +x android/gradlew
+          cd android
+          ./gradlew assembleDebug --no-daemon
+
+      - name: Verify APK
+        shell: bash
+        run: |
+          test -f android/app/build/outputs/apk/debug/app-debug.apk
+          ls -lh android/app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: New-Fashion-Tailoring-APK
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
