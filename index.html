@@ -1084,6 +1084,48 @@ body{
   }
 }
 
+
+/* ---------- Customer cloth photos + 3-design picker ---------- */
+.nf-customer-cloth-photos{
+  display:grid;grid-template-columns:repeat(3,72px);gap:8px;margin-top:10px
+}
+.nf-cloth-slot,.nf-design-slot{
+  position:relative;border:1px solid #ddd5ef;border-radius:12px;overflow:hidden;
+  background:linear-gradient(135deg,#f7f3ff,#fff5fa);aspect-ratio:1;min-width:0
+}
+.nf-cloth-slot img,.nf-design-slot img{width:100%;height:100%;object-fit:cover;display:block}
+.nf-photo-empty{height:100%;display:grid;place-items:center;text-align:center;color:#777;font-size:11px;font-weight:800;padding:5px}
+.nf-photo-add{
+  width:100%;height:100%;border:0;background:transparent;color:#6c4df6;font-size:24px;cursor:pointer
+}
+.nf-photo-tools{
+  position:absolute;left:4px;right:4px;bottom:4px;display:flex;gap:4px;justify-content:center
+}
+.nf-photo-tools button,.nf-photo-tools label{
+  width:27px;height:27px;border:0;border-radius:8px;background:rgba(255,255,255,.94);
+  box-shadow:0 2px 7px rgba(0,0,0,.18);display:grid;place-items:center;cursor:pointer;font-size:13px
+}
+.nf-photo-tools .nf-delete{color:#b42318}
+.nf-design-picker{
+  margin-top:8px;padding:10px;border:1px solid #ddd5ff;border-radius:14px;
+  background:linear-gradient(135deg,#faf7ff,#fff4f8)
+}
+.nf-design-picker-title{font-weight:900;margin-bottom:8px}
+.nf-design-slots{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.nf-design-slot{aspect-ratio:1}
+.nf-design-slot .nf-slot-label{
+  position:absolute;left:5px;top:5px;background:rgba(0,0,0,.62);color:#fff;
+  border-radius:7px;padding:3px 6px;font-size:10px;font-weight:800;z-index:2
+}
+.nf-design-picker-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px}
+.nf-design-picker-actions .btn{min-height:40px}
+.nf-design-search-wrap{margin-top:8px}
+@media(max-width:560px){
+  .nf-customer-cloth-photos{grid-template-columns:repeat(3,64px)}
+  .nf-design-slots{gap:7px}
+  .nf-design-picker-actions .btn{flex:1;min-width:120px}
+}
+
 </style>
 
 <style id="phase3-premium-final">
@@ -2661,12 +2703,73 @@ function customerStats(id){
 function customerDesigns(id){
 try{return JSON.parse(localStorage.getItem("nf_customer_designs_"+id)||"[]")}catch{return[]}
 }
+function selectedCustomerDesigns(id){
+try{
+ const raw=localStorage.getItem("nf_customer_selected_designs_"+id);
+ if(raw!==null)return JSON.parse(raw)||[];
+ const legacy=customerDesigns(id).slice(0,3);
+ if(legacy.length)localStorage.setItem("nf_customer_selected_designs_"+id,JSON.stringify(legacy));
+ return legacy;
+}catch{return[]}
+}
+function setSelectedCustomerDesigns(id,arr){
+localStorage.setItem("nf_customer_selected_designs_"+id,JSON.stringify(arr.slice(0,3)));
+}
 function saveCustomerDesignLocal(id,item){
-const arr=customerDesigns(id);arr.unshift(item);localStorage.setItem("nf_customer_designs_"+id,JSON.stringify(arr.slice(0,18)));renderCustomers();toast("இந்த customer card-ல் design save செய்யப்பட்டது.");
+const arr=customerDesigns(id);arr.unshift(item);
+localStorage.setItem("nf_customer_designs_"+id,JSON.stringify(arr.slice(0,18)));
+const selected=selectedCustomerDesigns(id);
+if(selected.length<3){
+  selected.push(item);
+  setSelectedCustomerDesigns(id,selected);
+  renderCustomers();
+  toast(`Blouse Design ${selected.length}/3 தேர்வு செய்யப்பட்டது.`);
+}else{
+  renderCustomers();
+  toast("3 blouse design slots-ம் நிரம்பிவிட்டது. முதலில் ஒன்றை Delete/Edit செய்து மீண்டும் தேர்வு செய்யுங்கள்.",true);
+}
 }
 function removeCustomerDesign(id,idx){
-const arr=customerDesigns(id);arr.splice(idx,1);localStorage.setItem("nf_customer_designs_"+id,JSON.stringify(arr));renderCustomers();
+const arr=customerDesigns(id);arr.splice(idx,1);localStorage.setItem("nf_customer_designs_"+id,JSON.stringify(arr));
+const selected=selectedCustomerDesigns(id);
+const target=selected.findIndex(x=>x===arr[idx]);
+if(target>=0){selected.splice(target,1);setSelectedCustomerDesigns(id,selected)}
+renderCustomers();
 }
+function removeSelectedCustomerDesign(id,idx){
+const arr=selectedCustomerDesigns(id);arr.splice(idx,1);setSelectedCustomerDesigns(id,arr);renderCustomers();
+}
+function replaceSelectedCustomerDesign(id,idx,file){
+if(!file)return;
+if(!file.type.startsWith("image/")){toast("Image file மட்டும் தேர்வு செய்யுங்கள்.",true);return}
+if(file.size>2*1024*1024){toast("Photo 2MB-க்கு குறைவாக இருக்க வேண்டும்.",true);return}
+const r=new FileReader();r.onload=()=>{
+ const arr=selectedCustomerDesigns(id);
+ arr[idx]={src:r.result,name:file.name.replace(/\.[^.]+$/,""),savedAt:new Date().toISOString()};
+ setSelectedCustomerDesigns(id,arr);
+ renderCustomers();toast(`Blouse Design ${idx+1} மாற்றப்பட்டது.`);
+};r.readAsDataURL(file);
+}
+function customerClothPhotos(id){
+try{return JSON.parse(localStorage.getItem("nf_customer_cloth_photos_"+id)||"[]")}catch{return[]}
+}
+function setCustomerClothPhotos(id,arr){
+localStorage.setItem("nf_customer_cloth_photos_"+id,JSON.stringify(arr.slice(0,3)));
+}
+function saveCustomerClothPhoto(id,slot,file){
+if(!file)return;
+if(!file.type.startsWith("image/")){toast("Image file மட்டும் தேர்வு செய்யுங்கள்.",true);return}
+if(file.size>3*1024*1024){toast("Customer cloth photo 3MB-க்கு குறைவாக இருக்க வேண்டும்.",true);return}
+const r=new FileReader();r.onload=()=>{
+ const arr=customerClothPhotos(id);
+ arr[slot]={src:r.result,name:file.name.replace(/\.[^.]+$/,""),savedAt:new Date().toISOString()};
+ setCustomerClothPhotos(id,arr);renderCustomers();toast(`Customer துணி photo ${slot+1} சேமிக்கப்பட்டது.`);
+};r.readAsDataURL(file);
+}
+function removeCustomerClothPhoto(id,slot){
+const arr=customerClothPhotos(id);arr[slot]=null;setCustomerClothPhotos(id,arr);renderCustomers();toast("Customer துணி photo நீக்கப்பட்டது.");
+}
+
 
 const DEFAULT_RATES={normal:300,lining:450,design:600,chudi:500,saree:0};
 function getRates(){
@@ -2931,9 +3034,16 @@ function nfCustomerWorkSummaryHTML(st){
 }
 
 function customerCard(id){
- const c=state.customers.find(x=>x.id===id),st=customerStats(id),designs=customerDesigns(id);
+ const c=state.customers.find(x=>x.id===id),st=customerStats(id),designs=customerDesigns(id),selectedDesigns=selectedCustomerDesigns(id),clothPhotos=customerClothPhotos(id);
  const village=c.village||localStorage.getItem("nf_village_"+id)||"",address=c.address||"முகவரி இல்லை";
- const designHtml=designs.length?designs.slice(0,18).map((d,i)=>`<div class="customerDesignThumb">${d.src?`<img src="${esc(d.src)}" alt="${esc(d.name||"Design")}">`:`<div class="photoPlaceholder" style="height:100%">No photo</div>`}<span>${esc(d.name||"Design")}</span><button type="button" class="designDeleteBtn" title="Delete design" aria-label="Delete design" onclick="removeCustomerDesign('${id}',${i})">🗑️</button></div>`).join(""):`<div class="mini">இந்த customer-க்கு design save செய்யவில்லை.</div>`;
+ const clothPhotoHtml=Array.from({length:3},(_,slot)=>{
+   const p=clothPhotos[slot];
+   return `<div class="nf-cloth-slot">${p?.src?`<img src="${esc(p.src)}" alt="Customer cloth ${slot+1}">`:`<label class="nf-photo-empty" title="Customer துணி photo ${slot+1}"><input type="file" accept="image/*" capture="environment" style="display:none" onchange="saveCustomerClothPhoto('${id}',${slot},this.files[0])">＋<br>Photo ${slot+1}</label>`}${p?`<div class="nf-photo-tools"><label title="Edit / Replace"><input type="file" accept="image/*" style="display:none" onchange="saveCustomerClothPhoto('${id}',${slot},this.files[0])">✏️</label><button type="button" class="nf-delete" title="Delete" onclick="removeCustomerClothPhoto('${id}',${slot})">🗑️</button></div>`:""}</div>`;
+ }).join("");
+ const selectedDesignHtml=Array.from({length:3},(_,slot)=>{
+   const d=selectedDesigns[slot];
+   return `<div class="nf-design-slot"><span class="nf-slot-label">Design ${slot+1}</span>${d?.src?`<img src="${esc(d.src)}" alt="${esc(d.name||"Blouse Design")}">`:`<label class="nf-photo-empty"><input type="file" accept="image/*" style="display:none" onchange="replaceSelectedCustomerDesign('${id}',${slot},this.files[0])">＋<br>Select</label>`}${d?`<div class="nf-photo-tools"><label title="Edit / Replace"><input type="file" accept="image/*" style="display:none" onchange="replaceSelectedCustomerDesign('${id}',${slot},this.files[0])">✏️</label><button type="button" class="nf-delete" title="Delete" onclick="removeSelectedCustomerDesign('${id}',${slot})">🗑️</button></div>`:""}</div>`;
+ }).join("");
  const ordersHtml=st.os.slice().sort((a,b)=>String(b.created_at||"").localeCompare(String(a.created_at||""))).slice(0,8).map(o=>{
   const d=dueInfo(o),rem=d?(d.kind==="late"?`<span class="pill bad">${d.days} நாள் late</span>`:d.kind==="today"?`<span class="pill warn">இன்று</span>`:`<span class="pill">${d.days} நாள்</span>`):"";
   const lining=o.lining_cloth_source?`<br><span class="mini">🧵 Lining cloth: ${o.lining_cloth_source==="customer"?"Customer கொடுத்தது":"நாம் வாங்கியது"} · ${Number(o.lining_cloth_qty||0)}</span>`:"";
@@ -2943,9 +3053,9 @@ function customerCard(id){
   return `<div class="customerOrderLine" id="customer-order-${esc(o.id)}"><b>${esc(o.order_no)}</b> · ${esc(g)} · ${detail} ${rem}<br><span class="mini">துணி: ${dateText(o.cloth_received_date)} · Delivery: ${dateText(o.delivery_date)} · Balance: ${money(o.balance_amount)}</span>${lining}${nfPriceBreakdownHTML(o)}${cleanOrderNotes(o.notes)?`<br><span class="mini">📝 ${esc(cleanOrderNotes(o.notes))}</span>`:""}<div class="orderActions"><button class="btn success" onclick="markDelivered('${o.id}')">Delivered</button><button class="btn primary" onclick="openCustomerOrderEditor('${id}','${o.id}')">✏️ Edit Details</button></div></div>`;
  }).join("")||`<div class="mini">இன்னும் order இல்லை.</div>`;
  return `<article class="customerCard" id="customer-card-${id}">
- <div class="customerCardHead nf-customer-head"><div class="customerAvatar">👤</div><div class="customerIdentity"><h3>${esc(c.name||"Customer")}</h3><div class="nf-customer-contact"><div class="nf-contact-item"><span>📞 Phone</span><b>${esc(c.phone||"Phone இல்லை")}</b></div><div class="nf-contact-item"><span>📍 ஊர்</span><b>${esc(village||"ஊர் இல்லை")}</b></div><div class="nf-contact-item nf-contact-address"><span>🏠 முகவரி</span><b>${esc(address)}</b></div></div>${c.notes?`<p class="nf-customer-note">📝 ${esc(c.notes)}</p>`:""}</div><div class="customerActions nf-customer-top-actions"><button class="btn primary" onclick="openCustomerOrderEditor('${id}')">✏️ Edit Order Details</button><button class="btn secondary" onclick="openModal('customer','${id}')">👤 Edit Customer</button><button class="btn danger" onclick="deleteCustomer('${id}')">🗑 Delete</button></div></div>
+ <div class="customerCardHead nf-customer-head"><div class="customerAvatar">👤</div><div class="customerIdentity"><h3>${esc(c.name||"Customer")}</h3><div class="nf-customer-contact"><div class="nf-contact-item"><span>📞 Phone</span><b>${esc(c.phone||"Phone இல்லை")}</b></div><div class="nf-contact-item"><span>📍 ஊர்</span><b>${esc(village||"ஊர் இல்லை")}</b></div><div class="nf-contact-item nf-contact-address"><span>🏠 முகவரி</span><b>${esc(address)}</b></div></div><div class="nf-customer-cloth-photos" aria-label="Customer cloth photos">${clothPhotoHtml}</div>${c.notes?`<p class="nf-customer-note">📝 ${esc(c.notes)}</p>`:""}</div><div class="customerActions nf-customer-top-actions"><button class="btn primary" onclick="openCustomerOrderEditor('${id}')">✏️ Edit Order Details</button><button class="btn secondary" onclick="openModal('customer','${id}')">👤 Edit Customer</button><button class="btn danger" onclick="deleteCustomer('${id}')">🗑 Delete</button></div></div>
  <div class="customerMoneyGrid"><div class="moneyStat"><b>${money(st.total)}</b><span>மொத்த order</span></div><div class="moneyStat"><b>${money(st.paid)}</b><span>Customer paid</span></div><div class="moneyStat"><b>${money(st.advance)}</b><span>Advance வாங்கியது</span></div><div class="moneyStat clickable" onclick="goView('payments')"><b>${money(st.balance)}</b><span>இன்னும் கொடுக்க வேண்டும்</span></div></div>\n <div class="nfCustomerBreakdownMount">${typeof window.nfCustomerWorkSummaryHTML==="function"?window.nfCustomerWorkSummaryHTML(st):""}</div>
- <div class="customerSection"><h4>🧾 New Order — இந்த customer card-லேயே</h4><div class="customerActions"><button class="btn primary" onclick="toggleQuickOrder('${id}')">＋ New Order</button><button class="btn secondary" onclick="openCustomerMeasurement('${id}')">📏 Measurement</button><button class="btn success" onclick="openCustomerPayment('${id}')">💰 Payment</button></div>
+ <div class="customerSection"><h4>🧾 New Order — இந்த customer card-லேயே</h4><div class="customerActions"><button class="btn primary" onclick="toggleQuickOrder('${id}')">＋ New Order</button><button class="btn secondary" onclick="toggleCustomerDesignPicker('${id}')">🎨 Blouse Design (3)</button><button class="btn secondary" onclick="openCustomerMeasurement('${id}')">📏 Measurement</button><button class="btn success" onclick="openCustomerPayment('${id}')">💰 Payment</button></div><div id="customer-design-picker-${id}" class="nf-design-picker hidden"><div class="nf-design-picker-title">🎨 இந்த customer-க்கு 3 blouse design தேர்வு</div><div class="nf-design-slots">${selectedDesignHtml}</div><div class="nf-design-picker-actions"><label class="btn secondary">🖼️ Gallery<input type="file" accept="image/*" style="display:none" onchange="uploadCustomerDesign('${id}',this.files[0])"></label><label class="btn secondary">📷 Camera<input type="file" accept="image/*" capture="environment" style="display:none" onchange="uploadCustomerDesign('${id}',this.files[0])"></label><button class="btn secondary" onclick="searchDesignForCustomer('${id}')">🔎 Google Images</button></div><div class="hint">மூன்று design மட்டும் தேர்வு செய்யலாம். ஒவ்வொன்றையும் ✏️ மாற்றலாம்; 🗑️ நீக்கலாம்.</div><div id="customer-design-search-${id}" class="hidden nf-design-search-wrap"><div class="toolbar"><input class="input search" id="customer-design-q-${id}" placeholder="blouse design search"><button class="btn primary" onclick="runCustomerDesignSearch('${id}')">Search</button></div><div id="customer-design-results-${id}" class="customerDesignGrid"></div></div></div></div>
  <div id="quick-order-${id}" class="hidden" style="margin-top:10px;background:#faf8f6;border:1px solid var(--line);border-radius:13px;padding:12px"><h4 class="nf-quick-edit-title" style="margin:0 0 10px">🧾 New Order</h4><div class="formgrid">
  <div class="field"><label>Garment / Blouse / Chudi / Saree</label><select id="qo-garment-${id}" class="input" onchange="updateQuickGarment('${id}')"><option value="Blouse">Blouse</option><option value="Chudi">Chudi</option><option value="Saree">Saree</option></select></div><div class="field"><label>துணி கொடுத்த தேதி</label><input id="qo-cloth-${id}" class="input" type="date" value="${localDate()}"></div><div class="field"><label>Delivery Date</label><input id="qo-delivery-${id}" class="input" type="date"></div>
  <div class="field full nf-quick-blouse"><label>👗 Customer கொடுத்த blouse — வகை வாரியாக எண்ணிக்கை + ஒன்றுக்கு விலை</label><div class="formgrid" style="margin-top:7px">
@@ -2963,7 +3073,6 @@ function customerCard(id){
  <div class="field full"><label>விலை பிரிப்பு</label><div class="nf-price-breakdown"><div><span>👗 Garment / Blouse / Chudi</span><b id="qo-garment-total-${id}">₹0.00</b></div><div><span>🧵 Lining</span><b id="qo-lining-total-display-${id}">₹0.00</b></div><div class="total"><span>மொத்த Customer Amount</span><b id="qo-total-${id}">₹0.00</b></div></div></div><div class="field full"><label>Notes</label><textarea id="qo-notes-${id}" class="input" placeholder="தேவைப்பட்டால் குறிப்பு"></textarea></div>
  </div><div class="customerActions" style="margin-top:10px"><button class="btn primary nf-quick-save-btn" onclick="saveQuickOrder('${id}')">💾 Save Order</button><button class="btn secondary" onclick="toggleQuickOrder('${id}')">Close</button></div></div></div>
  <div class="customerSection"><h4>⏰ Delivery Reminder</h4>${customerReminderHTML(st.os)}<div class="reminderSettings" style="margin-top:8px"><div class="field" style="min-width:100%"><label class="mini">ஒரு நாளில் 10 reminder நேரங்கள்</label><div class="reminderTimesGrid">${REMINDER_TIMES.map(t=>`<span class="reminderTimeChip">🔔 ${t}</span>`).join("")}</div></div><button class="btn warning" onclick="enableDailyNotifications()">🔔 10 Daily Notifications ON</button></div><div class="hint">Notification permission கொடுத்தால் இந்த 10 நேரங்களில் phone notification வரும். App/browser active-ஆ இருக்கும்போது இந்த HTML version வேலை செய்யும்.</div></div>
- <div class="customerSection"><h4>🎨 இந்த customer-ன் Blouse Design</h4><div class="photoActions"><label class="btn secondary">🖼️ Gallery<input type="file" accept="image/*" style="display:none" onchange="uploadCustomerDesign('${id}',this.files[0])"></label><label class="btn secondary">📷 Camera<input type="file" accept="image/*" capture="environment" style="display:none" onchange="uploadCustomerDesign('${id}',this.files[0])"></label><button class="btn secondary" onclick="searchDesignForCustomer('${id}')">🔎 Google Images Search</button></div><div class="hint">Gallery-ல் இருந்து photo தேர்வு செய்யலாம்; Camera மூலம் நேரடியாக photo எடுக்கலாம்.</div><div id="customer-design-search-${id}" class="hidden" style="margin-bottom:8px"><div class="toolbar"><input class="input search" id="customer-design-q-${id}" placeholder="blouse design search"><button class="btn primary" onclick="runCustomerDesignSearch('${id}')">Search</button></div><div id="customer-design-results-${id}" class="customerDesignGrid"></div></div><div class="customerDesignGrid">${designHtml}</div></div>
   </article>`;
 }
 function renderCustomers(){
@@ -2980,7 +3089,16 @@ if(!file)return;if(!file.type.startsWith("image/")){toast("Image file மட்�
 if(file.size>2*1024*1024){toast("Photo 2MB-க்கு குறைவாக இருக்க வேண்டும்.",true);return}
 const r=new FileReader();r.onload=()=>saveCustomerDesignLocal(id,{src:r.result,name:file.name.replace(/\.[^.]+$/,""),savedAt:new Date().toISOString()});r.readAsDataURL(file);
 }
-function searchDesignForCustomer(id){$("customer-design-search-"+id).classList.remove("hidden");$("customer-design-q-"+id).focus()}
+function toggleCustomerDesignPicker(id){
+ const box=$("customer-design-picker-"+id);if(!box)return;
+ box.classList.toggle("hidden");
+ if(!box.classList.contains("hidden"))box.scrollIntoView({behavior:"smooth",block:"nearest"});
+}
+function searchDesignForCustomer(id){
+ const box=$("customer-design-search-"+id);
+ if(box)box.classList.remove("hidden");
+ const q=$("customer-design-q-"+id);if(q)q.focus();
+}
 function saveCustomerDesignFromUrl(id){
  const url=$("customer-design-url-"+id)?.value.trim();
  if(!url){toast("Image URL உள்ளிடுங்கள்.",true);return}
@@ -3299,6 +3417,8 @@ async function deleteCustomer(id){
    if(customerError)throw customerError;
    localStorage.removeItem("nf_village_"+id);
    localStorage.removeItem("nf_customer_designs_"+id);
+   localStorage.removeItem("nf_customer_selected_designs_"+id);
+   localStorage.removeItem("nf_customer_cloth_photos_"+id);
    await loadAll(true);
    toast("Customer மற்றும் தொடர்புடைய records delete செய்யப்பட்டது.");
  }catch(err){
