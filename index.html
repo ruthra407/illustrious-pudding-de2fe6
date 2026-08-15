@@ -2125,10 +2125,6 @@ body{
 </style>
 
 
-<style id="nf-edit-flow-fix">
-.customerCardHead .customerActions .nf-edit-order-btn{font-weight:850}
-@media(max-width:700px){.customerCardHead .customerActions{width:100%}.customerCardHead .customerActions .btn{flex:1;min-width:0}}
-</style>
 <style id="nf-pending-customer-card">
 /* ===== ADD-ON: Pending Customer side-menu card =====
    Existing app styles and logic are intentionally untouched. */
@@ -2177,6 +2173,9 @@ body{
 }
 #view-dashboard .dashboardNext5 .big{display:block;font-size:30px;margin-bottom:8px}
 #view-dashboard .dashboardNext5 .dashboardOrderList{margin-top:10px}
+</style>
+<style id="nf-data-recovery-fix">
+#customersTable .nf-data-loading{padding:18px;text-align:center;color:#6f7482}
 </style>
 </head>
 <body>
@@ -2337,7 +2336,9 @@ body{
 const SUPABASE_URL="https://pdlsicwzfmartkwcwozx.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY="sb_publishable_eCKne6Tzs6-QYSXpJb-aSQ_6AHe8n9O";
 const supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
-const state={user:null,customers:[],orders:[],measurements:[],alterations:[],payments:[],designs:[],editing:null};
+const state={user:null,customers:[],orders:[],measurements:[],alterations:[],payments:[],designs:[],editing:null,dataLoaded:false,dataLoading:false};
+let nfLoadPromise=null;
+let nfLastLoadAt=0;
 const $=id=>document.getElementById(id);
 const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
 const money=n=>"₹"+Number(n||0).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -2409,36 +2410,74 @@ if(!history.state?.view){
  updateBackButton();
 }
 
-async function getTable(name){
-const {data,error}=await supabaseClient.from(name).select("*").order("created_at",{ascending:false});
-if(error)throw new Error(name+": "+error.message);return data||[];
-}
-async function loadAll(silent=false){
-if(!state.user)return;
-const tables=["customers","orders","measurements","alterations","payments","designs"];
-const result=await Promise.allSettled(tables.map(name=>getTable(name)));
-const failed=[];
-result.forEach((r,i)=>{
-  if(r.status==="fulfilled"){
-    state[tables[i]]=Array.isArray(r.value)?r.value:[];
-  }else{
-    failed.push(r.reason?.message||(`${tables[i]} load failed`));
+const NF_DATA_TABLES=["customers","orders","measurements","alterations","payments","designs"];
+
+function nfSleep(ms){return new Promise(resolve=>setTimeout(resolve,ms));}
+
+async function getTable(name,attempt=0){
+  try{
+    const {data,error}=await supabaseClient
+      .from(name)
+      .select("*")
+      .order("created_at",{ascending:false});
+    if(error)throw new Error(name+": "+error.message);
+    return Array.isArray(data)?data:[];
+  }catch(err){
+    if(attempt<2){
+      await nfSleep(700*(attempt+1));
+      return getTable(name,attempt+1);
+    }
+    throw err;
   }
-});
-try{renderAll();}catch(err){console.error("Render error:",err);}
-if(failed.length){
-  console.error("Database load errors:",failed);
-  toast("சில data tables load ஆகவில்லை. மற்ற data பாதுகாப்பாக காட்டப்படுகிறது.",true);
-}else if(!silent){
-  toast("Online data loaded");
 }
+
+async function loadAll(silent=false,force=false){
+  if(!state.user)return;
+  if(nfLoadPromise)return nfLoadPromise;
+
+  nfLoadPromise=(async()=>{
+    state.dataLoading=true;
+    try{
+      const result=await Promise.allSettled(NF_DATA_TABLES.map(name=>getTable(name)));
+      const failed=[];
+
+      result.forEach((r,i)=>{
+        const table=NF_DATA_TABLES[i];
+        if(r.status==="fulfilled"){
+          state[table]=r.value;
+        }else{
+          failed.push(r.reason?.message||(`${table} load failed`));
+        }
+      });
+
+      state.dataLoaded=true;
+      nfLastLoadAt=Date.now();
+
+      try{renderAll();}catch(err){console.error("Render error:",err);}
+
+      if(failed.length){
+        console.error("Database load errors:",failed);
+        toast("சில data load ஆகவில்லை. மீண்டும் முயற்சி செய்யுங்கள்.",true);
+      }else if(!silent){
+        toast("Online data loaded");
+      }
+    }finally{
+      state.dataLoading=false;
+    }
+  })();
+
+  try{
+    return await nfLoadPromise;
+  }finally{
+    nfLoadPromise=null;
+  }
 }
 function customerName(id){return state.customers.find(x=>x.id===id)?.name||"Unknown"}
 function goToCustomer(id){goView("customers");setTimeout(()=>document.getElementById("customer-card-"+id)?.scrollIntoView({behavior:"smooth",block:"start"}),120);}
 function goToOrderCustomer(orderId){
  const o=state.orders.find(x=>x.id===orderId);
  if(!o){goView("orders");return}
- goToView("customers");
+ goView("customers");
  setTimeout(()=>{
    const card=document.getElementById("customer-card-"+o.customer_id);
    const target=document.getElementById("customer-order-"+orderId);
@@ -2666,77 +2705,10 @@ function toggleQuickOrder(id){
 const box=$("quick-order-"+id);if(!box)return;
 box.classList.toggle("hidden");
 if(!box.classList.contains("hidden")){
- const q=$("qo-qty-"+id),p=$("qo-price-"+id),t=$("qo-total-"+id);
- const recalc=()=>{if(t)t.textContent=money(Number(q?.value||0)*Number(p?.value||0))};
- q?.addEventListener("input",recalc);p?.addEventListener("input",recalc);recalc();
- updateQuickGarment(id);
+const q=$("qo-qty-"+id),p=$("qo-price-"+id),t=$("qo-total-"+id);
+const recalc=()=>{if(t)t.textContent=money(Number(q?.value||0)*Number(p?.value||0))};
+q?.addEventListener("input",recalc);p?.addEventListener("input",recalc);recalc();
 }
-}
-
-/* =========================================================
-   CUSTOMER / ORDER EDIT FLOW
-   - Customer Card -> Edit Order Details -> inline New Order editor
-   - Customer Card -> Edit Customer -> customer-only modal
-   - Orders Card -> Edit -> same inline New Order editor
-   No separate Order Edit modal is used by these two buttons.
-   ========================================================= */
-function latestCustomerOrder(id){
- const list=customerOrders(id).slice().sort((a,b)=>String(b.created_at||b.order_date||"").localeCompare(String(a.created_at||a.order_date||"")));
- return list[0]||null;
-}
-
-function openCustomerOrderEditor(customerId,orderId){
- const order=orderId?state.orders.find(x=>x.id===orderId):latestCustomerOrder(customerId);
- goView("customers");
- setTimeout(()=>{
-   const card=$("customer-card-"+customerId);
-   if(!card){toast("Customer card கிடைக்கவில்லை.",true);return}
-   card.scrollIntoView({behavior:"smooth",block:"start"});
-   const box=$("quick-order-"+customerId);
-   if(!box){toast("New Order section கிடைக்கவில்லை.",true);return}
-   box.classList.remove("hidden");
-   box.dataset.editOrderId=order?.id||"";
-   const title=box.querySelector(".nf-quick-edit-title");
-   if(title)title.textContent=order?`✏️ Edit Order — ${order.order_no||"Order"}`:"🧾 New Order";
-   const save=box.querySelector(".nf-quick-save-btn");
-   if(save)save.textContent=order?"💾 Update Order":"💾 Save Order";
-   if(order)populateQuickOrderEditor(customerId,order);
-   else clearQuickOrderEditor(customerId);
-   setTimeout(()=>box.scrollIntoView({behavior:"smooth",block:"center"}),180);
- },180);
-}
-
-function clearQuickOrderEditor(id){
- ["qo-normal-","qo-lining-","qo-design-","qo-chudi-","qo-chudi-lining-qty-","qo-saree-","qo-lining-qty-","qo-lining-rate-","qo-advance-"].forEach(prefix=>{const e=$(prefix+id);if(e)e.value=0});
- const cloth=$("qo-cloth-"+id),delivery=$("qo-delivery-"+id),status=$("qo-status-"+id),ls=$("qo-lining-source-"+id),notes=$("qo-notes-"+id);
- if(cloth)cloth.value=localDate();
- if(delivery)delivery.value="";
- if(status)status.value="Pending";
- if(ls)ls.value="";
- if(notes)notes.value="";
- const g=$("qo-garment-"+id);if(g)g.value="Blouse";
- const box=$("quick-order-"+id);if(box)box.dataset.editOrderId="";
- updateQuickGarment(id);
- updateQuickOrderCalc(id);
-}
-
-function populateQuickOrderEditor(id,o){
- const g=String(o.garment_type||"Blouse");
- const set=(key,val)=>{const e=$(key+id);if(e)e.value=val==null?"":val};
- set("qo-garment-",g);
- set("qo-cloth-",o.cloth_received_date||o.order_date||localDate());
- set("qo-delivery-",o.delivery_date||"");
- set("qo-advance-",Number(o.advance_amount||0));
- set("qo-status-",o.status||"Pending");
- set("qo-notes-",cleanOrderNotes(o.notes||""));
- const s=blouseSplit(o),gx=typeof nfGarmentExtra==="function"?nfGarmentExtra(o):{chudi:0,chudiLining:"no",chudiLiningQty:0,saree:0};
- set("qo-normal-",s.normal||0);set("qo-lining-",s.lining||0);set("qo-design-",s.design||0);
- set("qo-chudi-",gx.chudi||0);set("qo-chudi-lining-",gx.chudiLining||"no");set("qo-chudi-lining-qty-",gx.chudiLiningQty||0);
- set("qo-saree-",gx.saree||0);
- const rr=nfOrderRates(o);set("qo-chudi-rate-",rr.chudi||getRates().chudi||0);set("qo-saree-rate-",rr.saree||getRates().saree||0);
- const lc=nfLiningCost(o);set("qo-lining-source-",o.lining_cloth_source||lc.source||"");set("qo-lining-qty-",Number(o.lining_cloth_qty||lc.qty||0));set("qo-lining-rate-",Number(lc.rate||0));
- updateQuickGarment(id);
- updateQuickOrderCalc(id);
 }
 function makeOrderNo(){return "ORD-"+Date.now().toString().slice(-10)}
 async function updateQuickOrderCalc(id){
@@ -2774,8 +2746,6 @@ function updateQuickOrderCalc(id){
  if($("qo-total-"+id))$("qo-total-"+id).textContent=money(total);
 }
 async function saveQuickOrder(id){
- const box=$("quick-order-"+id),editOrderId=box?.dataset.editOrderId||"";
- const existing=editOrderId?state.orders.find(x=>x.id===editOrderId):null;
  const garment=$("qo-garment-"+id)?.value||"Blouse",cloth=$("qo-cloth-"+id)?.value||null,delivery=$("qo-delivery-"+id)?.value||null,r=getRates();
  const s={normal:Number($("qo-normal-"+id)?.value||0),lining:Number($("qo-lining-"+id)?.value||0),design:Number($("qo-design-"+id)?.value||0)};
  const cq=Math.max(0,Number($("qo-chudi-"+id)?.value||0)),cl=$("qo-chudi-lining-"+id)?.value==="yes"?"yes":"no",clq=Math.max(0,Number($("qo-chudi-lining-qty-"+id)?.value||0)),cr=Math.max(0,Number($("qo-chudi-rate-"+id)?.value||r.chudi||0));
@@ -2792,19 +2762,8 @@ async function saveQuickOrder(id){
  let notes=garment==="Chudi"?"GARMENT_SPLIT:"+JSON.stringify({chudi:cq,chudiLining:cl,chudiLiningQty:clq,saree:0})+" | CHUDI_RATE:"+cr:garment==="Saree"?"GARMENT_SPLIT:"+JSON.stringify({chudi:0,chudiLining:"no",chudiLiningQty:0,saree:sq})+" | SAREE_RATE:"+sr:makeBlouseSplitNote(s,r,$("qo-notes-"+id)?.value||"");
  if(ls)notes+=` | Lining cloth: ${ls==="customer"?"Customer கொடுத்தது":"நாம் வாங்கியது"}`;
  if(ls==="shop")notes+=` | LINING_COST:${JSON.stringify({source:ls,qty:lq,rate:lr,total:liningTotal})}`;
- const payload={customer_id:id,order_no:existing?.order_no||makeOrderNo(),garment_type:garment,order_date:existing?.order_date||localDate(),cloth_received_date:cloth,delivery_date:delivery,quantity:qty,unit_price:qty?garmentTotal/qty:0,total_amount:total,advance_amount:advance,balance_amount:Math.max(0,total-advance),status,rate_type:garment==="Chudi"||garment==="Saree"?"normal":(s.normal>0?"normal":s.lining>0?"lining":s.design>0?"design":"normal"),lining_cloth_source:ls||null,lining_cloth_qty:lq,notes};
- try{
-   const result=existing
-     ?await supabaseClient.from("orders").update(payload).eq("id",existing.id)
-     :await supabaseClient.from("orders").insert(payload);
-   if(result.error)throw result.error;
-   box.dataset.editOrderId="";
-   await loadAll(true);
-   const title=box.querySelector(".nf-quick-edit-title"),save=box.querySelector(".nf-quick-save-btn");
-   if(title)title.textContent="🧾 New Order";
-   if(save)save.textContent="💾 Save Order";
-   toast(existing?"Order details updated.":"இந்த customer-க்கு New Order சேமிக்கப்பட்டது.");
- }catch(err){toast("Order save failed: "+err.message,true)}
+ const payload={customer_id:id,order_no:makeOrderNo(),garment_type:garment,order_date:localDate(),cloth_received_date:cloth,delivery_date:delivery,quantity:qty,unit_price:qty?garmentTotal/qty:0,total_amount:total,advance_amount:advance,balance_amount:Math.max(0,total-advance),status,rate_type:garment==="Chudi"||garment==="Saree"?"normal":(s.normal>0?"normal":s.lining>0?"lining":s.design>0?"design":"normal"),lining_cloth_source:ls||null,lining_cloth_qty:lq,notes};
+ try{const {error}=await supabaseClient.from("orders").insert(payload);if(error)throw error;await loadAll(true);toast("இந்த customer-க்கு New Order சேமிக்கப்பட்டது.");}catch(err){toast("Order save failed: "+err.message,true)}
 }
 
 function customerReminderHTML(os){
@@ -2885,10 +2844,10 @@ function customerCard(id){
   const gx=typeof nfGarmentExtra==="function"?nfGarmentExtra(o):{chudi:0,chudiLiningQty:0,saree:0};
   const g=String(o.garment_type||"Blouse");
   const detail=g==="Chudi"?`👚 Chudi ${Number(gx.chudi||o.quantity||0)} · Lining ${Number(gx.chudiLiningQty||0)} · விலை ${money(o.unit_price)}`:g==="Saree"?`🥻 Saree ${Number(gx.saree||o.quantity||0)} · விலை ${money(o.unit_price)}`:`👗 ${blouseSplitText(o)} · Rate ${money(o.unit_price)}`;
-  return `<div class="customerOrderLine" id="customer-order-${esc(o.id)}"><b>${esc(o.order_no)}</b> · ${esc(g)} · ${detail} ${rem}<br><span class="mini">துணி: ${dateText(o.cloth_received_date)} · Delivery: ${dateText(o.delivery_date)} · Balance: ${money(o.balance_amount)}</span>${lining}${nfPriceBreakdownHTML(o)}${cleanOrderNotes(o.notes)?`<br><span class="mini">📝 ${esc(cleanOrderNotes(o.notes))}</span>`:""}<div class="orderActions"><button class="btn success" onclick="markDelivered('${o.id}')">Delivered</button><button class="btn primary" onclick="openCustomerOrderEditor('${id}','${o.id}')">✏️ Edit Details</button></div></div>`;
+  return `<div class="customerOrderLine" id="customer-order-${esc(o.id)}"><b>${esc(o.order_no)}</b> · ${esc(g)} · ${detail} ${rem}<br><span class="mini">துணி: ${dateText(o.cloth_received_date)} · Delivery: ${dateText(o.delivery_date)} · Balance: ${money(o.balance_amount)}</span>${lining}${nfPriceBreakdownHTML(o)}${cleanOrderNotes(o.notes)?`<br><span class="mini">📝 ${esc(cleanOrderNotes(o.notes))}</span>`:""}<div class="orderActions"><button class="btn success" onclick="markDelivered('${o.id}')">Delivered</button><button class="btn secondary" onclick="openModal('order','${o.id}')">Edit</button></div></div>`;
  }).join("")||`<div class="mini">இன்னும் order இல்லை.</div>`;
  return `<article class="customerCard" id="customer-card-${id}">
- <div class="customerCardHead"><div class="customerAvatar">👤</div><div style="flex:1"><h3>${esc(c.name)}</h3><p>📞 ${esc(c.phone||"Phone இல்லை")} · 📍 ${esc(village||"ஊர் இல்லை")}</p><p>🏠 ${esc(address)}</p><p>${esc(c.notes||"")}</p></div><div class="customerActions" style="justify-content:flex-end"><button class="btn primary" onclick="openCustomerOrderEditor('${id}')">✏️ Edit Order Details</button><button class="btn secondary" onclick="openModal('customer','${id}')">👤 Edit Customer</button><button class="btn danger" onclick="deleteCustomer('${id}')">🗑 Delete</button></div></div>
+ <div class="customerCardHead"><div class="customerAvatar">👤</div><div style="flex:1"><h3>${esc(c.name)}</h3><p>📞 ${esc(c.phone||"Phone இல்லை")} · 📍 ${esc(village||"ஊர் இல்லை")}</p><p>🏠 ${esc(address)}</p><p>${esc(c.notes||"")}</p></div><div class="customerActions" style="justify-content:flex-end"><button class="btn secondary" onclick="openModal('customer','${id}')">Edit</button><button class="btn danger" onclick="deleteCustomer('${id}')">🗑 Delete</button></div></div>
  <div class="customerStats">
 <div class="customerStat"><b>${st.givenBlouse||st.givenChudi||st.givenSaree?`${st.givenBlouse?`Blouse ${st.givenBlouse}`:""}${st.givenBlouse&&(st.givenChudi||st.givenSaree)?" · ":""}${st.givenChudi?`Chudi ${st.givenChudi}`:""}${st.givenChudi&&st.givenSaree?" · ":""}${st.givenSaree?`Saree ${st.givenSaree}`:""}`:"0"}</b><span>Customer கொடுத்த blouse / chudi count</span></div>
 <div class="customerStat"><b>${st.pendingBlouse||st.pendingChudi||st.pendingSaree?`${st.pendingBlouse?`Blouse ${st.pendingBlouse}`:""}${st.pendingBlouse&&(st.pendingChudi||st.pendingSaree)?" · ":""}${st.pendingChudi?`Chudi ${st.pendingChudi}`:""}${st.pendingChudi&&st.pendingSaree?" · ":""}${st.pendingSaree?`Saree ${st.pendingSaree}`:""}`:"0"}</b><span>Pending blouse / chudi count</span></div>
@@ -2898,7 +2857,7 @@ function customerCard(id){
  
  <div class="customerMoneyGrid"><div class="moneyStat"><b>${money(st.total)}</b><span>மொத்த order</span></div><div class="moneyStat"><b>${money(st.paid)}</b><span>Customer paid</span></div><div class="moneyStat"><b>${money(st.advance)}</b><span>Advance வாங்கியது</span></div><div class="moneyStat clickable" onclick="goView('payments')"><b>${money(st.balance)}</b><span>இன்னும் கொடுக்க வேண்டும்</span></div></div>
  <div class="customerSection"><h4>🧾 New Order — இந்த customer card-லேயே</h4><div class="customerActions"><button class="btn primary" onclick="toggleQuickOrder('${id}')">＋ New Order</button><button class="btn secondary" onclick="openCustomerMeasurement('${id}')">📏 Measurement</button><button class="btn success" onclick="openCustomerPayment('${id}')">💰 Payment</button></div>
- <div id="quick-order-${id}" class="hidden" style="margin-top:10px;background:#faf8f6;border:1px solid var(--line);border-radius:13px;padding:12px"><h4 class="nf-quick-edit-title" style="margin:0 0 10px">🧾 New Order</h4><div class="formgrid">
+ <div id="quick-order-${id}" class="hidden" style="margin-top:10px;background:#faf8f6;border:1px solid var(--line);border-radius:13px;padding:12px"><div class="formgrid">
  <div class="field"><label>Garment / Blouse / Chudi / Saree</label><select id="qo-garment-${id}" class="input" onchange="updateQuickGarment('${id}')"><option value="Blouse">Blouse</option><option value="Chudi">Chudi</option><option value="Saree">Saree</option></select></div><div class="field"><label>துணி கொடுத்த தேதி</label><input id="qo-cloth-${id}" class="input" type="date" value="${localDate()}"></div><div class="field"><label>Delivery Date</label><input id="qo-delivery-${id}" class="input" type="date"></div>
  <div class="field full nf-quick-blouse"><label>👗 Customer கொடுத்த blouse — வகை வாரியாக எண்ணிக்கை</label><div class="customerMoneyGrid" style="margin-top:7px">
  <div class="moneyStat"><span>Normal blouse</span><input id="qo-normal-${id}" class="input" type="number" min="0" step="1" value="0" oninput="updateQuickOrderCalc('${id}')"></div>
@@ -2909,16 +2868,22 @@ function customerCard(id){
  <div class="field nf-quick-chudi"><label>👚 எத்தனை Chudi / சுடிதார்</label><input id="qo-chudi-${id}" class="input" type="number" min="0" step="1" value="0" oninput="updateQuickOrderCalc('${id}')"></div><div class="field nf-quick-chudi"><label>🧵 Chudi-க்கு lining கொடுத்தாரா?</label><select id="qo-chudi-lining-${id}" class="input"><option value="no">இல்லை</option><option value="yes">ஆம்</option></select></div><div class="field nf-quick-chudi"><label>🧵 Chudi lining எத்தனை</label><input id="qo-chudi-lining-qty-${id}" class="input" type="number" min="0" step="1" value="0"></div><div class="field nf-quick-chudi"><label>👚 Chudi விலை / ஒன்றுக்கு</label><input id="qo-chudi-rate-${id}" class="input" type="number" min="0" step="0.01" value="${getRates().chudi}" oninput="updateQuickOrderCalc('${id}')"></div><div class="field nf-quick-saree"><label>🥻 எத்தனை Saree / சேலை</label><input id="qo-saree-${id}" class="input" type="number" min="0" step="1" value="0" oninput="updateQuickOrderCalc('${id}')"></div><div class="field nf-quick-saree"><label>🥻 Saree விலை / ஒன்றுக்கு</label><input id="qo-saree-rate-${id}" class="input" type="number" min="0" step="0.01" value="${getRates().saree}" oninput="updateQuickOrderCalc('${id}')"></div>
  <div class="field"><label>Advance வாங்கியது</label><input id="qo-advance-${id}" class="input" type="number" min="0" step="0.01" value="0"></div><div class="field"><label>Status</label><select id="qo-status-${id}" class="input"><option>Pending</option><option>In Progress</option><option>Ready</option><option>Delivered</option></select></div>
  <div class="field full"><label>விலை பிரிப்பு</label><div class="nf-price-breakdown"><div><span>👗 Garment / Blouse / Chudi</span><b id="qo-garment-total-${id}">₹0.00</b></div><div><span>🧵 Lining</span><b id="qo-lining-total-display-${id}">₹0.00</b></div><div class="total"><span>மொத்த Customer Amount</span><b id="qo-total-${id}">₹0.00</b></div></div></div><div class="field full"><label>Notes</label><textarea id="qo-notes-${id}" class="input" placeholder="தேவைப்பட்டால் குறிப்பு"></textarea></div>
- </div><div class="customerActions" style="margin-top:10px"><button class="btn primary nf-quick-save-btn" onclick="saveQuickOrder('${id}')">💾 Save Order</button><button class="btn secondary" onclick="toggleQuickOrder('${id}')">Close</button></div></div></div>
+ </div><div class="customerActions" style="margin-top:10px"><button class="btn primary" onclick="saveQuickOrder('${id}')">💾 Save Order</button><button class="btn secondary" onclick="toggleQuickOrder('${id}')">Close</button></div></div></div>
  <div class="customerSection"><h4>💵 Blouse Rate List</h4><div class="rateGrid"><div class="rateBox"><label>Normal blouse</label><input id="rate-normal-${id}" type="number" min="0" step="1" value="${getRates().normal}"></div><div class="rateBox"><label>Lining blouse</label><input id="rate-lining-${id}" type="number" min="0" step="1" value="${getRates().lining}"></div><div class="rateBox"><label>Design blouse</label><input id="rate-design-${id}" type="number" min="0" step="1" value="${getRates().design}"></div></div><div class="customerActions" style="margin-top:8px"><button class="btn secondary" onclick="saveRates('${id}')">💾 Rate list Save</button></div></div>
  <div class="customerSection"><h4>⏰ Delivery Reminder</h4>${customerReminderHTML(st.os)}<div class="reminderSettings" style="margin-top:8px"><div class="field" style="min-width:100%"><label class="mini">ஒரு நாளில் 10 reminder நேரங்கள்</label><div class="reminderTimesGrid">${REMINDER_TIMES.map(t=>`<span class="reminderTimeChip">🔔 ${t}</span>`).join("")}</div></div><button class="btn warning" onclick="enableDailyNotifications()">🔔 10 Daily Notifications ON</button></div><div class="hint">Notification permission கொடுத்தால் இந்த 10 நேரங்களில் phone notification வரும். App/browser active-ஆ இருக்கும்போது இந்த HTML version வேலை செய்யும்.</div></div>
  <div class="customerSection"><h4>🎨 இந்த customer-ன் Blouse Design</h4><div class="photoActions"><label class="btn secondary">🖼️ Gallery<input type="file" accept="image/*" style="display:none" onchange="uploadCustomerDesign('${id}',this.files[0])"></label><label class="btn secondary">📷 Camera<input type="file" accept="image/*" capture="environment" style="display:none" onchange="uploadCustomerDesign('${id}',this.files[0])"></label><button class="btn secondary" onclick="searchDesignForCustomer('${id}')">🔎 Google Images Search</button></div><div class="hint">Gallery-ல் இருந்து photo தேர்வு செய்யலாம்; Camera மூலம் நேரடியாக photo எடுக்கலாம்.</div><div id="customer-design-search-${id}" class="hidden" style="margin-bottom:8px"><div class="toolbar"><input class="input search" id="customer-design-q-${id}" placeholder="blouse design search"><button class="btn primary" onclick="runCustomerDesignSearch('${id}')">Search</button></div><div id="customer-design-results-${id}" class="customerDesignGrid"></div></div><div class="customerDesignGrid">${designHtml}</div></div>
   </article>`;
 }
 function renderCustomers(){
+const box=$("customersTable");
+if(!box)return;
+if(state.dataLoading && !state.dataLoaded){
+  box.innerHTML=`<div class="card empty" style="grid-column:1/-1">⏳ Customer data loading…</div>`;
+  return;
+}
 const q=($("customerSearch").value||"").toLowerCase();
 const r=state.customers.filter(x=>[x.name,x.phone,x.address,x.village].join(" ").toLowerCase().includes(q));
-$("customersTable").innerHTML=r.length?r.map(x=>customerCard(x.id)).join(""):`<div class="card empty" style="grid-column:1/-1">No customers found.</div>`;
+box.innerHTML=r.length?r.map(x=>customerCard(x.id)).join(""):`<div class="card empty" style="grid-column:1/-1">${state.dataLoaded?"No customers found.":"Customer data இன்னும் load ஆகவில்லை. ↻ Refresh அழுத்துங்கள்."}</div>`;
 }
 function saveReminderTime(id){
 const t=$("remtime-"+id)?.value||"09:00";localStorage.setItem("nf_reminder_time",t);toast("Daily reminder time "+t+" என்று சேமிக்கப்பட்டது.");
@@ -2960,7 +2925,7 @@ const q=($("orderSearch").value||"").toLowerCase(),sf=$("orderStatusFilter").val
 const r=state.orders.filter(x=>(!sf||x.status===sf)&&[x.order_no,customerName(x.customer_id),x.garment_type,x.status].join(" ").toLowerCase().includes(q));
 $("ordersTable").innerHTML=r.length?`<div class="tablewrap"><table class="table"><thead><tr><th>Order</th><th>Customer</th><th>Garment</th><th>Cloth received</th><th>Delivery</th><th>Qty</th><th>Rate</th><th>Total</th><th>Advance</th><th>Balance</th><th>Status</th><th>Actions</th></tr></thead><tbody>${r.map(o=>{
 const d=dueInfo(o);const reminder=d?`<br><span class="pill ${d.kind==="late"?"bad":d.kind==="today"?"warn":""}">${d.kind==="late"?d.days+" நாள் late":d.kind==="today"?"இன்று":d.days+" நாள்"}</span>`:"";
-return `<tr><td><b>${esc(o.order_no)}</b></td><td>${esc(customerName(o.customer_id))}</td><td>${esc(o.garment_type)}</td><td>${dateText(o.cloth_received_date)}</td><td>${dateText(o.delivery_date)}${reminder}</td><td><b>${Number(o.quantity||0)}</b><br><span class="mini">${esc(blouseSplitText(o))}</span></td><td>${money(o.unit_price)}</td><td>${money(orderTotal(o))}${nfLiningCost(o).total?`<br><span class="mini">🧵 Lining ${money(nfLiningCost(o).total)}</span>`:""}</td><td>${money(o.advance_amount)}</td><td>${money(o.balance_amount)}</td><td>${statusPill(o.status)}</td><td><div class="actions"><button class="btn primary" onclick="openCustomerOrderEditor('${o.customer_id}','${o.id}')">✏️ Edit Details</button>${!isFinished(o)?`<button class="btn success" onclick="markDelivered('${o.id}')">Delivered</button>`:""}<button class="btn danger" onclick="removeRow('orders','${o.id}')">Delete</button></div></td></tr>`;
+return `<tr><td><b>${esc(o.order_no)}</b></td><td>${esc(customerName(o.customer_id))}</td><td>${esc(o.garment_type)}</td><td>${dateText(o.cloth_received_date)}</td><td>${dateText(o.delivery_date)}${reminder}</td><td><b>${Number(o.quantity||0)}</b><br><span class="mini">${esc(blouseSplitText(o))}</span></td><td>${money(o.unit_price)}</td><td>${money(orderTotal(o))}${nfLiningCost(o).total?`<br><span class="mini">🧵 Lining ${money(nfLiningCost(o).total)}</span>`:""}</td><td>${money(o.advance_amount)}</td><td>${money(o.balance_amount)}</td><td>${statusPill(o.status)}</td><td><div class="actions"><button class="btn secondary" onclick="openModal('order','${o.id}')">Edit</button>${!isFinished(o)?`<button class="btn success" onclick="markDelivered('${o.id}')">Delivered</button>`:""}<button class="btn danger" onclick="removeRow('orders','${o.id}')">Delete</button></div></td></tr>`;
 }).join("")}</tbody></table></div>`:`<div class="empty">No orders found.</div>`;
 }
 function renderAlterations(){
@@ -3312,8 +3277,74 @@ function startReminderScheduler(){
 }
 function enableDailyNotifications(){requestNotificationPermission().then(p=>{if(p==="granted"){localStorage.setItem("nf_notification_enabled","1");startReminderScheduler();toast("ஒரு நாளில் 10 Daily Reminder நேரங்கள் ON. Phone notification permission வழங்கப்பட்டுள்ளது.")}else toast("Notification permission கிடைக்கவில்லை.",true)})}
 updateBackButton();
-supabaseClient.auth.onAuthStateChange((_event,session)=>{if(session?.user){showApp(session.user);setTimeout(()=>loadAll(true),0)}else showLogin()});
-(async()=>{const {data}=await supabaseClient.auth.getSession();if(data?.session?.user){showApp(data.session.user);await loadAll(true)}else showLogin()})();
+
+let nfAuthBooted=false;
+
+async function nfStartSession(){
+  try{
+    const {data,error}=await supabaseClient.auth.getSession();
+    if(error)throw error;
+
+    if(data?.session?.user){
+      showApp(data.session.user);
+      await loadAll(true);
+    }else{
+      state.dataLoaded=false;
+      showLogin();
+    }
+  }catch(err){
+    console.error("Session restore failed:",err);
+    showLogin();
+    setLoginMsg("Session restore failed. Please login again.",true);
+  }
+}
+
+supabaseClient.auth.onAuthStateChange((_event,session)=>{
+  if(session?.user){
+    showApp(session.user);
+    if(!nfAuthBooted)loadAll(true);
+  }else{
+    state.dataLoaded=false;
+    state.customers=[];state.orders=[];state.measurements=[];
+    state.alterations=[];state.payments=[];state.designs=[];
+    showLogin();
+  }
+});
+
+(async()=>{
+  nfAuthBooted=true;
+  await nfStartSession();
+})();
+
+/*
+ * Capacitor/WebView can restore the page from memory after the Android app
+ * is closed and reopened. In that case the HTML is restored immediately,
+ * while Supabase data may still need a fresh network request.
+ * Re-sync on pageshow and when the app becomes visible again.
+ */
+let nfResumeTimer=null;
+
+async function nfRefreshAfterResume(){
+  if(!state.user || document.visibilityState==="hidden")return;
+  clearTimeout(nfResumeTimer);
+  nfResumeTimer=setTimeout(async()=>{
+    try{
+      const {data}=await supabaseClient.auth.getSession();
+      if(data?.session?.user){
+        state.user=data.session.user;
+        showApp(data.session.user);
+        await loadAll(true,true);
+      }
+    }catch(err){
+      console.warn("Resume refresh failed:",err);
+    }
+  },450);
+}
+
+window.addEventListener("pageshow",nfRefreshAfterResume,{passive:true});
+document.addEventListener("visibilitychange",()=>{
+  if(document.visibilityState==="visible")nfRefreshAfterResume();
+});
 
 /* =========================================================
    Mobile side-menu swipe:
