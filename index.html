@@ -2716,6 +2716,7 @@ function openCustomerOrderEditor(customerId,orderId){
    const box=$("quick-order-"+customerId);
    if(!box){toast("New Order section கிடைக்கவில்லை.",true);return}
    box.classList.remove("hidden");
+   box.classList.toggle("nf-edit-mode",!!order);
    box.dataset.editOrderId=order?.id||"";
    const title=box.querySelector(".nf-quick-edit-title");
    if(title)title.textContent=order?`✏️ Edit Order — ${order.order_no||"Order"}`:"🧾 New Order";
@@ -2736,7 +2737,7 @@ function clearQuickOrderEditor(id){
  if(ls)ls.value="";
  if(notes)notes.value="";
  const g=$("qo-garment-"+id);if(g)g.value="Blouse";
- const box=$("quick-order-"+id);if(box)box.dataset.editOrderId="";
+ const box=$("quick-order-"+id);if(box){box.dataset.editOrderId="";box.classList.remove("nf-edit-mode");}
  const dr=$("qo-design-rates-box-"+id);if(dr){dr.innerHTML="";dr.style.display="none";}
  updateQuickGarment(id);
  updateQuickOrderCalc(id);
@@ -2755,7 +2756,7 @@ function populateQuickOrderEditor(id,o){
  const s=blouseSplit(o),gx=typeof nfGarmentExtra==="function"?nfGarmentExtra(o):{chudi:0,chudiLining:"no",chudiLiningQty:0,saree:0};
  set("qo-normal-",s.normal||0);set("qo-lining-",s.lining||0);set("qo-design-",s.design||0);
  renderQuickDesignRates(id,nfDesignRates(o));
- set("qo-chudi-",gx.chudi||0);set("qo-chudi-lining-",gx.chudiLining||"no");set("qo-chudi-lining-qty-",gx.chudiLiningQty||0);
+ set("qo-chudi-",gx.chudi||0);set("qo-chudi-lining-",gx.chudiLining||"no");set("qo-chudi-lining-qty-",gx.chudiLiningQty||0);updateChudiLiningLabel(id);
  set("qo-saree-",gx.saree||0);
  const rr=nfOrderRates(o);set("qo-chudi-rate-",rr.chudi||getRates().chudi||0);set("qo-saree-rate-",rr.saree||getRates().saree||0);
  const lc=nfLiningCost(o);set("qo-lining-source-",o.lining_cloth_source||lc.source||"");set("qo-lining-qty-",Number(o.lining_cloth_qty||lc.qty||0));set("qo-lining-rate-",Number(lc.rate||0));
@@ -2782,6 +2783,11 @@ function updateQuickGarment(id){
  document.querySelectorAll("#quick-order-"+id+" .nf-quick-chudi").forEach(x=>x.classList.toggle("nf-field-hidden",g!=="Chudi"));
  document.querySelectorAll("#quick-order-"+id+" .nf-quick-saree").forEach(x=>x.classList.toggle("nf-field-hidden",g!=="Saree"));
  updateQuickOrderCalc(id);
+}
+function updateChudiLiningLabel(id){
+ const source=$("qo-chudi-lining-"+id)?.value||"no";
+ const label=$("qo-chudi-lining-label-"+id);
+ if(label)label.textContent=source==="yes"?"🧵 Customer கொடுத்த Chudi lining எத்தனை":"🧵 நாம் வாங்கிய Chudi lining எத்தனை";
 }
 function updateQuickOrderCalc(id){
  const g=$("qo-garment-"+id)?.value||"Blouse",r=getRates();
@@ -2947,7 +2953,7 @@ function customerCard(id){
  <div class="moneyStat"><span>மொத்த blouse</span><input id="qo-qty-${id}" class="input" type="number" value="0" readonly></div></div></div>
  <div class="field full nf-design-rate-box" id="qo-design-rates-box-${id}" style="display:none"></div>
  <div class="field full nf-lining-cost-box"><h4>🧵 Lining — Customer Amount-ல் சேர்க்க</h4><div class="nf-lining-cost-grid"><div class="nf-lining-cost-field"><label>Lining யார் வாங்கியது?</label><select id="qo-lining-source-${id}" class="input" onchange="updateQuickOrderCalc('${id}')"><option value="">தேவையில்லை</option><option value="customer">Customer கொடுத்தது</option><option value="shop">நாம் வாங்கியது</option></select></div><div class="nf-lining-cost-field"><label>Lining எத்தனை</label><input id="qo-lining-qty-${id}" class="input" type="number" min="0" step="1" value="0" oninput="updateQuickOrderCalc('${id}')"></div><div class="nf-lining-cost-field"><label>நாம் வாங்கிய Lining விலை / ஒன்று</label><input id="qo-lining-rate-${id}" class="input" type="number" min="0" step="0.01" value="0" oninput="updateQuickOrderCalc('${id}')"></div><div class="nf-lining-cost-field"><label>Lining மொத்த விலை</label><div id="qo-lining-total-${id}" class="nf-lining-cost-total">₹0.00</div></div></div></div>
- <div class="field nf-quick-chudi"><label>👚 எத்தனை Chudi / சுடிதார்</label><input id="qo-chudi-${id}" class="input" type="number" min="0" step="1" value="0" oninput="updateQuickOrderCalc('${id}')"></div><div class="field nf-quick-chudi"><label>🧵 Chudi-க்கு lining கொடுத்தாரா?</label><select id="qo-chudi-lining-${id}" class="input"><option value="no">இல்லை</option><option value="yes">ஆம்</option></select></div><div class="field nf-quick-chudi"><label>🧵 Chudi lining எத்தனை</label><input id="qo-chudi-lining-qty-${id}" class="input" type="number" min="0" step="1" value="0"></div><div class="field nf-quick-chudi"><label>👚 Chudi விலை / ஒன்றுக்கு</label><input id="qo-chudi-rate-${id}" class="input" type="number" min="0" step="0.01" value="${getRates().chudi}" oninput="updateQuickOrderCalc('${id}')"></div><div class="field nf-quick-saree"><label>🥻 எத்தனை Saree / சேலை</label><input id="qo-saree-${id}" class="input" type="number" min="0" step="1" value="0" oninput="updateQuickOrderCalc('${id}')"></div><div class="field nf-quick-saree"><label>🥻 Saree விலை / ஒன்றுக்கு</label><input id="qo-saree-rate-${id}" class="input" type="number" min="0" step="0.01" value="${getRates().saree}" oninput="updateQuickOrderCalc('${id}')"></div>
+ <div class="field nf-quick-chudi"><label>👚 எத்தனை Chudi / சுடிதார்</label><input id="qo-chudi-${id}" class="input" type="number" min="0" step="1" value="0" oninput="updateQuickOrderCalc('${id}')"></div><div class="field nf-quick-chudi"><label>🧵 Chudi-க்கு lining கொடுத்தாரா?</label><select id="qo-chudi-lining-${id}" class="input" onchange="updateChudiLiningLabel('${id}')"><option value="no">இல்லை</option><option value="yes">ஆம்</option></select></div><div class="field nf-quick-chudi"><label id="qo-chudi-lining-label-${id}">🧵 நாம் வாங்கிய Chudi lining எத்தனை</label><input id="qo-chudi-lining-qty-${id}" class="input" type="number" min="0" step="1" value="0"></div><div class="field nf-quick-chudi"><label>👚 Chudi விலை / ஒன்றுக்கு</label><input id="qo-chudi-rate-${id}" class="input" type="number" min="0" step="0.01" value="${getRates().chudi}" oninput="updateQuickOrderCalc('${id}')"></div><div class="field nf-quick-saree"><label>🥻 எத்தனை Saree / சேலை</label><input id="qo-saree-${id}" class="input" type="number" min="0" step="1" value="0" oninput="updateQuickOrderCalc('${id}')"></div><div class="field nf-quick-saree"><label>🥻 Saree விலை / ஒன்றுக்கு</label><input id="qo-saree-rate-${id}" class="input" type="number" min="0" step="0.01" value="${getRates().saree}" oninput="updateQuickOrderCalc('${id}')"></div>
  <div class="field"><label>Advance வாங்கியது</label><input id="qo-advance-${id}" class="input" type="number" min="0" step="0.01" value="0"></div><div class="field"><label>Status</label><select id="qo-status-${id}" class="input"><option>Pending</option><option>In Progress</option><option>Ready</option><option>Delivered</option></select></div>
  <div class="field full"><label>விலை பிரிப்பு</label><div class="nf-price-breakdown"><div><span>👗 Garment / Blouse / Chudi</span><b id="qo-garment-total-${id}">₹0.00</b></div><div><span>🧵 Lining</span><b id="qo-lining-total-display-${id}">₹0.00</b></div><div class="total"><span>மொத்த Customer Amount</span><b id="qo-total-${id}">₹0.00</b></div></div></div><div class="field full"><label>Notes</label><textarea id="qo-notes-${id}" class="input" placeholder="தேவைப்பட்டால் குறிப்பு"></textarea></div>
  </div><div class="customerActions" style="margin-top:10px"><button class="btn primary nf-quick-save-btn" onclick="saveQuickOrder('${id}')">💾 Save Order</button><button class="btn secondary" onclick="toggleQuickOrder('${id}')">Close</button></div></div></div>
@@ -4866,6 +4872,10 @@ window.runPhoneReminders=function(){
 
 
 
+<style id="nf-edit-order-cleanup">
+/* Edit Order already sits below the customer item-wise rate summary. */
+#app .nf-edit-mode .nf-price-breakdown{display:none!important}
+</style>
 <style id="nf-final-header-and-edit-data-fix">
 /* =========================================================
    FINAL SAFETY PATCH
