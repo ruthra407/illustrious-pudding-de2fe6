@@ -2930,10 +2930,7 @@ async function saveQuickOrder(id){
  const box=$("quick-order-"+id),editOrderId=box?.dataset.editOrderId||"";
  const existing=editOrderId?state.orders.find(x=>x.id===editOrderId):null;
  const garment=$("qo-garment-"+id)?.value||"Blouse",cloth=$("qo-cloth-"+id)?.value||null,delivery=$("qo-delivery-"+id)?.value||null,r=getQuickBlouseRates(id);
- const designBox=document.getElementById("qo-design-rates-box-"+id)?.querySelector(".nf-design-3slot");
- const slotDesignQty=designBox?[...designBox.querySelectorAll(".nf-design-slot-card")].reduce((a,c)=>a+Math.max(0,Number(c.querySelector(".nf-di-qty")?.value||0)),0):null;
- const s={normal:Number($("qo-normal-"+id)?.value||0),lining:Number($("qo-lining-"+id)?.value||0),design:slotDesignQty==null?Number($("qo-design-"+id)?.value||0):slotDesignQty};
- const dq=$("qo-design-"+id);if(dq&&slotDesignQty!=null){dq.value=slotDesignQty;dq.readOnly=true;}
+ const s={normal:Number($("qo-normal-"+id)?.value||0),lining:Number($("qo-lining-"+id)?.value||0),design:Number($("qo-design-"+id)?.value||0)};
  const designRates=getQuickDesignRates(id,s.design,r.design||0);
  if(s.design>0 && designRates.length!==s.design){toast("ஒவ்வொரு Design blouse-க்கும் rate கொடுக்க வேண்டும்.",true);return}
  const designTotal=designRates.reduce((sum,v)=>sum+Math.max(0,Number(v||0)),0);
@@ -2969,37 +2966,13 @@ async function saveQuickOrder(id){
 
 
 function getQuickDesignRates(id,qty,fallback){
-  const host=document.getElementById("qo-design-rates-box-"+id);
-  const box=host?.querySelector(".nf-design-3slot");
-  if(box){
-    const items=[...box.querySelectorAll(".nf-design-slot-card")].map(c=>({
-      qty:Math.max(0,Number(c.querySelector(".nf-di-qty")?.value||0)),
-      rate:Math.max(0,Number(c.querySelector(".nf-di-rate")?.value||0))
-    }));
-    const out=[];
-    items.forEach(x=>{for(let i=0;i<x.qty;i++)out.push(x.rate)});
-    return out;
-  }
   const q=Math.max(0,Number(qty||0));
   const rate=Math.max(0,Number($("qo-design-rate-"+id)?.value||fallback||0));
   return Array.from({length:q},()=>rate);
 }
 function renderQuickDesignRates(id,rates){
   const box=$("qo-design-rates-box-"+id);
-  if(!box)return;
-  if(!box.querySelector(".nf-design-3slot"))box.innerHTML=slotMarkup([]);
-  box.style.display="";
-  const cards=box.querySelectorAll(".nf-design-slot-card"),arr=Array.isArray(rates)?rates:[];
-  let i=0;
-  for(let s=0;s<cards.length;s++){
-    const card=cards[s],qEl=card.querySelector(".nf-di-qty"),rEl=card.querySelector(".nf-di-rate");
-    if(i>=arr.length){if(qEl)qEl.value=0;if(rEl)rEl.value=0;continue}
-    const r=Number(arr[i]||0);let q=1;
-    while(i+q<arr.length && Number(arr[i+q]||0)===r)q++;
-    if(qEl)qEl.value=q;if(rEl)rEl.value=r;i+=q;
-  }
-  cards.forEach(c=>c.querySelectorAll("input").forEach(el=>el.addEventListener("input",()=>updateQuick(id))));
-  updateQuick(id);
+  if(box){box.innerHTML="";box.style.display="none";}
 }
 
 function customerReminderHTML(os){
@@ -3103,7 +3076,7 @@ function customerCard(id){
  <div class="moneyStat"><span>Lining blouse — எத்தனை</span><input id="qo-lining-${id}" class="input" type="number" min="0" step="1" value="0" oninput="updateQuickOrderCalc('${id}')"></div>
  <div class="moneyStat"><span>Lining blouse — ஒன்றுக்கு விலை</span><input id="qo-lining-rate-${id}" class="input" type="number" min="0" step="0.01" value="${getRates().lining}" oninput="updateQuickOrderCalc('${id}')"></div>
  <div class="moneyStat"><span>Design blouse — எத்தனை</span><input id="qo-design-${id}" class="input" type="number" min="0" step="1" value="0" oninput="updateQuickOrderCalc('${id}');renderQuickDesignRates('${id}')"></div>
- <div class="moneyStat"><span>Design blouse — ஒன்றுக்கு விலை</span><input id="qo-design-rate-${id}" class="input" type="number" min="0" step="0.01" value="${getRates().design}" oninput="updateQuickOrderCalc('${id}')"></div>
+ <div class="moneyStat nf-design-single-rate"><span>Design blouse — ஒன்றுக்கு விலை</span><input id="qo-design-rate-${id}" class="input" type="number" min="0" step="0.01" value="${getRates().design}" oninput="updateQuickOrderCalc('${id}')"></div>
  <div class="moneyStat"><span>மொத்த blouse</span><input id="qo-qty-${id}" class="input" type="number" value="0" readonly></div></div></div>
  <div class="field full nf-design-rate-box" id="qo-design-rates-box-${id}" style="display:none"></div>
  <div class="field full nf-lining-cost-box"><h4>🧵 Lining — Customer Amount-ல் சேர்க்க</h4><div class="nf-lining-cost-grid"><div class="nf-lining-cost-field"><label>Lining யார் வாங்கியது?</label><select id="qo-lining-source-${id}" class="input" onchange="updateQuickOrderCalc('${id}')"><option value="">தேவையில்லை</option><option value="customer">Customer கொடுத்தது</option><option value="shop">நாம் வாங்கியது</option></select></div><div class="nf-lining-cost-field"><label>Lining எத்தனை</label><input id="qo-lining-qty-${id}" class="input" type="number" min="0" step="1" value="0" oninput="updateQuickOrderCalc('${id}')"></div><div class="nf-lining-cost-field"><label>நாம் வாங்கிய Lining விலை / ஒன்று</label><input id="qo-lining-cost-rate-${id}" class="input" type="number" min="0" step="0.01" value="0" oninput="updateQuickOrderCalc('${id}')"></div><div class="nf-lining-cost-field"><label>Lining மொத்த விலை</label><div id="qo-lining-total-${id}" class="nf-lining-cost-total">₹0.00</div></div></div></div>
@@ -5036,8 +5009,9 @@ window.runPhoneReminders=function(){
 
 
 <style id="nf-edit-order-cleanup">
-/* Edit Order already sits below the customer item-wise rate summary. */
+/* Edit Order: Design blouse price is entered per design in the 3 slots below. */
 #app .nf-edit-mode .nf-price-breakdown{display:none!important}
+#app .nf-edit-mode .nf-design-single-rate{display:none!important}
 </style>
 <style id="nf-final-header-and-edit-data-fix">
 /* =========================================================
@@ -5285,7 +5259,6 @@ function updateQuick(id){
   const r=getQuickBlouseRates(id);
   const d=recalcBox(host.querySelector(".nf-design-3slot"));
   const n=N(document.getElementById("qo-normal-"+id)?.value),l=N(document.getElementById("qo-lining-"+id)?.value);
-  const dq=document.getElementById("qo-design-"+id);if(dq){dq.value=d.qty;dq.readOnly=true;}
   const qty=n+l+d.qty, garment=n*r.normal+l*r.lining+d.total;
   const ls=document.getElementById("qo-lining-source-"+id)?.value||"";
   const lq=N(document.getElementById("qo-lining-qty-"+id)?.value),lr=N(document.getElementById("qo-lining-cost-rate-"+id)?.value);
