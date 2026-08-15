@@ -2163,6 +2163,16 @@ body{
 @media(max-width:700px){.layout{padding-top:88px!important}.main{min-height:calc(100dvh - 88px)!important}.topbar{height:auto!important}}
 @media(max-width:390px){.layout{padding-top:84px!important}.main{min-height:calc(100dvh - 84px)!important}}
 </style>
+
+<style id="dashboard-custom-layout">
+#view-dashboard .dashboardNext5{
+  margin-top:14px;
+  background:linear-gradient(135deg,#eaf8ff,#ffffff);
+  border-color:#c9eaf5;
+}
+#view-dashboard .dashboardNext5 .big{display:block;font-size:30px;margin-bottom:8px}
+#view-dashboard .dashboardNext5 .dashboardOrderList{margin-top:10px}
+</style>
 </head>
 <body>
 
@@ -2231,23 +2241,11 @@ body{
 <div class="kpiCard kpiDelivery clickable" role="button" tabindex="0" onclick="goView('orders')"><div class="kpiTitle">🚚 Today Delivery</div><div id="kpiDelivery" class="kpiNum">0</div><div class="kpiSmall">இன்று கொடுக்க வேண்டியவை</div><div id="kpiDeliveryDetails" class="kpiDetails"></div></div>
 <div class="kpiCard kpiReminder clickable" role="button" tabindex="0" onclick="goView('orders')"><div class="kpiTitle">🔔 Daily Reminder</div><div id="kpiReminder" class="kpiNum">0</div><div class="kpiSmall">அடுத்த 5 நாட்கள் + late</div></div>
 <div class="kpiCard kpiMonthly clickable" role="button" tabindex="0" onclick="goView('payments')"><div class="kpiTitle">📅 Monthly Collection</div><div id="kpiMonthly" class="kpiNum">₹0</div><div id="kpiMonthlySmall" class="kpiSmall">இந்த மாதம்</div></div>
-<div class="kpiCard kpiBalance clickable" role="button" tabindex="0" onclick="goView('customers')"><div class="kpiTitle">💳 Customer Balance</div><div id="kpiBalance" class="kpiNum">₹0</div><div class="kpiSmall">Customers கொடுக்க வேண்டியது</div></div>
 </div>
 <div class="card dashboardDues"><div class="pagehead"><div><h3 style="margin:0">💳 Customer Dues</h3><p>யார் எவ்வளவு கொடுக்க வேண்டும் — பெயர், phone, balance</p></div></div><div id="dashboardDuesList"></div></div>
-<div class="alertgrid">
-<div class="alertbox today clickable" role="button" tabindex="0" onclick="goView('orders')"><h3>🔔 Today Delivery</h3><b id="dueTodayCount" class="big">0</b><div id="dueTodayList"></div></div>
-<div class="alertbox soon clickable" role="button" tabindex="0" onclick="goView('orders')"><h3>⏰ Next 5 Days</h3><b id="dueSoonCount" class="big">0</b><div id="dueSoonList"></div></div>
-<div class="alertbox late clickable" role="button" tabindex="0" onclick="goView('orders')"><h3>🚨 Pending / Late</h3><b id="lateCount" class="big">0</b><div id="lateList"></div></div>
-</div>
-
-<div class="quick">
-<button onclick="openModal('customer')"><b>➕ Add Customer</b><br><span class="mini">புதிய customer — எல்லா order-களும் customer card-ல்</span></button>
-<button onclick="goView('customers')"><b>👤 Customer Cards</b><br><span class="mini">Customer-ஐ திறந்து New Order / Measurement / Payment செய்யலாம்</span></button>
-</div>
-
-<div class="photoGrid">
-<div class="photoCard"><b>👤 Owner — உங்கள் புகைப்படம்</b><div id="ownerPhotoBox" style="margin-top:9px"></div><div class="photoActions"><label class="btn secondary">🖼️ Gallery<input id="ownerPhotoInput" type="file" accept="image/*" style="display:none"></label><label class="btn secondary">📷 Camera<input id="ownerCameraInput" type="file" accept="image/*" capture="environment" style="display:none"></label><button class="btn secondary" onclick="clearPhoto('owner')">Remove</button></div></div>
-<div class="photoCard"><b>🏪 Shop — கடை புகைப்படம்</b><div id="shopPhotoBox" style="margin-top:9px"></div><div class="photoActions"><label class="btn secondary">🖼️ Gallery<input id="shopPhotoInput" type="file" accept="image/*" style="display:none"></label><label class="btn secondary">📷 Camera<input id="shopCameraInput" type="file" accept="image/*" capture="environment" style="display:none"></label><button class="btn secondary" onclick="clearPhoto('shop')">Remove</button></div></div>
+<div class="card dashboardNext5" style="margin-top:14px">
+<div class="pagehead"><div><h3 style="margin:0">⏰ Next 5 Days Delivery</h3><p>அடுத்த 5 நாட்களில் delivery — customer name, garment count, date, எத்தனை நாளில்</p></div></div>
+<b id="dueSoonCount" class="big">0</b><div id="dueSoonList"></div>
 </div>
 
 <div class="card" style="margin-top:14px"><div class="pagehead"><div><h2 style="font-size:20px">Daily Update</h2><p>இன்றைய நிலவரம்</p></div></div><div id="dailyUpdate"></div></div>
@@ -2494,7 +2492,7 @@ function dashboardOrderGarmentText(o){
 
 function renderDashboardDues(){
  const rows=state.customers.map(c=>({c,s:customerStats(c.id)})).filter(x=>x.s.balance>0).sort((a,b)=>b.s.balance-a.s.balance);
- $("dashboardDuesList").innerHTML=rows.length?rows.slice(0,15).map(x=>`<div class="dueCustomer clickable" role="button" tabindex="0" onclick="goToCustomer('${x.c.id}')"><div><div class="dueName">👤 ${esc(x.c.name)}</div><div class="dueMeta">📞 ${esc(x.c.phone||"Phone இல்லை")} · Pending garment: ${x.s.pending}</div></div><b>${money(x.s.balance)}</b></div>`).join(""):`<div class="empty">Customer balance இல்லை. 🎉</div>`;
+ $("dashboardDuesList").innerHTML=rows.length?rows.slice(0,15).map(x=>`<div class="dueCustomer clickable" role="button" tabindex="0" onclick="goToCustomer('${x.c.id}')"><div class="dueName">👤 ${esc(x.c.name)}</div><b>${money(x.s.balance)}</b></div>`).join(""):`<div class="empty">Customer balance இல்லை. 🎉</div>`;
 }
 function renderDashboard(){
 $("statCustomers").textContent=state.customers.length;
@@ -2520,13 +2518,10 @@ $("kpiDeliveryDetails").innerHTML=today.length?today.map(o=>{
  return `<div class="kpiDetailRow" onclick="goToOrderCustomer('${o.id}')"><b>👤 ${esc(c.name||"Unknown Customer")} · 📞 ${esc(c.phone||"Phone இல்லை")}</b><span>📅 ${dateText(o.delivery_date)} · ${dashboardOrderGarmentText(o)}</span></div>`;
 }).join(""):`<div class="kpiDetailRow">இன்று delivery இல்லை.</div>`;
 $("kpiMonthly").textContent=money(monthlyCollection());
-$("kpiBalance").textContent=money(totalBalance());
  renderDashboardDues();
 $("kpiMonthlySmall").textContent=new Date().toLocaleDateString("ta-IN",{month:"long",year:"numeric"});
-$("dueTodayCount").textContent=today.length;$("dueSoonCount").textContent=soon.length;$("lateCount").textContent=late.length;
-$("dueTodayList").innerHTML=smallOrderList(today,"இன்று கொடுக்க வேண்டும்");
+$("dueSoonCount").textContent=soon.length;
 $("dueSoonList").innerHTML=smallOrderList(soon,"இன்னும்");
-$("lateList").innerHTML=smallOrderList(late,"late");
 const delivered=state.orders.filter(o=>String(o.status)==="Delivered").length;
 $("dailyUpdate").innerHTML=`<p>📅 இன்று: <b>${dateText(localDate())}</b></p>
 <p>💰 Today collection: <b>${money(todayCollection())}</b></p>
@@ -2536,7 +2531,6 @@ $("dailyUpdate").innerHTML=`<p>📅 இன்று: <b>${dateText(localDate())}
 <p>🚨 Late orders: <b>${late.length}</b> &nbsp; | &nbsp; ✅ Delivered: <b>${delivered}</b></p>`;
 const recent=state.orders.slice().sort((a,b)=>String(b.created_at||"").localeCompare(String(a.created_at||""))).slice(0,8);
 $("recentOrders").innerHTML=recent.length?`<div class="tablewrap"><table class="table"><thead><tr><th>Order</th><th>Customer</th><th>Garment</th><th>Qty</th><th>Delivery</th><th>Total</th><th>Balance</th><th>Status</th></tr></thead><tbody>${recent.map(o=>`<tr><td><b>${esc(o.order_no)}</b></td><td>${esc(customerName(o.customer_id))}</td><td>${esc(o.garment_type)}</td><td>${Number(o.quantity||0)}</td><td>${dateText(o.delivery_date)}</td><td>${money(orderTotal(o))}</td><td>${money(o.balance_amount)}</td><td>${statusPill(o.status)}</td></tr>`).join("")}</tbody></table></div>`:`<div class="empty">No orders yet.</div>`;
-renderPhotos();
 if(localStorage.getItem("nf_notification_enabled")==="1")startReminderScheduler();
 }
 function smallOrderList(list,label){
@@ -2545,7 +2539,7 @@ function smallOrderList(list,label){
   const d=dueInfo(o),c=state.customers.find(x=>x.id===o.customer_id)||{};
   const when=d?.kind==="late"?`🚨 ${d.days} நாள் late`:d?.kind==="today"?"🔔 இன்று":`⏰ ${d?.days??"—"} நாள் உள்ளது`;
   const cls=d?.kind==="late"?"bad":d?.kind==="today"?"warn":"";
-  return `<div class="dashboardOrderCard clickable" role="button" tabindex="0" onclick="goToOrderCustomer('${o.id}')"><div class="top"><div><div class="name">👤 ${esc(c.name||"Unknown Customer")}</div><div class="meta">📞 ${esc(c.phone||"Phone இல்லை")} · 📅 Delivery: ${dateText(o.delivery_date)}</div></div><span class="pill ${cls}">${esc(when)}</span></div><div class="meta">🧵 ${esc(o.garment_type||"Blouse")} · 👗 ${Number(o.quantity||0)} pcs · 🧾 ${esc(o.order_no||"")}</div></div>`;
+  return `<div class="dashboardOrderCard clickable" role="button" tabindex="0" onclick="goToOrderCustomer('${o.id}')"><div class="top"><div><div class="name">👤 ${esc(c.name||"Unknown Customer")}</div><div class="meta">📅 Delivery: ${dateText(o.delivery_date)}</div></div><span class="pill ${cls}">${esc(when)}</span></div><div class="meta">${dashboardOrderGarmentText(o)} · 🧾 ${esc(o.order_no||"")}</div></div>`;
  }).join("")}</div>`;
 }
 function customerOrders(id){return state.orders.filter(o=>o.customer_id===id)}
@@ -2612,13 +2606,19 @@ function customerStats(id){
    const s=blouseSplit(o),x=typeof nfGarmentExtra==="function"?nfGarmentExtra(o):{};
    return a+s.normal+s.lining+s.design+Number(x.chudi||0)+Number(x.saree||0);
  },0);
- const paid=customerPayments(id).reduce((a,p)=>a+Number(p.amount||0),0);
+  const givenBlouse=normal+lining+design;
+  const givenChudi=chudi;
+  const givenSaree=saree;
+  const pendingBlouse=os.reduce((a,o)=>{if(isFinished(o))return a;const s=blouseSplit(o);return a+s.normal+s.lining+s.design;},0);
+  const pendingChudi=os.reduce((a,o)=>{if(isFinished(o))return a;const x=typeof nfGarmentExtra==="function"?nfGarmentExtra(o):{};return a+Number(x.chudi||0);},0);
+  const pendingSaree=os.reduce((a,o)=>{if(isFinished(o))return a;const x=typeof nfGarmentExtra==="function"?nfGarmentExtra(o):{};return a+Number(x.saree||0);},0);
+  const paid=customerPayments(id).reduce((a,p)=>a+Number(p.amount||0),0);
  const total=os.reduce((a,o)=>a+orderTotal(o),0);
  const balance=Math.max(0,os.reduce((a,o)=>a+Number(o.balance_amount||0),0));
  const advance=os.reduce((a,o)=>a+Number(o.advance_amount||0),0);
  const liningCustomer=os.reduce((a,o)=>a+(String(o.lining_cloth_source||"").toLowerCase()==="customer"?Number(o.lining_cloth_qty||0):0),0);
  const liningShop=os.reduce((a,o)=>a+((["shop","tailor"].includes(String(o.lining_cloth_source||"").toLowerCase()))?Number(o.lining_cloth_qty||0):0),0);
- return {os,given,delivered,pending,paid,total,balance,advance,normal,lining,design,chudi,chudiLining,saree,liningCustomer,liningShop};
+  return {os,given,delivered,pending,paid,total,balance,advance,normal,lining,design,chudi,chudiLining,saree,liningCustomer,liningShop,givenBlouse,givenChudi,givenSaree,pendingBlouse,pendingChudi,pendingSaree};
 }
 function customerDesigns(id){
 try{return JSON.parse(localStorage.getItem("nf_customer_designs_"+id)||"[]")}catch{return[]}
@@ -2737,7 +2737,10 @@ function customerCard(id){
  }).join("")||`<div class="mini">இன்னும் order இல்லை.</div>`;
  return `<article class="customerCard" id="customer-card-${id}">
  <div class="customerCardHead"><div class="customerAvatar">👤</div><div style="flex:1"><h3>${esc(c.name)}</h3><p>📞 ${esc(c.phone||"Phone இல்லை")} · 📍 ${esc(village||"ஊர் இல்லை")}</p><p>🏠 ${esc(address)}</p><p>${esc(c.notes||"")}</p></div><div class="customerActions" style="justify-content:flex-end"><button class="btn secondary" onclick="openModal('customer','${id}')">Edit</button><button class="btn danger" onclick="deleteCustomer('${id}')">🗑 Delete</button></div></div>
- <div class="customerStats"><div class="customerStat"><b>${st.given}</b><span>கஸ்டமர் கொடுத்த garment</span></div><div class="customerStat"><b>${st.delivered}</b><span>நாம் கொடுத்தது</span></div><div class="customerStat"><b>${st.pending}</b><span>Pending garment</span></div></div>
+ <div class="customerStats">
+<div class="customerStat"><b>${st.givenBlouse||st.givenChudi||st.givenSaree?`${st.givenBlouse?`Blouse ${st.givenBlouse}`:""}${st.givenBlouse&&(st.givenChudi||st.givenSaree)?" · ":""}${st.givenChudi?`Chudi ${st.givenChudi}`:""}${st.givenChudi&&st.givenSaree?" · ":""}${st.givenSaree?`Saree ${st.givenSaree}`:""}`:"0"}</b><span>Customer கொடுத்த blouse / chudi count</span></div>
+<div class="customerStat"><b>${st.pendingBlouse||st.pendingChudi||st.pendingSaree?`${st.pendingBlouse?`Blouse ${st.pendingBlouse}`:""}${st.pendingBlouse&&(st.pendingChudi||st.pendingSaree)?" · ":""}${st.pendingChudi?`Chudi ${st.pendingChudi}`:""}${st.pendingChudi&&st.pendingSaree?" · ":""}${st.pendingSaree?`Saree ${st.pendingSaree}`:""}`:"0"}</b><span>Pending blouse / chudi count</span></div>
+</div>
  ${st.normal+st.lining+st.design>0?`<div class="customerSection"><h4>👗 Customer கொடுத்த Blouse Count</h4><div class="customerClothGrid"><div class="clothStat"><b>${st.normal}</b><span>Normal blouse — கொடுத்தது</span></div><div class="clothStat"><b>${st.lining}</b><span>Lining blouse — கொடுத்தது</span></div><div class="clothStat"><b>${st.design}</b><span>Design blouse — கொடுத்தது</span></div></div></div>`:""}
  ${st.chudi>0?`<div class="customerSection"><h4>👚 Customer கொடுத்த Chudi Count</h4><div class="customerClothGrid"><div class="clothStat"><b>${st.chudi}</b><span>Chudi / சுடிதார் — கொடுத்தது</span></div><div class="clothStat"><b>${st.chudiLining}</b><span>Chudi lining — கொடுத்தது</span></div><div class="clothStat"><b>${money(st.os.filter(o=>typeof nfGarmentExtra==="function"&&Number(nfGarmentExtra(o).chudi||0)>0).reduce((a,o)=>a+orderTotal(o),0))}</b><span>Chudi மொத்த விலை</span></div></div></div>`:""}
  ${st.saree>0?`<div class="customerSection"><h4>🥻 Customer கொடுத்த Saree Count</h4><div class="customerClothGrid"><div class="clothStat"><b>${st.saree}</b><span>Saree / சேலை — கொடுத்தது</span></div><div class="clothStat"><b>${money(st.os.filter(o=>typeof nfGarmentExtra==="function"&&Number(nfGarmentExtra(o).saree||0)>0).reduce((a,o)=>a+orderTotal(o),0))}</b><span>Saree மொத்த விலை</span></div></div></div>`:""}
@@ -3096,6 +3099,7 @@ function photoKey(kind){return "newfashion_"+kind+"_photo"}
 function renderPhotos(){
 ["owner","shop"].forEach(kind=>{
 const box=$(kind+"PhotoBox"),src=localStorage.getItem(photoKey(kind));
+if(!box)return;
 box.innerHTML=src?`<img class="photo" src="${src}" alt="${kind} photo">`:`<div class="photoPlaceholder">${kind==="owner"?"உங்கள் புகைப்படம்":"கடை புகைப்படம்"}</div>`;
 });
 }
@@ -3106,10 +3110,10 @@ if(!file.type.startsWith("image/")){toast("Image file மட்டும் த�
 if(file.size>2*1024*1024){toast("Photo 2MB-க்கு குறைவாக இருக்க வேண்டும்.",true);return}
 const reader=new FileReader();reader.onload=()=>{localStorage.setItem(photoKey(kind),reader.result);renderPhotos();toast(kind==="owner"?"Owner photo saved":"Shop photo saved")};reader.readAsDataURL(file);
 }
-$("ownerPhotoInput").addEventListener("change",e=>savePhoto("owner",e.target.files[0]));
-$("ownerCameraInput").addEventListener("change",e=>savePhoto("owner",e.target.files[0]));
-$("shopPhotoInput").addEventListener("change",e=>savePhoto("shop",e.target.files[0]));
-$("shopCameraInput").addEventListener("change",e=>savePhoto("shop",e.target.files[0]));
+$("ownerPhotoInput")?.addEventListener("change",e=>savePhoto("owner",e.target.files[0]));
+$("ownerCameraInput")?.addEventListener("change",e=>savePhoto("owner",e.target.files[0]));
+$("shopPhotoInput")?.addEventListener("change",e=>savePhoto("shop",e.target.files[0]));
+$("shopCameraInput")?.addEventListener("change",e=>savePhoto("shop",e.target.files[0]));
 
 
 async function requestNotificationPermission(){
