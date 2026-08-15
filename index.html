@@ -2843,7 +2843,7 @@ function openCustomerOrderEditor(customerId,orderId){
 }
 
 function clearQuickOrderEditor(id){
- ["qo-normal-","qo-lining-","qo-design-","qo-normal-rate-","qo-lining-rate-","qo-design-rate-","qo-chudi-","qo-chudi-lining-qty-","qo-saree-","qo-lining-qty-","qo-lining-rate-","qo-advance-"].forEach(prefix=>{const e=$(prefix+id);if(e)e.value=0});
+ ["qo-normal-","qo-lining-","qo-design-","qo-normal-rate-","qo-lining-rate-","qo-design-rate-","qo-chudi-","qo-chudi-lining-qty-","qo-saree-","qo-lining-qty-","qo-lining-cost-rate-","qo-advance-"].forEach(prefix=>{const e=$(prefix+id);if(e)e.value=0});
  const rr0=getRates();["qo-normal-rate-","qo-lining-rate-","qo-design-rate-"].forEach((prefix,i)=>{const e=$(prefix+id);if(e)e.value=[rr0.normal,rr0.lining,rr0.design][i]});
  const cloth=$("qo-cloth-"+id),delivery=$("qo-delivery-"+id),status=$("qo-status-"+id),ls=$("qo-lining-source-"+id),notes=$("qo-notes-"+id);
  if(cloth)cloth.value=localDate();
@@ -2876,7 +2876,7 @@ function populateQuickOrderEditor(id,o){
  set("qo-chudi-",gx.chudi||0);set("qo-chudi-lining-",gx.chudiLining||"no");set("qo-chudi-lining-qty-",gx.chudiLiningQty||0);updateChudiLiningLabel(id);
  set("qo-saree-",gx.saree||0);
  const rr=nfOrderRates(o);set("qo-chudi-rate-",rr.chudi||getRates().chudi||0);set("qo-saree-rate-",rr.saree||getRates().saree||0);
- const lc=nfLiningCost(o);set("qo-lining-source-",o.lining_cloth_source||lc.source||"");set("qo-lining-qty-",Number(o.lining_cloth_qty||lc.qty||0));set("qo-lining-rate-",Number(lc.rate||0));
+ const lc=nfLiningCost(o);set("qo-lining-source-",o.lining_cloth_source||lc.source||"");set("qo-lining-qty-",Number(o.lining_cloth_qty||lc.qty||0));set("qo-lining-cost-rate-",Number(lc.rate||0));
  updateQuickGarment(id);
  updateQuickOrderCalc(id);
 }
@@ -2918,7 +2918,7 @@ function updateQuickOrderCalc(id){
  const cq=Number($("qo-chudi-"+id)?.value||0),cr=Number($("qo-chudi-rate-"+id)?.value||0),sq=Number($("qo-saree-"+id)?.value||0),sr=Number($("qo-saree-rate-"+id)?.value||0);
  const qty=g==="Chudi"?cq:g==="Saree"?sq:n+l+d;
  const garmentTotal=g==="Chudi"?cq*cr:g==="Saree"?sq*sr:n*r.normal+l*r.lining+designTotal;
- const ls=$("qo-lining-source-"+id)?.value||"",lq=Math.max(0,Number($("qo-lining-qty-"+id)?.value||0)),lr=Math.max(0,Number($("qo-lining-rate-"+id)?.value||0));
+ const ls=$("qo-lining-source-"+id)?.value||"",lq=Math.max(0,Number($("qo-lining-qty-"+id)?.value||0)),lr=Math.max(0,Number($("qo-lining-cost-rate-"+id)?.value||0));
  const liningTotal=ls==="shop"?lq*lr:0,total=garmentTotal+liningTotal;
  if($("qo-qty-"+id))$("qo-qty-"+id).value=qty;
  if($("qo-lining-total-"+id))$("qo-lining-total-"+id).textContent=money(liningTotal);
@@ -2938,7 +2938,7 @@ async function saveQuickOrder(id){
  const sq=Math.max(0,Number($("qo-saree-"+id)?.value||0)),sr=Math.max(0,Number($("qo-saree-rate-"+id)?.value||r.saree||0));
  const qty=garment==="Chudi"?cq:garment==="Saree"?sq:s.normal+s.lining+s.design;
  const garmentTotal=garment==="Chudi"?cq*cr:garment==="Saree"?sq*sr:s.normal*r.normal+s.lining*r.lining+designTotal;
- const ls=$("qo-lining-source-"+id)?.value||"",lq=Math.max(0,Number($("qo-lining-qty-"+id)?.value||0)),lr=Math.max(0,Number($("qo-lining-rate-"+id)?.value||0));
+ const ls=$("qo-lining-source-"+id)?.value||"",lq=Math.max(0,Number($("qo-lining-qty-"+id)?.value||0)),lr=Math.max(0,Number($("qo-lining-cost-rate-"+id)?.value||0));
  const liningTotal=ls==="shop"?lq*lr:0,total=garmentTotal+liningTotal;
  const advance=Math.max(0,Number($("qo-advance-"+id)?.value||0)),status=$("qo-status-"+id)?.value||"Pending";
  if(!delivery){toast("Delivery Date தேர்வு செய்யுங்கள்.",true);return}
@@ -3079,7 +3079,7 @@ function customerCard(id){
  <div class="moneyStat"><span>Design blouse — ஒன்றுக்கு விலை</span><input id="qo-design-rate-${id}" class="input" type="number" min="0" step="0.01" value="${getRates().design}" oninput="updateQuickOrderCalc('${id}')"></div>
  <div class="moneyStat"><span>மொத்த blouse</span><input id="qo-qty-${id}" class="input" type="number" value="0" readonly></div></div></div>
  <div class="field full nf-design-rate-box" id="qo-design-rates-box-${id}" style="display:none"></div>
- <div class="field full nf-lining-cost-box"><h4>🧵 Lining — Customer Amount-ல் சேர்க்க</h4><div class="nf-lining-cost-grid"><div class="nf-lining-cost-field"><label>Lining யார் வாங்கியது?</label><select id="qo-lining-source-${id}" class="input" onchange="updateQuickOrderCalc('${id}')"><option value="">தேவையில்லை</option><option value="customer">Customer கொடுத்தது</option><option value="shop">நாம் வாங்கியது</option></select></div><div class="nf-lining-cost-field"><label>Lining எத்தனை</label><input id="qo-lining-qty-${id}" class="input" type="number" min="0" step="1" value="0" oninput="updateQuickOrderCalc('${id}')"></div><div class="nf-lining-cost-field"><label>நாம் வாங்கிய Lining விலை / ஒன்று</label><input id="qo-lining-rate-${id}" class="input" type="number" min="0" step="0.01" value="0" oninput="updateQuickOrderCalc('${id}')"></div><div class="nf-lining-cost-field"><label>Lining மொத்த விலை</label><div id="qo-lining-total-${id}" class="nf-lining-cost-total">₹0.00</div></div></div></div>
+ <div class="field full nf-lining-cost-box"><h4>🧵 Lining — Customer Amount-ல் சேர்க்க</h4><div class="nf-lining-cost-grid"><div class="nf-lining-cost-field"><label>Lining யார் வாங்கியது?</label><select id="qo-lining-source-${id}" class="input" onchange="updateQuickOrderCalc('${id}')"><option value="">தேவையில்லை</option><option value="customer">Customer கொடுத்தது</option><option value="shop">நாம் வாங்கியது</option></select></div><div class="nf-lining-cost-field"><label>Lining எத்தனை</label><input id="qo-lining-qty-${id}" class="input" type="number" min="0" step="1" value="0" oninput="updateQuickOrderCalc('${id}')"></div><div class="nf-lining-cost-field"><label>நாம் வாங்கிய Lining விலை / ஒன்று</label><input id="qo-lining-cost-rate-${id}" class="input" type="number" min="0" step="0.01" value="0" oninput="updateQuickOrderCalc('${id}')"></div><div class="nf-lining-cost-field"><label>Lining மொத்த விலை</label><div id="qo-lining-total-${id}" class="nf-lining-cost-total">₹0.00</div></div></div></div>
  <div class="field nf-quick-chudi"><label>👚 எத்தனை Chudi / சுடிதார்</label><input id="qo-chudi-${id}" class="input" type="number" min="0" step="1" value="0" oninput="updateQuickOrderCalc('${id}')"></div><div class="field nf-quick-chudi"><label>🧵 Chudi-க்கு lining கொடுத்தாரா?</label><select id="qo-chudi-lining-${id}" class="input" onchange="updateChudiLiningLabel('${id}')"><option value="no">இல்லை</option><option value="yes">ஆம்</option></select></div><div class="field nf-quick-chudi"><label id="qo-chudi-lining-label-${id}">🧵 நாம் வாங்கிய Chudi lining எத்தனை</label><input id="qo-chudi-lining-qty-${id}" class="input" type="number" min="0" step="1" value="0"></div><div class="field nf-quick-chudi"><label>👚 Chudi விலை / ஒன்றுக்கு</label><input id="qo-chudi-rate-${id}" class="input" type="number" min="0" step="0.01" value="${getRates().chudi}" oninput="updateQuickOrderCalc('${id}')"></div><div class="field nf-quick-saree"><label>🥻 எத்தனை Saree / சேலை</label><input id="qo-saree-${id}" class="input" type="number" min="0" step="1" value="0" oninput="updateQuickOrderCalc('${id}')"></div><div class="field nf-quick-saree"><label>🥻 Saree விலை / ஒன்றுக்கு</label><input id="qo-saree-rate-${id}" class="input" type="number" min="0" step="0.01" value="${getRates().saree}" oninput="updateQuickOrderCalc('${id}')"></div>
  <div class="field"><label>Advance வாங்கியது</label><input id="qo-advance-${id}" class="input" type="number" min="0" step="0.01" value="0"></div><div class="field"><label>Status</label><select id="qo-status-${id}" class="input"><option>Pending</option><option>In Progress</option><option>Ready</option><option>Delivered</option></select></div>
  <div class="field full"><label>விலை பிரிப்பு</label><div class="nf-price-breakdown"><div><span>👗 Garment / Blouse / Chudi</span><b id="qo-garment-total-${id}">₹0.00</b></div><div><span>🧵 Lining</span><b id="qo-lining-total-display-${id}">₹0.00</b></div><div class="total"><span>மொத்த Customer Amount</span><b id="qo-total-${id}">₹0.00</b></div></div></div><div class="field full"><label>Notes</label><textarea id="qo-notes-${id}" class="input" placeholder="தேவைப்பட்டால் குறிப்பு"></textarea></div>
@@ -5260,7 +5260,7 @@ function updateQuick(id){
   const n=N(document.getElementById("qo-normal-"+id)?.value),l=N(document.getElementById("qo-lining-"+id)?.value);
   const qty=n+l+d.qty, garment=n*r.normal+l*r.lining+d.total;
   const ls=document.getElementById("qo-lining-source-"+id)?.value||"";
-  const lq=N(document.getElementById("qo-lining-qty-"+id)?.value),lr=N(document.getElementById("qo-lining-rate-"+id)?.value);
+  const lq=N(document.getElementById("qo-lining-qty-"+id)?.value),lr=N(document.getElementById("qo-lining-cost-rate-"+id)?.value);
   const lining=ls==="shop"?lq*lr:0;
   const q=document.getElementById("qo-qty-"+id),gt=document.getElementById("qo-garment-total-"+id),tt=document.getElementById("qo-total-"+id);
   if(q){q.value=qty;q.readOnly=true}
