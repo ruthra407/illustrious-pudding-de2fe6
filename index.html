@@ -2337,10 +2337,8 @@ const $=id=>document.getElementById(id);
 const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
 const money=n=>"₹"+Number(n||0).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2});
 const localDate=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`};
-/* Safe date helpers: old/partial Supabase rows must never break the whole render. */
-const cleanDate=v=>{const x=String(v??"").trim();return /^\d{4}-\d{2}-\d{2}$/.test(x)?x:""};
-const dateText=v=>{const x=cleanDate(v);if(!x)return "—";const d=new Date(x+"T00:00:00");return Number.isNaN(d.getTime())?"—":d.toLocaleDateString("ta-IN")};
-const daysBetween=(a,b)=>{const aa=cleanDate(a),bb=cleanDate(b);if(!aa||!bb)return null;const da=new Date(aa+"T00:00:00"),db=new Date(bb+"T00:00:00");if(Number.isNaN(da.getTime())||Number.isNaN(db.getTime()))return null;return Math.round((db-da)/86400000)};
+const dateText=v=>v?new Date(v+"T00:00:00").toLocaleDateString("ta-IN"):"—";
+const daysBetween=(a,b)=>Math.round((new Date(b+"T00:00:00")-new Date(a+"T00:00:00"))/86400000);
 function toast(m,error=false){const t=$("toast");t.textContent=m;t.className="toast show"+(error?" error":"");clearTimeout(window.__toast);window.__toast=setTimeout(()=>t.className="toast",3200)}
 function showLogin(){state.user=null;$("app").classList.add("hidden");$("loginPage").classList.remove("hidden")}
 function showApp(u){state.user=u;$("loginPage").classList.add("hidden");$("app").classList.remove("hidden");$("userChip").textContent=u?.email||""}
@@ -2412,26 +2410,12 @@ if(error)throw new Error(name+": "+error.message);return data||[];
 }
 async function loadAll(silent=false){
 if(!state.user)return;
-let loaded;
 try{
 const [customers,orders,measurements,alterations,payments,designs]=await Promise.all([
 getTable("customers"),getTable("orders"),getTable("measurements"),getTable("alterations"),getTable("payments"),getTable("designs")
 ]);
-loaded={customers:Array.isArray(customers)?customers.filter(Boolean):[],orders:Array.isArray(orders)?orders.filter(Boolean):[],measurements:Array.isArray(measurements)?measurements.filter(Boolean):[],alterations:Array.isArray(alterations)?alterations.filter(Boolean):[],payments:Array.isArray(payments)?payments.filter(Boolean):[],designs:Array.isArray(designs)?designs.filter(Boolean):[]};
-Object.assign(state,loaded);
-}catch(err){
- toast("Database load error: "+(err?.message||String(err)),true);
- return;
-}
-/* Rendering is separate from the DB fetch. A bad legacy row must not make
-   the app look empty or be reported as a database failure. */
-try{renderAll();if(!silent)toast("Online data loaded");}
-catch(err){
- console.error("Render error after database load:",err);
- toast("Data loaded. Display error fixed — Refresh செய்யுங்கள்.",true);
- try{renderCustomers()}catch(e){console.error("Customer render error:",e)}
- try{renderOrders()}catch(e){console.error("Order render error:",e)}
-}
+Object.assign(state,{customers,orders,measurements,alterations,payments,designs});renderAll();if(!silent)toast("Online data loaded");
+}catch(err){toast("Database load error: "+err.message,true)}
 }
 function customerName(id){return state.customers.find(x=>x.id===id)?.name||"Unknown"}
 function goToCustomer(id){goView("customers");setTimeout(()=>document.getElementById("customer-card-"+id)?.scrollIntoView({behavior:"smooth",block:"start"}),120);}
@@ -2457,9 +2441,8 @@ function goToOrderCustomer(orderId){
 function orderLabel(id){const o=state.orders.find(x=>x.id===id);return o?`${o.order_no} — ${customerName(o.customer_id)}`:"Unknown"}
 function isFinished(o){return ["Delivered","Cancelled"].includes(String(o.status||""))}
 function dueInfo(o){
-if(!o||!o.delivery_date||isFinished(o))return null;
+if(!o.delivery_date||isFinished(o))return null;
 const d=daysBetween(localDate(),o.delivery_date);
-if(d==null)return null;
 if(d<0)return {kind:"late",days:Math.abs(d)};
 if(d===0)return {kind:"today",days:0};
 if(d<=5)return {kind:"soon",days:d};
@@ -2527,7 +2510,7 @@ $("kpiReminder").textContent=soon.length+late.length;
 const pendingActive=state.orders.filter(o=>!isFinished(o)).sort((a,b)=>String(a.delivery_date||"").localeCompare(String(b.delivery_date||"")));
 $("kpiPendingDetails").innerHTML=pendingActive.length?pendingActive.map(o=>{
  const c=state.customers.find(x=>x.id===o.customer_id)||{},d=dueInfo(o);
- const due=d?.kind==="late"?`🚨 ${d?.days??"—"} நாள் late`:d?.kind==="today"?"🔔 இன்று":`⏰ ${d?.days??"—"} நாள் உள்ளது`;
+ const due=d?.kind==="late"?`🚨 ${d.days} நாள் late`:d?.kind==="today"?"🔔 இன்று":`⏰ ${d?.days??"—"} நாள் உள்ளது`;
  const age=o.delivery_date?Math.max(0,daysBetween(o.delivery_date,localDate())):0;const ageText=d?.kind==="late"?` · ${age} நாள் ஆகிறது`:"";return `<div class="kpiDetailRow" onclick="goToOrderCustomer('${o.id}')"><b>👤 ${esc(c.name||"Unknown Customer")} · 📞 ${esc(c.phone||"Phone இல்லை")}</b><span>📅 ${dateText(o.delivery_date)} · ${due}${ageText} · ${dashboardOrderGarmentText(o)}</span></div>`;
 }).join(""):`<div class="kpiDetailRow">Pending orders இல்லை. 🎉</div>`;
 $("kpiDeliveryDetails").innerHTML=today.length?today.map(o=>{
@@ -2554,7 +2537,7 @@ function smallOrderList(list,label){
  if(!list.length)return `<div class="mini" style="margin-top:8px">எதுவும் இல்லை.</div>`;
  return `<div class="dashboardOrderList">${list.map(o=>{
   const d=dueInfo(o),c=state.customers.find(x=>x.id===o.customer_id)||{};
-  const when=d?.kind==="late"?`🚨 ${d?.days??"—"} நாள் late`:d?.kind==="today"?"🔔 இன்று":`⏰ ${d?.days??"—"} நாள் உள்ளது`;
+  const when=d?.kind==="late"?`🚨 ${d.days} நாள் late`:d?.kind==="today"?"🔔 இன்று":`⏰ ${d?.days??"—"} நாள் உள்ளது`;
   const cls=d?.kind==="late"?"bad":d?.kind==="today"?"warn":"";
   return `<div class="dashboardOrderCard clickable" role="button" tabindex="0" onclick="goToOrderCustomer('${o.id}')"><div class="top"><div><div class="name">👤 ${esc(c.name||"Unknown Customer")}</div><div class="meta">📅 Delivery: ${dateText(o.delivery_date)}</div></div><span class="pill ${cls}">${esc(when)}</span></div><div class="meta">${dashboardOrderGarmentText(o)} · 🧾 ${esc(o.order_no||"")}</div></div>`;
  }).join("")}</div>`;
@@ -2724,7 +2707,7 @@ async function saveQuickOrder(id){
  let notes=garment==="Chudi"?"GARMENT_SPLIT:"+JSON.stringify({chudi:cq,chudiLining:cl,chudiLiningQty:clq,saree:0})+" | CHUDI_RATE:"+cr:garment==="Saree"?"GARMENT_SPLIT:"+JSON.stringify({chudi:0,chudiLining:"no",chudiLiningQty:0,saree:sq})+" | SAREE_RATE:"+sr:makeBlouseSplitNote(s,r,$("qo-notes-"+id)?.value||"");
  if(ls)notes+=` | Lining cloth: ${ls==="customer"?"Customer கொடுத்தது":"நாம் வாங்கியது"}`;
  if(ls==="shop")notes+=` | LINING_COST:${JSON.stringify({source:ls,qty:lq,rate:lr,total:liningTotal})}`;
- const payload={customer_id:id,order_no:makeOrderNo(),garment_type:garment,order_date:localDate(),cloth_received_date:cloth,delivery_date:delivery,quantity:qty,unit_price:qty?garmentTotal/qty:0,total_amount:total,advance_amount:advance,balance_amount:Math.max(0,total-advance),status,rate_type:garment==="Chudi"||garment==="Saree"?"normal":(s.normal>0?"normal":s.lining>0?"lining":s.design>0?"design":"normal"),lining_cloth_source:ls||null,lining_cloth_qty:lq,notes};
+ const payload={customer_id:id,order_no:makeOrderNo(),garment_type:garment,order_date:localDate(),cloth_received_date:cloth,delivery_date:delivery,quantity:qty,unit_price:qty?garmentTotal/qty:0,total_amount:total,advance_amount:advance,balance_amount:Math.max(0,total-advance),status,rate_type:garment==="Chudi"||garment==="Saree"?"normal":(Object.values(s).filter(x=>x>0).length>1?"mixed":s.normal>0?"normal":s.lining>0?"lining":"design"),lining_cloth_source:ls||null,lining_cloth_qty:lq,notes};
  try{const {error}=await supabaseClient.from("orders").insert(payload);if(error)throw error;await loadAll(true);toast("இந்த customer-க்கு New Order சேமிக்கப்பட்டது.");}catch(err){toast("Order save failed: "+err.message,true)}
 }
 
@@ -2732,7 +2715,7 @@ function customerReminderHTML(os){
 const active=os.filter(o=>!isFinished(o)&&o.delivery_date).sort((a,b)=>String(a.delivery_date).localeCompare(String(b.delivery_date)));
 if(!active.length)return `<div class="customerReminder ok">✅ Active delivery reminder இல்லை.</div>`;
 return active.slice(0,4).map(o=>{
-const d=dueInfo(o), label=d?.kind==="late"?`🚨 ${d?.days??"—"} நாள் late`:d?.kind==="today"?"🔔 இன்று கொடுக்க வேண்டும்":`⏰ ${d.days} நாள் உள்ளது`;
+const d=dueInfo(o), label=d?.kind==="late"?`🚨 ${d.days} நாள் late`:d?.kind==="today"?"🔔 இன்று கொடுக்க வேண்டும்":`⏰ ${d.days} நாள் உள்ளது`;
 const cls=d?.kind==="late"?"late":d?.kind==="today"?"":"ok";
 return `<div class="customerReminder ${cls}" style="margin-top:7px"><b>${esc(o.garment_type||"Blouse")}</b> · ${Number(o.quantity||0)} pcs<br><span class="mini">Delivery: ${dateText(o.delivery_date)} · ${label}</span></div>`;
 }).join("");
@@ -2936,24 +2919,7 @@ try{
  toast("Blouse design deleted.");
 }catch(err){toast("Design delete failed: "+err.message,true)}
 }
-function renderAll(){
-  const jobs=[
-    ["dashboard",renderDashboard],
-    ["customers",renderCustomers],
-    ["measurements",renderMeasurements],
-    ["orders",renderOrders],
-    ["alterations",renderAlterations],
-    ["payments",renderPayments],
-    ["designs",renderDesigns]
-  ];
-  jobs.forEach(([name,fn])=>{
-    try{fn()}catch(err){
-      console.error("Render error in "+name+":",err);
-      const msg=String(err?.message||err);
-      if(name==="dashboard" && /days/i.test(msg))console.warn("Ignored legacy/null delivery-date row:",err);
-    }
-  });
-}
+function renderAll(){renderDashboard();renderCustomers();renderMeasurements();renderOrders();renderAlterations();renderPayments();renderDesigns()}
 
 ["customerSearch","measurementSearch","orderSearch","alterationSearch","paymentSearch","designSearch"].forEach(id=>$(id).addEventListener("input",renderAll));
 $("onlineDesignBtn").addEventListener("click",searchOnlineDesigns);
@@ -3120,7 +3086,7 @@ if(type==="order"){
    payload.total_amount=split.normal*rates.normal+split.lining*rates.lining+split.design*rates.design;
    payload.unit_price=payload.quantity?payload.total_amount/payload.quantity:0;
    const active=["normal","lining","design"].filter(k=>split[k]>0);
-   payload.rate_type=active[0]||"normal";
+   payload.rate_type=active.length>1?"mixed":active[0]||"normal";
    payload.notes=makeBlouseSplitNote(split,rates,payload.notes||"");
  }
  payload.balance_amount=Math.max(0,payload.total_amount-Number(payload.advance_amount||0));
@@ -4301,371 +4267,6 @@ window.runPhoneReminders=function(){
    must remain running. This extension keeps the ten existing daily time
    slots, but does not claim OS-level delivery when the page is fully closed. */
 })();
-</script>
-
-
-<!-- =========================================================
-     CUSTOMER CARD ITEM-WISE PRICE BREAKDOWN — ADDITIVE PATCH
-     Existing HTML/CSS/JS is intentionally preserved.
-     ========================================================= -->
-<style id="nf-customer-item-breakdown-v2">
-.nfV2Wrap{
-  margin-top:14px;padding:12px;border-radius:18px;
-  background:linear-gradient(135deg,#f3efff 0%,#fff1f7 50%,#fff8e8 100%);
-  border:1px solid #ded6ff;box-shadow:0 10px 28px rgba(108,77,246,.10)
-}
-.nfV2Section{
-  margin-top:10px;padding:12px;border-radius:15px;background:rgba(255,255,255,.94);
-  border:1px solid rgba(108,77,246,.12)
-}
-.nfV2Section:first-child{margin-top:0}
-.nfV2Title{margin:0 0 10px;font-size:16px;font-weight:950}
-.nfV2SubTitle{
-  margin:10px 0 7px;padding:7px 9px;border-radius:10px;
-  background:#f7f5ff;color:#51457b;font-weight:900;font-size:13px
-}
-.nfV2Rows{display:grid;gap:7px}
-.nfV2Row{
-  display:flex;align-items:center;justify-content:space-between;gap:10px;
-  padding:9px 10px;border-radius:11px;background:#fafafd;border:1px solid #e9e8f1
-}
-.nfV2Name{font-weight:850;min-width:0}
-.nfV2Math{font-weight:900;text-align:right;white-space:nowrap}
-.nfV2Note{
-  margin-top:7px;padding:8px 10px;border-radius:10px;
-  background:#e9f8f2;color:#147453;font-weight:750;font-size:12px
-}
-.nfV2SectionTotal{
-  margin-top:9px;padding:11px 12px;border-radius:11px;
-  display:flex;justify-content:space-between;gap:10px;
-  background:linear-gradient(135deg,#6c4df6,#ef4f8a);color:#fff;
-  font-weight:950
-}
-.nfV2Grand{
-  margin-top:10px;padding:13px;border-radius:13px;
-  display:flex;justify-content:space-between;gap:10px;
-  background:linear-gradient(135deg,#13aebd,#3d83ef);color:#fff;
-  font-size:17px;font-weight:950
-}
-.nfV2Empty{color:#77758a;font-size:12px;padding:4px 0}
-.nfV2CountGrid{
-  display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px
-}
-.nfV2Count{
-  padding:9px;border-radius:11px;background:#f7f5ff;border:1px solid #e7e1ff
-}
-.nfV2Count:nth-child(2){background:#fff1f7;border-color:#ffdbe9}
-.nfV2Count:nth-child(3){background:#fff7e8;border-color:#ffe4ad}
-.nfV2Count:nth-child(4){background:#eaf9f6;border-color:#ccefe7}
-.nfV2Count b{display:block;font-size:18px}
-.nfV2Count span{display:block;margin-top:3px;font-size:10px;color:#686578}
-@media(max-width:700px){
-  .nfV2CountGrid{grid-template-columns:1fr 1fr}
-  .nfV2Row{align-items:flex-start;flex-direction:column}
-  .nfV2Math{text-align:left;white-space:normal}
-}
-@media(max-width:560px){
-  .nfV2Wrap{padding:9px}.nfV2Section{padding:10px}
-  .nfV2Title{font-size:15px}
-  .nfV2Count b{font-size:17px}
-}
-</style>
-
-<script id="nf-customer-item-breakdown-v2-js">
-(function(){
-  "use strict";
-
-  function num(v){
-    var n=Number(v);
-    return Number.isFinite(n) ? Math.max(0,n) : 0;
-  }
-
-  function textMoney(v){
-    try{return money(num(v));}
-    catch(e){return "₹"+num(v).toFixed(2);}
-  }
-
-  function orderLiningAmount(o){
-    try{
-      if(typeof nfLiningCost==="function"){
-        var x=nfLiningCost(o);
-        return num(x && x.total);
-      }
-    }catch(e){}
-    return 0;
-  }
-
-  function safeBlouseSplit(o){
-    try{
-      if(typeof blouseSplit==="function"){
-        var s=blouseSplit(o)||{};
-        return {normal:num(s.normal),lining:num(s.lining),design:num(s.design)};
-      }
-    }catch(e){}
-    return {normal:0,lining:0,design:0};
-  }
-
-  function safeGarmentExtra(o){
-    try{
-      if(typeof nfGarmentExtra==="function"){
-        var x=nfGarmentExtra(o)||{};
-        return {
-          chudi:num(x.chudi),
-          chudiLiningQty:num(x.chudiLiningQty),
-          chudiLining:String(x.chudiLining||"no").toLowerCase()==="yes" ? "yes" : "no",
-          saree:num(x.saree)
-        };
-      }
-    }catch(e){}
-    return {chudi:0,chudiLiningQty:0,chudiLining:"no",saree:0};
-  }
-
-  function safeRates(o){
-    try{
-      if(typeof nfOrderRates==="function"){
-        var r=nfOrderRates(o)||{};
-        return {
-          normal:num(r.normal),
-          lining:num(r.lining),
-          design:num(r.design),
-          chudi:num(r.chudi),
-          saree:num(r.saree)
-        };
-      }
-    }catch(e){}
-    var d={normal:300,lining:450,design:600,chudi:500,saree:0};
-    try{
-      if(typeof getRates==="function"){
-        var r=getRates()||{};
-        d.normal=num(r.normal); d.lining=num(r.lining);
-        d.design=num(r.design); d.chudi=num(r.chudi); d.saree=num(r.saree);
-      }
-    }catch(e){}
-    return d;
-  }
-
-  function isBlouseOrder(o){
-    var g=String(o && o.garment_type || "Blouse").toLowerCase();
-    return !g || g==="blouse";
-  }
-
-  function row(label, qty, rate, total){
-    qty=num(qty); rate=num(rate); total=num(total);
-    if(qty<=0 && total<=0) return "";
-    return '<div class="nfV2Row">'+
-      '<span class="nfV2Name">'+label+'</span>'+
-      '<span class="nfV2Math">'+qty+' × '+textMoney(rate)+' = <b>'+textMoney(total)+'</b></span>'+
-    '</div>';
-  }
-
-  function countBox(value,label){
-    return '<div class="nfV2Count"><b>'+num(value)+'</b><span>'+label+'</span></div>';
-  }
-
-  /*
-   * New renderer:
-   * 1) Keeps the existing Customer paid / Advance / Balance cards.
-   * 2) Shows every garment type separately.
-   * 3) Shows quantity × rate = amount.
-   * 4) Keeps customer-supplied lining as quantity only, with no false price.
-   * 5) Adds the same detailed structure for Chudi.
-   * 6) Uses the rates stored with each order when available, so old orders
-   *    are not silently recalculated using today's rate.
-   */
-  window.nfCustomerWorkSummaryHTML=function(st){
-    st=st||{};
-    var orders=Array.isArray(st.os)?st.os:[];
-
-    var b={
-      normalQty:0, normalTotal:0,
-      liningQty:0, liningTotal:0,
-      designQty:0, designTotal:0,
-      liningCustomerQty:0, liningShopQty:0, liningShopTotal:0
-    };
-
-    var c={
-      qty:0, total:0,
-      liningQty:0, liningCustomerQty:0, liningShopQty:0, liningShopTotal:0
-    };
-
-    var saree={qty:0,total:0};
-
-    orders.forEach(function(o){
-      var s=safeBlouseSplit(o), r=safeRates(o), x=safeGarmentExtra(o);
-      var g=String(o && o.garment_type || "Blouse").toLowerCase();
-
-      if(isBlouseOrder(o)){
-        b.normalQty+=s.normal;
-        b.normalTotal+=s.normal*r.normal;
-
-        b.liningQty+=s.lining;
-        b.liningTotal+=s.lining*r.lining;
-
-        b.designQty+=s.design;
-        b.designTotal+=s.design*r.design;
-      }
-
-      if(g==="chudi"){
-        c.qty+=x.chudi;
-        c.total+=x.chudi*r.chudi;
-        c.liningQty+=x.chudiLiningQty;
-      }
-
-      if(g==="saree"){
-        saree.qty+=x.saree;
-        saree.total+=x.saree*r.saree;
-      }
-
-      var src=String(o && o.lining_cloth_source || "").toLowerCase();
-      var lq=num(o && o.lining_cloth_qty);
-
-      if(src==="customer"){
-        if(isBlouseOrder(o)) b.liningCustomerQty+=lq;
-        else c.liningCustomerQty+=lq;
-      }else if(src==="shop" || src==="tailor"){
-        var lt=orderLiningAmount(o);
-        if(isBlouseOrder(o)){
-          b.liningShopQty+=lq;
-          b.liningShopTotal+=lt;
-        }else if(g==="chudi"){
-          c.liningShopQty+=lq;
-          c.liningShopTotal+=lt;
-        }
-      }
-    });
-
-    var blouseWorkTotal=
-      b.normalTotal+b.liningTotal+b.designTotal+b.liningShopTotal;
-
-    var chudiWorkTotal=c.total+c.liningShopTotal;
-    var sareeWorkTotal=saree.total;
-    var breakdownTotal=blouseWorkTotal+chudiWorkTotal+sareeWorkTotal;
-
-    var hasBlouse=(b.normalQty+b.liningQty+b.designQty+b.liningCustomerQty+b.liningShopQty)>0;
-    var hasChudi=(c.qty+c.liningQty+c.liningCustomerQty+c.liningShopQty)>0;
-    var hasSaree=saree.qty>0;
-
-    var html='<div class="nfV2Wrap">';
-
-    /* CUSTOMER GAVE — quick quantity summary */
-    html+=
-      '<div class="nfV2Section">'+
-        '<h4 class="nfV2Title">📦 Customer என்ன கொடுத்தாங்க</h4>'+
-        '<div class="nfV2CountGrid">'+
-          countBox(b.normalQty,"Normal blouse")+
-          countBox(b.liningQty,"Lining blouse")+
-          countBox(b.designQty,"Design blouse")+
-          countBox(c.qty,"Chudi / சுடிதார்")+
-        '</div>'+
-        ((b.liningCustomerQty||b.liningShopQty||c.liningQty||c.liningCustomerQty||c.liningShopQty||saree.qty)>0
-          ? '<div class="nfV2CountGrid" style="margin-top:7px">'+
-              countBox(b.liningCustomerQty+b.liningShopQty,"Blouse lining cloth")+
-              countBox(c.liningQty,"Chudi lining")+
-              countBox(saree.qty,"Saree")+
-              countBox(b.liningCustomerQty+c.liningCustomerQty,"Customer lining")+
-            '</div>'
-          : '')+
-      '</div>';
-
-    /* BLOUSE */
-    html+='<div class="nfV2Section"><h4 class="nfV2Title">👗 Blouse — தனித்தனி கணக்கு</h4>';
-    if(hasBlouse){
-      html+='<div class="nfV2Rows">';
-      html+=row("Normal blouse",b.normalQty,b.normalQty?b.normalTotal/b.normalQty:0,b.normalTotal);
-      html+=row("Lining blouse",b.liningQty,b.liningQty?b.liningTotal/b.liningQty:0,b.liningTotal);
-      html+=row("Design blouse",b.designQty,b.designQty?b.designTotal/b.designQty:0,b.designTotal);
-
-      if(b.liningCustomerQty>0){
-        html+='<div class="nfV2Note">🧵 Lining cloth — Customer கொடுத்தது: <b>'+b.liningCustomerQty+'</b> · இதற்கு தனி rate சேர்க்கப்படவில்லை.</div>';
-      }
-      if(b.liningShopQty>0 || b.liningShopTotal>0){
-        html+=row("Lining cloth — நாங்கள் வாங்கியது",b.liningShopQty,b.liningShopQty?b.liningShopTotal/b.liningShopQty:0,b.liningShopTotal);
-      }
-      html+='</div>'+
-        '<div class="nfV2SectionTotal"><span>Blouse Total</span><span>'+textMoney(blouseWorkTotal)+'</span></div>';
-    }else{
-      html+='<div class="nfV2Empty">Blouse order இல்லை.</div>';
-    }
-    html+='</div>';
-
-    /* CHUDI */
-    html+='<div class="nfV2Section"><h4 class="nfV2Title">👚 Chudi / சுடிதார் — தனித்தனி கணக்கு</h4>';
-    if(hasChudi){
-      html+='<div class="nfV2Rows">';
-      html+=row("Chudi / சுடிதார்",c.qty,c.qty?c.total/c.qty:0,c.total);
-
-      if(c.liningQty>0){
-        html+='<div class="nfV2Note">🧵 Chudi lining: <b>'+c.liningQty+'</b>';
-        if(c.liningCustomerQty>0) html+=' · Customer கொடுத்தது '+c.liningCustomerQty;
-        html+='</div>';
-      }
-
-      if(c.liningShopQty>0 || c.liningShopTotal>0){
-        html+=row("Chudi lining cloth — நாங்கள் வாங்கியது",c.liningShopQty,c.liningShopQty?c.liningShopTotal/c.liningShopQty:0,c.liningShopTotal);
-      }
-      if(c.liningCustomerQty>0){
-        html+='<div class="nfV2Note">🧵 Chudi lining cloth — Customer கொடுத்தது: <b>'+c.liningCustomerQty+'</b> · rate சேர்க்கப்படவில்லை.</div>';
-      }
-
-      html+='</div>'+
-        '<div class="nfV2SectionTotal"><span>Chudi Total</span><span>'+textMoney(chudiWorkTotal)+'</span></div>';
-    }else{
-      html+='<div class="nfV2Empty">Chudi order இல்லை.</div>';
-    }
-    html+='</div>';
-
-    /* SAREE — existing feature retained */
-    if(hasSaree){
-      html+='<div class="nfV2Section"><h4 class="nfV2Title">🥻 Saree</h4>'+
-        '<div class="nfV2Rows">'+row("Saree",saree.qty,saree.qty?saree.total/saree.qty:0,saree.total)+'</div>'+
-        '<div class="nfV2SectionTotal"><span>Saree Total</span><span>'+textMoney(sareeWorkTotal)+'</span></div>'+
-      '</div>';
-    }
-
-    html+=
-      '<div class="nfV2Grand">'+
-        '<span>மொத்த Rate</span>'+
-        '<span>'+textMoney(breakdownTotal)+'</span>'+
-      '</div>';
-
-    /*
-     * If an old order contains a component that cannot be reconstructed from
-     * the split marker, show the actual stored order total as a reference.
-     * This avoids hiding money from legacy records.
-     */
-    var storedTotal=num(st.total);
-    if(Math.abs(storedTotal-breakdownTotal)>0.009){
-      html+=
-        '<div class="nfV2Note" style="margin-top:8px;background:#fff6dc;color:#795b00">'+
-          'ℹ️ Existing Order Total: <b>'+textMoney(storedTotal)+'</b> · '+
-          'Item-wise breakdown: <b>'+textMoney(breakdownTotal)+'</b>'+
-        '</div>';
-    }
-
-    html+='</div>';
-    return html;
-  };
-
-  /*
-   * Re-render hook:
-   * customerCard() already calls nfCustomerWorkSummaryHTML(), so replacing
-   * that function is enough. No existing customer/order/payment logic is
-   * removed or replaced.
-   */
-})();
-</script>
-
-
-<script id="nf-rate-type-db-compatibility-fix">
-/*
-  Database compatibility fix:
-  The orders.rate_type CHECK constraint in the connected database rejects
-  "mixed".  The item-wise blouse split is already stored in BLOUSE_SPLIT and
-  BLOUSE_RATES, so rate_type does not need to represent "mixed".
-  For multi-type blouse orders we keep the first valid legacy rate_type
-  (normal/lining/design) and preserve the complete split in notes.
-  Chudi/Saree continue to use "normal".
-*/
 </script>
 
 </body>
