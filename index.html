@@ -120,7 +120,16 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}.hidden{display:
 .rateGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:9px}
 .rateBox{border:1px solid var(--line);background:#faf8f6;border-radius:11px;padding:9px}
 .rateBox label{display:block;font-size:11px;color:var(--muted);font-weight:750;margin-bottom:4px}
-.rateBox input{width:100%;border:1px solid #d5cec8;border-radius:9px;padding:8px;background:#fff}
+.rateBox input{width:100%;border:1px solid #d5cec8;border-radius:9px;padding:8px;background:#fff}.nf-design-rate-box{margin-top:8px}
+.nf-design-rate-card{padding:11px;border:1px solid #ddd5ff;border-radius:13px;background:linear-gradient(135deg,#f7f4ff,#fff1f7)}
+.nf-design-rate-card h4{margin:0 0 8px;font-size:14px}
+.nf-design-rate-list{display:grid;gap:6px}
+.nf-design-rate-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px 9px;border-radius:9px;background:#fff;border:1px solid #e8e3f2}
+.nf-design-rate-row>div{display:flex;align-items:center;gap:5px}
+.nf-design-rate-row .nf-design-rate-input{width:92px;min-height:38px;padding:6px}
+.nf-design-rate-x,.nf-design-rate-eq{font-size:12px;font-weight:800;color:#686578}
+@media(max-width:560px){.nf-design-rate-row{align-items:flex-start;flex-direction:column}.nf-design-rate-row>div{width:100%}.nf-design-rate-row .nf-design-rate-input{flex:1;width:auto}}
+
 .calcBar{display:flex;gap:7px;flex-wrap:wrap;align-items:center;background:#faf8f6;border:1px solid var(--line);padding:8px;border-radius:11px;margin-bottom:10px}
 .calcBar input{flex:1;min-width:180px;border:1px solid #d5cec8;border-radius:9px;padding:9px}
 .calcKey{min-width:42px;height:40px;border:1px solid #d5cec8;border-radius:9px;background:#fff;font-weight:900}
@@ -2587,6 +2596,18 @@ function blouseSplit(o){
   return {normal:Math.max(0,Number(x.normal||0)),lining:Math.max(0,Number(x.lining||0)),design:Math.max(0,Number(x.design||0))};
  }catch{return fallback}
 }
+/* Individual Design-blouse prices are stored in the existing Notes column.
+   Old orders without this marker safely fall back to the order's Design rate. */
+function nfDesignRates(o){
+ const s=blouseSplit(o||{}),qty=Math.max(0,Number(s.design||0));
+ let rates=[];
+ const m=String(o?.notes||"").match(/DESIGN_RATES:(\[[^\]]*\])/);
+ if(m){try{const a=JSON.parse(m[1]);if(Array.isArray(a))rates=a.map(v=>Math.max(0,Number(v||0)))}catch{}}
+ let fallback=0;
+ try{fallback=Number((typeof nfOrderRates==="function"?nfOrderRates(o||{}):getRates()).design||getRates().design||0)}catch{fallback=Number(getRates().design||0)}
+ while(rates.length<qty)rates.push(fallback);
+ return rates.slice(0,qty);
+}
 function blouseSplitText(o){
  const s=blouseSplit(o),parts=[];
  if(s.normal)parts.push(`Normal ${s.normal}`);
@@ -2594,7 +2615,7 @@ function blouseSplitText(o){
  if(s.design)parts.push(`Design ${s.design}`);
  return parts.length?parts.join(" · "):`${Number(o?.quantity||0)} pcs`;
 }
-function cleanOrderNotes(v){return String(v||"").replace(/BLOUSE_SPLIT:\{[^}]+\}\s*\|?\s*/,"").replace(/BLOUSE_RATES:\{[^}]+\}\s*\|?\s*/,"").trim()}
+function cleanOrderNotes(v){return String(v||"").replace(/BLOUSE_SPLIT:\{[^}]+\}\s*\|?\s*/,"").replace(/BLOUSE_RATES:\{[^}]+\}\s*\|?\s*/,"").replace(/DESIGN_RATES:\[[^\]]*\]\s*\|?\s*/,"").trim()}
 function makeBlouseSplitNote(s,rates,userNotes=""){
  const marker=`BLOUSE_SPLIT:${JSON.stringify({normal:Number(s.normal||0),lining:Number(s.lining||0),design:Number(s.design||0)})}`;
  const rateMarker=`BLOUSE_RATES:${JSON.stringify({normal:Number(rates.normal||0),lining:Number(rates.lining||0),design:Number(rates.design||0)})}`;
@@ -2716,8 +2737,10 @@ function clearQuickOrderEditor(id){
  if(notes)notes.value="";
  const g=$("qo-garment-"+id);if(g)g.value="Blouse";
  const box=$("quick-order-"+id);if(box)box.dataset.editOrderId="";
+ const dr=$("qo-design-rates-box-"+id);if(dr){dr.innerHTML="";dr.style.display="none";}
  updateQuickGarment(id);
  updateQuickOrderCalc(id);
+ renderQuickDesignRates(id,[]);
 }
 
 function populateQuickOrderEditor(id,o){
@@ -2731,6 +2754,7 @@ function populateQuickOrderEditor(id,o){
  set("qo-notes-",cleanOrderNotes(o.notes||""));
  const s=blouseSplit(o),gx=typeof nfGarmentExtra==="function"?nfGarmentExtra(o):{chudi:0,chudiLining:"no",chudiLiningQty:0,saree:0};
  set("qo-normal-",s.normal||0);set("qo-lining-",s.lining||0);set("qo-design-",s.design||0);
+ renderQuickDesignRates(id,nfDesignRates(o));
  set("qo-chudi-",gx.chudi||0);set("qo-chudi-lining-",gx.chudiLining||"no");set("qo-chudi-lining-qty-",gx.chudiLiningQty||0);
  set("qo-saree-",gx.saree||0);
  const rr=nfOrderRates(o);set("qo-chudi-rate-",rr.chudi||getRates().chudi||0);set("qo-saree-rate-",rr.saree||getRates().saree||0);
@@ -2762,9 +2786,11 @@ function updateQuickGarment(id){
 function updateQuickOrderCalc(id){
  const g=$("qo-garment-"+id)?.value||"Blouse",r=getRates();
  const n=Number($("qo-normal-"+id)?.value||0),l=Number($("qo-lining-"+id)?.value||0),d=Number($("qo-design-"+id)?.value||0);
+ const designRates=getQuickDesignRates(id,d,r.design||0);
+ const designTotal=designRates.reduce((sum,v)=>sum+Number(v||0),0);
  const cq=Number($("qo-chudi-"+id)?.value||0),cr=Number($("qo-chudi-rate-"+id)?.value||0),sq=Number($("qo-saree-"+id)?.value||0),sr=Number($("qo-saree-rate-"+id)?.value||0);
  const qty=g==="Chudi"?cq:g==="Saree"?sq:n+l+d;
- const garmentTotal=g==="Chudi"?cq*cr:g==="Saree"?sq*sr:n*r.normal+l*r.lining+d*r.design;
+ const garmentTotal=g==="Chudi"?cq*cr:g==="Saree"?sq*sr:n*r.normal+l*r.lining+designTotal;
  const ls=$("qo-lining-source-"+id)?.value||"",lq=Math.max(0,Number($("qo-lining-qty-"+id)?.value||0)),lr=Math.max(0,Number($("qo-lining-rate-"+id)?.value||0));
  const liningTotal=ls==="shop"?lq*lr:0,total=garmentTotal+liningTotal;
  if($("qo-qty-"+id))$("qo-qty-"+id).value=qty;
@@ -2778,10 +2804,13 @@ async function saveQuickOrder(id){
  const existing=editOrderId?state.orders.find(x=>x.id===editOrderId):null;
  const garment=$("qo-garment-"+id)?.value||"Blouse",cloth=$("qo-cloth-"+id)?.value||null,delivery=$("qo-delivery-"+id)?.value||null,r=getRates();
  const s={normal:Number($("qo-normal-"+id)?.value||0),lining:Number($("qo-lining-"+id)?.value||0),design:Number($("qo-design-"+id)?.value||0)};
+ const designRates=getQuickDesignRates(id,s.design,r.design||0);
+ if(s.design>0 && designRates.length!==s.design){toast("ஒவ்வொரு Design blouse-க்கும் rate கொடுக்க வேண்டும்.",true);return}
+ const designTotal=designRates.reduce((sum,v)=>sum+Math.max(0,Number(v||0)),0);
  const cq=Math.max(0,Number($("qo-chudi-"+id)?.value||0)),cl=$("qo-chudi-lining-"+id)?.value==="yes"?"yes":"no",clq=Math.max(0,Number($("qo-chudi-lining-qty-"+id)?.value||0)),cr=Math.max(0,Number($("qo-chudi-rate-"+id)?.value||r.chudi||0));
  const sq=Math.max(0,Number($("qo-saree-"+id)?.value||0)),sr=Math.max(0,Number($("qo-saree-rate-"+id)?.value||r.saree||0));
  const qty=garment==="Chudi"?cq:garment==="Saree"?sq:s.normal+s.lining+s.design;
- const garmentTotal=garment==="Chudi"?cq*cr:garment==="Saree"?sq*sr:s.normal*r.normal+s.lining*r.lining+s.design*r.design;
+ const garmentTotal=garment==="Chudi"?cq*cr:garment==="Saree"?sq*sr:s.normal*r.normal+s.lining*r.lining+designTotal;
  const ls=$("qo-lining-source-"+id)?.value||"",lq=Math.max(0,Number($("qo-lining-qty-"+id)?.value||0)),lr=Math.max(0,Number($("qo-lining-rate-"+id)?.value||0));
  const liningTotal=ls==="shop"?lq*lr:0,total=garmentTotal+liningTotal;
  const advance=Math.max(0,Number($("qo-advance-"+id)?.value||0)),status=$("qo-status-"+id)?.value||"Pending";
@@ -2790,6 +2819,7 @@ async function saveQuickOrder(id){
  if(ls==="shop"&&lq>0&&lr<=0){toast("நாம் வாங்கிய Lining-க்கு விலை கொடுக்க வேண்டும்.",true);return}
  if(ls==="shop"&&lq<=0&&lr>0){toast("நாம் வாங்கிய Lining எத்தனை என்று கொடுக்க வேண்டும்.",true);return}
  let notes=garment==="Chudi"?"GARMENT_SPLIT:"+JSON.stringify({chudi:cq,chudiLining:cl,chudiLiningQty:clq,saree:0})+" | CHUDI_RATE:"+cr:garment==="Saree"?"GARMENT_SPLIT:"+JSON.stringify({chudi:0,chudiLining:"no",chudiLiningQty:0,saree:sq})+" | SAREE_RATE:"+sr:makeBlouseSplitNote(s,r,$("qo-notes-"+id)?.value||"");
+ if(garment==="Blouse"&&s.design>0)notes+=" | DESIGN_RATES:"+JSON.stringify(designRates);
  if(ls)notes+=` | Lining cloth: ${ls==="customer"?"Customer கொடுத்தது":"நாம் வாங்கியது"}`;
  if(ls==="shop")notes+=` | LINING_COST:${JSON.stringify({source:ls,qty:lq,rate:lr,total:liningTotal})}`;
  const payload={customer_id:id,order_no:existing?.order_no||makeOrderNo(),garment_type:garment,order_date:existing?.order_date||localDate(),cloth_received_date:cloth,delivery_date:delivery,quantity:qty,unit_price:qty?garmentTotal/qty:0,total_amount:total,advance_amount:advance,balance_amount:Math.max(0,total-advance),status,rate_type:garment==="Chudi"||garment==="Saree"?"normal":(s.normal>0?"normal":s.lining>0?"lining":s.design>0?"design":"normal"),lining_cloth_source:ls||null,lining_cloth_qty:lq,notes};
@@ -2805,6 +2835,23 @@ async function saveQuickOrder(id){
    if(save)save.textContent="💾 Save Order";
    toast(existing?"Order details updated.":"இந்த customer-க்கு New Order சேமிக்கப்பட்டது.");
  }catch(err){toast("Order save failed: "+err.message,true)}
+}
+
+
+function getQuickDesignRates(id,qty,fallback){
+ const box=$("qo-design-rates-box-"+id),q=Math.max(0,Number(qty||0)),arr=[];
+ if(box)box.querySelectorAll(".nf-design-rate-input").forEach(e=>arr.push(Math.max(0,Number(e.value||0))));
+ while(arr.length<q)arr.push(Math.max(0,Number(fallback||0)));
+ return arr.slice(0,q);
+}
+function renderQuickDesignRates(id,rates){
+ const box=$("qo-design-rates-box-"+id),qty=Math.max(0,Number($("qo-design-"+id)?.value||0));
+ if(!box)return;
+ if(qty<=0){box.innerHTML="";box.style.display="none";return}
+ const current=Array.isArray(rates)?rates.slice(0,qty):[],fallback=getRates().design||0;
+ while(current.length<qty)current.push(fallback);
+ box.style.display="";
+ box.innerHTML='<div class="nf-design-rate-card"><h4>🎨 Design blouse — ஒவ்வொரு blouse-க்கும் தனி rate</h4><div class="nf-design-rate-list">'+current.map((v,i)=>'<div class="nf-design-rate-row"><span>Design blouse '+(i+1)+'</span><div><span class="nf-design-rate-x">1 ×</span><input class="nf-design-rate-input input" type="number" min="0" step="0.01" value="'+esc(v)+'" oninput="updateQuickOrderCalc(\''+id+'\')"><span class="nf-design-rate-eq"> = '+money(Number(v||0))+'</span></div></div>').join("")+'</div><div class="hint">ஒவ்வொரு Design blouse-க்கும் வேறு rate இருந்தால் இங்கே தனித்தனியாக கொடுக்கலாம்.</div></div>';
 }
 
 function customerReminderHTML(os){
@@ -2903,8 +2950,9 @@ function customerCard(id){
  <div class="field full nf-quick-blouse"><label>👗 Customer கொடுத்த blouse — வகை வாரியாக எண்ணிக்கை</label><div class="customerMoneyGrid" style="margin-top:7px">
  <div class="moneyStat"><span>Normal blouse</span><input id="qo-normal-${id}" class="input" type="number" min="0" step="1" value="0" oninput="updateQuickOrderCalc('${id}')"></div>
  <div class="moneyStat"><span>Lining blouse</span><input id="qo-lining-${id}" class="input" type="number" min="0" step="1" value="0" oninput="updateQuickOrderCalc('${id}')"></div>
- <div class="moneyStat"><span>Design blouse</span><input id="qo-design-${id}" class="input" type="number" min="0" step="1" value="0" oninput="updateQuickOrderCalc('${id}')"></div>
+ <div class="moneyStat"><span>Design blouse</span><input id="qo-design-${id}" class="input" type="number" min="0" step="1" value="0" oninput="updateQuickOrderCalc('${id}');renderQuickDesignRates('${id}')"></div>
  <div class="moneyStat"><span>மொத்த blouse</span><input id="qo-qty-${id}" class="input" type="number" value="0" readonly></div></div></div>
+ <div class="field full nf-design-rate-box" id="qo-design-rates-box-${id}" style="display:none"></div>
  <div class="field full nf-lining-cost-box"><h4>🧵 Lining — Customer Amount-ல் சேர்க்க</h4><div class="nf-lining-cost-grid"><div class="nf-lining-cost-field"><label>Lining யார் வாங்கியது?</label><select id="qo-lining-source-${id}" class="input" onchange="updateQuickOrderCalc('${id}')"><option value="">தேவையில்லை</option><option value="customer">Customer கொடுத்தது</option><option value="shop">நாம் வாங்கியது</option></select></div><div class="nf-lining-cost-field"><label>Lining எத்தனை</label><input id="qo-lining-qty-${id}" class="input" type="number" min="0" step="1" value="0" oninput="updateQuickOrderCalc('${id}')"></div><div class="nf-lining-cost-field"><label>நாம் வாங்கிய Lining விலை / ஒன்று</label><input id="qo-lining-rate-${id}" class="input" type="number" min="0" step="0.01" value="0" oninput="updateQuickOrderCalc('${id}')"></div><div class="nf-lining-cost-field"><label>Lining மொத்த விலை</label><div id="qo-lining-total-${id}" class="nf-lining-cost-total">₹0.00</div></div></div></div>
  <div class="field nf-quick-chudi"><label>👚 எத்தனை Chudi / சுடிதார்</label><input id="qo-chudi-${id}" class="input" type="number" min="0" step="1" value="0" oninput="updateQuickOrderCalc('${id}')"></div><div class="field nf-quick-chudi"><label>🧵 Chudi-க்கு lining கொடுத்தாரா?</label><select id="qo-chudi-lining-${id}" class="input"><option value="no">இல்லை</option><option value="yes">ஆம்</option></select></div><div class="field nf-quick-chudi"><label>🧵 Chudi lining எத்தனை</label><input id="qo-chudi-lining-qty-${id}" class="input" type="number" min="0" step="1" value="0"></div><div class="field nf-quick-chudi"><label>👚 Chudi விலை / ஒன்றுக்கு</label><input id="qo-chudi-rate-${id}" class="input" type="number" min="0" step="0.01" value="${getRates().chudi}" oninput="updateQuickOrderCalc('${id}')"></div><div class="field nf-quick-saree"><label>🥻 எத்தனை Saree / சேலை</label><input id="qo-saree-${id}" class="input" type="number" min="0" step="1" value="0" oninput="updateQuickOrderCalc('${id}')"></div><div class="field nf-quick-saree"><label>🥻 Saree விலை / ஒன்றுக்கு</label><input id="qo-saree-rate-${id}" class="input" type="number" min="0" step="0.01" value="${getRates().saree}" oninput="updateQuickOrderCalc('${id}')"></div>
  <div class="field"><label>Advance வாங்கியது</label><input id="qo-advance-${id}" class="input" type="number" min="0" step="0.01" value="0"></div><div class="field"><label>Status</label><select id="qo-status-${id}" class="input"><option>Pending</option><option>In Progress</option><option>Ready</option><option>Delivered</option></select></div>
@@ -4582,7 +4630,7 @@ window.runPhoneReminders=function(){
         b.liningTotal+=s.lining*r.lining;
 
         b.designQty+=s.design;
-        b.designTotal+=s.design*r.design;
+        b.designTotal+=nfDesignRates(o).reduce(function(sum,v){return sum+Number(v||0)},0);
       }
 
       if(g==="chudi"){
@@ -4653,7 +4701,16 @@ window.runPhoneReminders=function(){
       html+='<div class="nfV2Rows">';
       html+=row("Normal blouse",b.normalQty,b.normalQty?b.normalTotal/b.normalQty:0,b.normalTotal);
       html+=row("Lining blouse",b.liningQty,b.liningQty?b.liningTotal/b.liningQty:0,b.liningTotal);
-      html+=row("Design blouse",b.designQty,b.designQty?b.designTotal/b.designQty:0,b.designTotal);
+      var designRendered=0;
+      orders.forEach(function(o){
+        var ds=safeBlouseSplit(o),dr=nfDesignRates(o);
+        if(!isBlouseOrder(o)||!ds.design)return;
+        for(var di=0;di<ds.design;di++){
+          var rate=Number(dr[di]||0);
+          html+=row("Design blouse — "+(designRendered+di+1),1,rate,rate);
+        }
+        designRendered+=ds.design;
+      });
 
       if(b.liningCustomerQty>0){
         html+='<div class="nfV2Note">🧵 Lining cloth — Customer கொடுத்தது: <b>'+b.liningCustomerQty+'</b> · இதற்கு தனி rate சேர்க்கப்படவில்லை.</div>';
