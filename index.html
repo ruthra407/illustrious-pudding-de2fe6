@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>New Fashion Tailoring – Online Management | Phase 4.3</title>
+<title>New Fashion Tailoring – Online Management | Phase 4.4</title>
 <link rel="manifest" href="manifest.json">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -2212,8 +2212,8 @@ body{
 <button class="navbtn" data-view="payments">💰 Payments</button>
 <button class="navbtn" id="nfPendingMenuBtn" type="button" onclick="togglePendingCustomerCard()">🧵 <span>Pending Customer</span><span id="nfPendingBadge">0</span></button>
 <div id="nfPendingCard" aria-label="Pending Customer card">
-  <div id="nfPendingCardHead"><b>🧵 Pending blouse</b><span>Card-லேயே date update</span></div>
-  <div id="nfPendingList"><div class="nfPendingEmpty">Pending blouse இல்லை.</div></div>
+  <div id="nfPendingCardHead"><b>🧵 Pending Work</b><span>Card-லேயே date update</span></div>
+  <div id="nfPendingList"><div class="nfPendingEmpty">Pending work இல்லை.</div></div>
 </div>
 <button class="navbtn" data-view="designs">🎨 Designs</button>
 <button class="navbtn logout" id="sideLogout">⎋ Logout</button>
@@ -2335,10 +2335,11 @@ const supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHA
 const state={user:null,customers:[],orders:[],measurements:[],alterations:[],payments:[],designs:[],editing:null};
 const $=id=>document.getElementById(id);
 const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
-const money=n=>"₹"+Number(n||0).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2});
+const safeNumber=n=>{const v=Number(n);return Number.isFinite(v)?v:0};
+const money=n=>"₹"+safeNumber(n).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2});
 const localDate=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`};
-const dateText=v=>v?new Date(v+"T00:00:00").toLocaleDateString("ta-IN"):"—";
-const daysBetween=(a,b)=>Math.round((new Date(b+"T00:00:00")-new Date(a+"T00:00:00"))/86400000);
+const dateText=v=>{if(!v)return "—";const d=new Date(String(v).slice(0,10)+"T00:00:00");return Number.isNaN(d.getTime())?"—":d.toLocaleDateString("ta-IN")};
+const daysBetween=(a,b)=>{const da=new Date(String(a).slice(0,10)+"T00:00:00"),db=new Date(String(b).slice(0,10)+"T00:00:00");if(Number.isNaN(da.getTime())||Number.isNaN(db.getTime()))return 0;return Math.round((db-da)/86400000)};
 function toast(m,error=false){const t=$("toast");t.textContent=m;t.className="toast show"+(error?" error":"");clearTimeout(window.__toast);window.__toast=setTimeout(()=>t.className="toast",3200)}
 function showLogin(){state.user=null;$("app").classList.add("hidden");$("loginPage").classList.remove("hidden")}
 function showApp(u){state.user=u;$("loginPage").classList.add("hidden");$("app").classList.remove("hidden");$("userChip").textContent=u?.email||""}
@@ -2348,7 +2349,7 @@ $("loginForm").addEventListener("submit",async e=>{
 e.preventDefault();setLoginMsg("");const b=$("loginBtn");b.disabled=true;b.textContent="Logging in...";
 try{const {data,error}=await supabaseClient.auth.signInWithPassword({email:$("loginEmail").value.trim(),password:$("loginPassword").value});if(error)throw error;showApp(data.user);await loadAll();setLoginMsg("Login successful")}catch(err){setLoginMsg("Login failed: "+err.message,true)}finally{b.disabled=false;b.textContent="🔐 LOGIN"}});
 $("forgotBtn").addEventListener("click",async()=>{const email=$("loginEmail").value.trim();if(!email){setLoginMsg("முதலில் Email உள்ளிடுங்கள்.",true);return}const {error}=await supabaseClient.auth.resetPasswordForEmail(email,{redirectTo:location.href});if(error)setLoginMsg("Reset failed: "+error.message,true);else setLoginMsg("Password reset email அனுப்பப்பட்டது. Spam/Promotions-ஐயும் பாருங்கள்.")});
-async function logout(){sessionStorage.removeItem("nf_passkey_unlocked");const {error}=await supabaseClient.auth.signOut();if(error)toast(error.message,true);else showLogin()}
+async function logout(){sessionStorage.removeItem("nf_passkey_unlocked");if(typeof reminderTimer!=="undefined"&&reminderTimer){clearInterval(reminderTimer);reminderTimer=null}const {error}=await supabaseClient.auth.signOut();if(error)toast(error.message,true);else showLogin()}
 $("logoutBtn").onclick=logout;$("sideLogout").onclick=logout;$("reloadBtn").onclick=()=>loadAll(true);$("menuBtn").onclick=()=>$("sidebar").classList.toggle("open");
 function goView(view,push=true){
  const target=$("view-"+view);if(!target)return;
@@ -2408,14 +2409,20 @@ async function getTable(name){
 const {data,error}=await supabaseClient.from(name).select("*").order("created_at",{ascending:false});
 if(error)throw new Error(name+": "+error.message);return data||[];
 }
+let __nfLoadPromise=null;
 async function loadAll(silent=false){
 if(!state.user)return;
+if(__nfLoadPromise)return __nfLoadPromise;
+__nfLoadPromise=(async()=>{
 try{
 const [customers,orders,measurements,alterations,payments,designs]=await Promise.all([
 getTable("customers"),getTable("orders"),getTable("measurements"),getTable("alterations"),getTable("payments"),getTable("designs")
 ]);
 Object.assign(state,{customers,orders,measurements,alterations,payments,designs});renderAll();if(!silent)toast("Online data loaded");
 }catch(err){toast("Database load error: "+err.message,true)}
+finally{__nfLoadPromise=null}
+})();
+return __nfLoadPromise;
 }
 function customerName(id){return state.customers.find(x=>x.id===id)?.name||"Unknown"}
 function goToCustomer(id){goView("customers");setTimeout(()=>document.getElementById("customer-card-"+id)?.scrollIntoView({behavior:"smooth",block:"start"}),120);}
@@ -2656,25 +2663,15 @@ q?.addEventListener("input",recalc);p?.addEventListener("input",recalc);recalc()
 }
 }
 function makeOrderNo(){return "ORD-"+Date.now().toString().slice(-10)}
-async function updateQuickOrderCalc(id){
- const s={
-  normal:Math.max(0,Number($("qo-normal-"+id)?.value||0)),
-  lining:Math.max(0,Number($("qo-lining-"+id)?.value||0)),
-  design:Math.max(0,Number($("qo-design-"+id)?.value||0))
- };
- const rates=getRates();
- const totalQty=s.normal+s.lining+s.design;
- const total=s.normal*rates.normal+s.lining*rates.lining+s.design*rates.design;
- const q=$("qo-qty-"+id),t=$("qo-total-"+id);
- if(q)q.value=totalQty;
- if(t)t.textContent=money(total);
-}
 function updateQuickGarment(id){
  const g=$("qo-garment-"+id)?.value||"Blouse";
  document.querySelectorAll("#quick-order-"+id+" .nf-quick-blouse").forEach(x=>x.classList.toggle("nf-field-hidden",g!=="Blouse"));
  document.querySelectorAll("#quick-order-"+id+" .nf-quick-chudi").forEach(x=>x.classList.toggle("nf-field-hidden",g!=="Chudi"));
  document.querySelectorAll("#quick-order-"+id+" .nf-quick-saree").forEach(x=>x.classList.toggle("nf-field-hidden",g!=="Saree"));
  updateQuickOrderCalc(id);
+}
+function nfEnhanceQuickOrders(){
+ (state.customers||[]).forEach(function(c){if(document.getElementById("quick-order-"+c.id))updateQuickGarment(c.id)});
 }
 function updateQuickOrderCalc(id){
  const g=$("qo-garment-"+id)?.value||"Blouse",r=getRates();
@@ -2744,37 +2741,26 @@ function nfCustomerWorkSummaryHTML(st){
   const chudiQty=chudiOrders.reduce((a,o)=>a+Number(nfGarmentExtra(o).chudi||0),0),chudiLiningQty=chudiOrders.reduce((a,o)=>a+Number(nfGarmentExtra(o).chudiLiningQty||0),0);
   const chudiRows=chudiOrders.map(o=>{const x=nfGarmentExtra(o),r=nfOrderRates(o),q=Number(x.chudi||0);return q?`<div class="customerRateRow"><span class="rateLabel">Chudi ${q}</span><span class="rateMath">${q} × ${money(r.chudi)} = <b>${money(q*r.chudi)}</b></span></div>`:""}).join("");
   const chudiTotal=chudiOrders.reduce((a,o)=>{const x=nfGarmentExtra(o),r=nfOrderRates(o);return a+Number(x.chudi||0)*r.chudi},0);
-  const sareeQty=st.os.reduce((a,o)=>a+Number(nfGarmentExtra(o).saree||0),0),sareeTotal=st.os.reduce((a,o)=>{const x=nfGarmentExtra(o),r=nfOrderRates(o);return a+Number(x.saree||0)*r.saree},0);
+  const sareeOrders=st.os.filter(o=>Number(nfGarmentExtra(o).saree||0)>0);
+  const sareeQty=sareeOrders.reduce((a,o)=>a+Number(nfGarmentExtra(o).saree||0),0),sareeTotal=sareeOrders.reduce((a,o)=>{const x=nfGarmentExtra(o),r=nfOrderRates(o);return a+Number(x.saree||0)*r.saree},0);
+  const sareeRows=sareeOrders.map(o=>{const x=nfGarmentExtra(o),r=nfOrderRates(o),q=Number(x.saree||0);return q?`<div class="customerRateRow"><span class="rateLabel">Saree ${q}</span><span class="rateMath">${q} × ${money(r.saree)} = <b>${money(q*r.saree)}</b></span></div>`:""}).join("");
   const notes=[...new Set(st.os.map(o=>cleanOrderNotes(o.notes)).filter(Boolean))];
+  const workTotal=blouseTotal+liningTotal+chudiTotal+sareeTotal;
   return `<div class="customerWorkSummary">
-    <div class="customerWorkSection"><h4>👗 Blouse Section</h4>
-      <div class="customerWorkGrid">
-        <div class="customerWorkItem"><b>${st.normal}</b><span>Normal blouse</span></div>
-        <div class="customerWorkItem"><b>${st.lining}</b><span>Lining blouse</span></div>
-        <div class="customerWorkItem"><b>${st.design}</b><span>Design blouse</span></div>
-        <div class="customerWorkItem"><b>${sareeQty}</b><span>Saree</span></div>
-      </div>
-      <div class="customerRateList">${blouseRows||'<div class="mini">Blouse rate details இல்லை.</div>'}
-        ${st.liningCustomer>0?`<div class="customerLiningNote">🧵 Lining cloth: Customer கொடுத்தது — ${st.liningCustomer} (Rate தேவையில்லை)</div>`:""}
-        ${st.liningShop>0?`<div class="customerRateRow"><span class="rateLabel">Lining cloth ${st.liningShop}</span><span class="rateMath">${st.liningShop} × <b>${money(liningTotal/(st.liningShop||1))}</b> = <b>${money(liningTotal)}</b></span></div>`:""}
-      </div>
-      <div class="customerRateTotal"><span>Blouse / Lining Total</span><span>${money(blouseTotal+liningTotal)}</span></div>
-    </div>
-    <div class="customerWorkSection"><h4>👚 Chudi Section</h4>
-      <div class="customerWorkGrid">
-        <div class="customerWorkItem"><b>${chudiQty}</b><span>Chudi / சுடிதார்</span></div>
-        <div class="customerWorkItem"><b>${chudiLiningQty}</b><span>Chudi lining</span></div>
-        <div class="customerWorkItem"><b>${sareeQty}</b><span>Saree</span></div>
-        <div class="customerWorkItem"><b>${money(chudiTotal)}</b><span>Chudi Total</span></div>
-      </div>
-      <div class="customerRateList">${chudiRows||'<div class="mini">Chudi rate details இல்லை.</div>'}</div>
-      ${chudiRows?`<div class="customerRateTotal"><span>Chudi Total</span><span>${money(chudiTotal)}</span></div>`:""}
-    </div>
+    <div class="customerWorkSection"><h4>👗 Blouse Section</h4><div class="customerWorkGrid">
+      <div class="customerWorkItem"><b>${st.normal}</b><span>Normal blouse</span></div><div class="customerWorkItem"><b>${st.lining}</b><span>Lining blouse</span></div><div class="customerWorkItem"><b>${st.design}</b><span>Design blouse</span></div><div class="customerWorkItem"><b>${money(blouseTotal+liningTotal)}</b><span>Blouse total</span></div>
+    </div><div class="customerRateList">${blouseRows||'<div class="mini">Blouse rate details இல்லை.</div>'}${st.liningCustomer>0?`<div class="customerLiningNote">🧵 Lining cloth: Customer கொடுத்தது — ${st.liningCustomer} (Rate தேவையில்லை)</div>`:""}${st.liningShop>0?`<div class="customerRateRow"><span class="rateLabel">Lining cloth ${st.liningShop}</span><span class="rateMath">${st.liningShop} × <b>${money(liningTotal/(st.liningShop||1))}</b> = <b>${money(liningTotal)}</b></span></div>`:""}</div>
+    <div class="customerRateTotal"><span>Blouse / Lining Total</span><span>${money(blouseTotal+liningTotal)}</span></div></div>
+    <div class="customerWorkSection"><h4>👚 Chudi Section</h4><div class="customerWorkGrid">
+      <div class="customerWorkItem"><b>${chudiQty}</b><span>Chudi / சுடிதார்</span></div><div class="customerWorkItem"><b>${chudiLiningQty}</b><span>Chudi lining</span></div><div class="customerWorkItem"><b>${money(chudiTotal)}</b><span>Chudi total</span></div><div class="customerWorkItem"><b>${chudiOrders.length}</b><span>Chudi orders</span></div>
+    </div><div class="customerRateList">${chudiRows||'<div class="mini">Chudi rate details இல்லை.</div>'}</div>${chudiRows?`<div class="customerRateTotal"><span>Chudi Total</span><span>${money(chudiTotal)}</span></div>`:""}</div>
+    <div class="customerWorkSection"><h4>🥻 Saree Section</h4><div class="customerWorkGrid">
+      <div class="customerWorkItem"><b>${sareeQty}</b><span>Saree / சேலை</span></div><div class="customerWorkItem"><b>${money(sareeTotal)}</b><span>Saree total</span></div><div class="customerWorkItem"><b>${sareeOrders.length}</b><span>Saree orders</span></div><div class="customerWorkItem"><b>${money(workTotal)}</b><span>Work total</span></div>
+    </div><div class="customerRateList">${sareeRows||'<div class="mini">Saree rate details இல்லை.</div>'}</div></div>
     <div class="customerWorkSection"><h4>📝 Notes</h4><div class="customerNotesBox">${notes.length?notes.map(n=>`• ${esc(n)}`).join("<br>"):"குறிப்பு இல்லை."}</div></div>
-    <div class="customerRateTotal" style="margin-top:10px;background:linear-gradient(135deg,#14aebd,#3d83ef)"><span>மொத்த Rate</span><span>${money(blouseTotal+liningTotal+chudiTotal+sareeTotal)}</span></div>
+    <div class="customerRateTotal" style="margin-top:10px;background:linear-gradient(135deg,#14aebd,#3d83ef)"><span>மொத்த Rate</span><span>${money(workTotal)}</span></div>
   </div>`;
 }
-
 function customerCard(id){
  const c=state.customers.find(x=>x.id===id),st=customerStats(id),designs=customerDesigns(id);
  const village=c.village||localStorage.getItem("nf_village_"+id)||"",address=c.address||"முகவரி இல்லை";
@@ -2797,6 +2783,7 @@ function customerCard(id){
  
  
  <div class="customerMoneyGrid"><div class="moneyStat"><b>${money(st.total)}</b><span>மொத்த order</span></div><div class="moneyStat"><b>${money(st.paid)}</b><span>Customer paid</span></div><div class="moneyStat"><b>${money(st.advance)}</b><span>Advance வாங்கியது</span></div><div class="moneyStat clickable" onclick="goView('payments')"><b>${money(st.balance)}</b><span>இன்னும் கொடுக்க வேண்டும்</span></div></div>
+  ${typeof nfCustomerWorkSummaryHTML==="function"?nfCustomerWorkSummaryHTML(st):""}
  <div class="customerSection"><h4>🧾 New Order — இந்த customer card-லேயே</h4><div class="customerActions"><button class="btn primary" onclick="toggleQuickOrder('${id}')">＋ New Order</button><button class="btn secondary" onclick="openCustomerMeasurement('${id}')">📏 Measurement</button><button class="btn success" onclick="openCustomerPayment('${id}')">💰 Payment</button></div>
  <div id="quick-order-${id}" class="hidden" style="margin-top:10px;background:#faf8f6;border:1px solid var(--line);border-radius:13px;padding:12px"><div class="formgrid">
  <div class="field"><label>Garment / Blouse / Chudi / Saree</label><select id="qo-garment-${id}" class="input" onchange="updateQuickGarment('${id}')"><option value="Blouse">Blouse</option><option value="Chudi">Chudi</option><option value="Saree">Saree</option></select></div><div class="field"><label>துணி கொடுத்த தேதி</label><input id="qo-cloth-${id}" class="input" type="date" value="${localDate()}"></div><div class="field"><label>Delivery Date</label><input id="qo-delivery-${id}" class="input" type="date"></div>
@@ -4113,32 +4100,6 @@ function nfBlouseSplit(o){
   },true);
 })();
 
-/* ---------- Quick Order: add the same four fields to the customer card ---------- */
-function nfEnhanceQuickOrders(){
-  if(!window.state)return;
-  (state.customers||[]).forEach(function(c){if(document.getElementById("quick-order-"+c.id))updateQuickGarment(c.id);});
-}
-
-/* Wrap the existing quick-save function; the original pricing/blouse logic is untouched. */
-(function(){
-  var originalSave=window.saveQuickOrder;
-  if(typeof originalSave!=="function")return;
-  window.saveQuickOrder=function(id){
-    var notes=document.getElementById("qo-notes-"+id);
-    var extra={
-      chudi:Math.max(0,Number(document.getElementById("qo-nf-chudi-"+id)?.value||0)),
-      chudiLining:document.getElementById("qo-nf-chudi-lining-"+id)?.value==="yes"?"yes":"no",
-      chudiLiningQty:Math.max(0,Number(document.getElementById("qo-nf-chudi-lining-qty-"+id)?.value||0)),
-      saree:Math.max(0,Number(document.getElementById("qo-nf-saree-"+id)?.value||0))
-    };
-    if(notes){
-      var clean=String(notes.value||"").replace(/GARMENT_SPLIT:\{[^}]+\}\s*\|?\s*/,"").trim();
-      notes.value="GARMENT_SPLIT:"+JSON.stringify(extra)+(clean?" | "+clean:"");
-    }
-    return originalSave.apply(this,arguments);
-  };
-})();
-
 /* ---------- Customer cards: show separate Chudi/Saree totals ---------- */
 function nfAddCustomerGarmentSummary(){
   // Garment counts are now rendered directly by customerCard(), based on
@@ -4266,6 +4227,20 @@ window.runPhoneReminders=function(){
    Web Notification from a plain HTML page requires permission and the page
    must remain running. This extension keeps the ten existing daily time
    slots, but does not claim OS-level delivery when the page is fully closed. */
+})();
+</script>
+
+<style id="nf-phase44-polish">
+html{scroll-behavior:smooth}body{overscroll-behavior-y:none}.btn,.iconbtn,.navbtn{will-change:transform}.btn:not(:disabled):hover,.iconbtn:not(:disabled):hover,.navbtn:hover{transform:translateY(-1px)}.btn:disabled{opacity:.65;transform:none!important}.input:focus,select:focus,textarea:focus{border-color:rgba(178,62,98,.55)!important;box-shadow:0 0 0 4px rgba(178,62,98,.09);outline:none}.customerWorkSummary{content-visibility:auto;contain:layout paint style}.customerSection{scroll-margin-top:80px}.nf-save-busy{position:relative;pointer-events:none}.nf-save-busy::after{content:"";display:inline-block;width:12px;height:12px;margin-left:7px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;vertical-align:-2px;animation:nfSpin .7s linear infinite}@keyframes nfSpin{to{transform:rotate(360deg)}}.nfPendingCustomer{transition:background .16s ease,transform .16s ease}.nfPendingCustomer:hover{background:rgba(255,255,255,.045);transform:translateX(1px)}@media(max-width:560px){.customerWorkGrid{grid-template-columns:1fr 1fr}.customerWorkItem{min-height:62px}}@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.btn,.iconbtn,.navbtn,.nfPendingCustomer{transition:none!important;animation:none!important}}
+</style>
+<script id="nf-phase44-polish-js">
+(function(){
+"use strict";
+var originalQuickSave=window.saveQuickOrder;
+if(typeof originalQuickSave==="function"&&!window.__nf44QuickSaveWrapped){window.__nf44QuickSaveWrapped=true;window.saveQuickOrder=async function(id){var box=document.getElementById("quick-order-"+id),btn=box&&box.querySelector('button[onclick*="saveQuickOrder"]');if(btn&&btn.disabled)return;if(btn){btn.disabled=true;btn.classList.add("nf-save-busy")}try{return await originalQuickSave.apply(this,arguments)}finally{if(btn){btn.disabled=false;btn.classList.remove("nf-save-busy")}}};}
+window.renderPendingCustomerCard=function(){var list=document.getElementById("nfPendingList"),badge=document.getElementById("nfPendingBadge");if(!list)return;var customers=window.state&&Array.isArray(state.customers)?state.customers:[],rows=[];customers.forEach(function(c){var orders=(state.orders||[]).filter(function(o){return o.customer_id===c.id&&typeof isFinished==="function"&&!isFinished(o)}),s={normal:0,lining:0,design:0,chudi:0,chudiLining:0,saree:0,total:0};orders.forEach(function(o){var b=typeof blouseSplit==="function"?blouseSplit(o):{normal:0,lining:0,design:0},x=typeof nfGarmentExtra==="function"?nfGarmentExtra(o):{chudi:0,chudiLiningQty:0,saree:0};s.normal+=Number(b.normal||0);s.lining+=Number(b.lining||0);s.design+=Number(b.design||0);s.chudi+=Number(x.chudi||0);s.chudiLining+=Number(x.chudiLiningQty||0);s.saree+=Number(x.saree||0)});s.total=s.normal+s.lining+s.design+s.chudi+s.saree;if(!s.total)return;rows.push({c:c,orders:orders,s:s,since:typeof getPendingSince==="function"?getPendingSince(c.id,orders):""})});rows.sort(function(a,b){return String(a.since||"9999-99-99").localeCompare(String(b.since||"9999-99-99"))});if(badge)badge.textContent=String(rows.length);if(!rows.length){list.innerHTML='<div class="nfPendingEmpty">✅ Pending work இல்லை.</div>';return}list.innerHTML=rows.map(function(row){var c=row.c,s=row.s,lines=row.orders.slice().sort(function(a,b){return String(a.delivery_date||"9999-99-99").localeCompare(String(b.delivery_date||"9999-99-99"))}).slice(0,5).map(function(o){var b=typeof blouseSplit==="function"?blouseSplit(o):{normal:0,lining:0,design:0},x=typeof nfGarmentExtra==="function"?nfGarmentExtra(o):{chudi:0,chudiLiningQty:0,saree:0},parts=[];if(b.normal)parts.push("Normal "+b.normal);if(b.lining)parts.push("Lining "+b.lining);if(b.design)parts.push("Design "+b.design);if(x.chudi)parts.push("Chudi "+x.chudi);if(x.chudiLiningQty)parts.push("Chudi lining "+x.chudiLiningQty);if(x.saree)parts.push("Saree "+x.saree);return '<div class="nfPendingOrderLine">• '+esc(parts.join(" · ")||String(Number(o.quantity||0))+" pcs")+(o.delivery_date?' · Delivery '+dateText(o.delivery_date):'')+'</div>'}).join("");return '<div class="nfPendingCustomer"><div class="nfPendingName">👤 '+esc(c.name||"Customer")+'</div><div class="nfPendingTotal">மொத்த Pending: <b>'+s.total+'</b></div><div class="nfPendingTypes"><div class="nfPendingType"><b>'+s.normal+'</b>Normal blouse</div><div class="nfPendingType"><b>'+s.lining+'</b>Lining blouse</div><div class="nfPendingType"><b>'+s.design+'</b>Design blouse</div><div class="nfPendingType"><b>'+s.chudi+'</b>Chudi</div><div class="nfPendingType"><b>'+s.chudiLining+'</b>Chudi lining</div><div class="nfPendingType"><b>'+s.saree+'</b>Saree</div></div><div class="nfPendingDate"><label>📅 Pending since</label><div class="nfPendingDateRow"><input id="nf-pending-date-'+esc(c.id)+'" type="date" value="'+esc(row.since||'')+'"><button class="nfPendingSave" type="button" onclick="savePendingSince("+JSON.stringify(String(c.id))+")">Update</button></div></div>'+(lines?'<div class="nfPendingOrders">'+lines+'</div>':'')+'</div>'}).join("")};
+if(!window.__nf44RenderHook){window.__nf44RenderHook=true;var baseRender=window.renderAll;if(typeof baseRender==="function"){window.renderAll=function(){baseRender.apply(this,arguments);try{window.renderPendingCustomerCard()}catch(e){console.warn("Pending card render:",e)}}}}
+document.addEventListener("visibilitychange",function(){if(document.visibilityState==="visible"){try{if(localStorage.getItem("nf_notification_enabled")==="1"&&typeof startReminderScheduler==="function")startReminderScheduler()}catch(e){}try{window.renderPendingCustomerCard()}catch(e){}}});
 })();
 </script>
 
