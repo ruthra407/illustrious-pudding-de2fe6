@@ -2174,6 +2174,9 @@ body{
 #view-dashboard .dashboardNext5 .big{display:block;font-size:30px;margin-bottom:8px}
 #view-dashboard .dashboardNext5 .dashboardOrderList{margin-top:10px}
 </style>
+<style id="nf-data-recovery-fix">
+#customersTable .nf-data-loading{padding:18px;text-align:center;color:#6f7482}
+</style>
 </head>
 <body>
 
@@ -2333,7 +2336,9 @@ body{
 const SUPABASE_URL="https://pdlsicwzfmartkwcwozx.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY="sb_publishable_eCKne6Tzs6-QYSXpJb-aSQ_6AHe8n9O";
 const supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
-const state={user:null,customers:[],orders:[],measurements:[],alterations:[],payments:[],designs:[],editing:null};
+const state={user:null,customers:[],orders:[],measurements:[],alterations:[],payments:[],designs:[],editing:null,dataLoaded:false,dataLoading:false};
+let nfLoadPromise=null;
+let nfLastLoadAt=0;
 const $=id=>document.getElementById(id);
 const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
 const money=n=>"₹"+Number(n||0).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -2405,36 +2410,74 @@ if(!history.state?.view){
  updateBackButton();
 }
 
-async function getTable(name){
-const {data,error}=await supabaseClient.from(name).select("*").order("created_at",{ascending:false});
-if(error)throw new Error(name+": "+error.message);return data||[];
-}
-async function loadAll(silent=false){
-if(!state.user)return;
-const tables=["customers","orders","measurements","alterations","payments","designs"];
-const result=await Promise.allSettled(tables.map(name=>getTable(name)));
-const failed=[];
-result.forEach((r,i)=>{
-  if(r.status==="fulfilled"){
-    state[tables[i]]=Array.isArray(r.value)?r.value:[];
-  }else{
-    failed.push(r.reason?.message||(`${tables[i]} load failed`));
+const NF_DATA_TABLES=["customers","orders","measurements","alterations","payments","designs"];
+
+function nfSleep(ms){return new Promise(resolve=>setTimeout(resolve,ms));}
+
+async function getTable(name,attempt=0){
+  try{
+    const {data,error}=await supabaseClient
+      .from(name)
+      .select("*")
+      .order("created_at",{ascending:false});
+    if(error)throw new Error(name+": "+error.message);
+    return Array.isArray(data)?data:[];
+  }catch(err){
+    if(attempt<2){
+      await nfSleep(700*(attempt+1));
+      return getTable(name,attempt+1);
+    }
+    throw err;
   }
-});
-try{renderAll();}catch(err){console.error("Render error:",err);}
-if(failed.length){
-  console.error("Database load errors:",failed);
-  toast("சில data tables load ஆகவில்லை. மற்ற data பாதுகாப்பாக காட்டப்படுகிறது.",true);
-}else if(!silent){
-  toast("Online data loaded");
 }
+
+async function loadAll(silent=false,force=false){
+  if(!state.user)return;
+  if(nfLoadPromise)return nfLoadPromise;
+
+  nfLoadPromise=(async()=>{
+    state.dataLoading=true;
+    try{
+      const result=await Promise.allSettled(NF_DATA_TABLES.map(name=>getTable(name)));
+      const failed=[];
+
+      result.forEach((r,i)=>{
+        const table=NF_DATA_TABLES[i];
+        if(r.status==="fulfilled"){
+          state[table]=r.value;
+        }else{
+          failed.push(r.reason?.message||(`${table} load failed`));
+        }
+      });
+
+      state.dataLoaded=true;
+      nfLastLoadAt=Date.now();
+
+      try{renderAll();}catch(err){console.error("Render error:",err);}
+
+      if(failed.length){
+        console.error("Database load errors:",failed);
+        toast("சில data load ஆகவில்லை. மீண்டும் முயற்சி செய்யுங்கள்.",true);
+      }else if(!silent){
+        toast("Online data loaded");
+      }
+    }finally{
+      state.dataLoading=false;
+    }
+  })();
+
+  try{
+    return await nfLoadPromise;
+  }finally{
+    nfLoadPromise=null;
+  }
 }
 function customerName(id){return state.customers.find(x=>x.id===id)?.name||"Unknown"}
 function goToCustomer(id){goView("customers");setTimeout(()=>document.getElementById("customer-card-"+id)?.scrollIntoView({behavior:"smooth",block:"start"}),120);}
 function goToOrderCustomer(orderId){
  const o=state.orders.find(x=>x.id===orderId);
  if(!o){goView("orders");return}
- goToView("customers");
+ goView("customers");
  setTimeout(()=>{
    const card=document.getElementById("customer-card-"+o.customer_id);
    const target=document.getElementById("customer-order-"+orderId);
@@ -2832,9 +2875,15 @@ function customerCard(id){
   </article>`;
 }
 function renderCustomers(){
+const box=$("customersTable");
+if(!box)return;
+if(state.dataLoading && !state.dataLoaded){
+  box.innerHTML=`<div class="card empty" style="grid-column:1/-1">⏳ Customer data loading…</div>`;
+  return;
+}
 const q=($("customerSearch").value||"").toLowerCase();
 const r=state.customers.filter(x=>[x.name,x.phone,x.address,x.village].join(" ").toLowerCase().includes(q));
-$("customersTable").innerHTML=r.length?r.map(x=>customerCard(x.id)).join(""):`<div class="card empty" style="grid-column:1/-1">No customers found.</div>`;
+box.innerHTML=r.length?r.map(x=>customerCard(x.id)).join(""):`<div class="card empty" style="grid-column:1/-1">${state.dataLoaded?"No customers found.":"Customer data இன்னும் load ஆகவில்லை. ↻ Refresh அழுத்துங்கள்."}</div>`;
 }
 function saveReminderTime(id){
 const t=$("remtime-"+id)?.value||"09:00";localStorage.setItem("nf_reminder_time",t);toast("Daily reminder time "+t+" என்று சேமிக்கப்பட்டது.");
@@ -3228,8 +3277,74 @@ function startReminderScheduler(){
 }
 function enableDailyNotifications(){requestNotificationPermission().then(p=>{if(p==="granted"){localStorage.setItem("nf_notification_enabled","1");startReminderScheduler();toast("ஒரு நாளில் 10 Daily Reminder நேரங்கள் ON. Phone notification permission வழங்கப்பட்டுள்ளது.")}else toast("Notification permission கிடைக்கவில்லை.",true)})}
 updateBackButton();
-supabaseClient.auth.onAuthStateChange((_event,session)=>{if(session?.user){showApp(session.user);setTimeout(()=>loadAll(true),0)}else showLogin()});
-(async()=>{const {data}=await supabaseClient.auth.getSession();if(data?.session?.user){showApp(data.session.user);await loadAll(true)}else showLogin()})();
+
+let nfAuthBooted=false;
+
+async function nfStartSession(){
+  try{
+    const {data,error}=await supabaseClient.auth.getSession();
+    if(error)throw error;
+
+    if(data?.session?.user){
+      showApp(data.session.user);
+      await loadAll(true);
+    }else{
+      state.dataLoaded=false;
+      showLogin();
+    }
+  }catch(err){
+    console.error("Session restore failed:",err);
+    showLogin();
+    setLoginMsg("Session restore failed. Please login again.",true);
+  }
+}
+
+supabaseClient.auth.onAuthStateChange((_event,session)=>{
+  if(session?.user){
+    showApp(session.user);
+    if(!nfAuthBooted)loadAll(true);
+  }else{
+    state.dataLoaded=false;
+    state.customers=[];state.orders=[];state.measurements=[];
+    state.alterations=[];state.payments=[];state.designs=[];
+    showLogin();
+  }
+});
+
+(async()=>{
+  nfAuthBooted=true;
+  await nfStartSession();
+})();
+
+/*
+ * Capacitor/WebView can restore the page from memory after the Android app
+ * is closed and reopened. In that case the HTML is restored immediately,
+ * while Supabase data may still need a fresh network request.
+ * Re-sync on pageshow and when the app becomes visible again.
+ */
+let nfResumeTimer=null;
+
+async function nfRefreshAfterResume(){
+  if(!state.user || document.visibilityState==="hidden")return;
+  clearTimeout(nfResumeTimer);
+  nfResumeTimer=setTimeout(async()=>{
+    try{
+      const {data}=await supabaseClient.auth.getSession();
+      if(data?.session?.user){
+        state.user=data.session.user;
+        showApp(data.session.user);
+        await loadAll(true,true);
+      }
+    }catch(err){
+      console.warn("Resume refresh failed:",err);
+    }
+  },450);
+}
+
+window.addEventListener("pageshow",nfRefreshAfterResume,{passive:true});
+document.addEventListener("visibilitychange",()=>{
+  if(document.visibilityState==="visible")nfRefreshAfterResume();
+});
 
 /* =========================================================
    Mobile side-menu swipe:
