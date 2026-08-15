@@ -1087,24 +1087,34 @@ body{
 
 /* ---------- Customer cloth photos + 3-design picker ---------- */
 .nf-customer-cloth-photos{
-  display:grid;grid-template-columns:repeat(3,72px);gap:8px;margin-top:10px
+  display:grid;grid-template-columns:repeat(3,96px);gap:10px;margin-top:12px
 }
 .nf-cloth-slot,.nf-design-slot{
-  position:relative;border:1px solid #ddd5ef;border-radius:12px;overflow:hidden;
+  position:relative;border:1px solid #ddd5ef;border-radius:14px;overflow:hidden;
   background:linear-gradient(135deg,#f7f3ff,#fff5fa);aspect-ratio:1;min-width:0
 }
 .nf-cloth-slot img,.nf-design-slot img{width:100%;height:100%;object-fit:cover;display:block}
-.nf-photo-empty{height:100%;display:grid;place-items:center;text-align:center;color:#777;font-size:11px;font-weight:800;padding:5px}
+.nf-photo-empty{
+  height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;color:#777;font-size:11px;font-weight:800;padding:6px;gap:5px
+}
 .nf-photo-add{
   width:100%;height:100%;border:0;background:transparent;color:#6c4df6;font-size:24px;cursor:pointer
 }
+.nf-cloth-add-actions{display:flex;gap:5px;justify-content:center;width:100%}
+.nf-cloth-add-actions label,.nf-cloth-add-actions button{
+  width:34px;height:32px;border:0;border-radius:9px;background:#fff;color:#6c4df6;
+  box-shadow:0 2px 7px rgba(0,0,0,.14);display:grid;place-items:center;cursor:pointer;font-size:15px
+}
 .nf-photo-tools{
-  position:absolute;left:4px;right:4px;bottom:4px;display:flex;gap:4px;justify-content:center
+  position:absolute;left:5px;right:5px;bottom:5px;display:flex;gap:5px;justify-content:center
 }
 .nf-photo-tools button,.nf-photo-tools label{
-  width:27px;height:27px;border:0;border-radius:8px;background:rgba(255,255,255,.94);
-  box-shadow:0 2px 7px rgba(0,0,0,.18);display:grid;place-items:center;cursor:pointer;font-size:13px
+  width:30px;height:30px;border:0;border-radius:9px;background:rgba(255,255,255,.96);
+  box-shadow:0 2px 8px rgba(0,0,0,.20);display:grid;place-items:center;cursor:pointer;font-size:13px
 }
+.nf-photo-tools .nf-delete{color:#b42318}
+.nf-cloth-photo-title{margin-top:7px;font-size:12px;font-weight:850;color:#5e5660;text-align:center}
 .nf-photo-tools .nf-delete{color:#b42318}
 .nf-design-picker{
   margin-top:8px;padding:10px;border:1px solid #ddd5ff;border-radius:14px;
@@ -1121,7 +1131,7 @@ body{
 .nf-design-picker-actions .btn{min-height:40px}
 .nf-design-search-wrap{margin-top:8px}
 @media(max-width:560px){
-  .nf-customer-cloth-photos{grid-template-columns:repeat(3,64px)}
+  .nf-customer-cloth-photos{grid-template-columns:repeat(3,88px);gap:8px}
   .nf-design-slots{gap:7px}
   .nf-design-picker-actions .btn{flex:1;min-width:120px}
 }
@@ -3038,7 +3048,9 @@ function customerCard(id){
  const village=c.village||localStorage.getItem("nf_village_"+id)||"",address=c.address||"முகவரி இல்லை";
  const clothPhotoHtml=Array.from({length:3},(_,slot)=>{
    const p=clothPhotos[slot];
-   return `<div class="nf-cloth-slot">${p?.src?`<img src="${esc(p.src)}" alt="Customer cloth ${slot+1}">`:`<label class="nf-photo-empty" title="Customer துணி photo ${slot+1}"><input type="file" accept="image/*" capture="environment" style="display:none" onchange="saveCustomerClothPhoto('${id}',${slot},this.files[0])">＋<br>Photo ${slot+1}</label>`}${p?`<div class="nf-photo-tools"><label title="Edit / Replace"><input type="file" accept="image/*" style="display:none" onchange="saveCustomerClothPhoto('${id}',${slot},this.files[0])">✏️</label><button type="button" class="nf-delete" title="Delete" onclick="removeCustomerClothPhoto('${id}',${slot})">🗑️</button></div>`:""}</div>`;
+   const galleryInput=`<input type="file" accept="image/*" style="display:none" onchange="saveCustomerClothPhoto('${id}',${slot},this.files[0])">`;
+   const cameraInput=`<input type="file" accept="image/*" capture="environment" style="display:none" onchange="saveCustomerClothPhoto('${id}',${slot},this.files[0])">`;
+   return `<div class="nf-cloth-slot">${p?.src?`<img src="${esc(p.src)}" alt="Customer cloth ${slot+1}"><div class="nf-photo-tools"><label title="Gallery-ல் இருந்து Replace">🖼️${galleryInput}</label><label title="Camera-வில் இருந்து Replace">📷${cameraInput}</label><button type="button" class="nf-delete" title="Delete photo" onclick="removeCustomerClothPhoto('${id}',${slot})">🗑️</button></div>`:`<div class="nf-photo-empty"><div>👕 Photo ${slot+1}</div><div class="nf-cloth-add-actions"><label title="Gallery">🖼️${galleryInput}</label><label title="Camera">📷${cameraInput}</label></div></div>`}</div>`;
  }).join("");
  const selectedDesignHtml=Array.from({length:3},(_,slot)=>{
    const d=selectedDesigns[slot];
