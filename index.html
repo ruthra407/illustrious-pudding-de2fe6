@@ -4196,6 +4196,7 @@ function nfGarmentExtra(o){
   if(!m)return base;
   try{return Object.assign(base,JSON.parse(m[1]))}catch(e){return base}
 }
+window.nfGarmentExtra=nfGarmentExtra;
 
 function nfBlouseSplit(o){
   if(typeof blouseSplit==="function")return blouseSplit(o||{});
@@ -4279,17 +4280,9 @@ function nfEnhanceQuickOrders(){
   var originalSave=window.saveQuickOrder;
   if(typeof originalSave!=="function")return;
   window.saveQuickOrder=function(id){
-    var notes=document.getElementById("qo-notes-"+id);
-    var extra={
-      chudi:Math.max(0,Number(document.getElementById("qo-nf-chudi-"+id)?.value||0)),
-      chudiLining:document.getElementById("qo-nf-chudi-lining-"+id)?.value==="yes"?"yes":"no",
-      chudiLiningQty:Math.max(0,Number(document.getElementById("qo-nf-chudi-lining-qty-"+id)?.value||0)),
-      saree:Math.max(0,Number(document.getElementById("qo-nf-saree-"+id)?.value||0))
-    };
-    if(notes){
-      var clean=String(notes.value||"").replace(/GARMENT_SPLIT:\{[^}]+\}\s*\|?\s*/,"").trim();
-      notes.value="GARMENT_SPLIT:"+JSON.stringify(extra)+(clean?" | "+clean:"");
-    }
+    /* The main saveQuickOrder() is the single source of truth for GARMENT_SPLIT.
+       The old wrapper referenced removed qo-nf-* fields and could overwrite
+       valid Chudi/Saree counts with zeroes. */
     return originalSave.apply(this,arguments);
   };
 })();
@@ -4871,5 +4864,43 @@ window.runPhoneReminders=function(){
 */
 </script>
 
+
+
+<style id="nf-final-header-and-edit-data-fix">
+/* =========================================================
+   FINAL SAFETY PATCH
+   - Keep the shop header visible while the page scrolls.
+   - Reserve the header's height so content never jumps underneath it.
+   - Leave room when customer/order cards are scrolled into view.
+   - Expose GARMENT_SPLIT parsing globally for the edit flow.
+   ========================================================= */
+
+:root{--nf-header-offset:84px}
+
+#app{
+  padding-top:var(--nf-header-offset);
+}
+
+#app > .topbar{
+  position:fixed !important;
+  top:0;
+  left:0;
+  right:0;
+  width:100%;
+  z-index:1000 !important;
+}
+
+.customerCard{
+  scroll-margin-top:calc(var(--nf-header-offset) + 12px);
+}
+
+@media(max-width:700px){
+  :root{--nf-header-offset:88px}
+}
+
+@media(max-width:390px){
+  :root{--nf-header-offset:84px}
+}
+</style>
 </body>
 </html>
