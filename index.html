@@ -5421,5 +5421,49 @@ document.addEventListener("DOMContentLoaded",()=>setTimeout(()=>{
 })();
 </script>
 
+
+<style id="nf-customer-design-3slot-ui">
+/* Customer page: Design blouse only — 3 independent slots. No calculation/storage yet. */
+.nf-customer-design-3slots{margin-top:12px;padding:12px;border:1px solid #ddd5ff;border-radius:15px;background:linear-gradient(135deg,#f7f4ff,#fff1f7)}
+.nf-customer-design-3slots h4{margin:0 0 5px;font-size:15px;font-weight:900}
+.nf-customer-design-3slots .hint{margin-bottom:9px}
+.nf-customer-design-3slot-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.nf-customer-design-3slot{padding:9px;border:1px solid #e4def5;border-radius:12px;background:#fff;min-width:0}
+.nf-customer-design-3slot h5{margin:0 0 7px;font-size:13px;font-weight:900}
+.nf-customer-design-3slot label{display:block;font-size:10px;font-weight:800;color:#77758a;margin:5px 0 3px}
+.nf-customer-design-3slot input{width:100%;min-height:40px}
+@media(max-width:700px){.nf-customer-design-3slot-grid{grid-template-columns:1fr}}
+</style>
+<script id="nf-customer-design-3slot-js">
+(function(){
+  const block=()=>{
+    let h='<div class="nf-customer-design-3slots">'+
+      '<h4>🎨 Design blouse — 3 தனித்தனி slots</h4>'+
+      '<div class="hint">Design blouse-க்கு மட்டும் Design 1, 2, 3 தனித்தனியாக பதிவு செய்யலாம். கணக்கு / total இப்போது இல்லை.</div>'+
+      '<div class="nf-customer-design-3slot-grid">';
+    for(let i=1;i<=3;i++){
+      h+='<div class="nf-customer-design-3slot"><h5>Design '+i+'</h5>'+
+        '<label>Design பெயர் / குறிப்பு</label>'+
+        '<input class="input" type="text" placeholder="எ.கா. Aari / Model">'+
+        '<label>எத்தனை</label>'+
+        '<input class="input" type="number" min="0" step="1" value="0">'+
+        '<label>ஒன்றுக்கு விலை</label>'+
+        '<input class="input" type="number" min="0" step="0.01" value="0">'+
+        '</div>';
+    }
+    return h+'</div></div>';
+  };
+  const old=window.nfCustomerWorkSummaryHTML;
+  if(typeof old==='function'){
+    window.nfCustomerWorkSummaryHTML=function(st){
+      let html=old.apply(this,arguments);
+      if(Number(st?.design||0)>0 && !html.includes('nf-customer-design-3slots')){
+        html+=block();
+      }
+      return html;
+    };
+  }
+})();
+</script>
 </body>
 </html>
