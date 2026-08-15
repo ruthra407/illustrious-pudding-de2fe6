@@ -4603,122 +4603,183 @@ window.runPhoneReminders=function(){
     st=st||{};
     var orders=Array.isArray(st.os)?st.os:[];
 
+    function orderGarment(o){
+      return String(o && o.garment_type || "Blouse").toLowerCase();
+    }
+    function isBlouse(o){
+      var g=orderGarment(o);
+      return !g || g==="blouse";
+    }
+    function extra(o){ return safeGarmentExtra(o); }
+    function rates(o){ return safeRates(o); }
+
     var b={
-      normalQty:0, normalTotal:0,
-      liningQty:0, liningTotal:0,
-      designQty:0, designTotal:0,
+      normalQty:0, liningQty:0, designQty:0,
+      normalTotal:0, liningTotal:0, designTotal:0,
       liningCustomerQty:0, liningShopQty:0, liningShopTotal:0
     };
-
     var c={
       qty:0, total:0,
-      liningQty:0, liningCustomerQty:0, liningShopQty:0, liningShopTotal:0
+      liningQty:0, liningCustomerQty:0,
+      liningShopQty:0, liningShopTotal:0
     };
-
     var saree={qty:0,total:0};
 
+    /* Read every saved order once.  Chudi/Saree legacy quantity fields are
+       used as a fallback, while explicit GARMENT_SPLIT values remain primary. */
     orders.forEach(function(o){
-      var s=safeBlouseSplit(o), r=safeRates(o), x=safeGarmentExtra(o);
-      var g=String(o && o.garment_type || "Blouse").toLowerCase();
+      var g=orderGarment(o), x=extra(o), r=rates(o);
+      var genericLiningSource=String(o && o.lining_cloth_source || "").toLowerCase();
+      var genericLiningQty=num(o && o.lining_cloth_qty);
+      var genericLiningTotal=orderLiningAmount(o);
 
-      if(isBlouseOrder(o)){
-        b.normalQty+=s.normal;
-        b.normalTotal+=s.normal*r.normal;
+      if(isBlouse(o)){
+        var bs=safeBlouseSplit(o);
+        b.normalQty+=bs.normal;
+        b.liningQty+=bs.lining;
+        b.designQty+=bs.design;
 
-        b.liningQty+=s.lining;
-        b.liningTotal+=s.lining*r.lining;
+        b.normalTotal+=bs.normal*r.normal;
+        b.liningTotal+=bs.lining*r.lining;
+        b.designTotal+=nfDesignRates(o).reduce(function(sum,v){return sum+num(v)},0);
 
-        b.designQty+=s.design;
-        b.designTotal+=nfDesignRates(o).reduce(function(sum,v){return sum+Number(v||0)},0);
-      }
+        if(genericLiningSource==="customer"){
+          b.liningCustomerQty+=genericLiningQty;
+        }else if(genericLiningSource==="shop" || genericLiningSource==="tailor"){
+          b.liningShopQty+=genericLiningQty;
+          b.liningShopTotal+=genericLiningTotal;
+        }
+      }else if(g==="chudi"){
+        var chudiQty=num(x.chudi);
+        if(chudiQty<=0) chudiQty=num(o && o.quantity);
+        c.qty+=chudiQty;
+        c.total+=chudiQty*r.chudi;
 
-      if(g==="chudi"){
-        c.qty+=x.chudi;
-        c.total+=x.chudi*r.chudi;
-        c.liningQty+=x.chudiLiningQty;
-      }
+        var explicitChudiLining=num(x.chudiLiningQty);
+        var chudiLiningQty=explicitChudiLining;
 
-      if(g==="saree"){
-        saree.qty+=x.saree;
-        saree.total+=x.saree*r.saree;
-      }
+        /* The existing form also stores generic Lining cloth in
+           lining_cloth_qty.  For a Chudi order, when no explicit Chudi
+           lining quantity was entered, that saved quantity belongs to
+           this Chudi's lining section. */
+        if(chudiLiningQty<=0 && genericLiningQty>0){
+          chudiLiningQty=genericLiningQty;
+        }
+        c.liningQty+=chudiLiningQty;
 
-      var src=String(o && o.lining_cloth_source || "").toLowerCase();
-      var lq=num(o && o.lining_cloth_qty);
+        if(genericLiningSource==="customer"){
+          c.liningCustomerQty+=genericLiningQty;
+        }else if(genericLiningSource==="shop" || genericLiningSource==="tailor"){
+          c.liningShopQty+=genericLiningQty;
+          c.liningShopTotal+=genericLiningTotal;
+        }
+      }else if(g==="saree"){
+        var sareeQty=num(x.saree);
+        if(sareeQty<=0) sareeQty=num(o && o.quantity);
+        saree.qty+=sareeQty;
+        saree.total+=sareeQty*r.saree;
 
-      if(src==="customer"){
-        if(isBlouseOrder(o)) b.liningCustomerQty+=lq;
-        else c.liningCustomerQty+=lq;
-      }else if(src==="shop" || src==="tailor"){
-        var lt=orderLiningAmount(o);
-        if(isBlouseOrder(o)){
-          b.liningShopQty+=lq;
-          b.liningShopTotal+=lt;
-        }else if(g==="chudi"){
-          c.liningShopQty+=lq;
-          c.liningShopTotal+=lt;
+        /* Saree orders may also have generic lining cloth.  Keep it with
+           the Saree section rather than incorrectly putting it under blouse. */
+        if(genericLiningSource==="shop" || genericLiningSource==="tailor"){
+          saree.total+=genericLiningTotal;
         }
       }
     });
 
-    var blouseWorkTotal=
-      b.normalTotal+b.liningTotal+b.designTotal+b.liningShopTotal;
-
-    var chudiWorkTotal=c.total+c.liningShopTotal;
-    var sareeWorkTotal=saree.total;
-    var breakdownTotal=blouseWorkTotal+chudiWorkTotal+sareeWorkTotal;
+    var blouseTotal=b.normalTotal+b.liningTotal+b.designTotal+b.liningShopTotal;
+    var chudiTotal=c.total+c.liningShopTotal;
+    var sareeTotal=saree.total;
+    var breakdownTotal=blouseTotal+chudiTotal+sareeTotal;
 
     var hasBlouse=(b.normalQty+b.liningQty+b.designQty+b.liningCustomerQty+b.liningShopQty)>0;
     var hasChudi=(c.qty+c.liningQty+c.liningCustomerQty+c.liningShopQty)>0;
     var hasSaree=saree.qty>0;
 
+    function rateRowsByRate(label, qtyKey, totalKey){
+      return "";
+    }
+
     var html='<div class="nfV2Wrap">';
 
-    /* CUSTOMER GAVE — quick quantity summary */
-    html+=
-      '<div class="nfV2Section">'+
-        '<h4 class="nfV2Title">📦 Customer என்ன கொடுத்தாங்க</h4>'+
-        '<div class="nfV2CountGrid">'+
-          countBox(b.normalQty,"Normal blouse")+
-          countBox(b.liningQty,"Lining blouse")+
-          countBox(b.designQty,"Design blouse")+
-          countBox(c.qty,"Chudi / சுடிதார்")+
-        '</div>'+
-        ((b.liningCustomerQty||b.liningShopQty||c.liningQty||c.liningCustomerQty||c.liningShopQty||saree.qty)>0
-          ? '<div class="nfV2CountGrid" style="margin-top:7px">'+
-              countBox(b.liningCustomerQty+b.liningShopQty,"Blouse lining cloth")+
-              countBox(c.liningQty,"Chudi lining")+
-              countBox(saree.qty,"Saree")+
-              countBox(b.liningCustomerQty+c.liningCustomerQty,"Customer lining")+
-            '</div>'
-          : '')+
-      '</div>';
+    /* CUSTOMER GAVE */
+    html+='<div class="nfV2Section">'+
+      '<h4 class="nfV2Title">📦 Customer என்ன கொடுத்தாங்க</h4>'+
+      '<div class="nfV2CountGrid">'+
+        countBox(b.normalQty,"Normal blouse")+
+        countBox(b.liningQty,"Lining blouse")+
+        countBox(b.designQty,"Design blouse")+
+        countBox(c.qty,"Chudi / சுடிதார்")+
+      '</div>'+
+      '<div class="nfV2CountGrid" style="margin-top:7px">'+
+        countBox(b.liningCustomerQty+b.liningShopQty,"Blouse lining cloth")+
+        countBox(c.liningQty,"Chudi lining")+
+        countBox(saree.qty,"Saree")+
+        countBox(b.liningCustomerQty+c.liningCustomerQty,"Customer lining")+
+      '</div>'+
+    '</div>';
 
     /* BLOUSE */
     html+='<div class="nfV2Section"><h4 class="nfV2Title">👗 Blouse — தனித்தனி கணக்கு</h4>';
     if(hasBlouse){
       html+='<div class="nfV2Rows">';
-      html+=row("Normal blouse",b.normalQty,b.normalQty?b.normalTotal/b.normalQty:0,b.normalTotal);
-      html+=row("Lining blouse",b.liningQty,b.liningQty?b.liningTotal/b.liningQty:0,b.liningTotal);
-      var designRendered=0;
+
+      if(b.normalQty>0){
+        var normalGroups={};
+        orders.forEach(function(o){
+          if(!isBlouse(o))return;
+          var s=safeBlouseSplit(o),r=rates(o),q=num(s.normal);
+          if(q<=0)return;
+          var key=String(num(r.normal));
+          if(!normalGroups[key])normalGroups[key]={qty:0,total:0,rate:num(r.normal)};
+          normalGroups[key].qty+=q;
+          normalGroups[key].total+=q*num(r.normal);
+        });
+        Object.keys(normalGroups).forEach(function(k){
+          var z=normalGroups[k];
+          html+=row("Normal blouse",z.qty,z.rate,z.total);
+        });
+      }
+
+      if(b.liningQty>0){
+        var liningGroups={};
+        orders.forEach(function(o){
+          if(!isBlouse(o))return;
+          var s=safeBlouseSplit(o),r=rates(o),q=num(s.lining);
+          if(q<=0)return;
+          var key=String(num(r.lining));
+          if(!liningGroups[key])liningGroups[key]={qty:0,total:0,rate:num(r.lining)};
+          liningGroups[key].qty+=q;
+          liningGroups[key].total+=q*num(r.lining);
+        });
+        Object.keys(liningGroups).forEach(function(k){
+          var z=liningGroups[k];
+          html+=row("Lining blouse",z.qty,z.rate,z.total);
+        });
+      }
+
+      var designNo=0;
       orders.forEach(function(o){
-        var ds=safeBlouseSplit(o),dr=nfDesignRates(o);
-        if(!isBlouseOrder(o)||!ds.design)return;
-        for(var di=0;di<ds.design;di++){
-          var rate=Number(dr[di]||0);
-          html+=row("Design blouse — "+(designRendered+di+1),1,rate,rate);
+        if(!isBlouse(o))return;
+        var s=safeBlouseSplit(o),dr=nfDesignRates(o);
+        for(var di=0;di<num(s.design);di++){
+          var designRate=num(dr[di]);
+          designNo++;
+          html+=row("Design blouse — "+designNo,1,designRate,designRate);
         }
-        designRendered+=ds.design;
       });
 
       if(b.liningCustomerQty>0){
-        html+='<div class="nfV2Note">🧵 Lining cloth — Customer கொடுத்தது: <b>'+b.liningCustomerQty+'</b> · இதற்கு தனி rate சேர்க்கப்படவில்லை.</div>';
+        html+='<div class="nfV2Note">🧵 Lining cloth — Customer கொடுத்தது: <b>'+
+          b.liningCustomerQty+'</b> · இதற்கு தனி rate சேர்க்கப்படவில்லை.</div>';
       }
       if(b.liningShopQty>0 || b.liningShopTotal>0){
-        html+=row("Lining cloth — நாங்கள் வாங்கியது",b.liningShopQty,b.liningShopQty?b.liningShopTotal/b.liningShopQty:0,b.liningShopTotal);
+        html+=row("Lining cloth — நாங்கள் வாங்கியது",b.liningShopQty,
+          b.liningShopQty?b.liningShopTotal/b.liningShopQty:0,b.liningShopTotal);
       }
-      html+='</div>'+
-        '<div class="nfV2SectionTotal"><span>Blouse Total</span><span>'+textMoney(blouseWorkTotal)+'</span></div>';
+
+      html+='</div><div class="nfV2SectionTotal"><span>Blouse Total</span><span>'+
+        textMoney(blouseTotal)+'</span></div>';
     }else{
       html+='<div class="nfV2Empty">Blouse order இல்லை.</div>';
     }
@@ -4728,60 +4789,66 @@ window.runPhoneReminders=function(){
     html+='<div class="nfV2Section"><h4 class="nfV2Title">👚 Chudi / சுடிதார் — தனித்தனி கணக்கு</h4>';
     if(hasChudi){
       html+='<div class="nfV2Rows">';
-      html+=row("Chudi / சுடிதார்",c.qty,c.qty?c.total/c.qty:0,c.total);
+      if(c.qty>0){
+        /* Preserve each order's Chudi rate instead of averaging different orders. */
+        orders.forEach(function(o){
+          if(orderGarment(o)!=="chudi")return;
+          var x=extra(o),r=rates(o),q=num(x.chudi);
+          if(q<=0)q=num(o && o.quantity);
+          if(q>0)html+=row("Chudi / சுடிதார்",q,r.chudi,q*r.chudi);
+        });
+      }
 
       if(c.liningQty>0){
-        html+='<div class="nfV2Note">🧵 Chudi lining: <b>'+c.liningQty+'</b>';
-        if(c.liningCustomerQty>0) html+=' · Customer கொடுத்தது '+c.liningCustomerQty;
+        html+='<div class="nfV2Note">🧵 Chudi lining: <b>'+c.liningQty+
+          '</b>';
+        if(c.liningCustomerQty>0)html+=' · Customer கொடுத்தது '+c.liningCustomerQty;
         html+='</div>';
       }
 
       if(c.liningShopQty>0 || c.liningShopTotal>0){
-        html+=row("Chudi lining cloth — நாங்கள் வாங்கியது",c.liningShopQty,c.liningShopQty?c.liningShopTotal/c.liningShopQty:0,c.liningShopTotal);
+        html+=row("Chudi lining cloth — நாங்கள் வாங்கியது",c.liningShopQty,
+          c.liningShopQty?c.liningShopTotal/c.liningShopQty:0,c.liningShopTotal);
       }
       if(c.liningCustomerQty>0){
-        html+='<div class="nfV2Note">🧵 Chudi lining cloth — Customer கொடுத்தது: <b>'+c.liningCustomerQty+'</b> · rate சேர்க்கப்படவில்லை.</div>';
+        html+='<div class="nfV2Note">🧵 Chudi lining cloth — Customer கொடுத்தது: <b>'+
+          c.liningCustomerQty+'</b> · rate சேர்க்கப்படவில்லை.</div>';
       }
 
-      html+='</div>'+
-        '<div class="nfV2SectionTotal"><span>Chudi Total</span><span>'+textMoney(chudiWorkTotal)+'</span></div>';
+      html+='</div><div class="nfV2SectionTotal"><span>Chudi Total</span><span>'+
+        textMoney(chudiTotal)+'</span></div>';
     }else{
       html+='<div class="nfV2Empty">Chudi order இல்லை.</div>';
     }
     html+='</div>';
 
-    /* SAREE — existing feature retained */
+    /* SAREE */
     if(hasSaree){
       html+='<div class="nfV2Section"><h4 class="nfV2Title">🥻 Saree</h4>'+
-        '<div class="nfV2Rows">'+row("Saree",saree.qty,saree.qty?saree.total/saree.qty:0,saree.total)+'</div>'+
-        '<div class="nfV2SectionTotal"><span>Saree Total</span><span>'+textMoney(sareeWorkTotal)+'</span></div>'+
-      '</div>';
+        '<div class="nfV2Rows">';
+      orders.forEach(function(o){
+        if(orderGarment(o)!=="saree")return;
+        var x=extra(o),r=rates(o),q=num(x.saree);
+        if(q<=0)q=num(o && o.quantity);
+        if(q>0)html+=row("Saree",q,r.saree,q*r.saree);
+      });
+      html+='</div><div class="nfV2SectionTotal"><span>Saree Total</span><span>'+
+        textMoney(sareeTotal)+'</span></div></div>';
     }
 
-    html+=
-      '<div class="nfV2Grand">'+
-        '<span>மொத்த Rate</span>'+
-        '<span>'+textMoney(breakdownTotal)+'</span>'+
-      '</div>';
+    html+='<div class="nfV2Grand"><span>மொத்த Rate</span><span>'+
+      textMoney(breakdownTotal)+'</span></div>';
 
-    /*
-     * If an old order contains a component that cannot be reconstructed from
-     * the split marker, show the actual stored order total as a reference.
-     * This avoids hiding money from legacy records.
-     */
     var storedTotal=num(st.total);
     if(Math.abs(storedTotal-breakdownTotal)>0.009){
-      html+=
-        '<div class="nfV2Note" style="margin-top:8px;background:#fff6dc;color:#795b00">'+
-          'ℹ️ Existing Order Total: <b>'+textMoney(storedTotal)+'</b> · '+
-          'Item-wise breakdown: <b>'+textMoney(breakdownTotal)+'</b>'+
-        '</div>';
+      html+='<div class="nfV2Note" style="margin-top:8px;background:#fff6dc;color:#795b00">'+
+        'ℹ️ Existing Order Total: <b>'+textMoney(storedTotal)+'</b> · '+
+        'Item-wise breakdown: <b>'+textMoney(breakdownTotal)+'</b></div>';
     }
 
     html+='</div>';
     return html;
   };
-
   /*
    * Re-render hook:
    * customerCard() already calls nfCustomerWorkSummaryHTML(), so replacing
