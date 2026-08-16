@@ -4620,7 +4620,24 @@ function nfBlouseSplit(o){
         select.appendChild(op);
       });
       garment.replaceWith(select);
+      const syncOrderGarment=()=>{
+        const g=String(select.value||"Blouse").toLowerCase(), isChudi=g==="chudi", isSaree=g==="saree";
+        ["normal_qty","lining_qty","design_qty"].forEach(n=>{const el=form.querySelector(`[name="${n}"]`);const w=el?.closest(".field");if(el){el.disabled=isChudi||isSaree;el.required=false}if(w)w.classList.toggle("nf-field-hidden",isChudi||isSaree)});
+        ["chudi_qty","chudi_lining","chudi_lining_qty","chudi_rate"].forEach(n=>{const el=form.querySelector(`[name="${n}"]`);const w=el?.closest(".field");if(el)el.disabled=!isChudi;if(w)w.classList.toggle("nf-field-hidden",!isChudi)});
+        ["saree_qty","saree_rate"].forEach(n=>{const el=form.querySelector(`[name="${n}"]`);const w=el?.closest(".field");if(el)el.disabled=!isSaree;if(w)w.classList.toggle("nf-field-hidden",!isSaree)});
+        const rates=getRates(),n=Math.max(0,Number(form.querySelector('[name="normal_qty"]')?.value||0)),l=Math.max(0,Number(form.querySelector('[name="lining_qty"]')?.value||0)),d=Math.max(0,Number(form.querySelector('[name="design_qty"]')?.value||0));
+        const cq=Math.max(0,Number(form.querySelector('[name="chudi_qty"]')?.value||0)),sq=Math.max(0,Number(form.querySelector('[name="saree_qty"]')?.value||0));
+        const cr=Math.max(0,Number(form.querySelector('[name="chudi_rate"]')?.value||rates.chudi||0)),sr=Math.max(0,Number(form.querySelector('[name="saree_rate"]')?.value||rates.saree||0));
+        const qty=isChudi?cq:isSaree?sq:n+l+d,total=isChudi?cq*cr:isSaree?sq*sr:n*rates.normal+l*rates.lining+d*rates.design;
+        const q=form.querySelector('[name="quantity"]'),u=form.querySelector('[name="unit_price"]'),t=form.querySelector('[name="total_amount"]'),rt=form.querySelector('[name="rate_type"]');
+        if(q)q.value=qty;if(u)u.value=(qty?total/qty:0).toFixed(2);if(t)t.value=total.toFixed(2);if(rt)rt.value=isChudi||isSaree?"normal":(qty?((n>0?1:0)+(l>0?1:0)+(d>0?1:0)>1?"mixed":n>0?"normal":l>0?"lining":"design"):"normal");
+      };
+      select.addEventListener("change",syncOrderGarment);
+      syncOrderGarment();
     }
+    /* Orders + uses the same native Chudi/Saree fields already present in the
+       main Order form. Do not append a second Chudi/Saree section here. */
+    return;
 
     var row=(id && window.state && state.orders||[]).find(function(o){return o.id===id;});
     var x=nfGarmentExtra(row||{});
@@ -4646,6 +4663,9 @@ function nfBlouseSplit(o){
   var form=document.getElementById("dataForm");
   if(!form)return;
   form.addEventListener("submit",function(){
+    /* Native Order submit already saves the same Chudi/Saree fields. This legacy
+       listener must not overwrite them with the removed nf_* fields. */
+    return;
     if(!window.state || !state.editing || state.editing.type!=="order")return;
     var get=function(n){return form.querySelector('[name="'+n+'"]')?.value||""};
     var notes=form.querySelector('[name="notes"]');
