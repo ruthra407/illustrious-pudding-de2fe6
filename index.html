@@ -3721,9 +3721,9 @@ supabaseClient.auth.onAuthStateChange((_event,session)=>{if(session?.user){showA
   let startX=0,startY=0,lastX=0;
   let dragging=false,mode="",decided=false;
 
-  const OPEN_THRESHOLD=64;
+  const OPEN_THRESHOLD=76;
   const CLOSE_THRESHOLD=64;
-  const DIRECTION_LOCK=7;
+  const DIRECTION_LOCK=14;
 
   function drawer(){ return document.getElementById("sidebar"); }
   function isOpen(el){ return !!(el && el.classList.contains("open")); }
@@ -3788,7 +3788,10 @@ supabaseClient.auth.onAuthStateChange((_event,session)=>{if(session?.user){showA
       if(Math.abs(dx)<DIRECTION_LOCK && Math.abs(dy)<DIRECTION_LOCK) return;
 
       // Keep vertical page scrolling native.
-      if(Math.abs(dy)>Math.abs(dx)){
+      // Require a clearly horizontal gesture so a normal/diagonal
+      // finger movement does not accidentally open the drawer.
+      const ax=Math.abs(dx), ay=Math.abs(dy);
+      if(ay>ax || ax < ay*1.35){
         reset(el);
         return;
       }
