@@ -1641,14 +1641,36 @@ body{
   display:none;
 }
 
-/* Floating quick action */
+/* Floating quick action — old-style bottom-right + button */
 #p4Fab{
   display:none;
 }
+.p4FabButton{
+  position:fixed;
+  right:18px;
+  bottom:92px;
+  width:62px;
+  height:62px;
+  border:0;
+  border-radius:50%;
+  background:linear-gradient(135deg,#6c3df5,#ef4f9a);
+  color:#fff;
+  font-size:38px;
+  font-weight:300;
+  line-height:1;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  box-shadow:0 12px 28px rgba(108,61,245,.32);
+  z-index:1100;
+  cursor:pointer;
+}
+.p4FabButton:active{transform:scale(.94);}
 
 /* Section floating add buttons */
 .nf-section-card{position:relative!important;}
 .nf-section-fab{
+  display:none!important;
   position:absolute;
   top:-18px;
   right:18px;
@@ -1750,17 +1772,21 @@ body{
   #p4Fab{
     position:fixed;
     right:16px;
-    bottom:78px;
-    z-index:79;
-    width:50px;height:50px;
-    display:grid;
-    place-items:center;
+    bottom:92px;
+    z-index:1200;
+    width:62px;
+    height:62px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
     border:0;
-    border-radius:17px;
+    border-radius:50%;
     color:#fff;
-    font-size:24px;
-    background:linear-gradient(135deg,#6c45e8,#e94678);
-    box-shadow:0 10px 26px rgba(91,53,181,.30);
+    font-size:38px;
+    font-weight:300;
+    line-height:1;
+    background:linear-gradient(135deg,#6c3df5,#ef4f9a);
+    box-shadow:0 12px 28px rgba(108,61,245,.32);
   }
   #p4Fab:active{
     transform:scale(.94);
@@ -1785,7 +1811,7 @@ body{
   }
   #p4Fab{
     right:12px;
-    bottom:76px;
+    bottom:90px;
   }
 }
 
@@ -2518,7 +2544,7 @@ body{
 <section id="view-customers" class="view">
 <div class="pagehead"><div><h2>Customer Cards</h2><p>ஒவ்வொரு customer-க்கும் Order, blouse count, balance, design, delivery reminder — ஒரே card-ல்.</p></div><div class="spacer"></div><div class="nf-customer-page-actions"><button class="btn secondary" onclick="editCustomerFromSearch()">✏️ Edit Customer</button></div></div>
 <div class="card customerSearchBox nf-section-card">
-<button class="nf-section-fab" type="button" title="Add Customer" aria-label="Add Customer" onclick="openModal('customer')">＋</button><div class="toolbar" style="margin:0"><input id="customerSearch" class="input search" placeholder="Search name / phone / address / village"><button class="btn secondary" onclick="loadAll()">↻ Refresh</button></div></div>
+<div class="toolbar" style="margin:0"><input id="customerSearch" class="input search" placeholder="Search name / phone / address / village"><button class="btn secondary" onclick="loadAll()">↻ Refresh</button></div></div>
 <div id="customersTable" class="customerCards"></div>
 </section>
 
@@ -2528,9 +2554,8 @@ body{
 </section>
 
 <section id="view-orders" class="view">
-<div class="pagehead"><div><h2>Orders</h2><p>Customer Card-ல் எடுத்த New Order-கள் மட்டும் இங்கே வரும்.</p></div><div class="spacer"></div><button class="btn primary" type="button" onclick="openOrdersQuickAdd()">＋ New Order</button></div>
+<div class="pagehead"><div><h2>Orders</h2><p>Customer Card-ல் எடுத்த New Order-கள் மட்டும் இங்கே வரும்.</p></div><div class="spacer"></div></div>
 <div class="card nf-section-card">
-<button class="nf-section-fab" type="button" title="New Order" aria-label="New Order" onclick="openOrdersQuickAdd()">＋</button>
 <div id="ordersQuickAddPanel" class="hidden" style="margin-bottom:12px;background:#faf8f6;border:1px solid var(--line);border-radius:13px;padding:12px"></div>
 <div class="toolbar"><input id="orderSearch" class="input search" placeholder="Search order / customer / garment"><select id="orderStatusFilter" style="max-width:190px"><option value="">All status</option><option>Pending</option><option>In Progress</option><option>Ready</option><option>Delivered</option><option>Cancelled</option></select><button class="btn secondary" onclick="loadAll()">↻ Refresh</button></div><div id="ordersTable"></div></div>
 </section>
@@ -2543,7 +2568,6 @@ body{
 <section id="view-payments" class="view">
 <div class="pagehead"><div><h2>Payments</h2><p>Today collection மற்றும் payment history.</p></div><div class="spacer"></div></div>
 <div class="card nf-section-card">
-<button class="nf-section-fab" type="button" title="Add Payment" aria-label="Add Payment" onclick="openModal('payment')">＋</button>
 <div class="toolbar"><input id="paymentSearch" class="input search" placeholder="Search order / payment method / reference"><button class="btn secondary" onclick="loadAll()">↻ Refresh</button></div><div id="paymentsTable"></div></div>
 </section>
 
@@ -2568,6 +2592,9 @@ body{
 </section>
 </main></div></div>
 
+
+<!-- OLD-STYLE MOBILE FLOATING ADD BUTTON -->
+<button id="p4Fab" class="p4FabButton" type="button" aria-label="Add">＋</button>
 
 <!-- PHASE 4 MOBILE UX CONTROLS -->
 <nav id="p4MobileNav" aria-label="Quick navigation">
@@ -3970,6 +3997,7 @@ supabaseClient.auth.onAuthStateChange((_event,session)=>{if(session?.user){showA
     btn.addEventListener("click",function(){
       if(typeof goView === "function") goView(btn.dataset.p4View);
       syncP4Nav(btn.dataset.p4View);
+      syncFab(btn.dataset.p4View);
     });
   });
 
@@ -3977,9 +4005,12 @@ supabaseClient.auth.onAuthStateChange((_event,session)=>{if(session?.user){showA
   if(fab){
     fab.addEventListener("click",function(){
       var current=history.state && history.state.view ? history.state.view : "dashboard";
+      if(current === "orders") {
+        if(typeof openOrdersQuickAdd === "function") openOrdersQuickAdd();
+        return;
+      }
       var map={
         customers:"customer",
-        orders:"order",
         payments:"payment",
         measurements:"measurement",
         alterations:"alteration",
@@ -3989,16 +4020,28 @@ supabaseClient.auth.onAuthStateChange((_event,session)=>{if(session?.user){showA
     });
   }
 
+  function syncFab(view){
+    var fab=document.getElementById("p4Fab");
+    if(!fab) return;
+    var enabled={customers:true,orders:true,payments:true};
+    fab.style.display = enabled[view] ? "flex" : "none";
+    fab.setAttribute("aria-label", view === "orders" ? "New Order" : (view === "customers" ? "Add Customer" : "Add Payment"));
+    fab.title = view === "orders" ? "New Order" : (view === "customers" ? "Add Customer" : "Add Payment");
+  }
+
   /* Keep the mobile nav in sync even when existing code calls goView(). */
   var originalGoView=window.goView;
   if(typeof originalGoView === "function"){
     window.goView=function(view,push){
       originalGoView(view,push);
       syncP4Nav(view);
+      syncFab(view);
     };
   }
 
-  syncP4Nav((history.state && history.state.view) || "dashboard");
+  var initialView=(history.state && history.state.view) || "dashboard";
+  syncP4Nav(initialView);
+  syncFab(initialView);
 })();
 </script>
 
