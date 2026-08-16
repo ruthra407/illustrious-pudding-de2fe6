@@ -3090,6 +3090,8 @@ function updateQuickGarment(id){
  document.querySelectorAll("#quick-order-"+id+" .nf-quick-chudi").forEach(x=>x.classList.toggle("nf-field-hidden",g!=="Chudi"));
  document.querySelectorAll("#quick-order-"+id+" .nf-quick-saree").forEach(x=>x.classList.toggle("nf-field-hidden",g!=="Saree"));
  updateQuickOrderCalc(id);
+ /* Design blouse 3-slot editor is blouse-only. Keep it hidden for Chudi/Saree. */
+ if(typeof window.updateQuick==="function") window.updateQuick(id);
 }
 function updateChudiLiningLabel(id){
  const source=$("qo-chudi-lining-"+id)?.value||"no";
