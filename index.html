@@ -4013,7 +4013,11 @@ supabaseClient.auth.onAuthStateChange((_event,session)=>{if(session?.user){showA
         alterations:"alteration",
         designs:"design"
       };
-      if(typeof openModal === "function") openModal(map[current] || "customer");
+      if(current === "orders" && typeof openOrdersQuickAdd === "function") {
+        openOrdersQuickAdd();
+      } else if(typeof openModal === "function") {
+        openModal(map[current] || "customer");
+      }
     });
   }
 
