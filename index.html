@@ -3692,133 +3692,7 @@ updateBackButton();
 supabaseClient.auth.onAuthStateChange((_event,session)=>{if(session?.user){showApp(session.user);setTimeout(()=>loadAll(true),0)}else showLogin()});
 (async()=>{const {data}=await supabaseClient.auth.getSession();if(data?.session?.user){showApp(data.session.user);await loadAll(true)}else showLogin()})();
 
-/* =========================================================
-   Mobile side-menu swipe:
-   - Swipe from the left edge -> open
-   - Drag the open menu left -> close
-   - Tap outside -> close
-   ========================================================= */
-(function setupSideMenuSwipe(){
-  let startX = 0, startY = 0, lastX = 0, dragging = false, mode = "";
-  const EDGE = 28;
-  const OPEN_THRESHOLD = 70;
-  const CLOSE_THRESHOLD = 70;
 
-  function drawer(){
-    return document.querySelector('#sidebar, #drawer, .drawer, .side-drawer, [data-drawer]');
-  }
-  function isOpen(el){
-    if(!el) return false;
-    const cs = getComputedStyle(el);
-    const rect = el.getBoundingClientRect();
-    return rect.left >= -20 && (cs.display !== "none") && (cs.visibility !== "hidden");
-  }
-  function setDrag(el, x){
-    if(!el) return;
-    const w = el.getBoundingClientRect().width || Math.min(window.innerWidth * .82, 360);
-    const clamped = Math.max(0, Math.min(w, -x));
-    el.classList.add("menu-dragging");
-    el.style.transform = `translateX(-${clamped}px)`;
-  }
-  function finishDrag(el, open){
-    if(!el) return;
-    el.classList.remove("menu-dragging");
-    el.style.transform = "";
-    if(open){
-      if(typeof window.openMenu === "function") window.openMenu();
-      else if(typeof window.toggleMenu === "function" && !isOpen(el)) window.toggleMenu();
-      else el.classList.add("open");
-    }else{
-      if(typeof window.closeMenu === "function") window.closeMenu();
-      else if(typeof window.toggleMenu === "function" && isOpen(el)) window.toggleMenu();
-      else el.classList.remove("open");
-    }
-    document.body.classList.remove("menu-swipe-active");
-  }
-
-  function onStart(e){
-    const t = e.touches && e.touches[0];
-    if(!t) return;
-    const el = drawer();
-    if(!el) return;
-    startX = lastX = t.clientX;
-    startY = t.clientY;
-    dragging = false;
-    if(isOpen(el)){
-      // When the drawer is already open, a left swipe may close the drawer.
-      mode = "close";
-    }else{
-      // IMPORTANT: do not claim the left-edge gesture while the drawer is closed.
-      // Android/Chrome uses that gesture for SPA/browser Back navigation.
-      // Hijacking it here can make the app appear to close instead of returning
-      // from New Order -> Orders -> Dashboard.
-      mode = "";
-    }
-  }
-
-  function onMove(e){
-    const t = e.touches && e.touches[0];
-    const el = drawer();
-    if(!t || !el || !mode) return;
-
-    const dx = t.clientX - startX;
-    const dy = t.clientY - startY;
-    if(!dragging){
-      if(Math.abs(dy) > Math.abs(dx) || Math.abs(dx) < 8){
-        return;
-      }
-      dragging = true;
-      document.body.classList.add("menu-swipe-active");
-      e.preventDefault();
-    }
-    lastX = t.clientX;
-
-    if(mode === "open" && dx > 0){
-      // Drawer normally sits closed at translateX(-100%).
-      const w = el.getBoundingClientRect().width || 320;
-      el.classList.add("menu-dragging");
-      el.style.transform = `translateX(${Math.min(0, dx - w)}px)`;
-    }else if(mode === "close" && dx < 0){
-      setDrag(el, dx);
-    }
-  }
-
-  function onEnd(){
-    const el = drawer();
-    if(!el || !mode) return;
-
-    const dx = lastX - startX;
-    const shouldOpen = mode === "open" && dx >= OPEN_THRESHOLD;
-    const shouldClose = mode === "close" && dx <= -CLOSE_THRESHOLD;
-
-    if(dragging){
-      if(shouldOpen) finishDrag(el, true);
-      else if(shouldClose) finishDrag(el, false);
-      else{
-        el.classList.remove("menu-dragging");
-        el.style.transform = "";
-        document.body.classList.remove("menu-swipe-active");
-      }
-    }
-    dragging = false;
-    mode = "";
-  }
-
-  document.addEventListener("touchstart", onStart, {passive:true});
-  document.addEventListener("touchmove", onMove, {passive:false});
-  document.addEventListener("touchend", onEnd, {passive:true});
-  document.addEventListener("touchcancel", onEnd, {passive:true});
-
-  // Add a dedicated invisible left-edge touch zone for easier opening.
-  if(false && !document.getElementById("drawer-swipe-edge")){
-    const edge = document.createElement("div");
-    edge.id = "drawer-swipe-edge";
-    edge.setAttribute("aria-hidden","true");
-    document.body.appendChild(edge);
-  }
-})();
-
-</script>
 
 <script id="phase4-premium-ux-js">
 (function(){
@@ -5676,33 +5550,119 @@ document.addEventListener("DOMContentLoaded",()=>setTimeout(()=>{
 
 <script id="mobile-edge-swipe-menu">
 (function(){
-  // Open the existing sidebar when the user swipes from the left edge.
-  // This does not replace or modify the existing menu button behavior.
-  var startX=0, startY=0, tracking=false;
-  var EDGE=42, MIN_X=80, MAX_Y=90;
+  // Smooth mobile sidebar swipe: the drawer follows the finger while dragging.
+  var startX=0, startY=0, lastX=0;
+  var tracking=false, dragging=false;
+  var EDGE=36, MIN_OPEN=55, MIN_CLOSE=55;
 
-  document.addEventListener("touchstart", function(e){
-    if(window.innerWidth>900 || !e.touches || e.touches.length!==1) return;
+  function getSidebar(){
+    return document.getElementById("sidebar");
+  }
+  function mobile(){
+    return window.innerWidth<=900;
+  }
+  function open(el){
+    return !!(el && el.classList.contains("open"));
+  }
+  function drawerWidth(el){
+    return el ? (el.getBoundingClientRect().width || 260) : 260;
+  }
+
+  document.addEventListener("touchstart",function(e){
+    if(!mobile() || !e.touches || e.touches.length!==1) return;
+
+    var el=getSidebar();
+    if(!el) return;
+
     var t=e.touches[0];
-    tracking=t.clientX<=EDGE;
-    if(tracking){ startX=t.clientX; startY=t.clientY; }
-  }, {passive:true});
+    startX=lastX=t.clientX;
+    startY=t.clientY;
 
-  document.addEventListener("touchend", function(e){
-    if(!tracking || window.innerWidth>900 || !e.changedTouches || !e.changedTouches.length) return;
-    var t=e.changedTouches[0];
+    // Closed: start only from the left edge.
+    // Open: allow a left swipe anywhere on the drawer.
+    tracking=open(el) || t.clientX<=EDGE;
+    dragging=false;
+  },{passive:true});
+
+  document.addEventListener("touchmove",function(e){
+    if(!tracking || !e.touches || e.touches.length!==1) return;
+
+    var el=getSidebar();
+    if(!el) return;
+
+    var t=e.touches[0];
     var dx=t.clientX-startX;
-    var dy=Math.abs(t.clientY-startY);
-    tracking=false;
+    var dy=t.clientY-startY;
 
-    if(dx>=MIN_X && dy<=MAX_Y){
-      var sidebar=document.getElementById("sidebar");
-      var menu=document.getElementById("menuBtn");
-      if(sidebar && !sidebar.classList.contains("open") && menu){
-        menu.click();
+    if(!dragging){
+      if(Math.abs(dy)>Math.abs(dx) || Math.abs(dx)<6) return;
+
+      // Closed drawer opens only with a right swipe.
+      if(!open(el) && dx<=0){
+        tracking=false;
+        return;
+      }
+
+      // Open drawer closes only with a left swipe.
+      if(open(el) && dx>=0){
+        tracking=false;
+        return;
+      }
+
+      dragging=true;
+      el.classList.add("menu-dragging");
+      document.body.classList.add("menu-swipe-active");
+    }
+
+    e.preventDefault();
+    lastX=t.clientX;
+
+    var w=drawerWidth(el);
+    var x;
+
+    if(!open(el)){
+      x=Math.min(0,dx-w);
+    }else{
+      x=Math.max(-w,Math.min(0,dx));
+    }
+
+    el.style.transform="translate3d("+x+"px,0,0)";
+  },{passive:false});
+
+  function finish(){
+    if(!tracking) return;
+
+    var el=getSidebar();
+    if(!el){
+      tracking=false;
+      dragging=false;
+      return;
+    }
+
+    var dx=lastX-startX;
+    var wasOpen=open(el);
+
+    if(dragging){
+      var shouldOpen=!wasOpen && dx>=MIN_OPEN;
+      var shouldClose=wasOpen && dx<=-MIN_CLOSE;
+
+      el.classList.remove("menu-dragging");
+      el.style.transform="";
+
+      if(shouldOpen){
+        el.classList.add("open");
+      }else if(shouldClose){
+        el.classList.remove("open");
       }
     }
-  }, {passive:true});
+
+    document.body.classList.remove("menu-swipe-active");
+    tracking=false;
+    dragging=false;
+  }
+
+  document.addEventListener("touchend",finish,{passive:true});
+  document.addEventListener("touchcancel",finish,{passive:true});
 })();
 </script>
 
