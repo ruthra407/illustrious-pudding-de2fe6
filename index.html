@@ -1087,51 +1087,70 @@ body{
 
 /* ---------- Customer cloth photos + 3-design picker ---------- */
 .nf-customer-cloth-photos{
-  display:grid;grid-template-columns:repeat(3,96px);gap:10px;margin-top:12px
+  display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:12px
 }
 .nf-cloth-slot,.nf-design-slot{
-  position:relative;border:1px solid #ddd5ef;border-radius:14px;overflow:hidden;
-  background:linear-gradient(135deg,#f7f3ff,#fff5fa);aspect-ratio:1;min-width:0
+  position:relative;border:1px solid #ddd5ef;border-radius:16px;overflow:hidden;
+  background:linear-gradient(135deg,#f7f3ff,#fff5fa);aspect-ratio:1;min-width:0;
+  box-shadow:0 7px 18px rgba(80,55,110,.08)
 }
-.nf-cloth-slot img,.nf-design-slot img{width:100%;height:100%;object-fit:cover;display:block}
+.nf-cloth-slot img,.nf-design-slot img{
+  width:100%;height:100%;object-fit:cover;display:block;cursor:zoom-in
+}
 .nf-photo-empty{
   height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;
-  text-align:center;color:#777;font-size:11px;font-weight:800;padding:6px;gap:5px
+  text-align:center;color:#777;font-size:12px;font-weight:850;padding:8px;gap:9px
 }
+.nf-photo-empty .nf-photo-label{font-size:13px;color:#514a60}
 .nf-photo-add{
   width:100%;height:100%;border:0;background:transparent;color:#6c4df6;font-size:24px;cursor:pointer
 }
-.nf-cloth-add-actions{display:flex;gap:5px;justify-content:center;width:100%}
-.nf-cloth-add-actions label,.nf-cloth-add-actions button{
-  width:34px;height:32px;border:0;border-radius:9px;background:#fff;color:#6c4df6;
-  box-shadow:0 2px 7px rgba(0,0,0,.14);display:grid;place-items:center;cursor:pointer;font-size:15px
+.nf-cloth-add-actions{
+  display:flex;gap:7px;justify-content:center;width:100%;padding:0 5px
 }
+.nf-cloth-add-actions label,.nf-cloth-add-actions button{
+  flex:1;min-width:0;height:38px;border:0;border-radius:10px;background:#fff;color:#6c4df6;
+  box-shadow:0 2px 8px rgba(0,0,0,.14);display:flex;align-items:center;justify-content:center;
+  cursor:pointer;font-size:12px;font-weight:850;padding:0 7px
+}
+.nf-cloth-add-actions .nf-camera-btn{color:#a52d78}
 .nf-photo-tools{
-  position:absolute;left:5px;right:5px;bottom:5px;display:flex;gap:5px;justify-content:center
+  position:absolute;left:6px;right:6px;bottom:6px;display:grid;grid-template-columns:1fr 1fr 1fr;
+  gap:5px;justify-content:center
 }
 .nf-photo-tools button,.nf-photo-tools label{
-  width:30px;height:30px;border:0;border-radius:9px;background:rgba(255,255,255,.96);
-  box-shadow:0 2px 8px rgba(0,0,0,.20);display:grid;place-items:center;cursor:pointer;font-size:13px
+  min-width:0;height:34px;border:0;border-radius:9px;background:rgba(255,255,255,.96);
+  box-shadow:0 2px 8px rgba(0,0,0,.20);display:flex;align-items:center;justify-content:center;
+  cursor:pointer;font-size:11px;font-weight:850;padding:0 4px
 }
+.nf-photo-tools .nf-preview{color:#5142c9}
+.nf-photo-tools .nf-gallery{color:#6c4df6}
+.nf-photo-tools .nf-camera{color:#a52d78}
 .nf-photo-tools .nf-delete{color:#b42318}
 .nf-cloth-photo-title{margin-top:7px;font-size:12px;font-weight:850;color:#5e5660;text-align:center}
-.nf-photo-tools .nf-delete{color:#b42318}
-.nf-design-picker{
-  margin-top:8px;padding:10px;border:1px solid #ddd5ff;border-radius:14px;
-  background:linear-gradient(135deg,#faf7ff,#fff4f8)
+.nf-photo-preview-overlay{
+  position:fixed;inset:0;z-index:5000;background:rgba(17,12,28,.82);
+  display:none;align-items:center;justify-content:center;padding:18px;
+  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)
 }
-.nf-design-picker-title{font-weight:900;margin-bottom:8px}
-.nf-design-slots{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-.nf-design-slot{aspect-ratio:1}
-.nf-design-slot .nf-slot-label{
-  position:absolute;left:5px;top:5px;background:rgba(0,0,0,.62);color:#fff;
-  border-radius:7px;padding:3px 6px;font-size:10px;font-weight:800;z-index:2
+.nf-photo-preview-overlay.open{display:flex}
+.nf-photo-preview-box{
+  width:min(760px,100%);max-height:94dvh;background:#fff;border-radius:22px;padding:12px;
+  box-shadow:0 28px 90px rgba(0,0,0,.35);position:relative
 }
-.nf-design-picker-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px}
-.nf-design-picker-actions .btn{min-height:40px}
-.nf-design-search-wrap{margin-top:8px}
+.nf-photo-preview-box img{
+  display:block;width:100%;max-height:78dvh;object-fit:contain;border-radius:15px;background:#f2eff7
+}
+.nf-photo-preview-close{
+  position:absolute;right:18px;top:18px;width:42px;height:42px;border:0;border-radius:50%;
+  background:rgba(20,15,30,.72);color:#fff;font-size:22px;font-weight:900;z-index:2
+}
+.nf-photo-preview-caption{text-align:center;font-weight:850;color:#4e4758;padding:9px 4px 2px}
 @media(max-width:560px){
-  .nf-customer-cloth-photos{grid-template-columns:repeat(3,88px);gap:8px}
+  .nf-customer-cloth-photos{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+  .nf-photo-tools{left:5px;right:5px;bottom:5px;gap:4px}
+  .nf-photo-tools button,.nf-photo-tools label{height:32px;font-size:10px}
+  .nf-cloth-add-actions label,.nf-cloth-add-actions button{height:36px;font-size:11px}
   .nf-design-slots{gap:7px}
   .nf-design-picker-actions .btn{flex:1;min-width:120px}
 }
@@ -2779,6 +2798,29 @@ const r=new FileReader();r.onload=()=>{
 function removeCustomerClothPhoto(id,slot){
 const arr=customerClothPhotos(id);arr[slot]=null;setCustomerClothPhotos(id,arr);renderCustomers();toast("Customer துணி photo நீக்கப்பட்டது.");
 }
+function previewCustomerClothPhoto(id,slot){
+const p=customerClothPhotos(id)[slot];
+if(!p?.src)return;
+let box=document.getElementById("nfPhotoPreviewOverlay");
+if(!box){
+box=document.createElement("div");
+box.id="nfPhotoPreviewOverlay";
+box.className="nf-photo-preview-overlay";
+box.innerHTML='<div class="nf-photo-preview-box" role="dialog" aria-modal="true" aria-label="Customer photo preview"><button type="button" class="nf-photo-preview-close" onclick="closeCustomerClothPhotoPreview()">×</button><img id="nfPhotoPreviewImage" alt="Customer photo preview"><div id="nfPhotoPreviewCaption" class="nf-photo-preview-caption"></div></div>';
+box.addEventListener("click",e=>{if(e.target===box)closeCustomerClothPhotoPreview()});
+document.body.appendChild(box);
+}
+const img=document.getElementById("nfPhotoPreviewImage"),cap=document.getElementById("nfPhotoPreviewCaption");
+if(img)img.src=p.src;
+if(cap)cap.textContent=`Photo ${slot+1}${p.name?` · ${p.name}`:""}`;
+box.classList.add("open");
+}
+function closeCustomerClothPhotoPreview(){
+const box=document.getElementById("nfPhotoPreviewOverlay");
+if(box)box.classList.remove("open");
+}
+document.addEventListener("keydown",e=>{if(e.key==="Escape")closeCustomerClothPhotoPreview()});
+
 
 
 const DEFAULT_RATES={normal:300,lining:450,design:600,chudi:500,saree:0};
@@ -3050,7 +3092,7 @@ function customerCard(id){
    const p=clothPhotos[slot];
    const galleryInput=`<input type="file" accept="image/*" style="display:none" onchange="saveCustomerClothPhoto('${id}',${slot},this.files[0])">`;
    const cameraInput=`<input type="file" accept="image/*" capture="environment" style="display:none" onchange="saveCustomerClothPhoto('${id}',${slot},this.files[0])">`;
-   return `<div class="nf-cloth-slot">${p?.src?`<img src="${esc(p.src)}" alt="Customer cloth ${slot+1}"><div class="nf-photo-tools"><label title="Gallery-ல் இருந்து Replace">🖼️${galleryInput}</label><label title="Camera-வில் இருந்து Replace">📷${cameraInput}</label><button type="button" class="nf-delete" title="Delete photo" onclick="removeCustomerClothPhoto('${id}',${slot})">🗑️</button></div>`:`<div class="nf-photo-empty"><div>👕 Photo ${slot+1}</div><div class="nf-cloth-add-actions"><label title="Gallery">🖼️${galleryInput}</label><label title="Camera">📷${cameraInput}</label></div></div>`}</div>`;
+   return `<div class="nf-cloth-slot">${p?.src?`<img src="${esc(p.src)}" alt="Customer cloth ${slot+1}" title="Tap to preview" onclick="previewCustomerClothPhoto('${id}',${slot})"><div class="nf-photo-tools"><button type="button" class="nf-preview" title="Preview photo" onclick="previewCustomerClothPhoto('${id}',${slot})">👁️</button><label class="nf-gallery" title="Gallery-ல் இருந்து Replace">🖼️${galleryInput}</label><button type="button" class="nf-delete" title="Delete photo" onclick="removeCustomerClothPhoto('${id}',${slot})">🗑️</button></div></div>`:`<div class="nf-photo-empty"><div class="nf-photo-label">👕 Photo ${slot+1}</div><div class="nf-cloth-add-actions"><label title="Gallery">🖼️ Gallery${galleryInput}</label><label class="nf-camera-btn" title="Camera">📷 Camera${cameraInput}</label></div></div>`}</div>`;
  }).join("");
  const selectedDesignHtml=Array.from({length:3},(_,slot)=>{
    const d=selectedDesigns[slot];
