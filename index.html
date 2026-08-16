@@ -3494,7 +3494,7 @@ const q=($("orderSearch").value||"").toLowerCase(),sf=$("orderStatusFilter").val
 const r=state.orders.filter(x=>(!sf||x.status===sf)&&[x.order_no,customerName(x.customer_id),x.garment_type,x.status].join(" ").toLowerCase().includes(q));
 $("ordersTable").innerHTML=r.length?`<div class="tablewrap"><table class="table"><thead><tr><th>Order</th><th>Customer</th><th>Garment</th><th>Cloth received</th><th>Delivery</th><th>Qty</th><th>Rate</th><th>Total</th><th>Advance</th><th>Balance</th><th>Status</th><th>Actions</th></tr></thead><tbody>${r.map(o=>{
 const d=dueInfo(o);const reminder=d?`<br><span class="pill ${d.kind==="late"?"bad":d.kind==="today"?"warn":""}">${d.kind==="late"?d.days+" நாள் late":d.kind==="today"?"இன்று":d.days+" நாள்"}</span>`:"";
-return `<tr class="nf-order-row" onclick="openOrderFullDetails('${o.id}')"><td><b>${esc(o.order_no)}</b></td><td>${esc(customerName(o.customer_id))}</td><td>${esc(o.garment_type)}</td><td>${dateText(o.cloth_received_date)}</td><td>${dateText(o.delivery_date)}${reminder}</td><td><b>${Number(o.quantity||0)}</b><br><span class="mini">${esc(blouseSplitText(o))}</span></td><td>${money(o.unit_price)}</td><td>${money(orderTotal(o))}${nfLiningCost(o).total?`<br><span class="mini">🧵 Lining ${money(nfLiningCost(o).total)}</span>`:""}</td><td>${money(o.advance_amount)}</td><td>${money(o.balance_amount)}</td><td>${statusPill(o.status)}</td><td><div class="actions"><button class="btn primary" onclick="event.stopPropagation();openCustomerOrderEditor('${o.customer_id}','${o.id}')">✏️ Edit Details</button>${!isFinished(o)?`<button class="btn success" onclick="event.stopPropagation();markDelivered('${o.id}')">Delivered</button>`:""}<button class="btn danger" onclick="event.stopPropagation();removeRow('orders','${o.id}')">Delete</button></div></td></tr>`;
+return `<tr class="nf-order-row" role="button" tabindex="0" data-order-id="${esc(o.id)}"><td><b>${esc(o.order_no)}</b></td><td>${esc(customerName(o.customer_id))}</td><td>${esc(o.garment_type)}</td><td>${dateText(o.cloth_received_date)}</td><td>${dateText(o.delivery_date)}${reminder}</td><td><b>${Number(o.quantity||0)}</b><br><span class="mini">${esc(blouseSplitText(o))}</span></td><td>${money(o.unit_price)}</td><td>${money(orderTotal(o))}${nfLiningCost(o).total?`<br><span class="mini">🧵 Lining ${money(nfLiningCost(o).total)}</span>`:""}</td><td>${money(o.advance_amount)}</td><td>${money(o.balance_amount)}</td><td>${statusPill(o.status)}</td><td><div class="actions"><button class="btn primary" onclick="event.stopPropagation();openCustomerOrderEditor('${o.customer_id}','${o.id}')">✏️ Edit Details</button>${!isFinished(o)?`<button class="btn success" onclick="event.stopPropagation();markDelivered('${o.id}')">Delivered</button>`:""}<button class="btn danger" onclick="event.stopPropagation();removeRow('orders','${o.id}')">Delete</button></div></td></tr>`;
 }).join("")}</tbody></table></div>`:`<div class="empty">No orders found.</div>`;
 }
 function renderAlterations(){
@@ -3667,6 +3667,22 @@ function closeOrderFullDetails(){
   box.classList.remove("open"); box.setAttribute("aria-hidden","true");
 }
 $("nfOrderFullDetails")?.addEventListener("click",e=>{if(e.target===$("nfOrderFullDetails"))closeOrderFullDetails()});
+/* FINAL FIX: Orders card/row opens the existing Full Order Details sheet.
+   Delegation survives every renderOrders() refresh and keeps action buttons intact. */
+$("ordersTable")?.addEventListener("click",e=>{
+  const row=e.target.closest?.(".nf-order-row");
+  if(!row || e.target.closest?.(".actions")) return;
+  const id=row.getAttribute("data-order-id");
+  if(id) openOrderFullDetails(id);
+});
+$("ordersTable")?.addEventListener("keydown",e=>{
+  if(e.key!=="Enter" && e.key!==" ") return;
+  const row=e.target.closest?.(".nf-order-row");
+  if(!row || e.target.closest?.(".actions")) return;
+  e.preventDefault();
+  const id=row.getAttribute("data-order-id");
+  if(id) openOrderFullDetails(id);
+});
 
 function openModal(type,id=null){
 state.editing={type,id};const def=formDefs[type];let row=null;
