@@ -1155,6 +1155,9 @@ body{
   .nf-design-picker-actions .btn{flex:1;min-width:120px}
 }
 
+
+#ordersNewOrderPicker{z-index:55}
+#ordersNewOrderPicker .modalbox{width:min(560px,100%)}
 </style>
 
 <style id="phase3-premium-final">
@@ -2134,11 +2137,6 @@ body{
 </style>
 
 
-<style id="orders-new-order-picker">
-#ordersNewOrderPicker{z-index:55}
-#ordersNewOrderPicker .modalbox{width:min(560px,100%)}
-#ordersNewOrderCustomer{min-height:48px}
-</style>
 <style id="phase4-5-user-fixes">
 /* =========================================================
    PHASE 4.5 — CLOCK + MOBILE MODAL LAYER FIX
@@ -2555,7 +2553,7 @@ body{
 <div class="field full">
 <label>Customer</label>
 <select id="ordersNewOrderCustomer" class="input"></select>
-<div class="hint">Customer-ஐ தேர்வு செய்ததும், Customer Card-ல் இருக்கும் அதே New Order system திறக்கும்.</div>
+<div class="hint">Customer-ஐ தேர்வு செய்ததும் Customer Card-ல் இருக்கும் அதே New Order system திறக்கும்.</div>
 </div>
 <div class="modalfoot">
 <button type="button" class="btn secondary" onclick="closeOrdersNewOrderPicker()">Cancel</button>
@@ -3498,9 +3496,9 @@ if(!Number.isFinite(result))throw new Error();
 out.textContent="Result: "+result;
 }catch{out.textContent="கணக்கு சரியாக இல்லை."}
 }
+
 function closeOrdersNewOrderPicker(){
-  const m=$("ordersNewOrderPicker");
-  if(m)m.classList.remove("open");
+  $("ordersNewOrderPicker")?.classList.remove("open");
 }
 function openOrdersNewOrderPicker(){
   const m=$("ordersNewOrderPicker"),s=$("ordersNewOrderCustomer");
@@ -3517,7 +3515,6 @@ function continueOrdersNewOrder(){
   closeOrdersNewOrderPicker();
   openCustomerOrderEditor(id);
 }
-
 function openModal(type,id=null){
 state.editing={type,id};const def=formDefs[type];let row=null;
 if(id){const list=state[type+"s"]||[];row=list.find(x=>x.id===id)||null}
@@ -3605,8 +3602,6 @@ function closeModal(skipHistory=false){
  }
 }
 $("modal").addEventListener("click",e=>{if(e.target===$("modal"))closeModal()});
-$("ordersNewOrderPicker")?.addEventListener("click",e=>{if(e.target===$("ordersNewOrderPicker"))closeOrdersNewOrderPicker()});
-
 
 $("dataForm").addEventListener("submit",async e=>{
 e.preventDefault();if(!state.editing)return;
@@ -5774,6 +5769,8 @@ document.addEventListener("DOMContentLoaded",()=>setTimeout(()=>{
 
 <script id="mobile-edge-swipe-menu">
 /* Swipe behavior is handled by setupSideMenuSwipe above. */
+
+$("ordersNewOrderPicker")?.addEventListener("click",e=>{if(e.target===$("ordersNewOrderPicker"))closeOrdersNewOrderPicker()});
 </script>
 
 </body>
