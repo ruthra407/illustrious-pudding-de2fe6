@@ -2393,15 +2393,15 @@ body{
 <style id="nf-smooth-half-screen-drawer">
 @media (max-width:700px){
   #sidebar{
-    width:50vw !important;
-    max-width:50vw !important;
+    width:60vw !important;
+    max-width:60vw !important;
     transform:translate3d(-105%,0,0);
     transition:transform .34s cubic-bezier(.22,.8,.25,1) !important;
     will-change:transform;
   }
   #sidebar.open{
-    width:50vw !important;
-    max-width:50vw !important;
+    width:60vw !important;
+    max-width:60vw !important;
     transform:translate3d(0,0,0) !important;
   }
   #sidebar.menu-dragging{transition:none !important}
@@ -3836,6 +3836,31 @@ supabaseClient.auth.onAuthStateChange((_event,session)=>{if(session?.user){showA
   document.addEventListener("touchmove",onMove,{passive:false});
   document.addEventListener("touchend",onEnd,{passive:true});
   document.addEventListener("touchcancel",onEnd,{passive:true});
+})();
+</script>
+
+<script id="nf-drawer-tap-anywhere-close">
+(function(){
+  "use strict";
+
+  function closeDrawerIfOutside(target){
+    if(window.innerWidth > 900) return;
+
+    var drawer = document.getElementById("sidebar");
+    if(!drawer || !drawer.classList.contains("open")) return;
+
+    // Keep the menu itself interactive; only taps outside close it.
+    if(drawer.contains(target)) return;
+
+    drawer.classList.remove("open");
+    document.body.classList.remove("drawer-open");
+  }
+
+  // On mobile, once the drawer is open, one tap anywhere outside it
+  // closes it immediately. No second right-to-left swipe is required.
+  document.addEventListener("pointerdown", function(e){
+    closeDrawerIfOutside(e.target);
+  }, {passive:true});
 })();
 </script>
 
