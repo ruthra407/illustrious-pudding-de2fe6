@@ -1646,6 +1646,34 @@ body{
   display:none;
 }
 
+/* Section floating add buttons */
+.nf-section-card{position:relative!important;}
+.nf-section-fab{
+  position:absolute;
+  top:-18px;
+  right:18px;
+  width:54px;
+  height:54px;
+  border:0;
+  border-radius:50%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:linear-gradient(135deg,#6c3df5,#ef4f9a);
+  color:#fff;
+  font-size:31px;
+  font-weight:500;
+  line-height:1;
+  box-shadow:0 10px 24px rgba(108,61,245,.28);
+  cursor:pointer;
+  z-index:12;
+}
+.nf-section-fab:active{transform:scale(.95);}
+.nf-section-fab[title]::after{content:'';}
+@media(max-width:700px){
+  .nf-section-fab{top:-16px;right:16px;width:52px;height:52px;font-size:29px;}
+}
+
 /* Small section headers */
 .p4-section-tag{
   display:inline-flex;
@@ -2488,8 +2516,9 @@ body{
 </section>
 
 <section id="view-customers" class="view">
-<div class="pagehead"><div><h2>Customer Cards</h2><p>ஒவ்வொரு customer-க்கும் Order, blouse count, balance, design, delivery reminder — ஒரே card-ல்.</p></div><div class="spacer"></div><div class="nf-customer-page-actions"><button class="btn primary" onclick="openModal('customer')">＋ Add Customer</button><button class="btn secondary" onclick="editCustomerFromSearch()">✏️ Edit Customer</button></div></div>
-<div class="card customerSearchBox"><div class="toolbar" style="margin:0"><input id="customerSearch" class="input search" placeholder="Search name / phone / address / village"><button class="btn secondary" onclick="loadAll()">↻ Refresh</button></div></div>
+<div class="pagehead"><div><h2>Customer Cards</h2><p>ஒவ்வொரு customer-க்கும் Order, blouse count, balance, design, delivery reminder — ஒரே card-ல்.</p></div><div class="spacer"></div><div class="nf-customer-page-actions"><button class="btn secondary" onclick="editCustomerFromSearch()">✏️ Edit Customer</button></div></div>
+<div class="card customerSearchBox nf-section-card">
+<button class="nf-section-fab" type="button" title="Add Customer" aria-label="Add Customer" onclick="openModal('customer')">＋</button><div class="toolbar" style="margin:0"><input id="customerSearch" class="input search" placeholder="Search name / phone / address / village"><button class="btn secondary" onclick="loadAll()">↻ Refresh</button></div></div>
 <div id="customersTable" class="customerCards"></div>
 </section>
 
@@ -2499,8 +2528,9 @@ body{
 </section>
 
 <section id="view-orders" class="view">
-<div class="pagehead"><div><h2>Orders</h2><p>Customer Card-ல் எடுத்த New Order-கள் மட்டும் இங்கே வரும்.</p></div><div class="spacer"></div><button class="btn primary" type="button" onclick="openOrdersQuickAdd()">＋ Add</button></div>
-<div class="card">
+<div class="pagehead"><div><h2>Orders</h2><p>Customer Card-ல் எடுத்த New Order-கள் மட்டும் இங்கே வரும்.</p></div><div class="spacer"></div><button class="btn primary" type="button" onclick="openOrdersQuickAdd()">＋ New Order</button></div>
+<div class="card nf-section-card">
+<button class="nf-section-fab" type="button" title="New Order" aria-label="New Order" onclick="openOrdersQuickAdd()">＋</button>
 <div id="ordersQuickAddPanel" class="hidden" style="margin-bottom:12px;background:#faf8f6;border:1px solid var(--line);border-radius:13px;padding:12px"></div>
 <div class="toolbar"><input id="orderSearch" class="input search" placeholder="Search order / customer / garment"><select id="orderStatusFilter" style="max-width:190px"><option value="">All status</option><option>Pending</option><option>In Progress</option><option>Ready</option><option>Delivered</option><option>Cancelled</option></select><button class="btn secondary" onclick="loadAll()">↻ Refresh</button></div><div id="ordersTable"></div></div>
 </section>
@@ -2511,8 +2541,10 @@ body{
 </section>
 
 <section id="view-payments" class="view">
-<div class="pagehead"><div><h2>Payments</h2><p>Today collection மற்றும் payment history.</p></div><div class="spacer"></div><button class="btn primary" onclick="openModal('payment')">＋ Add Payment</button></div>
-<div class="card"><div class="toolbar"><input id="paymentSearch" class="input search" placeholder="Search order / payment method / reference"><button class="btn secondary" onclick="loadAll()">↻ Refresh</button></div><div id="paymentsTable"></div></div>
+<div class="pagehead"><div><h2>Payments</h2><p>Today collection மற்றும் payment history.</p></div><div class="spacer"></div></div>
+<div class="card nf-section-card">
+<button class="nf-section-fab" type="button" title="Add Payment" aria-label="Add Payment" onclick="openModal('payment')">＋</button>
+<div class="toolbar"><input id="paymentSearch" class="input search" placeholder="Search order / payment method / reference"><button class="btn secondary" onclick="loadAll()">↻ Refresh</button></div><div id="paymentsTable"></div></div>
 </section>
 
 <section id="view-designs" class="view">
