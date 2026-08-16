@@ -2612,6 +2612,18 @@ body{
 </nav>
 
 
+
+<!-- ORDER FULL DETAILS: top-down details sheet for Orders rows -->
+<div id="nfOrderFullDetails" class="modal nf-order-full-details" aria-hidden="true">
+  <div class="modalbox nf-order-full-details-box">
+    <div class="modalhead nf-order-full-details-head">
+      <h3 id="nfOrderFullDetailsTitle">Order Full Details</h3>
+      <button class="close" type="button" onclick="closeOrderFullDetails()">✕</button>
+    </div>
+    <div id="nfOrderFullDetailsContent"></div>
+  </div>
+</div>
+
 <div id="modal" class="modal"><div class="modalbox">
 <div class="modalhead"><h3 id="modalTitle">Add</h3><button class="close" onclick="closeModal()">✕</button></div>
 <form id="dataForm"><div id="formFields" class="formgrid"></div>
@@ -2680,7 +2692,9 @@ $("backBtn").onclick=()=>{if((history.state?.view||"dashboard")!=="dashboard")hi
    cannot accidentally close/navigate away from the app document. */
 window.addEventListener("popstate",e=>{
  const s=e.state||{};
- const modal=$("modal");
+ const orderFullDetails=$("nfOrderFullDetails");
+  if(orderFullDetails?.classList.contains("open")){closeOrderFullDetails();return;}
+  const modal=$("modal");
  /* Android/Chrome Back gesture: modal first, then current screen, then dashboard root. */
  const ordersNewOrderScreen=$("ordersNewOrderScreen");
  if(ordersNewOrderScreen?.classList.contains("open")){
@@ -3480,7 +3494,7 @@ const q=($("orderSearch").value||"").toLowerCase(),sf=$("orderStatusFilter").val
 const r=state.orders.filter(x=>(!sf||x.status===sf)&&[x.order_no,customerName(x.customer_id),x.garment_type,x.status].join(" ").toLowerCase().includes(q));
 $("ordersTable").innerHTML=r.length?`<div class="tablewrap"><table class="table"><thead><tr><th>Order</th><th>Customer</th><th>Garment</th><th>Cloth received</th><th>Delivery</th><th>Qty</th><th>Rate</th><th>Total</th><th>Advance</th><th>Balance</th><th>Status</th><th>Actions</th></tr></thead><tbody>${r.map(o=>{
 const d=dueInfo(o);const reminder=d?`<br><span class="pill ${d.kind==="late"?"bad":d.kind==="today"?"warn":""}">${d.kind==="late"?d.days+" நாள் late":d.kind==="today"?"இன்று":d.days+" நாள்"}</span>`:"";
-return `<tr><td><b>${esc(o.order_no)}</b></td><td>${esc(customerName(o.customer_id))}</td><td>${esc(o.garment_type)}</td><td>${dateText(o.cloth_received_date)}</td><td>${dateText(o.delivery_date)}${reminder}</td><td><b>${Number(o.quantity||0)}</b><br><span class="mini">${esc(blouseSplitText(o))}</span></td><td>${money(o.unit_price)}</td><td>${money(orderTotal(o))}${nfLiningCost(o).total?`<br><span class="mini">🧵 Lining ${money(nfLiningCost(o).total)}</span>`:""}</td><td>${money(o.advance_amount)}</td><td>${money(o.balance_amount)}</td><td>${statusPill(o.status)}</td><td><div class="actions"><button class="btn primary" onclick="openCustomerOrderEditor('${o.customer_id}','${o.id}')">✏️ Edit Details</button>${!isFinished(o)?`<button class="btn success" onclick="markDelivered('${o.id}')">Delivered</button>`:""}<button class="btn danger" onclick="removeRow('orders','${o.id}')">Delete</button></div></td></tr>`;
+return `<tr class="nf-order-row" onclick="openOrderFullDetails('${o.id}')"><td><b>${esc(o.order_no)}</b></td><td>${esc(customerName(o.customer_id))}</td><td>${esc(o.garment_type)}</td><td>${dateText(o.cloth_received_date)}</td><td>${dateText(o.delivery_date)}${reminder}</td><td><b>${Number(o.quantity||0)}</b><br><span class="mini">${esc(blouseSplitText(o))}</span></td><td>${money(o.unit_price)}</td><td>${money(orderTotal(o))}${nfLiningCost(o).total?`<br><span class="mini">🧵 Lining ${money(nfLiningCost(o).total)}</span>`:""}</td><td>${money(o.advance_amount)}</td><td>${money(o.balance_amount)}</td><td>${statusPill(o.status)}</td><td><div class="actions"><button class="btn primary" onclick="event.stopPropagation();openCustomerOrderEditor('${o.customer_id}','${o.id}')">✏️ Edit Details</button>${!isFinished(o)?`<button class="btn success" onclick="event.stopPropagation();markDelivered('${o.id}')">Delivered</button>`:""}<button class="btn danger" onclick="event.stopPropagation();removeRow('orders','${o.id}')">Delete</button></div></td></tr>`;
 }).join("")}</tbody></table></div>`:`<div class="empty">No orders found.</div>`;
 }
 function renderAlterations(){
@@ -3605,6 +3619,55 @@ if(!Number.isFinite(result))throw new Error();
 out.textContent="Result: "+result;
 }catch{out.textContent="கணக்கு சரியாக இல்லை."}
 }
+
+function openOrderFullDetails(orderId){
+  const o=(state.orders||[]).find(x=>String(x.id)===String(orderId));
+  if(!o){toast("Order details கிடைக்கவில்லை.",true);return;}
+  const box=$("nfOrderFullDetails"),content=$("nfOrderFullDetailsContent");
+  if(!box||!content)return;
+  const customer=customerName(o.customer_id), lining=nfLiningCost(o), total=orderTotal(o);
+  const notes=cleanOrderNotes(o.notes||""), garment=String(o.garment_type||"Blouse");
+  let quantityText=String(Number(o.quantity||0));
+  if(garment==="Blouse") quantityText=blouseSplitText(o)||quantityText+" pcs";
+  else if(garment==="Chudi"){
+    const gx=typeof nfGarmentExtra==="function"?nfGarmentExtra(o):{};
+    quantityText=`Chudi ${Number(gx.chudi||o.quantity||0)} · Lining ${Number(gx.chudiLiningQty||0)}`;
+  }else if(garment==="Saree"){
+    const gx=typeof nfGarmentExtra==="function"?nfGarmentExtra(o):{};
+    quantityText=`Saree ${Number(gx.saree||o.quantity||0)}`;
+  }
+  const item=(label,value,full=false)=>`<div class="nf-order-detail-item${full?" full":""}"><span class="nf-order-detail-label">${label}</span><span class="nf-order-detail-value">${value||"—"}</span></div>`;
+  content.innerHTML=`<div class="nf-order-detail-grid">
+    ${item("Order No",esc(o.order_no))}
+    ${item("Customer",esc(customer))}
+    ${item("Garment",esc(garment))}
+    ${item("Quantity",esc(quantityText))}
+    ${item("Order Date",esc(dateText(o.order_date)))}
+    ${item("Cloth Received",esc(dateText(o.cloth_received_date)))}
+    ${item("Delivery Date",esc(dateText(o.delivery_date)))}
+    ${item("Status",statusPill(o.status))}
+    ${item("Rate Type",esc(o.rate_type||"—"))}
+    ${item("Unit Price",money(o.unit_price))}
+    ${item("Total Order",money(total))}
+    ${item("Advance Paid",money(o.advance_amount))}
+    ${item("Balance",money(o.balance_amount))}
+    ${lining.total?item("Lining Cost",money(lining.total)):""}
+    ${o.lining_cloth_source?item("Lining Cloth",esc((o.lining_cloth_source==="customer"?"Customer கொடுத்தது":"நாம் வாங்கியது")+" · "+Number(o.lining_cloth_qty||0))):""}
+    ${notes?item("Notes",esc(notes),true):""}
+  </div>
+  <div class="nf-order-full-actions">
+    <button class="btn primary" type="button" onclick="closeOrderFullDetails(true);openCustomerOrderEditor('${o.customer_id}','${o.id}')">✏️ Edit Details</button>
+    ${!isFinished(o)?`<button class="btn success" type="button" onclick="closeOrderFullDetails(true);markDelivered('${o.id}')">✅ Delivered</button>`:""}
+    <button class="btn secondary" type="button" onclick="closeOrderFullDetails()">Close</button>
+  </div>`;
+  box.classList.remove("open"); void box.offsetWidth; box.classList.add("open"); box.setAttribute("aria-hidden","false");
+}
+function closeOrderFullDetails(){
+  const box=$("nfOrderFullDetails"); if(!box)return;
+  box.classList.remove("open"); box.setAttribute("aria-hidden","true");
+}
+$("nfOrderFullDetails")?.addEventListener("click",e=>{if(e.target===$("nfOrderFullDetails"))closeOrderFullDetails()});
+
 function openModal(type,id=null){
 state.editing={type,id};const def=formDefs[type];let row=null;
 if(id){const list=state[type+"s"]||[];row=list.find(x=>x.id===id)||null}
@@ -5630,27 +5693,33 @@ window.runPhoneReminders=function(){
   .nf-orders-new-order-screen{align-items:center;padding:16px}
 }
 
-/* Order Full Details: open from the top, not from the side. */
-.order-details-modal,
-.order-details-drawer,
-#orderDetailsModal{
-  align-items:flex-start !important;
-  justify-content:center !important;
+/* ORDER FULL DETAILS — TOP -> DOWN */
+.nf-order-full-details{display:none!important;align-items:flex-start!important;justify-content:center!important;padding:0!important;overflow:hidden!important;z-index:95!important}
+.nf-order-full-details.open{display:flex!important}
+.nf-order-full-details-box{
+  width:min(900px,100%)!important;max-width:100%!important;max-height:96dvh!important;
+  margin:0 auto!important;border-radius:0 0 24px 24px!important;overflow:auto!important;padding:18px!important;
+  opacity:0;transform:translate3d(0,-105%,0)!important;
+  transition:transform .38s cubic-bezier(.22,.8,.25,1),opacity .24s ease!important;
+  will-change:transform,opacity;
 }
-.order-details-modal .modalbox,
-.order-details-drawer .modalbox,
-#orderDetailsModal .modalbox{
-  transform:translateY(-110%) !important;
-  transition:transform .34s ease, opacity .24s ease !important;
-  margin:0 auto !important;
-  width:min(920px,100%) !important;
-  max-height:96vh !important;
-  overflow:auto !important;
-}
-.order-details-modal.open .modalbox,
-.order-details-drawer.open .modalbox,
-#orderDetailsModal.open .modalbox{
-  transform:translateY(0) !important;
+.nf-order-full-details.open .nf-order-full-details-box{opacity:1;transform:translate3d(0,0,0)!important}
+.nf-order-full-details-head{position:sticky;top:0;z-index:4;background:#fff;padding-bottom:12px;border-bottom:1px solid #eee8f0}
+.nf-order-full-details-head h3{font-size:22px!important;font-weight:950!important}
+.nf-order-detail-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px}
+.nf-order-detail-item{padding:12px;border:1px solid #e8eaf2;border-radius:13px;background:#faf9ff}
+.nf-order-detail-item.full{grid-column:1/-1}
+.nf-order-detail-label{display:block;font-size:11px;color:#747083;font-weight:800;margin-bottom:4px}
+.nf-order-detail-value{display:block;font-size:15px;font-weight:850;color:#20212a;overflow-wrap:anywhere}
+.nf-order-full-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.nf-order-row{cursor:pointer}
+.nf-order-row:hover td{background:#faf8ff}
+@media(max-width:560px){
+  .nf-order-full-details-box{width:100%!important;max-height:94dvh!important;border-radius:0 0 18px 18px!important;padding:14px!important}
+  .nf-order-detail-grid{grid-template-columns:1fr}
+  .nf-order-detail-item.full{grid-column:auto}
+  .nf-order-full-actions{flex-direction:column}
+  .nf-order-full-actions .btn{width:100%}
 }
 </style>
 
