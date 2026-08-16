@@ -54,7 +54,6 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}.hidden{display:
 .formgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.field.full{grid-column:1/-1}.field label{display:block;font-size:13px;font-weight:750;margin-bottom:6px}
 .modal{position:fixed;inset:0;background:rgba(20,15,18,.55);display:none;align-items:center;justify-content:center;padding:16px;z-index:50}.modal.open{display:flex}
 .modalbox{width:min(780px,100%);max-height:93vh;overflow:auto;background:#fff;border-radius:20px;padding:20px}.modalhead{display:flex;align-items:center;margin-bottom:14px}.modalhead h3{margin:0}.close{margin-left:auto;border:0;background:#eee9e4;border-radius:10px;width:38px;height:38px}
-.nf-orders-new-order-picker{max-width:560px}.nf-orders-new-order-picker .modalhead{align-items:flex-start;gap:10px}.nf-orders-new-order-picker .hint{line-height:1.5}
 .modalfoot{display:flex;gap:9px;justify-content:flex-end;margin-top:17px}.toast{position:fixed;right:16px;bottom:16px;z-index:100;max-width:380px;padding:13px 15px;border-radius:12px;color:#fff;background:#30272c;box-shadow:var(--shadow);display:none}.toast.show{display:block}.toast.error{background:#9d2d22}
 .loginpage{min-height:100vh;display:grid;place-items:center;padding:20px;background:linear-gradient(135deg,#f6f1eb,#eadce1)}
 .loginbox{width:min(480px,100%);background:#fff;border:1px solid var(--line);border-radius:26px;padding:28px;box-shadow:0 20px 60px rgba(35,25,30,.12)}
@@ -2500,7 +2499,7 @@ body{
 </section>
 
 <section id="view-orders" class="view">
-<div class="pagehead"><div><h2>Orders</h2><p>Customer Card-ல் எடுத்த New Order-கள் மட்டும் இங்கே வரும்.</p></div><div class="spacer"></div><button class="btn primary" onclick="openOrdersNewOrder()">＋ New Order</button></div>
+<div class="pagehead"><div><h2>Orders</h2><p>Customer Card-ல் எடுத்த New Order-கள் மட்டும் இங்கே வரும்.</p></div><div class="spacer"></div><button class="btn primary" type="button" onclick="openOrdersNewOrder()">＋ New Order</button></div>
 <div class="card"><div class="toolbar"><input id="orderSearch" class="input search" placeholder="Search order / customer / garment"><select id="orderStatusFilter" style="max-width:190px"><option value="">All status</option><option>Pending</option><option>In Progress</option><option>Ready</option><option>Delivered</option><option>Cancelled</option></select><button class="btn secondary" onclick="loadAll()">↻ Refresh</button></div><div id="ordersTable"></div></div>
 </section>
 
@@ -2545,20 +2544,17 @@ body{
 </nav>
 <button id="p4Fab" type="button" aria-label="Quick add">＋</button>
 
-<div id="ordersNewOrderPicker" class="modal" aria-hidden="true">
-  <div class="modalbox nf-orders-new-order-picker">
-    <div class="modalhead"><div><h3>🧾 New Order</h3><div class="hint">முதலில் customer-ஐ தேர்வு செய்யுங்கள். அடுத்ததாக Customer Card-ல் இருக்கும் அதே New Order system திறக்கும்.</div></div><button class="close" type="button" onclick="closeOrdersNewOrderPicker()">✕</button></div>
-    <div class="field"><label for="ordersNewOrderCustomer">Customer</label><select id="ordersNewOrderCustomer" class="input"></select></div>
-    <div id="ordersNewOrderPickerMsg" class="msg"></div>
-    <div class="modalfoot"><button type="button" class="btn secondary" onclick="closeOrdersNewOrderPicker()">Cancel</button><button type="button" class="btn primary" onclick="startOrdersNewOrder()">＋ Open New Order</button></div>
-  </div>
-</div>
-
 <div id="modal" class="modal"><div class="modalbox">
 <div class="modalhead"><h3 id="modalTitle">Add</h3><button class="close" onclick="closeModal()">✕</button></div>
 <form id="dataForm"><div id="formFields" class="formgrid"></div>
 <div class="modalfoot"><button type="button" class="btn secondary" onclick="closeModal()">Cancel</button><button id="saveBtn" type="submit" class="btn primary">Save</button></div>
 <div id="formMsg" class="msg"></div></form>
+</div></div>
+<div id="ordersNewOrderPicker" class="modal" aria-hidden="true"><div class="modalbox" style="max-width:560px">
+<div class="modalhead"><h3>🧾 New Order</h3><button class="close" type="button" onclick="closeOrdersNewOrderPicker()">✕</button></div>
+<div class="field"><label>Customer</label><select id="ordersNewOrderCustomer" class="input"></select></div>
+<div class="hint" style="margin-top:8px">Customer-ஐ தேர்வு செய்ததும் Customer Card-ல் இருக்கும் அதே <b>New Order</b> editor திறக்கும்.</div>
+<div class="modalfoot"><button type="button" class="btn secondary" onclick="closeOrdersNewOrderPicker()">Cancel</button><button type="button" class="btn primary" onclick="continueOrdersNewOrder()">＋ Open New Order</button></div>
 </div></div>
 <div id="toast" class="toast"></div>
 
@@ -3359,47 +3355,26 @@ function renderMeasurements(){
 const q=($("measurementSearch").value||"").toLowerCase(),r=state.measurements.filter(x=>[customerName(x.customer_id),x.garment_type,x.notes].join(" ").toLowerCase().includes(q));
 $("measurementsTable").innerHTML=r.length?`<div class="tablewrap"><table class="table"><thead><tr><th>Customer</th><th>Garment</th><th>Chest</th><th>Waist</th><th>Shoulder</th><th>Length</th><th>Notes</th><th>Actions</th></tr></thead><tbody>${r.map(x=>`<tr><td>${esc(customerName(x.customer_id))}</td><td>${esc(x.garment_type)}</td><td>${x.chest??"—"}</td><td>${x.waist??"—"}</td><td>${x.shoulder??"—"}</td><td>${x.shirt_length??x.pant_length??"—"}</td><td>${esc(x.notes)}</td><td><div class="actions"><button class="btn secondary" onclick="openModal('measurement','${x.id}')">Edit</button><button class="btn danger" onclick="removeRow('measurements','${x.id}')">Delete</button></div></td></tr>`).join("")}</tbody></table></div>`:`<div class="empty">No measurements found.</div>`;
 }
-function openOrdersNewOrder(){
- const picker=$("ordersNewOrderPicker"),select=$("ordersNewOrderCustomer"),msg=$("ordersNewOrderPickerMsg");
- if(!picker||!select)return;
- const customers=(state.customers||[]).slice().sort((a,b)=>String(a.name||"").localeCompare(String(b.name||"")));
- select.innerHTML=customers.length
-   ? customers.map(c=>`<option value="${esc(c.id)}">${esc(c.name||"Customer")}${c.phone?` — ${esc(c.phone)}`:""}</option>`).join("")
-   : `<option value="">Customer இல்லை</option>`;
- msg.textContent=customers.length?"":"முதலில் ஒரு customer-ஐ சேர்க்க வேண்டும்.";
- msg.className=customers.length?"msg":"msg error";
- picker.classList.add("open");
- picker.setAttribute("aria-hidden","false");
- setTimeout(()=>{if(customers.length)select.focus()},30);
-}
 function closeOrdersNewOrderPicker(){
- const picker=$("ordersNewOrderPicker");
- if(!picker)return;
- picker.classList.remove("open");
- picker.setAttribute("aria-hidden","true");
+ const m=$("ordersNewOrderPicker");
+ if(m){m.classList.remove("open");m.setAttribute("aria-hidden","true");}
 }
-function startOrdersNewOrder(){
- const id=$("ordersNewOrderCustomer")?.value;
- if(!id){toast("Customer-ஐ தேர்வு செய்யுங்கள்.",true);return}
+function openOrdersNewOrder(){
+ const m=$("ordersNewOrderPicker"),sel=$("ordersNewOrderCustomer");
+ if(!m||!sel)return;
+ const customers=(state.customers||[]).slice().sort((a,b)=>String(a.name||"").localeCompare(String(b.name||"")));
+ if(!customers.length){toast("முதலில் Customer-ஐ சேர்க்க வேண்டும்.",true);return;}
+ sel.innerHTML='<option value="">Customer தேர்வு செய்யுங்கள்</option>'+customers.map(c=>`<option value="${esc(c.id)}">${esc(c.name||"Customer")}${c.phone?` — ${esc(c.phone)}`:""}</option>`).join("");
+ sel.value="";
+ m.classList.add("open");m.setAttribute("aria-hidden","false");
+ setTimeout(()=>sel.focus(),60);
+}
+function continueOrdersNewOrder(){
+ const id=$("ordersNewOrderCustomer")?.value||"";
+ if(!id){toast("Customer-ஐ தேர்வு செய்யுங்கள்.",true);return;}
  closeOrdersNewOrderPicker();
- // IMPORTANT: reuse the exact Customer Card New Order UI/logic.
- goView("customers");
- setTimeout(()=>{
-   const card=$("customer-card-"+id);
-   if(!card){toast("Customer card கிடைக்கவில்லை. Refresh செய்து மீண்டும் முயற்சி செய்யுங்கள்.",true);return}
-   card.scrollIntoView({behavior:"smooth",block:"start"});
-   const box=$("quick-order-"+id);
-   if(!box){toast("New Order section கிடைக்கவில்லை.",true);return}
-   box.classList.remove("hidden");
-   box.classList.remove("nf-edit-mode");
-   box.dataset.editOrderId="";
-   const title=box.querySelector(".nf-quick-edit-title");
-   if(title)title.textContent="🧾 New Order";
-   const save=box.querySelector(".nf-quick-save-btn");
-   if(save)save.textContent="💾 Save Order";
-   clearQuickOrderEditor(id);
-   setTimeout(()=>box.scrollIntoView({behavior:"smooth",block:"center"}),180);
- },180);
+ /* IMPORTANT: use the exact same editor used by Customer Card -> New Order. */
+ openCustomerOrderEditor(id);
 }
 
 function renderOrders(){
@@ -3619,6 +3594,7 @@ function closeModal(skipHistory=false){
  }
 }
 $("modal").addEventListener("click",e=>{if(e.target===$("modal"))closeModal()});
+$("ordersNewOrderPicker")?.addEventListener("click",e=>{if(e.target===$("ordersNewOrderPicker"))closeOrdersNewOrderPicker()});
 
 $("dataForm").addEventListener("submit",async e=>{
 e.preventDefault();if(!state.editing)return;
