@@ -3590,7 +3590,7 @@ out.textContent="Result: "+result;
 function openModal(type,id=null){
 state.editing={type,id};const def=formDefs[type];let row=null;
 if(id){const list=state[type+"s"]||[];row=list.find(x=>x.id===id)||null}
-$("modalTitle").textContent=(id?"Edit ":"Add ")+def.title;$("formMsg").textContent="";$("formMsg").className="msg";
+$("modalTitle").textContent=type==="order"?(id?"Edit Order":"New Order"):(id?"Edit ":"Add ")+def.title;$("formMsg").textContent="";$("formMsg").className="msg";
 const today=localDate();
 $("formFields").innerHTML=def.fields.map(f=>{
 let val=row?.[f[0]];
@@ -4005,12 +4005,9 @@ supabaseClient.auth.onAuthStateChange((_event,session)=>{if(session?.user){showA
   if(fab){
     fab.addEventListener("click",function(){
       var current=history.state && history.state.view ? history.state.view : "dashboard";
-      if(current === "orders") {
-        if(typeof openOrdersQuickAdd === "function") openOrdersQuickAdd();
-        return;
-      }
       var map={
         customers:"customer",
+        orders:"order",
         payments:"payment",
         measurements:"measurement",
         alterations:"alteration",
