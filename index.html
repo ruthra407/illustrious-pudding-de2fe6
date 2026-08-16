@@ -4804,11 +4804,22 @@ window.runPhoneReminders=function(){
         var bs=safeBlouseSplit(o);
         b.normalQty+=bs.normal;
         b.liningQty+=bs.lining;
-        b.designQty+=bs.design;
+
+        /* Design blouse quantity + amount come from the 3 saved design slots.
+           This keeps the summary calculation in sync with the Edit Order slots. */
+        var designItems=[];
+        try{
+          if(typeof window.nfDesignItems==="function")designItems=window.nfDesignItems(o)||[];
+        }catch(e){}
+        var designQtyFromSlots=designItems.reduce(function(sum,x){return sum+num(x && x.qty)},0);
+        var designTotalFromSlots=designItems.reduce(function(sum,x){
+          return sum+(num(x && x.qty)*num(x && x.rate));
+        },0);
+        b.designQty+=designQtyFromSlots;
+        b.designTotal+=designTotalFromSlots;
 
         b.normalTotal+=bs.normal*r.normal;
         b.liningTotal+=bs.lining*r.lining;
-        b.designTotal+=nfDesignRates(o).reduce(function(sum,v){return sum+num(v)},0);
 
         if(genericLiningSource==="customer"){
           b.liningCustomerQty+=genericLiningQty;
@@ -4925,15 +4936,19 @@ window.runPhoneReminders=function(){
         });
       }
 
-      var designNo=0;
       orders.forEach(function(o){
         if(!isBlouse(o))return;
-        var s=safeBlouseSplit(o),dr=nfDesignRates(o);
-        for(var di=0;di<num(s.design);di++){
-          var designRate=num(dr[di]);
-          designNo++;
-          html+=row("Design blouse — "+designNo,1,designRate,designRate);
-        }
+        var items=[];
+        try{
+          if(typeof window.nfDesignItems==="function")items=window.nfDesignItems(o)||[];
+        }catch(e){}
+        items.forEach(function(x,di){
+          var q=num(x && x.qty), rate=num(x && x.rate);
+          if(q<=0)return;
+          var label="Design blouse — Design "+(di+1);
+          if(String(x && x.name||"").trim())label+=" — "+String(x.name).trim();
+          html+=row(label,q,rate,q*rate);
+        });
       });
 
       if(b.liningCustomerQty>0){
