@@ -2617,7 +2617,7 @@ body{
 <div id="nfOrderFullDetails" class="modal nf-order-full-details" aria-hidden="true">
   <div class="modalbox nf-order-full-details-box">
     <div class="modalhead nf-order-full-details-head">
-      <h3 id="nfOrderFullDetailsTitle">Order Full Details</h3>
+      <h3 id="nfOrderFullDetailsTitle">Full Order Details</h3>
       <button class="close" type="button" onclick="closeOrderFullDetails()">✕</button>
     </div>
     <div id="nfOrderFullDetailsContent"></div>
@@ -5699,7 +5699,8 @@ window.runPhoneReminders=function(){
 .nf-order-full-details-box{
   width:min(900px,100%)!important;max-width:100%!important;max-height:96dvh!important;
   margin:0 auto!important;border-radius:0 0 24px 24px!important;overflow:auto!important;padding:18px!important;
-  opacity:0;transform:translate3d(0,-105%,0)!important;
+  opacity:0!important;transform:translate3d(0,-105%,0)!important;
+  animation:none!important;
   transition:transform .38s cubic-bezier(.22,.8,.25,1),opacity .24s ease!important;
   will-change:transform,opacity;
 }
