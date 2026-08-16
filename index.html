@@ -5674,5 +5674,37 @@ document.addEventListener("DOMContentLoaded",()=>setTimeout(()=>{
 })();
 </script>
 
+<script id="mobile-edge-swipe-menu">
+(function(){
+  // Open the existing sidebar when the user swipes from the left edge.
+  // This does not replace or modify the existing menu button behavior.
+  var startX=0, startY=0, tracking=false;
+  var EDGE=42, MIN_X=80, MAX_Y=90;
+
+  document.addEventListener("touchstart", function(e){
+    if(window.innerWidth>900 || !e.touches || e.touches.length!==1) return;
+    var t=e.touches[0];
+    tracking=t.clientX<=EDGE;
+    if(tracking){ startX=t.clientX; startY=t.clientY; }
+  }, {passive:true});
+
+  document.addEventListener("touchend", function(e){
+    if(!tracking || window.innerWidth>900 || !e.changedTouches || !e.changedTouches.length) return;
+    var t=e.changedTouches[0];
+    var dx=t.clientX-startX;
+    var dy=Math.abs(t.clientY-startY);
+    tracking=false;
+
+    if(dx>=MIN_X && dy<=MAX_Y){
+      var sidebar=document.getElementById("sidebar");
+      var menu=document.getElementById("menuBtn");
+      if(sidebar && !sidebar.classList.contains("open") && menu){
+        menu.click();
+      }
+    }
+  }, {passive:true});
+})();
+</script>
+
 </body>
 </html>
