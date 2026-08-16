@@ -5629,6 +5629,29 @@ window.runPhoneReminders=function(){
   .nf-orders-new-order-box{height:auto;max-height:93vh;border-radius:20px;margin:3vh auto}
   .nf-orders-new-order-screen{align-items:center;padding:16px}
 }
+
+/* Order Full Details: open from the top, not from the side. */
+.order-details-modal,
+.order-details-drawer,
+#orderDetailsModal{
+  align-items:flex-start !important;
+  justify-content:center !important;
+}
+.order-details-modal .modalbox,
+.order-details-drawer .modalbox,
+#orderDetailsModal .modalbox{
+  transform:translateY(-110%) !important;
+  transition:transform .34s ease, opacity .24s ease !important;
+  margin:0 auto !important;
+  width:min(920px,100%) !important;
+  max-height:96vh !important;
+  overflow:auto !important;
+}
+.order-details-modal.open .modalbox,
+.order-details-drawer.open .modalbox,
+#orderDetailsModal.open .modalbox{
+  transform:translateY(0) !important;
+}
 </style>
 
 <script id="nf-design-3slot-js">
