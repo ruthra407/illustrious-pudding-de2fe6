@@ -2499,8 +2499,10 @@ body{
 </section>
 
 <section id="view-orders" class="view">
-<div class="pagehead"><div><h2>Orders</h2><p>Customer Card-ல் எடுத்த New Order-கள் மட்டும் இங்கே வரும்.</p></div><div class="spacer"></div></div>
-<div class="card"><div class="toolbar"><input id="orderSearch" class="input search" placeholder="Search order / customer / garment"><select id="orderStatusFilter" style="max-width:190px"><option value="">All status</option><option>Pending</option><option>In Progress</option><option>Ready</option><option>Delivered</option><option>Cancelled</option></select><button class="btn secondary" onclick="loadAll()">↻ Refresh</button></div><div id="ordersTable"></div></div>
+<div class="pagehead"><div><h2>Orders</h2><p>Customer Card-ல் எடுத்த New Order-கள் மட்டும் இங்கே வரும்.</p></div><div class="spacer"></div><button class="btn primary" type="button" onclick="openOrdersQuickAdd()">＋ Add</button></div>
+<div class="card">
+<div id="ordersQuickAddPanel" class="hidden" style="margin-bottom:12px;background:#faf8f6;border:1px solid var(--line);border-radius:13px;padding:12px"></div>
+<div class="toolbar"><input id="orderSearch" class="input search" placeholder="Search order / customer / garment"><select id="orderStatusFilter" style="max-width:190px"><option value="">All status</option><option>Pending</option><option>In Progress</option><option>Ready</option><option>Delivered</option><option>Cancelled</option></select><button class="btn secondary" onclick="loadAll()">↻ Refresh</button></div><div id="ordersTable"></div></div>
 </section>
 
 <section id="view-alterations" class="view">
@@ -3135,7 +3137,8 @@ function updateQuickOrderCalc(id){
  if($("qo-garment-total-"+id))$("qo-garment-total-"+id).textContent=money(garmentTotal);
  if($("qo-total-"+id))$("qo-total-"+id).textContent=money(total);
 }
-async function saveQuickOrder(id){
+async function saveQuickOrder(id,customerId){
+ customerId=customerId||id;
  const box=$("quick-order-"+id),editOrderId=box?.dataset.editOrderId||"";
  const existing=editOrderId?state.orders.find(x=>x.id===editOrderId):null;
  const garment=$("qo-garment-"+id)?.value||"Blouse",cloth=$("qo-cloth-"+id)?.value||null,delivery=$("qo-delivery-"+id)?.value||null,r=getQuickBlouseRates(id);
@@ -3158,7 +3161,7 @@ async function saveQuickOrder(id){
  if(garment==="Blouse"&&s.design>0)notes+=" | DESIGN_RATES:"+JSON.stringify(designRates);
  if(ls)notes+=` | Lining cloth: ${ls==="customer"?"Customer கொடுத்தது":"நாம் வாங்கியது"}`;
  if(ls==="shop")notes+=` | LINING_COST:${JSON.stringify({source:ls,qty:lq,rate:lr,total:liningTotal})}`;
- const payload={customer_id:id,order_no:existing?.order_no||makeOrderNo(),garment_type:garment,order_date:existing?.order_date||localDate(),cloth_received_date:cloth,delivery_date:delivery,quantity:qty,unit_price:qty?garmentTotal/qty:0,total_amount:total,advance_amount:advance,balance_amount:Math.max(0,total-advance),status,rate_type:garment==="Chudi"||garment==="Saree"?"normal":(s.normal>0?"normal":s.lining>0?"lining":s.design>0?"design":"normal"),lining_cloth_source:ls||null,lining_cloth_qty:lq,notes};
+ const payload={customer_id:customerId,order_no:existing?.order_no||makeOrderNo(),garment_type:garment,order_date:existing?.order_date||localDate(),cloth_received_date:cloth,delivery_date:delivery,quantity:qty,unit_price:qty?garmentTotal/qty:0,total_amount:total,advance_amount:advance,balance_amount:Math.max(0,total-advance),status,rate_type:garment==="Chudi"||garment==="Saree"?"normal":(s.normal>0?"normal":s.lining>0?"lining":s.design>0?"design":"normal"),lining_cloth_source:ls||null,lining_cloth_qty:lq,notes};
  try{
    const result=existing
      ?await supabaseClient.from("orders").update(payload).eq("id",existing.id)
@@ -3299,6 +3302,52 @@ const clothPhotoActionsHtml="";
  </div><div class="customerActions" style="margin-top:10px"><button class="btn primary nf-quick-save-btn" onclick="saveQuickOrder('${id}')">💾 Save Order</button><button class="btn secondary" onclick="toggleQuickOrder('${id}')">Close</button></div></div></div>
  <div class="customerSection"><h4>⏰ Delivery Reminder</h4>${customerReminderHTML(st.os)}<div class="reminderSettings" style="margin-top:8px"><div class="field" style="min-width:100%"><label class="mini">ஒரு நாளில் 10 reminder நேரங்கள்</label><div class="reminderTimesGrid">${REMINDER_TIMES.map(t=>`<span class="reminderTimeChip">🔔 ${t}</span>`).join("")}</div></div><button class="btn warning" onclick="enableDailyNotifications()">🔔 10 Daily Notifications ON</button></div><div class="hint">Notification permission கொடுத்தால் இந்த 10 நேரங்களில் phone notification வரும். App/browser active-ஆ இருக்கும்போது இந்த HTML version வேலை செய்யும்.</div></div>
   </article>`;
+}
+/* =========================================================
+   ORDERS PAGE -> SAME CUSTOMER CARD NEW ORDER SYSTEM
+   ========================================================= */
+function ordersQuickKey(customerId){
+ const raw=String(customerId||"");
+ return "orders_"+raw.replace(/[^a-zA-Z0-9_-]/g,"_");
+}
+function closeOrdersQuickAdd(){
+ const panel=$("ordersQuickAddPanel");
+ if(panel){panel.classList.add("hidden");panel.innerHTML="";}
+}
+function mountOrdersQuickForm(customerId){
+ const panel=$("ordersQuickAddPanel");
+ if(!panel||!customerId)return;
+ const key=ordersQuickKey(customerId);
+ const holder=document.createElement("div");
+ holder.innerHTML=customerCard(customerId);
+ const source=holder.querySelector("#quick-order-"+CSS.escape(String(customerId)));
+ if(!source){toast("இந்த customer-க்கு New Order section கிடைக்கவில்லை.",true);return;}
+ let markup=source.outerHTML;
+ markup=markup.split(String(customerId)).join(key);
+ markup=markup.replace(
+   "saveQuickOrder('"+key+"')",
+   "saveQuickOrder('"+key+"','"+String(customerId).replace(/'/g,"\\'")+"')"
+ );
+ const options=state.customers.map(c=>'<option value="'+esc(c.id)+'" '+(String(c.id)===String(customerId)?"selected":"")+'>'+esc(c.name||"Customer")+'</option>').join("");
+ panel.innerHTML='<div class="field" style="margin-bottom:10px"><label>Customer</label><select id="ordersQuickCustomer" class="input" onchange="mountOrdersQuickForm(this.value)"><option value="">Select customer</option>'+options+'</select></div>'+markup;
+ panel.classList.remove("hidden");
+ const box=$("quick-order-"+key);
+ if(box){
+   box.classList.remove("hidden");
+   box.dataset.editOrderId="";
+   updateQuickGarment(key);
+   updateChudiLiningLabel(key);
+   box.scrollIntoView({behavior:"smooth",block:"nearest"});
+ }
+}
+function openOrdersQuickAdd(){
+ const panel=$("ordersQuickAddPanel");
+ if(!panel)return;
+ const options=state.customers.map(c=>'<option value="'+esc(c.id)+'">'+esc(c.name||"Customer")+'</option>').join("");
+ panel.innerHTML='<div class="field" style="margin-bottom:10px"><label>Customer</label><select id="ordersQuickCustomer" class="input" onchange="mountOrdersQuickForm(this.value)"><option value="">Select customer</option>'+options+'</select></div><div class="hint">Customer-ஐ தேர்வு செய்ததும் Customer Card-ல் இருக்கும் அதே New Order system இங்கே வரும்.</div><div class="customerActions" style="margin-top:10px"><button class="btn secondary" type="button" onclick="closeOrdersQuickAdd()">Close</button></div>';
+ panel.classList.remove("hidden");
+ const select=$("ordersQuickCustomer");
+ if(select)select.focus();
 }
 function renderCustomers(){
 const q=($("customerSearch").value||"").toLowerCase();
