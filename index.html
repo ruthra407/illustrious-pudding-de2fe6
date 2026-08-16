@@ -3755,6 +3755,16 @@ supabaseClient.auth.onAuthStateChange((_event,session)=>{if(session?.user){showA
     const el=drawer();
     if(!el) return;
 
+    // Horizontal table swipes belong to the table, not the side drawer.
+    // This prevents the drawer from opening when swiping inside any table.
+    const startTarget=e.target;
+    if(startTarget && startTarget.closest && startTarget.closest(".tablewrap")){
+      mode="";
+      dragging=false;
+      decided=false;
+      return;
+    }
+
     const t=e.touches[0];
     startX=lastX=t.clientX;
     startY=t.clientY;
