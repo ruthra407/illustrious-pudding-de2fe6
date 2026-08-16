@@ -1155,9 +1155,6 @@ body{
   .nf-design-picker-actions .btn{flex:1;min-width:120px}
 }
 
-
-#ordersNewOrderPicker{z-index:55}
-#ordersNewOrderPicker .modalbox{width:min(560px,100%)}
 </style>
 
 <style id="phase3-premium-final">
@@ -2502,7 +2499,7 @@ body{
 </section>
 
 <section id="view-orders" class="view">
-<div class="pagehead"><div><h2>Orders</h2><p>Customer Card-ல் எடுத்த New Order-கள் மட்டும் இங்கே வரும்.</p></div><div class="spacer"></div><button class="btn primary" type="button" onclick="openOrdersNewOrderPicker()">＋ New Order</button></div>
+<div class="pagehead"><div><h2>Orders</h2><p>Customer Card-ல் எடுத்த New Order-கள் மட்டும் இங்கே வரும்.</p></div><div class="spacer"></div></div>
 <div class="card"><div class="toolbar"><input id="orderSearch" class="input search" placeholder="Search order / customer / garment"><select id="orderStatusFilter" style="max-width:190px"><option value="">All status</option><option>Pending</option><option>In Progress</option><option>Ready</option><option>Delivered</option><option>Cancelled</option></select><button class="btn secondary" onclick="loadAll()">↻ Refresh</button></div><div id="ordersTable"></div></div>
 </section>
 
@@ -2545,22 +2542,8 @@ body{
   <button data-p4-view="orders"><span class="p4Icon">🧾</span><span>Orders</span></button>
   <button data-p4-view="payments"><span class="p4Icon">₹</span><span>Payments</span></button>
 </nav>
-<button id="p4Fab" type="button" aria-label="Quick add">＋</button>
 
-<div id="ordersNewOrderPicker" class="modal">
-<div class="modalbox">
-<div class="modalhead"><h3>🧾 New Order</h3><button class="close" type="button" onclick="closeOrdersNewOrderPicker()">✕</button></div>
-<div class="field full">
-<label>Customer</label>
-<select id="ordersNewOrderCustomer" class="input"></select>
-<div class="hint">Customer-ஐ தேர்வு செய்ததும் Customer Card-ல் இருக்கும் அதே New Order system திறக்கும்.</div>
-</div>
-<div class="modalfoot">
-<button type="button" class="btn secondary" onclick="closeOrdersNewOrderPicker()">Cancel</button>
-<button type="button" class="btn primary" onclick="continueOrdersNewOrder()">＋ New Order</button>
-</div>
-</div>
-</div>
+
 <div id="modal" class="modal"><div class="modalbox">
 <div class="modalhead"><h3 id="modalTitle">Add</h3><button class="close" onclick="closeModal()">✕</button></div>
 <form id="dataForm"><div id="formFields" class="formgrid"></div>
@@ -3495,25 +3478,6 @@ const result=Function('"use strict";return ('+expr.replace(/×/g,"*").replace(/�
 if(!Number.isFinite(result))throw new Error();
 out.textContent="Result: "+result;
 }catch{out.textContent="கணக்கு சரியாக இல்லை."}
-}
-
-function closeOrdersNewOrderPicker(){
-  $("ordersNewOrderPicker")?.classList.remove("open");
-}
-function openOrdersNewOrderPicker(){
-  const m=$("ordersNewOrderPicker"),s=$("ordersNewOrderCustomer");
-  if(!m||!s)return;
-  const customers=(state.customers||[]).slice().sort((a,b)=>String(a.name||"").localeCompare(String(b.name||"")));
-  if(!customers.length){toast("முதலில் Customer-ஐ சேர்க்க வேண்டும்.",true);return;}
-  s.innerHTML='<option value="">Customer தேர்வு செய்யுங்கள்</option>'+customers.map(c=>`<option value="${esc(c.id)}">${esc(c.name||"Customer")}${c.phone?" — "+esc(c.phone):""}</option>`).join("");
-  s.value="";
-  m.classList.add("open");
-}
-function continueOrdersNewOrder(){
-  const id=$("ordersNewOrderCustomer")?.value||"";
-  if(!id){toast("Customer-ஐ தேர்வு செய்யுங்கள்.",true);return;}
-  closeOrdersNewOrderPicker();
-  openCustomerOrderEditor(id);
 }
 function openModal(type,id=null){
 state.editing={type,id};const def=formDefs[type];let row=null;
@@ -5769,8 +5733,6 @@ document.addEventListener("DOMContentLoaded",()=>setTimeout(()=>{
 
 <script id="mobile-edge-swipe-menu">
 /* Swipe behavior is handled by setupSideMenuSwipe above. */
-
-$("ordersNewOrderPicker")?.addEventListener("click",e=>{if(e.target===$("ordersNewOrderPicker"))closeOrdersNewOrderPicker()});
 </script>
 
 </body>
