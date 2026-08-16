@@ -2134,6 +2134,17 @@ body{
 </style>
 
 
+<style id="nf-orders-new-order-modal">
+.nf-orders-quick-modalbox{width:min(780px,100%);max-height:93vh;overflow:auto}
+.nf-orders-quick-modalbox .formgrid{gap:12px}
+.nf-orders-quick-modalbox .moneyStat{background:#faf8f6;border:1px solid var(--line);border-radius:11px;padding:9px}
+.nf-orders-quick-modalbox .nf-orders-qo-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}
+@media(max-width:560px){
+  .nf-orders-quick-modalbox{max-height:94dvh;border-radius:18px 18px 0 0;padding:16px 14px calc(16px + env(safe-area-inset-bottom))}
+  .nf-orders-quick-modalbox .nf-orders-qo-actions{flex-direction:column-reverse}
+  .nf-orders-quick-modalbox .nf-orders-qo-actions .btn{width:100%}
+}
+</style>
 <style id="phase4-5-user-fixes">
 /* =========================================================
    PHASE 4.5 — CLOCK + MOBILE MODAL LAYER FIX
@@ -2499,7 +2510,7 @@ body{
 </section>
 
 <section id="view-orders" class="view">
-<div class="pagehead"><div><h2>Orders</h2><p>Customer Card-ல் எடுத்த New Order-கள் மட்டும் இங்கே வரும்.</p></div><div class="spacer"></div><button class="btn primary" type="button" onclick="openOrdersNewOrder()">＋ New Order</button></div>
+<div class="pagehead"><div><h2>Orders</h2><p>Customer Card-ல் எடுத்த New Order-கள் மட்டும் இங்கே வரும்.</p></div><div class="spacer"></div><button class="btn primary" onclick="openOrdersNewOrder()">＋ New Order</button></div>
 <div class="card"><div class="toolbar"><input id="orderSearch" class="input search" placeholder="Search order / customer / garment"><select id="orderStatusFilter" style="max-width:190px"><option value="">All status</option><option>Pending</option><option>In Progress</option><option>Ready</option><option>Delivered</option><option>Cancelled</option></select><button class="btn secondary" onclick="loadAll()">↻ Refresh</button></div><div id="ordersTable"></div></div>
 </section>
 
@@ -2550,12 +2561,17 @@ body{
 <div class="modalfoot"><button type="button" class="btn secondary" onclick="closeModal()">Cancel</button><button id="saveBtn" type="submit" class="btn primary">Save</button></div>
 <div id="formMsg" class="msg"></div></form>
 </div></div>
-<div id="ordersNewOrderPicker" class="modal" aria-hidden="true"><div class="modalbox" style="max-width:560px">
-<div class="modalhead"><h3>🧾 New Order</h3><button class="close" type="button" onclick="closeOrdersNewOrderPicker()">✕</button></div>
-<div class="field"><label>Customer</label><select id="ordersNewOrderCustomer" class="input"></select></div>
-<div class="hint" style="margin-top:8px">Customer-ஐ தேர்வு செய்ததும் Customer Card-ல் இருக்கும் அதே <b>New Order</b> editor திறக்கும்.</div>
-<div class="modalfoot"><button type="button" class="btn secondary" onclick="closeOrdersNewOrderPicker()">Cancel</button><button type="button" class="btn primary" onclick="continueOrdersNewOrder()">＋ Open New Order</button></div>
-</div></div>
+
+<div id="ordersQuickModal" class="modal">
+  <div class="modalbox nf-orders-quick-modalbox">
+    <div class="modalhead"><h3>🧾 New Order</h3><button class="close" type="button" onclick="closeOrdersNewOrder()">✕</button></div>
+    <div class="field" style="margin-bottom:10px">
+      <label>Customer</label>
+      <select id="oqo-customer" class="input"></select>
+    </div>
+    <div id="oqo-form"></div>
+  </div>
+</div>
 <div id="toast" class="toast"></div>
 
 <div id="passkeyGate" class="passkeyGate" aria-hidden="true">
@@ -3355,28 +3371,132 @@ function renderMeasurements(){
 const q=($("measurementSearch").value||"").toLowerCase(),r=state.measurements.filter(x=>[customerName(x.customer_id),x.garment_type,x.notes].join(" ").toLowerCase().includes(q));
 $("measurementsTable").innerHTML=r.length?`<div class="tablewrap"><table class="table"><thead><tr><th>Customer</th><th>Garment</th><th>Chest</th><th>Waist</th><th>Shoulder</th><th>Length</th><th>Notes</th><th>Actions</th></tr></thead><tbody>${r.map(x=>`<tr><td>${esc(customerName(x.customer_id))}</td><td>${esc(x.garment_type)}</td><td>${x.chest??"—"}</td><td>${x.waist??"—"}</td><td>${x.shoulder??"—"}</td><td>${x.shirt_length??x.pant_length??"—"}</td><td>${esc(x.notes)}</td><td><div class="actions"><button class="btn secondary" onclick="openModal('measurement','${x.id}')">Edit</button><button class="btn danger" onclick="removeRow('measurements','${x.id}')">Delete</button></div></td></tr>`).join("")}</tbody></table></div>`:`<div class="empty">No measurements found.</div>`;
 }
-function closeOrdersNewOrderPicker(){
- const m=$("ordersNewOrderPicker");
- if(m){m.classList.remove("open");m.setAttribute("aria-hidden","true");}
-}
-function openOrdersNewOrder(){
- const m=$("ordersNewOrderPicker"),sel=$("ordersNewOrderCustomer");
- if(!m||!sel)return;
- const customers=(state.customers||[]).slice().sort((a,b)=>String(a.name||"").localeCompare(String(b.name||"")));
- if(!customers.length){toast("முதலில் Customer-ஐ சேர்க்க வேண்டும்.",true);return;}
- sel.innerHTML='<option value="">Customer தேர்வு செய்யுங்கள்</option>'+customers.map(c=>`<option value="${esc(c.id)}">${esc(c.name||"Customer")}${c.phone?` — ${esc(c.phone)}`:""}</option>`).join("");
- sel.value="";
- m.classList.add("open");m.setAttribute("aria-hidden","false");
- setTimeout(()=>sel.focus(),60);
-}
-function continueOrdersNewOrder(){
- const id=$("ordersNewOrderCustomer")?.value||"";
- if(!id){toast("Customer-ஐ தேர்வு செய்யுங்கள்.",true);return;}
- closeOrdersNewOrderPicker();
- /* IMPORTANT: use the exact same editor used by Customer Card -> New Order. */
- openCustomerOrderEditor(id);
+
+function ordersQuickFormHTML(){
+ return `<div id="oqo-fields" class="formgrid">
+  <div class="field"><label>Garment / Blouse / Chudi / Saree</label><select id="oqo-garment" class="input" onchange="updateOrdersQuickGarment()"><option value="Blouse">Blouse</option><option value="Chudi">Chudi</option><option value="Saree">Saree</option></select></div>
+  <div class="field"><label>துணி கொடுத்த தேதி</label><input id="oqo-cloth" class="input" type="date" value="${localDate()}"></div>
+  <div class="field"><label>Delivery Date</label><input id="oqo-delivery" class="input" type="date"></div>
+
+  <div class="field full nf-oqo-blouse"><label>👗 Customer கொடுத்த blouse — வகை வாரியாக எண்ணிக்கை + ஒன்றுக்கு விலை</label>
+    <div class="formgrid" style="margin-top:7px">
+      <div class="moneyStat"><span>Normal blouse — எத்தனை</span><input id="oqo-normal" class="input" type="number" min="0" step="1" value="0" oninput="updateOrdersQuickCalc()"></div>
+      <div class="moneyStat"><span>Normal blouse — ஒன்றுக்கு விலை</span><input id="oqo-normal-rate" class="input" type="number" min="0" step="0.01" value="${getRates().normal}" oninput="updateOrdersQuickCalc()"></div>
+      <div class="moneyStat"><span>Lining blouse — எத்தனை</span><input id="oqo-lining" class="input" type="number" min="0" step="1" value="0" oninput="updateOrdersQuickCalc()"></div>
+      <div class="moneyStat"><span>Lining blouse — ஒன்றுக்கு விலை</span><input id="oqo-lining-rate" class="input" type="number" min="0" step="0.01" value="${getRates().lining}" oninput="updateOrdersQuickCalc()"></div>
+      <div class="moneyStat"><span>Design blouse — எத்தனை</span><input id="oqo-design" class="input" type="number" min="0" step="1" value="0" oninput="updateOrdersQuickCalc()"></div>
+      <div class="moneyStat"><span>Design blouse — ஒன்றுக்கு விலை</span><input id="oqo-design-rate" class="input" type="number" min="0" step="0.01" value="${getRates().design}" oninput="updateOrdersQuickCalc()"></div>
+      <div class="moneyStat"><span>மொத்த blouse</span><input id="oqo-qty" class="input" type="number" value="0" readonly></div>
+    </div>
+  </div>
+
+  <div class="field full nf-oqo-lining-cost-box"><h4>🧵 Lining — Customer Amount-ல் சேர்க்க</h4>
+    <div class="nf-lining-cost-grid">
+      <div class="nf-lining-cost-field"><label>Lining யார் வாங்கியது?</label><select id="oqo-lining-source" class="input" onchange="updateOrdersQuickCalc()"><option value="">தேவையில்லை</option><option value="customer">Customer கொடுத்தது</option><option value="shop">நாம் வாங்கியது</option></select></div>
+      <div class="nf-lining-cost-field"><label>Lining எத்தனை</label><input id="oqo-lining-qty" class="input" type="number" min="0" step="1" value="0" oninput="updateOrdersQuickCalc()"></div>
+      <div class="nf-lining-cost-field"><label>நாம் வாங்கிய Lining விலை / ஒன்று</label><input id="oqo-lining-cost-rate" class="input" type="number" min="0" step="0.01" value="0" oninput="updateOrdersQuickCalc()"></div>
+      <div class="nf-lining-cost-field"><label>Lining மொத்த விலை</label><div id="oqo-lining-total" class="nf-lining-cost-total">₹0.00</div></div>
+    </div>
+  </div>
+
+  <div class="field nf-oqo-chudi"><label>👚 எத்தனை Chudi / சுடிதார்</label><input id="oqo-chudi" class="input" type="number" min="0" step="1" value="0" oninput="updateOrdersQuickCalc()"></div>
+  <div class="field nf-oqo-chudi"><label>🧵 Chudi-க்கு lining கொடுத்தாரா?</label><select id="oqo-chudi-lining" class="input" onchange="updateOrdersChudiLiningLabel()"><option value="no">இல்லை</option><option value="yes">ஆம்</option></select></div>
+  <div class="field nf-oqo-chudi"><label id="oqo-chudi-lining-label">🧵 நாம் வாங்கிய Chudi lining எத்தனை</label><input id="oqo-chudi-lining-qty" class="input" type="number" min="0" step="1" value="0"></div>
+  <div class="field nf-oqo-chudi"><label>👚 Chudi விலை / ஒன்றுக்கு</label><input id="oqo-chudi-rate" class="input" type="number" min="0" step="0.01" value="${getRates().chudi}" oninput="updateOrdersQuickCalc()"></div>
+
+  <div class="field nf-oqo-saree"><label>🥻 எத்தனை Saree / சேலை</label><input id="oqo-saree" class="input" type="number" min="0" step="1" value="0" oninput="updateOrdersQuickCalc()"></div>
+  <div class="field nf-oqo-saree"><label>🥻 Saree விலை / ஒன்றுக்கு</label><input id="oqo-saree-rate" class="input" type="number" min="0" step="0.01" value="${getRates().saree}" oninput="updateOrdersQuickCalc()"></div>
+
+  <div class="field"><label>Advance வாங்கியது</label><input id="oqo-advance" class="input" type="number" min="0" step="0.01" value="0"></div>
+  <div class="field"><label>Status</label><select id="oqo-status" class="input"><option>Pending</option><option>In Progress</option><option>Ready</option><option>Delivered</option></select></div>
+  <div class="field full"><label>Notes</label><textarea id="oqo-notes" class="input" placeholder="தேவைப்பட்டால் குறிப்பு"></textarea></div>
+  <div class="field full"><div class="autoTotal">மொத்த தொகை: <span id="oqo-total">₹0.00</span></div></div>
+ </div>
+ <div class="nf-orders-qo-actions"><button class="btn secondary" type="button" onclick="closeOrdersNewOrder()">Close</button><button class="btn primary" type="button" onclick="saveOrdersQuickOrder()">💾 Save Order</button></div>`;
 }
 
+function openOrdersNewOrder(){
+ const modal=$("ordersQuickModal"),sel=$("oqo-customer"),form=$("oqo-form");
+ if(!modal||!sel||!form)return;
+ sel.innerHTML=`<option value="">Select customer</option>${state.customers.map(c=>`<option value="${c.id}">${esc(c.name)}${c.phone?" — "+esc(c.phone):""}</option>`).join("")}`;
+ form.innerHTML="";
+ sel.onchange=()=>{ if(sel.value){form.innerHTML=ordersQuickFormHTML();updateOrdersQuickGarment()}else form.innerHTML=""; };
+ modal.classList.add("open");
+ sel.value="";
+ sel.focus();
+}
+
+function closeOrdersNewOrder(){
+ const modal=$("ordersQuickModal");
+ if(modal)modal.classList.remove("open");
+}
+
+$("ordersQuickModal")?.addEventListener("click",e=>{if(e.target===$("ordersQuickModal"))closeOrdersNewOrder()});
+
+function updateOrdersChudiLiningLabel(){
+ const source=$("oqo-chudi-lining")?.value||"no",label=$("oqo-chudi-lining-label");
+ if(label)label.textContent=source==="yes"?"🧵 Customer கொடுத்த Chudi lining எத்தனை":"🧵 நாம் வாங்கிய Chudi lining எத்தனை";
+}
+
+function getOrdersQuickBlouseRates(){
+ const d=getRates();
+ return {
+  normal:Math.max(0,Number($("oqo-normal-rate")?.value||d.normal||0)),
+  lining:Math.max(0,Number($("oqo-lining-rate")?.value||d.lining||0)),
+  design:Math.max(0,Number($("oqo-design-rate")?.value||d.design||0))
+ };
+}
+
+function updateOrdersQuickGarment(){
+ const g=$("oqo-garment")?.value||"Blouse";
+ document.querySelectorAll("#oqo-form .nf-oqo-blouse").forEach(x=>x.classList.toggle("nf-field-hidden",g!=="Blouse"));
+ document.querySelectorAll("#oqo-form .nf-oqo-chudi").forEach(x=>x.classList.toggle("nf-field-hidden",g!=="Chudi"));
+ document.querySelectorAll("#oqo-form .nf-oqo-saree").forEach(x=>x.classList.toggle("nf-field-hidden",g!=="Saree"));
+ updateOrdersQuickCalc();
+}
+
+function updateOrdersQuickCalc(){
+ const g=$("oqo-garment")?.value||"Blouse",r=getOrdersQuickBlouseRates();
+ const n=Math.max(0,Number($("oqo-normal")?.value||0)),l=Math.max(0,Number($("oqo-lining")?.value||0)),d=Math.max(0,Number($("oqo-design")?.value||0));
+ const cq=Math.max(0,Number($("oqo-chudi")?.value||0)),cr=Math.max(0,Number($("oqo-chudi-rate")?.value||0));
+ const sq=Math.max(0,Number($("oqo-saree")?.value||0)),sr=Math.max(0,Number($("oqo-saree-rate")?.value||0));
+ const qty=g==="Chudi"?cq:g==="Saree"?sq:n+l+d;
+ const garmentTotal=g==="Chudi"?cq*cr:g==="Saree"?sq*sr:n*r.normal+l*r.lining+d*r.design;
+ const ls=$("oqo-lining-source")?.value||"",lq=Math.max(0,Number($("oqo-lining-qty")?.value||0)),lr=Math.max(0,Number($("oqo-lining-cost-rate")?.value||0));
+ const liningTotal=ls==="shop"?lq*lr:0,total=garmentTotal+liningTotal;
+ if($("oqo-qty"))$("oqo-qty").value=qty;
+ if($("oqo-lining-total"))$("oqo-lining-total").textContent=money(liningTotal);
+ if($("oqo-total"))$("oqo-total").textContent=money(total);
+}
+
+async function saveOrdersQuickOrder(){
+ const customerId=$("oqo-customer")?.value||"";
+ if(!customerId){toast("Customer தேர்வு செய்யுங்கள்.",true);return}
+ const garment=$("oqo-garment")?.value||"Blouse",cloth=$("oqo-cloth")?.value||null,delivery=$("oqo-delivery")?.value||null,r=getOrdersQuickBlouseRates();
+ const s={normal:Math.max(0,Number($("oqo-normal")?.value||0)),lining:Math.max(0,Number($("oqo-lining")?.value||0)),design:Math.max(0,Number($("oqo-design")?.value||0))};
+ const cq=Math.max(0,Number($("oqo-chudi")?.value||0)),cl=$("oqo-chudi-lining")?.value==="yes"?"yes":"no",clq=Math.max(0,Number($("oqo-chudi-lining-qty")?.value||0)),cr=Math.max(0,Number($("oqo-chudi-rate")?.value||r.chudi||0));
+ const sq=Math.max(0,Number($("oqo-saree")?.value||0)),sr=Math.max(0,Number($("oqo-saree-rate")?.value||r.saree||0));
+ const qty=garment==="Chudi"?cq:garment==="Saree"?sq:s.normal+s.lining+s.design;
+ const garmentTotal=garment==="Chudi"?cq*cr:garment==="Saree"?sq*sr:s.normal*r.normal+s.lining*r.lining+s.design*r.design;
+ const ls=$("oqo-lining-source")?.value||"",lq=Math.max(0,Number($("oqo-lining-qty")?.value||0)),lr=Math.max(0,Number($("oqo-lining-cost-rate")?.value||0));
+ const liningTotal=ls==="shop"?lq*lr:0,total=garmentTotal+liningTotal;
+ const advance=Math.max(0,Number($("oqo-advance")?.value||0)),status=$("oqo-status")?.value||"Pending";
+ if(!delivery){toast("Delivery Date தேர்வு செய்யுங்கள்.",true);return}
+ if(qty<=0){toast(garment==="Chudi"?"குறைந்தது 1 Chudi கொடுக்க வேண்டும்.":garment==="Saree"?"குறைந்தது 1 Saree கொடுக்க வேண்டும்.":"குறைந்தது 1 blouse கொடுக்க வேண்டும்.",true);return}
+ if(ls==="shop"&&lq>0&&lr<=0){toast("நாம் வாங்கிய Lining-க்கு விலை கொடுக்க வேண்டும்.",true);return}
+ if(ls==="shop"&&lq<=0&&lr>0){toast("நாம் வாங்கிய Lining எத்தனை என்று கொடுக்க வேண்டும்.",true);return}
+ let notes=garment==="Chudi"?"GARMENT_SPLIT:"+JSON.stringify({chudi:cq,chudiLining:cl,chudiLiningQty:clq,saree:0})+" | CHUDI_RATE:"+cr:
+   garment==="Saree"?"GARMENT_SPLIT:"+JSON.stringify({chudi:0,chudiLining:"no",chudiLiningQty:0,saree:sq})+" | SAREE_RATE:"+sr:
+   makeBlouseSplitNote(s,r,$("oqo-notes")?.value||"");
+ if(ls)notes+=` | Lining cloth: ${ls==="customer"?"Customer கொடுத்தது":"நாம் வாங்கியது"}`;
+ if(ls==="shop")notes+=` | LINING_COST:${JSON.stringify({source:ls,qty:lq,rate:lr,total:liningTotal})}`;
+ const payload={customer_id:customerId,order_no:makeOrderNo(),garment_type:garment,order_date:localDate(),cloth_received_date:cloth,delivery_date:delivery,quantity:qty,unit_price:qty?garmentTotal/qty:0,total_amount:total,advance_amount:advance,balance_amount:Math.max(0,total-advance),status,rate_type:garment==="Chudi"||garment==="Saree"?"normal":(s.normal>0?(s.lining>0||s.design>0?"mixed":"normal"):s.lining>0?(s.design>0?"mixed":"lining"):s.design>0?"design":"normal"),lining_cloth_source:ls||null,lining_cloth_qty:lq,notes};
+ try{
+   const result=await supabaseClient.from("orders").insert(payload);
+   if(result.error)throw result.error;
+   closeOrdersNewOrder();await loadAll(true);toast("இந்த customer-க்கு New Order சேமிக்கப்பட்டது.");
+ }catch(err){toast("Order save failed: "+err.message,true)}
+}
 function renderOrders(){
 const q=($("orderSearch").value||"").toLowerCase(),sf=$("orderStatusFilter").value;
 const r=state.orders.filter(x=>(!sf||x.status===sf)&&[x.order_no,customerName(x.customer_id),x.garment_type,x.status].join(" ").toLowerCase().includes(q));
@@ -3594,7 +3714,6 @@ function closeModal(skipHistory=false){
  }
 }
 $("modal").addEventListener("click",e=>{if(e.target===$("modal"))closeModal()});
-$("ordersNewOrderPicker")?.addEventListener("click",e=>{if(e.target===$("ordersNewOrderPicker"))closeOrdersNewOrderPicker()});
 
 $("dataForm").addEventListener("submit",async e=>{
 e.preventDefault();if(!state.editing)return;
