@@ -2462,6 +2462,17 @@ body{
 }
 </style>
 
+<style id="order-card-top-down-only">
+.order-card-details-sheet{display:none!important;align-items:flex-start!important;justify-content:center!important;padding:0!important;z-index:1200!important;overflow:hidden!important}
+.order-card-details-sheet.open{display:flex!important}
+.order-card-details-box{width:min(920px,100%)!important;max-height:94dvh!important;margin:0 auto!important;border-radius:0 0 22px 22px!important;overflow:auto!important;transform:translate3d(0,-110%,0)!important;transition:transform .36s cubic-bezier(.22,.8,.25,1)!important}
+.order-card-details-sheet.open .order-card-details-box{transform:translate3d(0,0,0)!important}
+.order-card-detail-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.order-card-detail{padding:11px;border:1px solid var(--line);border-radius:12px;background:#faf9ff}
+.order-card-detail b{display:block;font-size:11px;color:var(--muted);margin-bottom:3px}
+.order-card-detail span{font-weight:850;overflow-wrap:anywhere}
+@media(max-width:560px){.order-card-details-box{width:100%!important;border-radius:0 0 18px 18px!important;padding:14px!important}.order-card-detail-grid{grid-template-columns:1fr}}
+</style>
 </head>
 <body>
 
@@ -2612,6 +2623,12 @@ body{
 </nav>
 
 
+<div id="orderCardDetailsSheet" class="modal order-card-details-sheet" aria-hidden="true">
+  <div class="modalbox order-card-details-box">
+    <div class="modalhead"><h3>Full Order Details</h3><button class="close" type="button" onclick="closeOrderCardDetails()">✕</button></div>
+    <div id="orderCardDetailsContent"></div>
+  </div>
+</div>
 <div id="modal" class="modal"><div class="modalbox">
 <div class="modalhead"><h3 id="modalTitle">Add</h3><button class="close" onclick="closeModal()">✕</button></div>
 <form id="dataForm"><div id="formFields" class="formgrid"></div>
@@ -3349,7 +3366,7 @@ const clothPhotoActionsHtml="";
   const gx=typeof nfGarmentExtra==="function"?nfGarmentExtra(o):{chudi:0,chudiLiningQty:0,saree:0};
   const g=String(o.garment_type||"Blouse");
   const detail=g==="Chudi"?`👚 Chudi ${Number(gx.chudi||o.quantity||0)} · Lining ${Number(gx.chudiLiningQty||0)} · விலை ${money(o.unit_price)}`:g==="Saree"?`🥻 Saree ${Number(gx.saree||o.quantity||0)} · விலை ${money(o.unit_price)}`:`👗 ${blouseSplitText(o)} · Rate ${money(o.unit_price)}`;
-  return `<div class="customerOrderLine" id="customer-order-${esc(o.id)}"><b>${esc(o.order_no)}</b> · ${esc(g)} · ${detail} ${rem}<br><span class="mini">துணி: ${dateText(o.cloth_received_date)} · Delivery: ${dateText(o.delivery_date)} · Balance: ${money(o.balance_amount)}</span>${lining}${nfPriceBreakdownHTML(o)}${cleanOrderNotes(o.notes)?`<br><span class="mini">📝 ${esc(cleanOrderNotes(o.notes))}</span>`:""}<div class="orderActions"><button class="btn success" onclick="markDelivered('${o.id}')">Delivered</button><button class="btn primary" onclick="openCustomerOrderEditor('${id}','${o.id}')">✏️ Edit Details</button></div></div>`;
+  return `<div class="customerOrderLine" id="customer-order-${esc(o.id)}" onclick="openOrderCardDetails('${o.id}')" style="cursor:pointer"><b>${esc(o.order_no)}</b> · ${esc(g)} · ${detail} ${rem}<br><span class="mini">துணி: ${dateText(o.cloth_received_date)} · Delivery: ${dateText(o.delivery_date)} · Balance: ${money(o.balance_amount)}</span>${lining}${nfPriceBreakdownHTML(o)}${cleanOrderNotes(o.notes)?`<br><span class="mini">📝 ${esc(cleanOrderNotes(o.notes))}</span>`:""}<div class="orderActions"><button class="btn success" onclick="event.stopPropagation();markDelivered('${o.id}')">Delivered</button><button class="btn primary" onclick="event.stopPropagation();openCustomerOrderEditor('${id}','${o.id}')">✏️ Edit Details</button></div></div>`;
  }).join("")||`<div class="mini">இன்னும் order இல்லை.</div>`;
  return `<article class="customerCard" id="customer-card-${id}">
  <div class="customerCardHead nf-customer-head"><div class="customerAvatar">👤</div><div class="customerIdentity"><h3>${esc(c.name||"Customer")}</h3><div class="nf-customer-contact"><div class="nf-contact-item"><span>📞 Phone</span><b>${esc(c.phone||"Phone இல்லை")}</b></div><div class="nf-contact-item"><span>📍 ஊர்</span><b>${esc(village||"ஊர் இல்லை")}</b></div><div class="nf-contact-item nf-contact-address"><span>🏠 முகவரி</span><b>${esc(address)}</b></div></div><div class="nf-customer-cloth-photo-manager" aria-label="Customer cloth photos"><div class="nf-customer-cloth-photos">${clothPhotoHtml}</div></div>${c.notes?`<p class="nf-customer-note">📝 ${esc(c.notes)}</p>`:""}</div><div class="customerActions nf-customer-top-actions"><button class="btn primary" onclick="openCustomerOrderEditor('${id}')">✏️ Edit Order Details</button><button class="btn secondary" onclick="openModal('customer','${id}')">✏️ Edit Customer</button><button class="btn danger" onclick="deleteCustomer('${id}')">🗑 Delete</button></div></div>
@@ -3605,7 +3622,30 @@ if(!Number.isFinite(result))throw new Error();
 out.textContent="Result: "+result;
 }catch{out.textContent="கணக்கு சரியாக இல்லை."}
 }
-function openModal(type,id=null){
+function openOrderCardDetails(orderId){
+ const o=(state.orders||[]).find(x=>String(x.id)===String(orderId)); if(!o)return;
+ const c=state.customers.find(x=>x.id===o.customer_id)||{};
+ const box=$("orderCardDetailsSheet"),out=$("orderCardDetailsContent"); if(!box||!out)return;
+ const item=(a,b)=>`<div class="order-card-detail"><b>${a}</b><span>${b||"—"}</span></div>`;
+ out.innerHTML=`<div class="order-card-detail-grid">
+ ${item("Order No",esc(o.order_no))}
+ ${item("Customer",esc(c.name||""))}
+ ${item("Garment",esc(o.garment_type||""))}
+ ${item("Quantity",esc(o.quantity||0))}
+ ${item("Order Date",esc(dateText(o.order_date)))}
+ ${item("Cloth Received",esc(dateText(o.cloth_received_date)))}
+ ${item("Delivery Date",esc(dateText(o.delivery_date)))}
+ ${item("Status",statusPill(o.status))}
+ ${item("Unit Price",money(o.unit_price))}
+ ${item("Total",money(orderTotal(o)))}
+ ${item("Advance",money(o.advance_amount))}
+ ${item("Balance",money(o.balance_amount))}
+ </div>`;
+ box.classList.remove("open");void box.offsetWidth;box.classList.add("open");
+}
+function closeOrderCardDetails(){ $("orderCardDetailsSheet")?.classList.remove("open"); }
+$("orderCardDetailsSheet")?.addEventListener("click",e=>{if(e.target===$("orderCardDetailsSheet"))closeOrderCardDetails()});
+\nfunction openModal(type,id=null){
 state.editing={type,id};const def=formDefs[type];let row=null;
 if(id){const list=state[type+"s"]||[];row=list.find(x=>x.id===id)||null}
 $("modalTitle").textContent=type==="order"?(id?"Edit Order":"New Order"):(id?"Edit ":"Add ")+def.title;$("formMsg").textContent="";$("formMsg").className="msg";
@@ -5628,6 +5668,29 @@ window.runPhoneReminders=function(){
 @media (min-width:760px){
   .nf-orders-new-order-box{height:auto;max-height:93vh;border-radius:20px;margin:3vh auto}
   .nf-orders-new-order-screen{align-items:center;padding:16px}
+}
+
+/* Order Full Details: open from the top, not from the side. */
+.order-details-modal,
+.order-details-drawer,
+#orderDetailsModal{
+  align-items:flex-start !important;
+  justify-content:center !important;
+}
+.order-details-modal .modalbox,
+.order-details-drawer .modalbox,
+#orderDetailsModal .modalbox{
+  transform:translateY(-110%) !important;
+  transition:transform .34s ease, opacity .24s ease !important;
+  margin:0 auto !important;
+  width:min(920px,100%) !important;
+  max-height:96vh !important;
+  overflow:auto !important;
+}
+.order-details-modal.open .modalbox,
+.order-details-drawer.open .modalbox,
+#orderDetailsModal.open .modalbox{
+  transform:translateY(0) !important;
 }
 </style>
 
