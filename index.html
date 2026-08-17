@@ -2462,6 +2462,16 @@ body{
 }
 </style>
 
+
+<style id="nf-unified-payment-ui">
+.nf-payment-history{margin-top:12px;padding:12px;border:1px solid #e8eaf2;border-radius:14px;background:#faf9ff}
+.nf-payment-history>b{display:block;margin-bottom:8px}
+.nf-payment-history-row{display:grid;grid-template-columns:1fr auto;gap:2px 10px;padding:8px 0;border-top:1px dashed #ddd9e8}
+.nf-payment-history-row:first-of-type{border-top:0}
+.nf-payment-history-row small{grid-column:1/-1;color:#6f7482;font-size:11px}
+</style>
+
+<style id="nf-payment-date-small-ui">.nf-mobile-order-line small{display:block;font-size:10px;color:#6f7482;font-weight:650;margin-top:2px}</style>
 </head>
 <body>
 
@@ -2785,7 +2795,7 @@ function statusPill(s){const c=["Delivered","Completed"].includes(s)?"ok":s==="C
 function orderTotal(o){const q=Number(o.quantity||0),u=Number(o.unit_price||0);return Number(o.total_amount||0)||q*u}
 function totalPieces(){return state.orders.reduce((a,o)=>a+Number(o.quantity||0),0)}
 function totalSales(){return state.orders.reduce((a,o)=>a+orderTotal(o),0)}
-function totalBalance(){return state.orders.reduce((a,o)=>a+Math.max(0,Number(o.balance_amount||0)),0)}
+function totalBalance(){return state.orders.reduce((a,o)=>a+Math.max(0,nfOrderBalance(o)),0)}
 function todayCollection(){const t=localDate();return state.payments.filter(p=>p.payment_date===t).reduce((a,p)=>a+Number(p.amount||0),0)}
 function monthlyCollection(){
 const d=new Date(),ym=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
@@ -2863,7 +2873,7 @@ $("dailyUpdate").innerHTML=`<p>📅 இன்று: <b>${dateText(localDate())}
 <p>💳 Customers கொடுக்க வேண்டிய balance: <b>${money(totalBalance())}</b></p>
 <p>🚨 Late orders: <b>${late.length}</b> &nbsp; | &nbsp; ✅ Delivered: <b>${delivered}</b></p>`;
 const recent=state.orders.slice().sort((a,b)=>String(b.created_at||"").localeCompare(String(a.created_at||""))).slice(0,8);
-$("recentOrders").innerHTML=recent.length?`<div class="tablewrap"><table class="table"><thead><tr><th>Order</th><th>Customer</th><th>Garment</th><th>Qty</th><th>Delivery</th><th>Total</th><th>Balance</th><th>Status</th></tr></thead><tbody>${recent.map(o=>`<tr><td><b>${esc(o.order_no)}</b></td><td>${esc(customerName(o.customer_id))}</td><td>${esc(o.garment_type)}</td><td>${Number(o.quantity||0)}</td><td>${dateText(o.delivery_date)}</td><td>${money(orderTotal(o))}</td><td>${money(o.balance_amount)}</td><td>${statusPill(o.status)}</td></tr>`).join("")}</tbody></table></div>`:`<div class="empty">No orders yet.</div>`;
+$("recentOrders").innerHTML=recent.length?`<div class="tablewrap"><table class="table"><thead><tr><th>Order</th><th>Customer</th><th>Garment</th><th>Qty</th><th>Delivery</th><th>Total</th><th>Balance</th><th>Status</th></tr></thead><tbody>${recent.map(o=>`<tr><td><b>${esc(o.order_no)}</b></td><td>${esc(customerName(o.customer_id))}</td><td>${esc(o.garment_type)}</td><td>${Number(o.quantity||0)}</td><td>${dateText(o.delivery_date)}</td><td>${money(orderTotal(o))}</td><td>${money(nfOrderBalance(o))}</td><td>${statusPill(o.status)}</td></tr>`).join("")}</tbody></table></div>`:`<div class="empty">No orders yet.</div>`;
 if(localStorage.getItem("nf_notification_enabled")==="1")startReminderScheduler();
 }
 function smallOrderList(list,label){
@@ -2959,7 +2969,7 @@ function customerStats(id){
   const pendingSaree=os.reduce((a,o)=>{if(isFinished(o))return a;const x=typeof nfGarmentExtra==="function"?nfGarmentExtra(o):{};return a+Number(x.saree||0);},0);
   const paid=customerPayments(id).reduce((a,p)=>a+Number(p.amount||0),0);
  const total=os.reduce((a,o)=>a+orderTotal(o),0);
- const balance=Math.max(0,os.reduce((a,o)=>a+Number(o.balance_amount||0),0));
+ const balance=Math.max(0,os.reduce((a,o)=>a+nfOrderBalance(o),0));
  const advance=os.reduce((a,o)=>a+Number(o.advance_amount||0),0);
  const liningCustomer=os.reduce((a,o)=>a+(String(o.lining_cloth_source||"").toLowerCase()==="customer"?Number(o.lining_cloth_qty||0):0),0);
  const liningShop=os.reduce((a,o)=>a+((["shop","tailor"].includes(String(o.lining_cloth_source||"").toLowerCase()))?Number(o.lining_cloth_qty||0):0),0);
@@ -3363,7 +3373,7 @@ const clothPhotoActionsHtml="";
   const gx=typeof nfGarmentExtra==="function"?nfGarmentExtra(o):{chudi:0,chudiLiningQty:0,saree:0};
   const g=String(o.garment_type||"Blouse");
   const detail=g==="Chudi"?`👚 Chudi ${Number(gx.chudi||o.quantity||0)} · Lining ${Number(gx.chudiLiningQty||0)} · விலை ${money(o.unit_price)}`:g==="Saree"?`🥻 Saree ${Number(gx.saree||o.quantity||0)} · விலை ${money(o.unit_price)}`:`👗 ${blouseSplitText(o)} · Rate ${money(o.unit_price)}`;
-  return `<div class="customerOrderLine" id="customer-order-${esc(o.id)}"><b>${esc(o.order_no)}</b> · ${esc(g)} · ${detail} ${rem}<br><span class="mini">துணி: ${dateText(o.cloth_received_date)} · Delivery: ${dateText(o.delivery_date)} · Balance: ${money(o.balance_amount)}</span>${lining}${nfPriceBreakdownHTML(o)}${cleanOrderNotes(o.notes)?`<br><span class="mini">📝 ${esc(cleanOrderNotes(o.notes))}</span>`:""}<div class="orderActions"><button class="btn success" onclick="markDelivered('${o.id}')">Delivered</button><button class="btn primary" onclick="openCustomerOrderEditor('${id}','${o.id}')">✏️ Edit Details</button></div></div>`;
+  return `<div class="customerOrderLine" id="customer-order-${esc(o.id)}"><b>${esc(o.order_no)}</b> · ${esc(g)} · ${detail} ${rem}<br><span class="mini">துணி: ${dateText(o.cloth_received_date)} · Delivery: ${dateText(o.delivery_date)} · Advance: ${money(nfOrderPaymentInfo(o).advance)} (${nfFormatPaymentDate(nfOrderPaymentInfo(o).advanceDate)}) · Customer Paid: ${money(nfOrderPaymentInfo(o).customerPaid)} · Balance: ${money(nfOrderBalance(o))}</span>${lining}${nfPriceBreakdownHTML(o)}${cleanOrderNotes(o.notes)?`<br><span class="mini">📝 ${esc(cleanOrderNotes(o.notes))}</span>`:""}<div class="orderActions"><button class="btn success" onclick="markDelivered('${o.id}')">Delivered</button><button class="btn primary" onclick="openCustomerOrderEditor('${id}','${o.id}')">✏️ Edit Details</button></div></div>`;
  }).join("")||`<div class="mini">இன்னும் order இல்லை.</div>`;
  return `<article class="customerCard" id="customer-card-${id}">
  <div class="customerCardHead nf-customer-head"><div class="customerAvatar">👤</div><div class="customerIdentity"><h3>${esc(c.name||"Customer")}</h3><div class="nf-customer-contact"><div class="nf-contact-item"><span>📞 Phone</span><b>${esc(c.phone||"Phone இல்லை")}</b></div><div class="nf-contact-item"><span>📍 ஊர்</span><b>${esc(village||"ஊர் இல்லை")}</b></div><div class="nf-contact-item nf-contact-address"><span>🏠 முகவரி</span><b>${esc(address)}</b></div></div><div class="nf-customer-cloth-photo-manager" aria-label="Customer cloth photos"><div class="nf-customer-cloth-photos">${clothPhotoHtml}</div></div>${c.notes?`<p class="nf-customer-note">📝 ${esc(c.notes)}</p>`:""}</div><div class="customerActions nf-customer-top-actions"><button class="btn primary" onclick="openCustomerOrderEditor('${id}')">✏️ Edit Order Details</button><button class="btn secondary" onclick="openModal('customer','${id}')">✏️ Edit Customer</button><button class="btn danger" onclick="deleteCustomer('${id}')">🗑 Delete</button></div></div>
@@ -3511,7 +3521,9 @@ if(window.innerWidth<=700){
       <div class="nf-mobile-order-line"><span>Qty</span><b>${Number(o.quantity||0)}${blouseSplitText(o)?`<small>${esc(blouseSplitText(o))}</small>`:""}</b></div>
       <div class="nf-mobile-order-line"><span>Rate</span><b>${money(o.unit_price)}</b></div>
       <div class="nf-mobile-order-line"><span>Total</span><b>${money(orderTotal(o))}</b></div>
-      <div class="nf-mobile-order-line"><span>Balance</span><b>${money(o.balance_amount)}</b></div>
+      <div class="nf-mobile-order-line"><span>Advance</span><b>${money(nfOrderPaymentInfo(o).advance)}<small>${nfFormatPaymentDate(nfOrderPaymentInfo(o).advanceDate)}</small></b></div>
+      <div class="nf-mobile-order-line"><span>Customer Paid</span><b>${money(nfOrderPaymentInfo(o).customerPaid)}<small>${nfOrderPaymentInfo(o).payments.length?nfOrderPaymentInfo(o).payments.map(p=>nfFormatPaymentDate(p.payment_date)).join(" · "):"—"}</small></b></div>
+      <div class="nf-mobile-order-line"><span>Balance</span><b>${money(nfOrderBalance(o))}</b></div>
       ${liningText}
       <div class="nf-mobile-order-status"><span>Status</span>${statusPill(o.status)}</div>
       <div class="nf-mobile-order-hint">Tap to open Order Full Details →</div>
@@ -3523,7 +3535,7 @@ if(window.innerWidth<=700){
 /* Desktop/tablet: existing table behavior stays unchanged. */
 $("ordersTable").innerHTML=r.length?`<div class="tablewrap"><table class="table"><thead><tr><th>Order</th><th>Customer</th><th>Garment</th><th>Cloth received</th><th>Delivery</th><th>Qty</th><th>Rate</th><th>Total</th><th>Advance</th><th>Balance</th><th>Status</th><th>Actions</th></tr></thead><tbody>${r.map(o=>{
 const d=dueInfo(o);const reminder=d?`<br><span class="pill ${d.kind==="late"?"bad":d.kind==="today"?"warn":""}">${d.kind==="late"?d.days+" நாள் late":d.kind==="today"?"இன்று":d.days+" நாள்"}</span>`:"";
-return `<tr class="nf-order-row" onclick="openOrderFullDetails('${o.id}')"><td><b>${esc(o.order_no)}</b></td><td>${esc(customerName(o.customer_id))}</td><td>${esc(o.garment_type)}</td><td>${dateText(o.cloth_received_date)}</td><td>${dateText(o.delivery_date)}${reminder}</td><td><b>${Number(o.quantity||0)}</b><br><span class="mini">${esc(blouseSplitText(o))}</span></td><td>${money(o.unit_price)}</td><td>${money(orderTotal(o))}${nfLiningCost(o).total?`<br><span class="mini">🧵 Lining ${money(nfLiningCost(o).total)}</span>`:""}</td><td>${money(o.advance_amount)}</td><td>${money(o.balance_amount)}</td><td>${statusPill(o.status)}</td><td><div class="actions"><button class="btn primary" onclick="event.stopPropagation();openCustomerOrderEditor('${o.customer_id}','${o.id}')">✏️ Edit Details</button>${!isFinished(o)?`<button class="btn success" onclick="event.stopPropagation();markDelivered('${o.id}')">Delivered</button>`:""}<button class="btn danger" onclick="event.stopPropagation();removeRow('orders','${o.id}')">Delete</button></div></td></tr>`;
+return `<tr class="nf-order-row" onclick="openOrderFullDetails('${o.id}')"><td><b>${esc(o.order_no)}</b></td><td>${esc(customerName(o.customer_id))}</td><td>${esc(o.garment_type)}</td><td>${dateText(o.cloth_received_date)}</td><td>${dateText(o.delivery_date)}${reminder}</td><td><b>${Number(o.quantity||0)}</b><br><span class="mini">${esc(blouseSplitText(o))}</span></td><td>${money(o.unit_price)}</td><td>${money(orderTotal(o))}${nfLiningCost(o).total?`<br><span class="mini">🧵 Lining ${money(nfLiningCost(o).total)}</span>`:""}</td><td>${money(nfOrderPaymentInfo(o).advance)}<br><span class="mini">${nfFormatPaymentDate(nfOrderPaymentInfo(o).advanceDate)}</span></td><td>${money(nfOrderBalance(o))}</td><td>${statusPill(o.status)}</td><td><div class="actions"><button class="btn primary" onclick="event.stopPropagation();openCustomerOrderEditor('${o.customer_id}','${o.id}')">✏️ Edit Details</button>${!isFinished(o)?`<button class="btn success" onclick="event.stopPropagation();markDelivered('${o.id}')">Delivered</button>`:""}<button class="btn danger" onclick="event.stopPropagation();removeRow('orders','${o.id}')">Delete</button></div></td></tr>`;
 }).join("")}</tbody></table></div>`:`<div class="empty">No orders found.</div>`;
 }
 function renderAlterations(){
@@ -3532,7 +3544,7 @@ $("alterationsTable").innerHTML=r.length?`<div class="tablewrap"><table class="t
 }
 function renderPayments(){
 const q=($("paymentSearch").value||"").toLowerCase(),r=state.payments.filter(x=>[orderLabel(x.order_id),x.payment_method,x.reference_no].join(" ").toLowerCase().includes(q));
-$("paymentsTable").innerHTML=r.length?`<div class="tablewrap"><table class="table"><thead><tr><th>Order</th><th>Date</th><th>Amount</th><th>Method</th><th>Reference</th><th>Notes</th><th>Actions</th></tr></thead><tbody>${r.map(x=>`<tr><td>${esc(orderLabel(x.order_id))}</td><td>${dateText(x.payment_date)}</td><td><b>${money(x.amount)}</b></td><td>${esc(x.payment_method)}</td><td>${esc(x.reference_no)}</td><td>${esc(x.notes)}</td><td><div class="actions"><button class="btn secondary" onclick="openModal('payment','${x.id}')">Edit</button><button class="btn danger" onclick="removeRow('payments','${x.id}')">Delete</button></div></td></tr>`).join("")}</tbody></table></div>`:`<div class="empty">No payments found.</div>`;
+$("paymentsTable").innerHTML=r.length?`<div class="tablewrap"><table class="table"><thead><tr><th>Order</th><th>Date</th><th>Amount</th><th>Method</th><th>Reference</th><th>Notes</th><th>Actions</th></tr></thead><tbody>${r.map(x=>`<tr><td>${esc(orderLabel(x.order_id))}</td><td>${dateText(x.payment_date)}</td><td><b>${money(x.amount)}</b><br><span class="mini">Customer payment · ${dateText(x.payment_date)}</span></td><td>${esc(x.payment_method)}</td><td>${esc(x.reference_no)}</td><td>${esc(x.notes)}</td><td><div class="actions"><button class="btn secondary" onclick="openModal('payment','${x.id}')">Edit</button><button class="btn danger" onclick="removeRow('payments','${x.id}')">Delete</button></div></td></tr>`).join("")}</tbody></table></div>`:`<div class="empty">No payments found.</div>`;
 }
 function renderDesigns(){
 const q=($("designSearch").value||"").toLowerCase();
@@ -3654,7 +3666,7 @@ function openOrderFullDetails(orderId){
   if(!o){toast("Order details கிடைக்கவில்லை.",true);return;}
   const box=$("nfOrderFullDetails"),content=$("nfOrderFullDetailsContent");
   if(!box||!content)return;
-  const customer=customerName(o.customer_id), lining=nfLiningCost(o), total=orderTotal(o);
+  const customer=customerName(o.customer_id), lining=nfLiningCost(o), total=orderTotal(o), pay=nfOrderPaymentInfo(o);
   const liningSource=o.lining_cloth_source||lining.source||"";
   const liningQty=Number(o.lining_cloth_qty||lining.qty||0);
   const liningRate=Number(lining.rate||0);
@@ -3670,6 +3682,9 @@ function openOrderFullDetails(orderId){
     quantityText=`Saree ${Number(gx.saree||o.quantity||0)}`;
   }
   const item=(label,value,full=false)=>`<div class="nf-order-detail-item${full?" full":""}"><span class="nf-order-detail-label">${label}</span><span class="nf-order-detail-value">${value||"—"}</span></div>`;
+  const paymentHistory=pay.payments.length
+    ? `<div class="nf-payment-history"><b>Customer Payment Dates</b>${pay.payments.map((p,i)=>`<div class="nf-payment-history-row"><span>Payment ${i+1}</span><b>${money(p.amount)}</b><small>${nfFormatPaymentDate(p.payment_date)}${p.payment_method?` · ${esc(p.payment_method)}`:""}</small></div>`).join("")}</div>`
+    : "";
   content.innerHTML=`<div class="nf-order-detail-grid">
     ${item("Order No",esc(o.order_no))}
     ${item("Customer",esc(customer))}
@@ -3682,12 +3697,15 @@ function openOrderFullDetails(orderId){
     ${item("Rate Type",esc(o.rate_type||"—"))}
     ${item("Unit Price",money(o.unit_price))}
     ${item("Total Order",money(total))}
-    ${item("Advance Paid",money(o.advance_amount))}
-    ${item("Balance",money(o.balance_amount))}
+    ${item("Advance Paid",`${money(pay.advance)}<br><small>தேதி: ${nfFormatPaymentDate(pay.advanceDate)}</small>`)}
+    ${item("Customer Paid",money(pay.customerPaid))}
+    ${item("Total Paid",money(pay.totalPaid))}
+    ${item("Balance Due",money(pay.balance))}
     ${liningSource||liningQty?item("Lining Cloth",esc((liningSource==="customer"?"Customer கொடுத்தது":"நாம் வாங்கியது")+(liningQty?" · "+liningQty:""))):""}
     ${liningTotal||liningQty?item("Lining Cost",esc(liningQty&&liningRate?`${liningQty} lining × ${money(liningRate)} = ${money(liningTotal)}`:money(liningTotal))):""}
     ${notes?item("Notes",esc(notes),true):""}
   </div>
+  ${paymentHistory}
   <div class="nf-order-full-actions">
     <button class="btn primary" type="button" onclick="closeOrderFullDetails(true);openCustomerOrderEditor('${o.customer_id}','${o.id}')">✏️ Edit Details</button>
     ${!isFinished(o)?`<button class="btn success" type="button" onclick="closeOrderFullDetails(true);markDelivered('${o.id}')">✅ Delivered</button>`:""}
@@ -3717,6 +3735,15 @@ if(val==null&&["total_amount","advance_amount","amount","price","unit_price","li
  if(val==null&&f[0]==="rate_type")val="normal";
 return inputHTML(f,val);
  }).join("");
+
+if(type==="order"){
+  const af=document.createElement("div");
+  af.className="field";
+  const existingAdvanceDate=String(row?.advance_date||"").trim() || String(row?.notes||"").match(/ADVANCE_DATE:([0-9]{4}-[0-9]{2}-[0-9]{2})/)?.[1] || String(row?.order_date||today);
+  af.innerHTML=`<label>Advance கொடுத்த தேதி</label><input class="input" type="date" id="nfAdvanceDate" value="${esc(existingAdvanceDate)}">`;
+  $("formFields").appendChild(af);
+}
+
 if(type==="design"){
 const wrap=document.createElement("div");wrap.className="field full";
 wrap.innerHTML=`<label>📷 Blouse Design Photo</label><div id="designPhotoPreview" class="hint" style="margin-top:7px"></div><div class="designPhotoActions"><label class="btn secondary">🖼️ Gallery<input id="designPhotoFile" type="file" accept="image/*" style="display:none"></label><label class="btn secondary">📷 Camera<input id="designCameraFile" type="file" accept="image/*" capture="environment" style="display:none"></label><button type="button" class="btn danger" id="designPhotoRemove">🗑 Remove Photo</button></div><div class="hint">Gallery தேர்வு செய்தால் phone storage/gallery திறக்கும். Camera மூலம் புதிய photo எடுக்கலாம்.</div>`;
@@ -3820,7 +3847,10 @@ if(type==="order"){
    payload.rate_type=active[0]||"normal";
    payload.notes=makeBlouseSplitNote(split,rates,payload.notes||"");
  }
- payload.balance_amount=Math.max(0,payload.total_amount-Number(payload.advance_amount||0));
+ const nfAdvanceDate=$("nfAdvanceDate")?.value || payload.order_date || localDate();
+  const nfCleanNotes=cleanOrderNotes(payload.notes||"");
+  payload.notes=[nfCleanNotes.replace(/ADVANCE_DATE:[0-9]{4}-[0-9]{2}-[0-9]{2}\s*\|?\s*/g,"").trim(),`ADVANCE_DATE:${nfAdvanceDate}`].filter(Boolean).join(" | ");
+  payload.balance_amount=Math.max(0,payload.total_amount-Number(payload.advance_amount||0));
  if(!payload.status)payload.status="Pending";
  if(!payload.lining_cloth_source)payload.lining_cloth_source=null;
  if(payload.lining_cloth_qty==null)payload.lining_cloth_qty=0;
@@ -6149,6 +6179,25 @@ document.addEventListener("DOMContentLoaded",()=>setTimeout(()=>{
   }
 }
 </style>
+
+
+<script id="nf-unified-payment-calculation">
+function nfOrderPaymentInfo(o){
+  const total=Number(orderTotal(o)||0);
+  const advance=Number(o?.advance_amount||0);
+  const payments=(state.payments||[]).filter(p=>String(p.order_id||"")===String(o?.id||""));
+  const customerPaid=payments.reduce((s,p)=>s+Number(p.amount||0),0);
+  const totalPaid=advance+customerPaid;
+  return {
+    total, advance, customerPaid, totalPaid,
+    balance:Math.max(0,total-totalPaid),
+    advanceDate:String(o?.advance_date||"").trim() || String(o?.notes||"").match(/ADVANCE_DATE:([0-9]{4}-[0-9]{2}-[0-9]{2})/)?.[1] || String(o?.order_date||""),
+    payments
+  };
+}
+function nfOrderBalance(o){return nfOrderPaymentInfo(o).balance;}
+function nfFormatPaymentDate(v){return v?dateText(v):"—";}
+</script>
 
 </body>
 </html>
