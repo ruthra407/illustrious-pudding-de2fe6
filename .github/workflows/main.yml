@@ -1,0 +1,96 @@
+name: Create Android Project
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  create-android:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Create package.json
+        run: |
+          if [ ! -f package.json ]; then
+            npm init -y
+          fi
+
+      - name: Install Capacitor
+        run: |
+          npm install @capacitor/core
+          npm install @capacitor/android
+          npm install --save-dev @capacitor/cli
+
+      - name: Prepare web files
+        run: |
+          mkdir -p www
+          cp index.html www/index.html
+
+          if [ -f manifest.json ]; then
+            cp manifest.json www/manifest.json
+          fi
+
+          if [ -f icon-192.png ]; then
+            cp icon-192.png www/icon-192.png
+          fi
+
+          if [ -f icon-512.png ]; then
+            cp icon-512.png www/icon-512.png
+          fi
+
+      - name: Create Capacitor config
+        run: |
+          cat > capacitor.config.json <<'EOF'
+          {
+            "appId": "com.newfashion.tailoring",
+            "appName": "New Fashion Tailoring",
+            "webDir": "www"
+          }
+          EOF
+
+      - name: Create Android project
+        run: |
+          npx cap add android
+
+      - name: Sync Android project
+        run: |
+          npx cap sync android
+
+      - name: Check Android project
+        run: |
+          test -d android
+          test -f android/gradlew
+          echo "Android project created successfully."
+
+      - name: Commit Android project
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add android package.json package-lock.json capacitor.config.json www
+
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "Create Android project"
+            git push
+          fi
