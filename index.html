@@ -2542,7 +2542,7 @@ body{
 </section>
 
 <section id="view-customers" class="view">
-<div class="pagehead"><div><h2>Customer Cards</h2><p>ஒவ்வொரு customer-க்கும் Order, blouse count, balance, design, delivery reminder — ஒரே card-ல்.</p></div><div class="spacer"></div><div class="nf-customer-page-actions"><button class="btn primary" onclick="openModal('customer')">＋ Add Customer</button><button class="btn secondary" onclick="editCustomerFromSearch()">✏️ Edit Customer</button></div></div>
+<div class="pagehead"><div><h2>Customer Cards</h2><p>ஒவ்வொரு customer-க்கும் Order, blouse count, balance, design, delivery reminder — ஒரே card-ல்.</p></div><div class="spacer"></div><div class="nf-customer-page-actions"><button class="btn primary" onclick="openModal('customer')">＋ Add Customer</button></div></div>
 <div class="card customerSearchBox nf-section-card">
 <div class="toolbar" style="margin:0"><input id="customerSearch" class="input search" placeholder="Search name / phone / address / village"><button class="btn secondary" onclick="loadAll()">↻ Refresh</button></div></div>
 <div id="customersTable" class="customerCards"></div>
@@ -3492,6 +3492,35 @@ $("measurementsTable").innerHTML=r.length?`<div class="tablewrap"><table class="
 function renderOrders(){
 const q=($("orderSearch").value||"").toLowerCase(),sf=$("orderStatusFilter").value;
 const r=state.orders.filter(x=>(!sf||x.status===sf)&&[x.order_no,customerName(x.customer_id),x.garment_type,x.status].join(" ").toLowerCase().includes(q));
+
+/* Mobile: the entire order card is one tap target and opens Full Details. */
+if(window.innerWidth<=700){
+  $("ordersTable").innerHTML=r.length?`<div class="nf-mobile-order-list">${r.map(o=>{
+    const d=dueInfo(o);
+    const reminder=d?`<span class="pill ${d.kind==="late"?"bad":d.kind==="today"?"warn":""}">${d.kind==="late"?d.days+" நாள் late":d.kind==="today"?"இன்று":d.days+" நாள்"}</span>`:"";
+    const lining=nfLiningCost(o);
+    const liningSource=o.lining_cloth_source||lining.source||"";
+    const liningQty=Number(o.lining_cloth_qty||lining.qty||0);
+    const liningText=liningSource||liningQty?`<div class="nf-mobile-order-line"><span>🧵 Lining</span><b>${liningSource==="customer"?"Customer கொடுத்தது":"நாம் வாங்கியது"}${liningQty?` · ${liningQty}`:""}</b></div>`:"";
+    return `<article class="nf-mobile-order-card clickable" role="button" tabindex="0" onclick="openOrderFullDetails('${o.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openOrderFullDetails('${o.id}')}" aria-label="Open order ${esc(o.order_no||"")}">
+      <div class="nf-mobile-order-top"><div><span class="nf-mobile-order-label">Order</span><strong>${esc(o.order_no)}</strong></div>${reminder}</div>
+      <div class="nf-mobile-order-line"><span>Customer</span><b>${esc(customerName(o.customer_id))}</b></div>
+      <div class="nf-mobile-order-line"><span>Garment</span><b>${esc(o.garment_type||"—")}</b></div>
+      <div class="nf-mobile-order-line"><span>Cloth received</span><b>${dateText(o.cloth_received_date)}</b></div>
+      <div class="nf-mobile-order-line"><span>Delivery</span><b>${dateText(o.delivery_date)}</b></div>
+      <div class="nf-mobile-order-line"><span>Qty</span><b>${Number(o.quantity||0)}${blouseSplitText(o)?`<small>${esc(blouseSplitText(o))}</small>`:""}</b></div>
+      <div class="nf-mobile-order-line"><span>Rate</span><b>${money(o.unit_price)}</b></div>
+      <div class="nf-mobile-order-line"><span>Total</span><b>${money(orderTotal(o))}</b></div>
+      <div class="nf-mobile-order-line"><span>Balance</span><b>${money(o.balance_amount)}</b></div>
+      ${liningText}
+      <div class="nf-mobile-order-status"><span>Status</span>${statusPill(o.status)}</div>
+      <div class="nf-mobile-order-hint">Tap to open Order Full Details →</div>
+    </article>`;
+  }).join("")}</div>`:`<div class="empty">No orders found.</div>`;
+  return;
+}
+
+/* Desktop/tablet: existing table behavior stays unchanged. */
 $("ordersTable").innerHTML=r.length?`<div class="tablewrap"><table class="table"><thead><tr><th>Order</th><th>Customer</th><th>Garment</th><th>Cloth received</th><th>Delivery</th><th>Qty</th><th>Rate</th><th>Total</th><th>Advance</th><th>Balance</th><th>Status</th><th>Actions</th></tr></thead><tbody>${r.map(o=>{
 const d=dueInfo(o);const reminder=d?`<br><span class="pill ${d.kind==="late"?"bad":d.kind==="today"?"warn":""}">${d.kind==="late"?d.days+" நாள் late":d.kind==="today"?"இன்று":d.days+" நாள்"}</span>`:"";
 return `<tr class="nf-order-row" onclick="openOrderFullDetails('${o.id}')"><td><b>${esc(o.order_no)}</b></td><td>${esc(customerName(o.customer_id))}</td><td>${esc(o.garment_type)}</td><td>${dateText(o.cloth_received_date)}</td><td>${dateText(o.delivery_date)}${reminder}</td><td><b>${Number(o.quantity||0)}</b><br><span class="mini">${esc(blouseSplitText(o))}</span></td><td>${money(o.unit_price)}</td><td>${money(orderTotal(o))}${nfLiningCost(o).total?`<br><span class="mini">🧵 Lining ${money(nfLiningCost(o).total)}</span>`:""}</td><td>${money(o.advance_amount)}</td><td>${money(o.balance_amount)}</td><td>${statusPill(o.status)}</td><td><div class="actions"><button class="btn primary" onclick="event.stopPropagation();openCustomerOrderEditor('${o.customer_id}','${o.id}')">✏️ Edit Details</button>${!isFinished(o)?`<button class="btn success" onclick="event.stopPropagation();markDelivered('${o.id}')">Delivered</button>`:""}<button class="btn danger" onclick="event.stopPropagation();removeRow('orders','${o.id}')">Delete</button></div></td></tr>`;
@@ -3626,6 +3655,10 @@ function openOrderFullDetails(orderId){
   const box=$("nfOrderFullDetails"),content=$("nfOrderFullDetailsContent");
   if(!box||!content)return;
   const customer=customerName(o.customer_id), lining=nfLiningCost(o), total=orderTotal(o);
+  const liningSource=o.lining_cloth_source||lining.source||"";
+  const liningQty=Number(o.lining_cloth_qty||lining.qty||0);
+  const liningRate=Number(lining.rate||0);
+  const liningTotal=Number(lining.total||0);
   const notes=cleanOrderNotes(o.notes||""), garment=String(o.garment_type||"Blouse");
   let quantityText=String(Number(o.quantity||0));
   if(garment==="Blouse") quantityText=blouseSplitText(o)||quantityText+" pcs";
@@ -3651,8 +3684,8 @@ function openOrderFullDetails(orderId){
     ${item("Total Order",money(total))}
     ${item("Advance Paid",money(o.advance_amount))}
     ${item("Balance",money(o.balance_amount))}
-    ${lining.total?item("Lining Cost",money(lining.total)):""}
-    ${o.lining_cloth_source?item("Lining Cloth",esc((o.lining_cloth_source==="customer"?"Customer கொடுத்தது":"நாம் வாங்கியது")+" · "+Number(o.lining_cloth_qty||0))):""}
+    ${liningSource||liningQty?item("Lining Cloth",esc((liningSource==="customer"?"Customer கொடுத்தது":"நாம் வாங்கியது")+(liningQty?" · "+liningQty:""))):""}
+    ${liningTotal||liningQty?item("Lining Cost",esc(liningQty&&liningRate?`${liningQty} lining × ${money(liningRate)} = ${money(liningTotal)}`:money(liningTotal))):""}
     ${notes?item("Notes",esc(notes),true):""}
   </div>
   <div class="nf-order-full-actions">
@@ -5692,6 +5725,26 @@ window.runPhoneReminders=function(){
   .nf-orders-new-order-box{height:auto;max-height:93vh;border-radius:20px;margin:3vh auto}
   .nf-orders-new-order-screen{align-items:center;padding:16px}
 }
+
+/* MOBILE ORDERS — one card, one tap -> Full Details */
+.nf-mobile-order-list{display:grid;gap:12px}
+.nf-mobile-order-card{
+  background:rgba(255,255,255,.96);border:1px solid #e5e2ed;border-radius:20px;
+  padding:15px;box-shadow:0 10px 28px rgba(40,38,68,.08);cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+}
+.nf-mobile-order-card:active{transform:scale(.995);box-shadow:0 5px 16px rgba(40,38,68,.10)}
+.nf-mobile-order-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding-bottom:10px;margin-bottom:2px;border-bottom:1px solid #eeeaf2}
+.nf-mobile-order-top>div{display:grid;gap:2px;min-width:0}
+.nf-mobile-order-label{font-size:11px;color:#77758a;font-weight:800}
+.nf-mobile-order-top strong{font-size:19px;overflow-wrap:anywhere}
+.nf-mobile-order-line{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid #f0edf4}
+.nf-mobile-order-line span{color:#686578;font-weight:750;flex:0 0 auto}
+.nf-mobile-order-line b{text-align:right;overflow-wrap:anywhere}
+.nf-mobile-order-line small{display:block;color:#77758a;font-weight:600;font-size:11px;margin-top:2px}
+.nf-mobile-order-status{display:flex;align-items:center;justify-content:space-between;gap:10px;padding-top:10px;font-weight:800}
+.nf-mobile-order-hint{margin-top:10px;text-align:center;font-size:11px;color:#77758a;font-weight:750}
+@media(min-width:701px){.nf-mobile-order-list{display:none!important}}
 
 /* ORDER FULL DETAILS — TOP -> DOWN */
 .nf-order-full-details{display:none!important;align-items:flex-start!important;justify-content:center!important;padding:0!important;overflow:hidden!important;z-index:95!important}
