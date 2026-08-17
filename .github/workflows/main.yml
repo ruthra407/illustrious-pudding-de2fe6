@@ -1,0 +1,232 @@
+name: Build APK
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Create Node project
+        run: |
+          npm init -y
+          npm install @capacitor/core @capacitor/android
+          npm install --save-dev @capacitor/cli
+
+      - name: Prepare web assets
+        run: |
+          set -e
+          mkdir -p www
+
+          test -f index.html
+          cp index.html www/index.html
+
+          if [ -f manifest.json ]; then
+            cp manifest.json www/manifest.json
+          fi
+
+          if [ -f icon-192.png ]; then
+            cp icon-192.png www/icon-192.png
+          fi
+
+          if [ -f icon-512.png ]; then
+            cp icon-512.png www/icon-512.png
+          fi
+
+      - name: Create Capacitor config
+        run: |
+          cat > capacitor.config.json <<'EOF'
+          {
+            "appId": "com.newfashion.tailoring",
+            "appName": "New Fashion Tailoring",
+            "webDir": "www"
+          }
+          EOF
+
+      - name: Backup native Java files
+        run: |
+          set -e
+
+          BASE="android/app/src/main/java/com/newfashion/tailoring"
+
+          if [ -f "$BASE/MainActivity.java" ]; then
+            cp "$BASE/MainActivity.java" /tmp/MainActivity.java
+          fi
+
+          if [ -f "$BASE/ReminderReceiver.java" ]; then
+            cp "$BASE/ReminderReceiver.java" /tmp/ReminderReceiver.java
+          fi
+
+          if [ -f "$BASE/ReminderScheduler.java" ]; then
+            cp "$BASE/ReminderScheduler.java" /tmp/ReminderScheduler.java
+          fi
+
+          if [ -f "$BASE/BootReceiver.java" ]; then
+            cp "$BASE/BootReceiver.java" /tmp/BootReceiver.java
+          fi
+
+      - name: Recreate Android project
+        run: |
+          set -e
+
+          rm -rf android
+
+          npx cap add android
+
+      - name: Restore native Java files
+        run: |
+          set -e
+
+          BASE="android/app/src/main/java/com/newfashion/tailoring"
+
+          mkdir -p "$BASE"
+
+          if [ -f /tmp/MainActivity.java ]; then
+            cp /tmp/MainActivity.java "$BASE/MainActivity.java"
+          fi
+
+          if [ -f /tmp/ReminderReceiver.java ]; then
+            cp /tmp/ReminderReceiver.java "$BASE/ReminderReceiver.java"
+          fi
+
+          if [ -f /tmp/ReminderScheduler.java ]; then
+            cp /tmp/ReminderScheduler.java "$BASE/ReminderScheduler.java"
+          fi
+
+          if [ -f /tmp/BootReceiver.java ]; then
+            cp /tmp/BootReceiver.java "$BASE/BootReceiver.java"
+          fi
+
+      - name: Sync Capacitor
+        run: |
+          set -e
+          npx cap sync android
+
+      - name: Check Android project
+        run: |
+          set -e
+
+          test -d android
+          test -f android/gradlew
+
+          echo "Android project is ready."      - name: Configure Android Back
+        run: |
+          set -e
+
+          MAIN="android/app/src/main/java/com/newfashion/tailoring/MainActivity.java"
+
+          cat > "$MAIN" <<'EOF'
+          package com.newfashion.tailoring;
+
+          import android.os.Bundle;
+          import android.webkit.WebView;
+
+          import androidx.activity.OnBackPressedCallback;
+
+          import com.getcapacitor.BridgeActivity;
+
+          public class MainActivity extends BridgeActivity {
+
+              @Override
+              public void onCreate(Bundle savedInstanceState) {
+                  super.onCreate(savedInstanceState);
+
+                  getOnBackPressedDispatcher().addCallback(
+                      this,
+                      new OnBackPressedCallback(true) {
+                          @Override
+                          public void handleOnBackPressed() {
+
+                              WebView webView = getBridge() == null
+                                  ? null
+                                  : getBridge().getWebView();
+
+                              if (webView == null) {
+                                  return;
+                              }
+
+                              webView.post(() -> {
+                                  webView.evaluateJavascript(
+                                      "(function(){"
+                                      + "if(typeof window.__nfAndroidBack === 'function'){"
+                                      + "window.__nfAndroidBack();"
+                                      + "}"
+                                      + "})();",
+                                      null
+                                  );
+                              });
+                          }
+                      }
+                  );
+              }
+          }
+          EOF
+
+      - name: Check native Java files
+        run: |
+          set -e
+
+          BASE="android/app/src/main/java/com/newfashion/tailoring"
+
+          echo "Checking native Java files..."
+
+          test -f "$BASE/MainActivity.java"
+          test -f "$BASE/ReminderReceiver.java"
+          test -f "$BASE/ReminderScheduler.java"
+          test -f "$BASE/BootReceiver.java"
+
+          echo "All Java files are present."
+
+      - name: Make Gradle executable
+        run: |
+          chmod +x android/gradlew
+
+      - name: Build Debug APK
+        run: |
+          set -e
+
+          cd android
+
+          ./gradlew assembleDebug --no-daemon --stacktrace
+
+      - name: Verify APK
+        run: |
+          set -e
+
+          APK="android/app/build/outputs/apk/debug/app-debug.apk"
+
+          if [ ! -f "$APK" ]; then
+            echo "ERROR: APK was not created."
+            exit 1
+          fi
+
+          echo "APK successfully created."
+          ls -lh "$APK"
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: New-Fashion-Tailoring-APK
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
