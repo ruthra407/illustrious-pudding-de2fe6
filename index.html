@@ -3403,7 +3403,7 @@ const clothPhotoActionsHtml="";
  <div class="field full nf-design-rate-box nf-quick-blouse" id="qo-design-rates-box-${id}" style="display:none"></div>
  <div class="field full nf-lining-cost-box"><h4>🧵 Lining — Customer Amount-ல் சேர்க்க</h4><div class="nf-lining-cost-grid"><div class="nf-lining-cost-field"><label>Lining யார் வாங்கியது?</label><select id="qo-lining-source-${id}" class="input" onchange="updateQuickOrderCalc('${id}')"><option value="">தேவையில்லை</option><option value="customer">Customer கொடுத்தது</option><option value="shop">நாம் வாங்கியது</option></select></div><div class="nf-lining-cost-field"><label>Lining எத்தனை</label><input id="qo-lining-qty-${id}" class="input" type="number" min="0" step="1" value="0" oninput="updateQuickOrderCalc('${id}')"></div><div class="nf-lining-cost-field"><label>நாம் வாங்கிய Lining விலை / ஒன்று</label><input id="qo-lining-cost-rate-${id}" class="input" type="number" min="0" step="0.01" value="0" oninput="updateQuickOrderCalc('${id}')"></div><div class="nf-lining-cost-field"><label>Lining மொத்த விலை</label><div id="qo-lining-total-${id}" class="nf-lining-cost-total">₹0.00</div></div></div></div>
  <div class="field nf-quick-chudi"><label>👚 எத்தனை Chudi / சுடிதார்</label><input id="qo-chudi-${id}" class="input" type="number" min="0" step="1" value="0" oninput="updateQuickOrderCalc('${id}')"></div><div class="field nf-quick-chudi"><label>🧵 Chudi-க்கு lining கொடுத்தாரா?</label><select id="qo-chudi-lining-${id}" class="input" onchange="updateChudiLiningLabel('${id}')"><option value="no">இல்லை</option><option value="yes">ஆம்</option></select></div><div class="field nf-quick-chudi"><label id="qo-chudi-lining-label-${id}">🧵 நாம் வாங்கிய Chudi lining எத்தனை</label><input id="qo-chudi-lining-qty-${id}" class="input" type="number" min="0" step="1" value="0"></div><div class="field nf-quick-chudi"><label>👚 Chudi விலை / ஒன்றுக்கு</label><input id="qo-chudi-rate-${id}" class="input" type="number" min="0" step="0.01" value="${getRates().chudi}" oninput="updateQuickOrderCalc('${id}')"></div><div class="field nf-quick-saree"><label>🥻 எத்தனை Saree / சேலை</label><input id="qo-saree-${id}" class="input" type="number" min="0" step="1" value="0" oninput="updateQuickOrderCalc('${id}')"></div><div class="field nf-quick-saree"><label>🥻 Saree விலை / ஒன்றுக்கு</label><input id="qo-saree-rate-${id}" class="input" type="number" min="0" step="0.01" value="${getRates().saree}" oninput="updateQuickOrderCalc('${id}')"></div>
- <div class="field"><label>Advance வாங்கியது</label><input id="qo-advance-${id}" class="input" type="number" min="0" step="0.01" value="0"></div><div class="field"><label>Status</label><select id="qo-status-${id}" class="input"><option>Pending</option><option>In Progress</option><option>Ready</option><option>Delivered</option></select></div>
+ <div class="field"><label>Advance வாங்கியது</label><input id="qo-advance-${id}" class="input" type="number" min="0" step="0.01" value="0"></div><div class="field"><label>Status</label><select id="qo-status-${id}" class="input"><option value="Pending">Pending</option><option value="In Progress">Progress</option><option value="Ready">Ready</option><option value="Delivered">Delivered</option><option value="Cancelled">Cancel</option></select></div>
  <div class="field full"><label>Notes</label><textarea id="qo-notes-${id}" class="input" placeholder="தேவைப்பட்டால் குறிப்பு"></textarea></div>
  </div><div class="customerActions" style="margin-top:10px"><button class="btn primary nf-quick-save-btn" onclick="saveQuickOrder('${id}')">💾 Save Order</button><button class="btn secondary" onclick="toggleQuickOrder('${id}')">Close</button></div></div></div>
  <div class="customerSection"><h4>⏰ Delivery Reminder</h4>${customerReminderHTML(st.os)}<div class="reminderSettings" style="margin-top:8px"><div class="field" style="min-width:100%"><label class="mini">ஒரு நாளில் 10 reminder நேரங்கள்</label><div class="reminderTimesGrid">${REMINDER_TIMES.map(t=>`<span class="reminderTimeChip">🔔 ${t}</span>`).join("")}</div></div><button class="btn warning" onclick="enableDailyNotifications()">🔔 10 Daily Notifications ON</button></div><div class="hint">Notification permission கொடுத்தால் இந்த 10 நேரங்களில் phone notification வரும். App/browser active-ஆ இருக்கும்போது இந்த HTML version வேலை செய்யும்.</div></div>
@@ -3696,7 +3696,21 @@ function openOrderFullDetails(orderId){
   const paymentHistory=pay.payments.length
     ? `<div class="nf-payment-history"><b>Customer Payment Dates</b>${pay.payments.map((p,i)=>`<div class="nf-payment-history-row"><span>Payment ${i+1}</span><b>${money(p.amount)}</b><small>${nfFormatPaymentDate(p.payment_date)}${p.payment_method?` · ${esc(p.payment_method)}`:""}</small></div>`).join("")}</div>`
     : "";
-  content.innerHTML=`<div class="nf-order-detail-grid">
+  const currentStatus=String(o.status||"Pending");
+  const statusButtons=[
+    ["In Progress","Progress","primary"],
+    ["Ready","Ready","success"],
+    ["Delivered","Delivered","success"],
+    ["Cancelled","Cancel","danger"]
+  ];
+  const statusControl=`<div class="nf-order-status-control">
+    <div class="nf-order-status-title">Order Progress</div>
+    <div class="nf-order-status-buttons">
+      ${statusButtons.map(([value,label,cls])=>`<button type="button" class="btn ${cls} nf-status-btn${currentStatus===value?" active":""}" onclick="updateOrderStatus('${o.id}','${value}')">${label}</button>`).join("")}
+    </div>
+    <div class="nf-order-status-current">Current Status: <b>${esc(currentStatus)}</b></div>
+  </div>`;
+  content.innerHTML=`${statusControl}<div class="nf-order-detail-grid">
     ${item("Order No",esc(o.order_no))}
     ${item("Customer",esc(customer))}
     ${item("Garment",esc(garment))}
@@ -3943,10 +3957,19 @@ closeModal();await loadAll(true);toast(id?"Updated online":"Saved online");
 finally{b.disabled=false;b.textContent="Save"}
 });
 
+async function updateOrderStatus(id,status){
+const labels={"In Progress":"Progress","Ready":"Ready","Delivered":"Delivered","Cancelled":"Cancel"};
+if(!["In Progress","Ready","Delivered","Cancelled"].includes(status))return;
+const label=labels[status]||status;
+if(!confirm(`இந்த order-ஐ ${label} என்று மாற்றவா?`))return;
+const {error}=await supabaseClient.from("orders").update({status}).eq("id",id);
+if(error){toast("Status update failed: "+error.message,true);return;}
+await loadAll(true);
+openOrderFullDetails(id);
+toast(`Order ${label} என்று சேமிக்கப்பட்டது`);
+}
 async function markDelivered(id){
-if(!confirm("இந்த order-ஐ Delivered என்று மாற்றவா?"))return;
-const {error}=await supabaseClient.from("orders").update({status:"Delivered"}).eq("id",id);
-if(error)toast("Update failed: "+error.message,true);else{await loadAll(true);toast("Order Delivered என்று சேமிக்கப்பட்டது")}
+await updateOrderStatus(id,"Delivered");
 }
 async function deleteCustomer(id){
  const c=state.customers.find(x=>x.id===id);
@@ -5871,6 +5894,12 @@ window.runPhoneReminders=function(){
 .nf-order-detail-item.full{grid-column:1/-1}
 .nf-order-detail-label{display:block;font-size:11px;color:#747083;font-weight:800;margin-bottom:4px}
 .nf-order-detail-value{display:block;font-size:15px;font-weight:850;color:#20212a;overflow-wrap:anywhere}
+.nf-order-status-control{margin:0 0 14px;padding:14px;border:1px solid rgba(108,61,245,.14);border-radius:16px;background:linear-gradient(180deg,#faf8ff,#fff)}
+.nf-order-status-title{font-size:16px;font-weight:900;margin-bottom:10px}
+.nf-order-status-buttons{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.nf-status-btn{min-height:46px;font-weight:900;opacity:.78}
+.nf-status-btn.active{opacity:1;transform:translateY(-1px);box-shadow:0 7px 18px rgba(108,61,245,.18)}
+.nf-order-status-current{margin-top:9px;font-size:12px;color:#77758a}
 .nf-order-full-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
 .nf-order-row{cursor:pointer}
 .nf-order-row:hover td{background:#faf8ff}
