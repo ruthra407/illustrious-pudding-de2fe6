@@ -6277,5 +6277,64 @@ function nfOrderBalance(o){return nfOrderPaymentInfo(o).balance;}
 function nfFormatPaymentDate(v){return v?dateText(v):"—";}
 </script>
 
+<style id="nf-fixed-header-final">
+/* FINAL MOBILE/APP HEADER FIX
+   Header stays fixed while only page content scrolls.
+   This overrides the earlier sticky-header rules.
+*/
+:root{
+  --nf-header-height:76px;
+}
+
+html{
+  scroll-padding-top:var(--nf-header-height);
+}
+
+#app{
+  padding-top:var(--nf-header-height)!important;
+}
+
+#app > .topbar{
+  position:fixed!important;
+  top:0!important;
+  left:0!important;
+  right:0!important;
+  width:100%!important;
+  height:var(--nf-header-height)!important;
+  min-height:var(--nf-header-height)!important;
+  z-index:1000!important;
+}
+
+@media(max-width:900px){
+  #app > .topbar{
+    height:var(--nf-header-height)!important;
+    min-height:var(--nf-header-height)!important;
+  }
+
+  #app > .layout > .sidebar{
+    top:var(--nf-header-height)!important;
+  }
+}
+
+@media(max-width:700px){
+  :root{
+    --nf-header-height:88px;
+  }
+
+  #app{
+    padding-top:var(--nf-header-height)!important;
+  }
+
+  #app > .topbar{
+    height:var(--nf-header-height)!important;
+    min-height:var(--nf-header-height)!important;
+  }
+
+  #app > .layout > .sidebar{
+    top:var(--nf-header-height)!important;
+  }
+}
+</style>
+
 </body>
 </html>
