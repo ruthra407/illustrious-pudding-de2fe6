@@ -4109,59 +4109,21 @@ async function requestNotificationPermission(){
  const native=getNativeLocalNotifications();
  if(native){
    try{
-     // Always read the current native permission first.
-     let status=await native.checkPermissions();
-     if(status?.display!=="granted"){
-       // Android may return a request result that is not the final state.
-       // Request once, then verify the permission again from the OS.
-       await native.requestPermissions();
-       status=await native.checkPermissions();
+     const status=await native.checkPermissions();
+     if(status.display!=="granted"){
+       const asked=await native.requestPermissions();
+       if(asked.display!=="granted")return "denied";
      }
-     if(status?.display!=="granted"){
-       toast("Android Notification permission இன்னும் ON இல்லை. Settings → Apps → New Fashion Tailoring → Notifications → Allow செய்து மீண்டும் ON அழுத்துங்கள்.",true);
-       return "denied";
-     }
-
-     // Exact alarm is a separate Android setting. It must NOT make the
-     // notification permission itself fail. Try to enable it when supported,
-     // but continue even if the setting is unavailable/declined.
      try{
-       if(typeof native.checkExactNotificationSetting==="function"){
-         const exact=await native.checkExactNotificationSetting();
-         if(exact?.exact_alarm!=="granted" && typeof native.changeExactNotificationSetting==="function"){
-           await native.changeExactNotificationSetting();
-         }
-       }
-     }catch(e){
-       console.warn("Exact alarm setting check skipped:",e);
-     }
-
+       const exact=await native.checkExactNotificationSetting();
+       if(exact.exact_alarm!=="granted")await native.changeExactNotificationSetting();
+     }catch(e){}
      return "granted";
-   }catch(e){
-     console.error("Native notification permission check failed:",e);
-     toast("Android notification permission check செய்ய முடியவில்லை. App-ஐ ஒருமுறை close செய்து மீண்டும் திறந்து முயற்சி செய்யுங்கள்.",true);
-     return "denied";
-   }
+   }catch(e){return "denied"}
  }
-
- if(!("Notification" in window)){
-   toast("இந்த browser phone notification support செய்யவில்லை.",true);
-   return "denied";
- }
-
- // Browser permission: do not ask again when it is already granted.
+ if(!("Notification" in window)){toast("இந்த browser phone notification support செய்யவில்லை.",true);return "denied"}
  if(Notification.permission==="granted")return "granted";
- if(Notification.permission==="denied"){
-   toast("Browser notification permission OFF ஆக உள்ளது. Site/App notification settings-ல் Allow செய்யுங்கள்.",true);
-   return "denied";
- }
- try{
-   const result=await Notification.requestPermission();
-   return result==="granted"?"granted":"denied";
- }catch(e){
-   console.error("Browser notification permission request failed:",e);
-   return "denied";
- }
+ try{return await Notification.requestPermission()}catch{return "denied"}
 }
 const REMINDER_TIMES=["08:00","09:30","11:00","12:30","14:00","15:30","17:00","18:30","20:00","21:30"];
 let reminderTimer=null;
