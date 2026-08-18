@@ -5760,7 +5760,7 @@ window.renderPendingCustomerCard=function(){
     var sareeTotal=saree.total;
     var breakdownTotal=blouseTotal+chudiTotal+sareeTotal;
 
-    var hasBlouse=(b.normalQty+b.liningQty+b.designQty+b.liningCustomerQty+b.liningShopQty)>0;
+    var hasBlouse=(b.normalQty+b.liningQty+b.designQty+b.liningCustomerQty+b.liningShopQty+blouseSareeQty)>0;
     var hasChudi=(c.qty+c.liningQty+c.liningCustomerQty+c.liningShopQty)>0;
     var hasSaree=saree.qty>0;
 
@@ -6635,6 +6635,191 @@ html{
   }
 }
 </style>
+
+
+<!-- =========================================================
+     FINAL B/S SYNC PATCH — BLOUSE + SAREE SAME ORDER
+     Scope: only order-entry/edit calculation + customer summary sync.
+     Existing Chudi flow, notification flow and other UI are preserved.
+     ========================================================= -->
+<style id="nf-final-blouse-saree-sync-css">
+.nf-modal-blouse-saree-box{
+  grid-column:1/-1;
+  margin-top:2px;
+  padding:12px;
+  border:1px solid #f0d58a;
+  border-radius:14px;
+  background:linear-gradient(135deg,#fff9df,#fff4f8);
+}
+.nf-modal-blouse-saree-box h4{margin:0 0 9px;font-size:15px;font-weight:950}
+.nf-modal-blouse-saree-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.nf-modal-blouse-saree-cell{padding:9px;border:1px solid #eadfb9;border-radius:11px;background:#fff}
+.nf-modal-blouse-saree-cell label{display:block;font-size:11px;color:#6f6670;font-weight:850;margin-bottom:5px}
+.nf-modal-blouse-saree-cell input{width:100%;min-height:42px}
+.nf-modal-blouse-saree-total{
+  display:flex;justify-content:space-between;gap:10px;align-items:center;
+  margin-top:9px;padding:9px 10px;border-radius:10px;
+  background:linear-gradient(135deg,#6c4df6,#ef4f8a);color:#fff;font-weight:900;
+}
+.nf-modal-blouse-saree-note{font-size:11px;color:#6f6670;line-height:1.4;margin-top:7px}
+@media(max-width:560px){.nf-modal-blouse-saree-grid{grid-template-columns:1fr}.nf-modal-blouse-saree-box{grid-column:auto}}
+</style>
+<script id="nf-final-blouse-saree-sync-js">
+(function(){
+  "use strict";
+
+  function num(v){return Math.max(0,Number(v||0));}
+  function fields(){
+    var form=document.getElementById("formFields");
+    return function(name){return form?.querySelector('[name="'+name+'"]')||null;};
+  }
+  function garmentRow(id){
+    return id ? ((window.state&&state.orders)||[]).find(function(o){return String(o.id)===String(id)}) : null;
+  }
+  function sareeData(row){
+    var x=typeof window.nfGarmentExtra==="function"?window.nfGarmentExtra(row||{}):{};
+    var r=typeof window.nfOrderRates==="function"?window.nfOrderRates(row||{}):(typeof window.getRates==="function"?getRates():{saree:0});
+    return {qty:num(x.saree),rate:num(r.saree)};
+  }
+
+  /* ---------- Standard New Order / Edit Order modal ---------- */
+  var baseOpen=window.openModal;
+  if(typeof baseOpen==="function" && !baseOpen.__nfBlouseSareeFinal){
+    function patchedOpenModal(type,id){
+      baseOpen.apply(this,arguments);
+      if(type!=="order")return;
+
+      setTimeout(function(){
+        var form=document.getElementById("formFields");
+        if(!form)return;
+        var get=fields();
+        var garment=get("garment_type");
+        var row=garmentRow(id);
+
+        /* Saree is NOT a separate garment option. Saree belongs to Blouse. */
+        if(garment && garment.tagName==="SELECT"){
+          var current=String(garment.value||"").toLowerCase();
+          var opts=["Blouse","Chudi"];
+          if(current==="saree")current="blouse";
+          garment.innerHTML=opts.map(function(v){
+            return '<option value="'+v+'" '+(current===v.toLowerCase()?"selected":"")+'>'+v+'</option>';
+          }).join("");
+          if(!garment.value)garment.value="Blouse";
+        }
+
+        /* Remove the older duplicate extension box. The real saree fields below
+           are the single source of truth for the existing submit pipeline. */
+        form.querySelectorAll(".nf-extra-garment-box").forEach(function(el){el.remove();});
+
+        var sq=get("saree_qty"),sr=get("saree_rate");
+        if(!sq||!sr)return;
+
+        var saved=sareeData(row);
+        if(row){
+          sq.value=saved.qty;
+          sr.value=saved.rate;
+        }else{
+          if(!sq.value)sq.value=0;
+          if(!sr.value)sr.value=(typeof getRates==="function"?num(getRates().saree):0);
+        }
+
+        /* Keep the native fields in the form so FormData/save logic remains
+           unchanged, but move the visible controls into one Blouse section. */
+        var sqWrap=sq.closest(".field"),srWrap=sr.closest(".field");
+        if(!sqWrap||!srWrap)return;
+        sqWrap.classList.add("nf-field-hidden");
+        srWrap.classList.add("nf-field-hidden");
+        sq.disabled=false;sr.disabled=false;
+
+        var box=form.querySelector(".nf-modal-blouse-saree-box");
+        if(!box){
+          box=document.createElement("div");
+          box.className="nf-modal-blouse-saree-box";
+          var anchor=form.querySelector(".nf-modal-design-3slot") || get("design_qty")?.closest(".field") || get("normal_qty")?.closest(".field");
+          (anchor?.parentNode||form).insertBefore(box,anchor?.nextSibling||null);
+        }
+        box.innerHTML=
+          '<h4>🥻 Saree Details — Blouse order-உடன் ஒரே கணக்கு</h4>'+
+          '<div class="nf-modal-blouse-saree-grid">'+
+            '<div class="nf-modal-blouse-saree-cell"><label>Saree / சேலை — எத்தனை</label><input id="nf-modal-saree-qty" class="input" type="number" min="0" step="1" value="'+num(sq.value)+'"></div>'+
+            '<div class="nf-modal-blouse-saree-cell"><label>Saree — ஒன்றுக்கு விலை</label><input id="nf-modal-saree-rate" class="input" type="number" min="0" step="0.01" value="'+num(sr.value)+'"></div>'+
+            '<div class="nf-modal-blouse-saree-cell"><label>Saree மொத்தம்</label><div id="nf-modal-saree-total" class="autoTotal">₹0.00</div></div>'+
+          '</div>'+
+          '<div class="nf-modal-blouse-saree-total"><span>Blouse + Saree Total</span><b id="nf-modal-blouse-saree-grand">₹0.00</b></div>'+
+          '<div class="nf-modal-blouse-saree-note">Blouse Normal / Lining / Design count + Saree count அனைத்தும் இந்த ஒரே Order-ன் calculation-ல் சேரும்.</div>';
+
+        var visQty=document.getElementById("nf-modal-saree-qty"),visRate=document.getElementById("nf-modal-saree-rate");
+        var recalc=function(){
+          var g=String(garment?.value||"Blouse").toLowerCase();
+          var isBlouse=g==="blouse",isChudi=g==="chudi";
+          box.classList.toggle("nf-field-hidden",!isBlouse);
+          if(isBlouse){
+            sq.disabled=false;sr.disabled=false;
+            sq.value=Math.floor(num(visQty?.value));
+            sr.value=num(visRate?.value);
+          }else{
+            /* Saree belongs only to Blouse. Hide it for Chudi, but keep the
+               unsaved values in memory so switching back to Blouse does not
+               unexpectedly erase the user's Saree count/rate. */
+            sq.disabled=false;sr.disabled=false;
+          }
+
+          var n=isBlouse?num(get("normal_qty")?.value):0;
+          var l=isBlouse?num(get("lining_qty")?.value):0;
+          var d=isBlouse?num(get("design_qty")?.value):0;
+          /* The existing Edit Order calculator is the authority for the
+             blouse/design total. We only add the new Saree component here,
+             so the existing 3-design-slot calculation is never overwritten. */
+          var blouseTotal=isBlouse?num(get("total_amount")?.value):0;
+          var sareeTotal=isBlouse?num(sq.value)*num(sr.value):0;
+          var grand=blouseTotal+sareeTotal;
+          if(document.getElementById("nf-modal-saree-total"))document.getElementById("nf-modal-saree-total").textContent=money(sareeTotal);
+          if(document.getElementById("nf-modal-blouse-saree-grand"))document.getElementById("nf-modal-blouse-saree-grand").textContent=money(grand);
+
+          /* Existing form fields remain authoritative for save. */
+          var q=get("quantity"),u=get("unit_price"),t=get("total_amount"),rt=get("rate_type");
+          if(isBlouse){
+            var qty=n+l+d+num(sq.value);
+            if(q){q.value=qty;q.readOnly=true;}
+            if(u){u.value=(qty?grand/qty:0).toFixed(2);u.readOnly=true;}
+            if(t){t.value=grand.toFixed(2);t.readOnly=true;}
+            if(rt){
+              var active=[n>0?"normal":null,l>0?"lining":null,d>0?"design":null].filter(Boolean);
+              rt.value=active[0]||"normal";
+            }
+          }
+        };
+
+        [visQty,visRate].forEach(function(el){el?.addEventListener("input",recalc);el?.addEventListener("change",recalc);});
+        ["normal_qty","lining_qty","design_qty","garment_type","advance_amount"].forEach(function(n){get(n)?.addEventListener("input",recalc);get(n)?.addEventListener("change",recalc);});
+        recalc();
+      },60);
+    }
+    patchedOpenModal.__nfBlouseSareeFinal=true;
+    window.openModal=patchedOpenModal;
+  }
+
+  /* ---------- Customer-card New Order / Edit Order ----------
+     Make sure Saree rate/count remain part of the same Blouse calculation. */
+  var oldPopulate=window.populateQuickOrderEditor;
+  if(typeof oldPopulate==="function" && !oldPopulate.__nfBlouseSareeFinal){
+    function patchedPopulate(id,o){
+      oldPopulate.apply(this,arguments);
+      setTimeout(function(){
+        var g=document.getElementById("qo-garment-"+id);
+        if(!g)return;
+        if(String(g.value||"").toLowerCase()==="saree")g.value="Blouse";
+        updateQuickGarment(id);
+        updateQuickOrderCalc(id);
+      },0);
+    }
+    patchedPopulate.__nfBlouseSareeFinal=true;
+    window.populateQuickOrderEditor=patchedPopulate;
+  }
+
+  /* Customer summary already renders Blouse + Saree rows. */
+})();
+</script>
 
 </body>
 </html>
