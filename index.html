@@ -2616,7 +2616,7 @@ body{
 <!-- ORDERS: CUSTOMER-CARD NEW ORDER SCREEN -->
 <div id="ordersNewOrderScreen" class="modal nf-orders-new-order-screen" aria-hidden="true">
   <div class="modalbox nf-orders-new-order-box">
-    <div class="modalhead"><h3>🧾 New Order</h3><button class="close" type="button" onclick="closeOrdersQuickAdd()">✕</button></div>
+    <div class="modalhead"><h3 id="ordersNewOrderScreenTitle">🧾 New Order</h3><button class="close" type="button" onclick="closeOrdersQuickAdd()">✕</button></div>
     <div id="ordersNewOrderContent"></div>
   </div>
 </div>
@@ -2918,7 +2918,7 @@ function blouseSplit(o){
  const fallbackType=String(o?.rate_type||"normal").toLowerCase();
  const fallback={normal:0,lining:0,design:0};
  if(["normal","lining","design"].includes(fallbackType))fallback[fallbackType]=qty;
- const m=String(o?.notes||"").match(/BLOUSE_SPLIT:(\\{[^}]+\\})/);
+ const m=String(o?.notes||"").match(/BLOUSE_SPLIT:(\{[^}]+\})/);
  if(!m)return fallback;
  try{
   const x=JSON.parse(m[1]);
@@ -3458,6 +3458,10 @@ function mountOrdersQuickForm(customerId){
    box.dataset.editOrderId="";
    updateQuickGarment(key);
    updateChudiLiningLabel(key);
+   /* Orders-page New Order must use the exact same 3-design editor as the
+      Customer Card. The cloned card HTML does not include the post-render
+      slot mount, so mount it explicitly through the shared helper. */
+   if(typeof window.renderQuickDesignRates==="function")window.renderQuickDesignRates(key,[]);
  }
 }
 function openOrdersQuickAdd(){
@@ -5211,7 +5215,7 @@ supabaseClient.auth.onAuthStateChange((_event,session)=>{if(session?.user){showA
 .nf-price-breakdown>div.total{background:#eee9ff;font-size:14px;font-weight:900}
 @media(max-width:560px){.nf-lining-cost-grid{grid-template-columns:1fr}}
 </style>
-<style id="nf-chudi-saree-extension">
+<style id="nf-chudi-saree-extension-css">
 .nf-extra-garment-box{
   grid-column:1/-1;background:linear-gradient(135deg,#f3efff,#fff1f7);
   border:1px solid #ddd4ff;border-radius:14px;padding:12px;margin-top:2px
@@ -6324,6 +6328,11 @@ function updateQuick(id){
   if(g!=="Blouse")return;
   const r=getQuickBlouseRates(id);
   const d=recalcBox(host.querySelector(".nf-design-3slot"));
+  /* Keep the native Design quantity field synchronized with the three visible
+     Design slots. The existing save pipeline reads qo-design-* as its
+     authoritative Design quantity. */
+  const designField=document.getElementById("qo-design-"+id);
+  if(designField){designField.value=d.qty;designField.readOnly=true;}
   const n=N(document.getElementById("qo-normal-"+id)?.value),l=N(document.getElementById("qo-lining-"+id)?.value);
   const qty=n+l+d.qty, garment=n*r.normal+l*r.lining+d.total;
   const ls=document.getElementById("qo-lining-source-"+id)?.value||"";
@@ -6396,16 +6405,25 @@ const oldSave=window.saveQuickOrder;
 if(typeof oldSave==="function"){
   window.saveQuickOrder=async function(id){
     const host=document.getElementById("qo-design-rates-box-"+id);
-    const items=host?.querySelector(".nf-design-3slot")?readBox(host.querySelector(".nf-design-3slot")).filter(x=>x.qty>0).slice(0,3):[];
+    const box=host?.querySelector(".nf-design-3slot");
+    const items=box?readBox(box).filter(x=>x.qty>0).slice(0,3):[];
+    /* Sync BEFORE the original save runs. This keeps Design slots,
+       qo-design-*, BLOUSE_SPLIT, DESIGN_RATES and saved total in one flow. */
+    if(box){
+      const d=recalcBox(box);
+      const designField=document.getElementById("qo-design-"+id);
+      if(designField){designField.value=d.qty;designField.readOnly=true;}
+    }
     const editId=host?.closest("#quick-order-"+id)?.dataset?.editOrderId||"";
     const result=await oldSave.apply(this,arguments);
-    if(!items.length)return result;
     try{
       let order=editId?(state.orders||[]).find(x=>x.id===editId):null;
       if(!order)order=(state.orders||[]).filter(x=>x.customer_id===id).slice().sort((a,b)=>String(b.created_at||b.order_date||"").localeCompare(String(a.created_at||a.order_date||"")))[0];
       if(order){
         let notes=String(order.notes||"").replace(/\s*\|\s*DESIGN_ITEMS:\[[^\]]*\]/,"").trim();
-        notes+=(notes?" | ":"")+"DESIGN_ITEMS:"+JSON.stringify(items);
+        if(items.length){
+          notes+=(notes?" | ":"")+"DESIGN_ITEMS:"+JSON.stringify(items);
+        }
         const r=await supabaseClient.from("orders").update({notes}).eq("id",order.id);
         if(r.error)throw r.error;
         await loadAll(true);
@@ -6867,6 +6885,361 @@ html{
   }
 
   /* Customer summary already renders Blouse + Saree rows. */
+})();
+</script>
+
+
+<!-- =========================================================
+     FINAL ORDER / CUSTOMER NAVIGATION + CALCULATION SYNC PATCH
+     - Orders card is no longer a Full Details click target.
+     - Orders card gets New Order + Edit Order actions.
+     - Customer card gets Order Full Details access.
+     - Both New/Edit flows reuse the existing Customer Card order editor.
+     - Customer summary totals use the same saved-order calculation source.
+     ========================================================= -->
+<style id="nf-final-order-customer-sync-patch">
+.nf-order-card-actions{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 12px;padding:10px;border-radius:14px;background:linear-gradient(135deg,#f7f4ff,#fff4f8);border:1px solid #e4ddf4}
+.nf-order-card-actions .btn{flex:1;min-width:145px}
+.nf-order-card-actions .nf-edit-order-btn{background:linear-gradient(135deg,#6c4df6,#ef4f8a);color:#fff;border:0;box-shadow:0 7px 18px rgba(108,77,246,.18)}
+.nf-customer-order-full-btn{background:linear-gradient(135deg,#14aebd,#3d83ef)!important;color:#fff!important;border:0!important;box-shadow:0 7px 18px rgba(20,174,189,.18)}
+.nf-customer-order-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:7px}
+.nf-customer-order-actions .btn{min-height:40px}
+.nf-order-screen-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.nf-order-screen-actions .btn{flex:1;min-width:145px}
+@media(max-width:560px){
+  .nf-order-card-actions{display:grid;grid-template-columns:1fr 1fr}
+  .nf-order-card-actions .btn{width:100%;min-width:0}
+  .nf-customer-order-actions .btn{flex:1;min-width:120px}
+}
+</style>
+<script id="nf-final-order-customer-sync-js">
+(function(){
+  "use strict";
+
+  function escSafe(v){
+    return typeof esc==="function"?esc(v):String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  }
+  function latestOrderForCustomer(customerId){
+    return (state.orders||[]).filter(o=>String(o.customer_id)===String(customerId)).slice().sort((a,b)=>String(b.created_at||b.order_date||"").localeCompare(String(a.created_at||a.order_date||"")))[0]||null;
+  }
+
+  /* ---------------------------------------------------------
+     CUSTOMER CARD: Order Full Details access
+     --------------------------------------------------------- */
+  var baseCustomerCard=window.customerCard;
+  if(typeof baseCustomerCard==="function" && !baseCustomerCard.__nfFinalOrderSync){
+    window.customerCard=function(id){
+      var html=baseCustomerCard.apply(this,arguments);
+      var orders=typeof customerOrders==="function"?customerOrders(id):[];
+      if(!orders.length)return html;
+
+      var latest=latestOrderForCustomer(id)||orders[0];
+      var button="<button type=\"button\" class=\"btn nf-customer-order-full-btn\" onclick=\"openCustomerOrderFullDetails('"+String(latest.id).replace(/'/g,"\\'")+"')\">📋 Order Full Details</button>";
+
+      /* Put the button beside Edit Customer without removing any existing action. */
+      html=html.replace(
+        '<button class="btn secondary" onclick="openModal(\'customer\',\''+id+'\')">✏️ Edit Customer</button>',
+        '<button class="btn secondary" onclick="openModal(\'customer\',\''+id+'\')">✏️ Edit Customer</button>'+button
+      );
+
+      return html;
+    };
+    window.customerCard.__nfFinalOrderSync=true;
+  }
+
+  /* The previous wrapper above cannot safely inject per-order buttons into the
+     template string after interpolation. Instead, patch the already rendered
+     customer cards after each render, while keeping the original card markup. */
+  function patchRenderedCustomerCards(){
+    (state.customers||[]).forEach(function(c){
+      var card=document.getElementById("customer-card-"+c.id);
+      if(!card)return;
+      var lines=card.querySelectorAll(".customerOrderLine");
+      lines.forEach(function(line){
+        if(line.querySelector(".nf-customer-order-actions"))return;
+        var id=(line.id||"").replace(/^customer-order-/i,"");
+        if(!id)return;
+        var wrap=document.createElement("div");
+        wrap.className="nf-customer-order-actions";
+        wrap.innerHTML='<button type="button" class="btn nf-customer-order-full-btn" onclick="openCustomerOrderFullDetails(\''+id+'\')">📋 Order Full Details</button>';
+        line.appendChild(wrap);
+      });
+    });
+  }
+
+  window.openCustomerOrderFullDetails=function(orderId){
+    var o=(state.orders||[]).find(function(x){return String(x.id)===String(orderId);});
+    if(!o){toast("இந்த customer-க்கு Order Full Details கிடைக்கவில்லை.",true);return;}
+    if(typeof openOrderFullDetails==="function")openOrderFullDetails(o.id);
+  };
+
+  /* ---------------------------------------------------------
+     ORDERS PAGE: no card click -> Full Details.
+     New Order + Edit Order are explicit actions.
+     --------------------------------------------------------- */
+  window.renderOrders=function(){
+    var q=(($("orderSearch")&&$("orderSearch").value)||"").toLowerCase();
+    var sf=$("orderStatusFilter")?$("orderStatusFilter").value:"";
+    var r=(state.orders||[]).filter(function(x){
+      return (!sf||x.status===sf) && [x.order_no,customerName(x.customer_id),x.garment_type,x.status].join(" ").toLowerCase().includes(q);
+    });
+
+    function actions(o){
+      var delivered=!isFinished(o)?'<button type="button" class="btn success" onclick="event.stopPropagation();markDelivered(\''+o.id+'\')">Delivered</button>':'';
+      return '<div class="nf-order-card-actions">'+
+        '<button type="button" class="btn primary" onclick="event.stopPropagation();openOrdersNewOrderForCustomer(\''+o.customer_id+'\')">＋ New Order</button>'+
+        '<button type="button" class="btn nf-edit-order-btn" onclick="event.stopPropagation();openOrdersEditOrder(\''+o.id+'\')">✏️ Edit Order</button>'+ 
+      '</div>'+
+      '<div class="actions">'+delivered+'<button type="button" class="btn danger" onclick="event.stopPropagation();removeRow(\'orders\',\''+o.id+'\')">Delete</button></div>';
+    }
+
+    function renderOne(o,mode){
+      var d=dueInfo(o);
+      var reminder=d?'<span class="pill '+(d.kind==="late"?"bad":d.kind==="today"?"warn":"")+'">'+(d.kind==="late"?d.days+" நாள் late":d.kind==="today"?"இன்று":d.days+" நாள்")+'</span>':"";
+      var pay=nfOrderPaymentInfo(o),lining=nfLiningCost(o);
+      var liningSource=o.lining_cloth_source||lining.source||"";
+      var liningQty=Number(o.lining_cloth_qty||lining.qty||0);
+      var liningText=liningSource||liningQty?'<div class="nf-mobile-order-line"><span>🧵 Lining</span><b>'+(liningSource==="customer"?"Customer கொடுத்தது":"நாம் வாங்கியது")+(liningQty?" · "+liningQty:"")+'</b></div>':"";
+      var garment=String(o.garment_type||"—");
+      var qtyText=Number(o.quantity||0);
+      var split=blouseSplitText(o);
+      if(mode==="mobile"){
+        return '<article class="nf-mobile-order-card" aria-label="Order '+escSafe(o.order_no||"")+'">'+
+          '<div class="nf-mobile-order-top"><div><span class="nf-mobile-order-label">Order</span><strong>'+escSafe(o.order_no)+'</strong></div>'+reminder+'</div>'+
+          actions(o)+
+          '<div class="nf-mobile-order-line"><span>Customer</span><b>'+escSafe(customerName(o.customer_id))+'</b></div>'+
+          '<div class="nf-mobile-order-line"><span>Garment</span><b>'+escSafe(garment)+'</b></div>'+
+          '<div class="nf-mobile-order-line"><span>Cloth received</span><b>'+dateText(o.cloth_received_date)+'</b></div>'+ 
+          '<div class="nf-mobile-order-line"><span>Delivery</span><b>'+dateText(o.delivery_date)+'</b></div>'+ 
+          '<div class="nf-mobile-order-line"><span>Qty</span><b>'+qtyText+(split?'<small>'+escSafe(split)+'</small>':"")+'</b></div>'+ 
+          '<div class="nf-mobile-order-line"><span>Rate</span><b>'+money(o.unit_price)+'</b></div>'+ 
+          '<div class="nf-mobile-order-line"><span>Total</span><b>'+money(orderTotal(o))+'</b></div>'+ 
+          '<div class="nf-mobile-order-line"><span>Advance</span><b>'+money(pay.advance)+'<small>'+nfFormatPaymentDate(pay.advanceDate)+'</small></b></div>'+ 
+          '<div class="nf-mobile-order-line"><span>Customer Paid</span><b>'+money(pay.customerPaid)+'<small>'+(pay.payments.length?pay.payments.map(function(p){return nfFormatPaymentDate(p.payment_date)}).join(" · "):"—")+'</small></b></div>'+ 
+          '<div class="nf-mobile-order-line"><span>Balance</span><b>'+money(nfOrderBalance(o))+'</b></div>'+liningText+
+          '<div class="nf-mobile-order-status"><span>Status</span>'+statusPill(o.status)+'</div>'+ 
+        '</article>';
+      }
+      return '<tr><td><b>'+escSafe(o.order_no)+'</b></td><td>'+escSafe(customerName(o.customer_id))+'</td><td>'+escSafe(garment)+'</td><td>'+dateText(o.cloth_received_date)+'</td><td>'+dateText(o.delivery_date)+(reminder?'<br>'+reminder:"")+'</td><td><b>'+qtyText+'</b><br><span class="mini">'+escSafe(split)+'</span></td><td>'+money(o.unit_price)+'</td><td>'+money(orderTotal(o))+(lining.total?'<br><span class="mini">🧵 Lining '+money(lining.total)+'</span>':"")+'</td><td>'+money(pay.advance)+'<br><span class="mini">'+nfFormatPaymentDate(pay.advanceDate)+'</span></td><td>'+money(nfOrderBalance(o))+'</td><td>'+statusPill(o.status)+'</td><td>'+actions(o)+'</td></tr>';
+    }
+
+    if(window.innerWidth<=700){
+      $("ordersTable").innerHTML=r.length?'<div class="nf-mobile-order-list">'+r.map(function(o){return renderOne(o,"mobile")}).join("")+'</div>':'<div class="empty">No orders found.</div>';
+      return;
+    }
+    $("ordersTable").innerHTML=r.length?'<div class="tablewrap"><table class="table"><thead><tr><th>Order</th><th>Customer</th><th>Garment</th><th>Cloth received</th><th>Delivery</th><th>Qty</th><th>Rate</th><th>Total</th><th>Advance</th><th>Balance</th><th>Status</th><th>Actions</th></tr></thead><tbody>'+r.map(function(o){return renderOne(o,"desktop")}).join("")+'</tbody></table></div>':'<div class="empty">No orders found.</div>';
+  };
+  window.renderOrders.__nfFinalOrderSync=true;
+
+  /* ---------------------------------------------------------
+     Orders -> New Order: same Customer Card New Order system,
+     with the clicked order's customer pre-selected.
+     --------------------------------------------------------- */
+  window.openOrdersNewOrderForCustomer=function(customerId){
+    openOrdersQuickAdd();
+    setTimeout(function(){
+      var select=$("ordersQuickCustomer");
+      if(select){select.value=String(customerId);mountOrdersQuickForm(customerId);}
+      var title=$("ordersNewOrderScreenTitle");
+      if(title)title.textContent="🧾 New Order";
+    },0);
+  };
+
+  /* ---------------------------------------------------------
+     Orders -> Edit Order: clone the SAME inline Customer Card
+     editor, then populate it with the selected saved order.
+     No separate calculation/form logic is introduced.
+     --------------------------------------------------------- */
+  window.openOrdersEditOrder=function(orderId){
+    var o=(state.orders||[]).find(function(x){return String(x.id)===String(orderId);});
+    if(!o){toast("Edit செய்ய Order கிடைக்கவில்லை.",true);return;}
+    var modal=$("ordersNewOrderScreen"),panel=$("ordersNewOrderContent");
+    if(!modal||!panel){toast("Edit Order screen கிடைக்கவில்லை.",true);return;}
+
+    var holder=document.createElement("div");
+    holder.innerHTML=customerCard(o.customer_id);
+    var source=holder.querySelector("#quick-order-"+CSS.escape(String(o.customer_id)));
+    if(!source){toast("Customer Card-ல் இருக்கும் Edit Order section கிடைக்கவில்லை.",true);return;}
+
+    var key="orders_edit_"+String(o.id).replace(/[^a-zA-Z0-9_-]/g,"_");
+    var markup=source.outerHTML.split(String(o.customer_id)).join(key);
+    markup=markup.replace("saveQuickOrder('"+key+"')","saveQuickOrder('"+key+"','"+String(o.customer_id).replace(/'/g,"\\'")+"')");
+    panel.innerHTML='<div class="field" style="margin-bottom:12px"><label>Customer</label><select id="ordersQuickEditCustomer" class="input" disabled><option selected>'+escSafe(customerName(o.customer_id))+'</option></select></div>'+markup;
+    var box=$("quick-order-"+key);
+    if(!box){toast("Edit Order form உருவாக்க முடியவில்லை.",true);return;}
+    box.classList.remove("hidden");
+    box.classList.add("nf-edit-mode");
+    box.dataset.editOrderId=o.id;
+    var title=box.querySelector(".nf-quick-edit-title");
+    if(title)title.textContent="✏️ Edit Order — "+(o.order_no||"Order");
+    var save=box.querySelector(".nf-quick-save-btn");
+    if(save)save.textContent="💾 Update Order";
+    populateQuickOrderEditor(key,o);
+    updateQuickGarment(key);
+    updateChudiLiningLabel(key);
+    var screenTitle=$("ordersNewOrderScreenTitle");
+    if(screenTitle)screenTitle.textContent="✏️ Edit Order";
+    modal.classList.add("open");
+    modal.setAttribute("aria-hidden","false");
+    var base=history.state||{view:"orders"};
+    if(!base.__nfOrdersNewOrder){history.pushState({...base,__nfOrdersNewOrder:true,__nfOrdersEditOrder:true},"",location.hash||"#orders-edit-order");}
+    setTimeout(function(){box.scrollIntoView({behavior:"smooth",block:"start"});},80);
+  };
+
+  /* When the shared Customer Card save routine updates an Orders-page editor,
+     close that editor after the successful save and return to Orders. */
+  var baseSaveQuickOrder=window.saveQuickOrder;
+  if(typeof baseSaveQuickOrder==="function" && !baseSaveQuickOrder.__nfFinalOrderSync){
+    window.saveQuickOrder=async function(id,customerId){
+      var box=$("quick-order-"+id);
+      var isOrdersEditor=String(id||"").indexOf("orders_")===0;
+      await baseSaveQuickOrder.apply(this,arguments);
+      if(isOrdersEditor && !box?.dataset?.editOrderId){
+        setTimeout(function(){
+          closeOrdersQuickAdd(false);
+          var title=$("ordersNewOrderScreenTitle");if(title)title.textContent="🧾 New Order";
+          goView("orders");
+        },60);
+      }
+    };
+    window.saveQuickOrder.__nfFinalOrderSync=true;
+  }
+
+  /* ---------------------------------------------------------
+     Customer summary: one calculation source, no duplicate Saree total.
+     The displayed grand total is the exact sum of saved order totals, i.e.
+     the same source used by Orders cards and Order Full Details.
+     --------------------------------------------------------- */
+  window.nfCustomerWorkSummaryHTML=function(st){
+    var os=st.os||[];
+    var isGarment=function(o,g){return String(o.garment_type||"").toLowerCase()===g;};
+    var blouseOrders=os.filter(function(o){var g=String(o.garment_type||"Blouse").toLowerCase();return g==="blouse"||!o.garment_type;});
+    var chudiOrders=os.filter(function(o){return isGarment(o,"chudi");});
+    var sareeOrders=os.filter(function(o){return isGarment(o,"saree");});
+
+    /* The saved order total is authoritative. For Design blouse, however,
+       the item-wise slot rates must also be reflected here so the customer
+       card never shows a different Design calculation from the order editor. */
+    var designItemsFor=function(o){
+      try{
+        if(typeof window.nfDesignItems==="function")return window.nfDesignItems(o)||[];
+      }catch(e){}
+      return [];
+    };
+    var splitFor=function(o){return blouseSplit(o)||{normal:0,lining:0,design:0};};
+    var ratesFor=function(o){return nfOrderRates(o)||{};};
+
+    var normalQty=blouseOrders.reduce(function(a,o){return a+Number(splitFor(o).normal||0);},0);
+    var liningQty=blouseOrders.reduce(function(a,o){return a+Number(splitFor(o).lining||0);},0);
+    var designQty=blouseOrders.reduce(function(a,o){
+      var s=splitFor(o),items=designItemsFor(o),slotQty=items.reduce(function(x,it){return x+Number(it.qty||0);},0);
+      return a+(slotQty>0?slotQty:Number(s.design||0));
+    },0);
+
+    var normalTotal=blouseOrders.reduce(function(a,o){var s=splitFor(o),r=ratesFor(o);return a+Number(s.normal||0)*Number(r.normal||0);},0);
+    var liningTotal=blouseOrders.reduce(function(a,o){var s=splitFor(o),r=ratesFor(o);return a+Number(s.lining||0)*Number(r.lining||0);},0);
+    var designTotal=blouseOrders.reduce(function(a,o){
+      var s=splitFor(o),items=designItemsFor(o),r=ratesFor(o);
+      if(items.length)return a+items.reduce(function(x,it){return x+Number(it.qty||0)*Number(it.rate||0);},0);
+      return a+Number(s.design||0)*Number(r.design||0);
+    },0);
+
+    var blouseSareeQty=blouseOrders.reduce(function(a,o){return a+Number((nfGarmentExtra(o)||{}).saree||0);},0);
+    var blouseSareeTotal=blouseOrders.reduce(function(a,o){var x=nfGarmentExtra(o)||{},r=ratesFor(o);return a+Number(x.saree||0)*Number(r.saree||0);},0);
+
+    var blouseLiningShopQty=0,blouseLiningShopTotal=0;
+    blouseOrders.forEach(function(o){
+      var src=String(o.lining_cloth_source||"").toLowerCase();
+      if(src==="shop"||src==="tailor"){
+        blouseLiningShopQty+=Number(o.lining_cloth_qty||nfLiningCost(o).qty||0);
+        blouseLiningShopTotal+=Number(nfLiningCost(o).total||0);
+      }
+    });
+
+    var chudiQty=chudiOrders.reduce(function(a,o){return a+Number((nfGarmentExtra(o)||{}).chudi||o.quantity||0);},0);
+    var chudiLiningQty=chudiOrders.reduce(function(a,o){var x=nfGarmentExtra(o)||{};return a+Number(x.chudiLiningQty||o.lining_cloth_qty||0);},0);
+    var chudiTotal=chudiOrders.reduce(function(a,o){var x=nfGarmentExtra(o)||{},r=ratesFor(o);return a+Number(x.chudi||o.quantity||0)*Number(r.chudi||0);},0);
+    var chudiLiningShopQty=0,chudiLiningShopTotal=0;
+    chudiOrders.forEach(function(o){
+      var src=String(o.lining_cloth_source||"").toLowerCase();
+      if(src==="shop"||src==="tailor"){
+        chudiLiningShopQty+=Number(o.lining_cloth_qty||nfLiningCost(o).qty||0);
+        chudiLiningShopTotal+=Number(nfLiningCost(o).total||0);
+      }
+    });
+
+    var sareeQty=sareeOrders.reduce(function(a,o){var x=nfGarmentExtra(o)||{};return a+Number(x.saree||o.quantity||0);},0);
+    var sareeTotal=sareeOrders.reduce(function(a,o){var x=nfGarmentExtra(o)||{},r=ratesFor(o);return a+Number(x.saree||o.quantity||0)*Number(r.saree||0);},0);
+    var sareeLiningShopQty=0,sareeLiningShopTotal=0;
+    sareeOrders.forEach(function(o){
+      var src=String(o.lining_cloth_source||"").toLowerCase();
+      if(src==="shop"||src==="tailor"){
+        sareeLiningShopQty+=Number(o.lining_cloth_qty||nfLiningCost(o).qty||0);
+        sareeLiningShopTotal+=Number(nfLiningCost(o).total||0);
+      }
+    });
+
+    var notes=[...new Set(os.map(function(o){return cleanOrderNotes(o.notes);}).filter(Boolean))];
+    var exactSavedOrderTotal=os.reduce(function(a,o){return a+orderTotal(o);},0);
+    var breakdownTotal=normalTotal+liningTotal+designTotal+blouseSareeTotal+blouseLiningShopTotal+chudiTotal+chudiLiningShopTotal+sareeTotal+sareeLiningShopTotal;
+
+    var rateRow=function(label,qty,total){
+      return qty>0?'<div class="customerRateRow"><span class="rateLabel">'+label+' '+qty+'</span><span class="rateMath">'+qty+' × '+money(qty?total/qty:0)+' = <b>'+money(total)+'</b></span></div>':"";
+    };
+
+    return '<div class="customerWorkSummary">'+
+      '<div class="customerWorkSection"><h4>👗 Blouse Section</h4>'+ 
+        '<div class="customerWorkGrid">'+
+          '<div class="customerWorkItem"><b>'+normalQty+'</b><span>Normal blouse</span></div>'+ 
+          '<div class="customerWorkItem"><b>'+liningQty+'</b><span>Lining blouse</span></div>'+ 
+          '<div class="customerWorkItem"><b>'+designQty+'</b><span>Design blouse</span></div>'+ 
+          '<div class="customerWorkItem"><b>'+blouseSareeQty+'</b><span>Saree</span></div>'+ 
+        '</div>'+ 
+        '<div class="customerRateList">'+
+          rateRow('Normal blouse',normalQty,normalTotal)+
+          rateRow('Lining blouse',liningQty,liningTotal)+
+          rateRow('Design blouse',designQty,designTotal)+
+          rateRow('Saree',blouseSareeQty,blouseSareeTotal)+
+          (st.liningCustomer>0?'<div class="customerLiningNote">🧵 Lining cloth: Customer கொடுத்தது — '+st.liningCustomer+' (Rate தேவையில்லை)</div>':"")+ 
+          (blouseLiningShopQty>0?'<div class="customerRateRow"><span class="rateLabel">Lining cloth '+blouseLiningShopQty+'</span><span class="rateMath">Shop cost = <b>'+money(blouseLiningShopTotal)+'</b></span></div>':"")+ 
+        '</div>'+ 
+        '<div class="customerRateTotal"><span>Blouse Section Total</span><span>'+money(normalTotal+liningTotal+designTotal+blouseSareeTotal+blouseLiningShopTotal)+'</span></div>'+ 
+      '</div>'+ 
+      '<div class="customerWorkSection"><h4>👚 Chudi Section</h4>'+ 
+        '<div class="customerWorkGrid">'+
+          '<div class="customerWorkItem"><b>'+chudiQty+'</b><span>Chudi / சுடிதார்</span></div>'+ 
+          '<div class="customerWorkItem"><b>'+chudiLiningQty+'</b><span>Chudi lining</span></div>'+ 
+          '<div class="customerWorkItem"><b>'+money(chudiTotal)+'</b><span>Chudi Total</span></div>'+ 
+        '</div>'+ 
+        '<div class="customerRateList">'+rateRow('Chudi',chudiQty,chudiTotal)+
+          (chudiLiningShopQty>0?'<div class="customerRateRow"><span class="rateLabel">Chudi lining '+chudiLiningShopQty+'</span><span class="rateMath">Shop cost = <b>'+money(chudiLiningShopTotal)+'</b></span></div>':"")+ 
+        '</div>'+ 
+        ((chudiQty>0||chudiLiningShopTotal>0)?'<div class="customerRateTotal"><span>Chudi Section Total</span><span>'+money(chudiTotal+chudiLiningShopTotal)+'</span></div>':"")+ 
+      '</div>'+ 
+      (sareeOrders.length?'<div class="customerWorkSection"><h4>🥻 Saree Section</h4>'+ 
+        '<div class="customerWorkGrid"><div class="customerWorkItem"><b>'+sareeQty+'</b><span>Saree</span></div></div>'+ 
+        '<div class="customerRateList">'+rateRow('Saree',sareeQty,sareeTotal)+
+          (sareeLiningShopQty>0?'<div class="customerRateRow"><span class="rateLabel">Lining cloth '+sareeLiningShopQty+'</span><span class="rateMath">Shop cost = <b>'+money(sareeLiningShopTotal)+'</b></span></div>':"")+ 
+        '</div><div class="customerRateTotal"><span>Saree Section Total</span><span>'+money(sareeTotal+sareeLiningShopTotal)+'</span></div></div>':'')+
+      '<div class="customerWorkSection"><h4>📝 Notes</h4><div class="customerNotesBox">'+(notes.length?notes.map(function(n){return "• "+escSafe(n);}).join("<br>"):"குறிப்பு இல்லை.")+'</div></div>'+ 
+      '<div class="customerRateTotal" style="margin-top:10px;background:linear-gradient(135deg,#14aebd,#3d83ef)"><span>மொத்த Rate</span><span>'+money(exactSavedOrderTotal)+'</span></div>'+ 
+      (Math.abs(exactSavedOrderTotal-breakdownTotal)>0.009?'<div class="mini" style="margin-top:8px;color:#8a6200">ℹ️ Saved Order Total: '+money(exactSavedOrderTotal)+' · Item-wise breakdown: '+money(breakdownTotal)+'</div>':"")+ 
+    '</div>';
+  };
+  /* Re-render hook: ensure customer-card additions survive every loadAll(). */
+  var baseRenderAll=window.renderAll;
+  if(typeof baseRenderAll==="function" && !baseRenderAll.__nfFinalOrderSync){
+    window.renderAll=function(){
+      baseRenderAll.apply(this,arguments);
+      try{patchRenderedCustomerCards();}catch(e){console.error("Customer order action patch failed",e);}
+    };
+    window.renderAll.__nfFinalOrderSync=true;
+  }
+
+  document.addEventListener("DOMContentLoaded",function(){
+    setTimeout(function(){try{patchRenderedCustomerCards();}catch(e){}},80);
+  },{once:true});
+
 })();
 </script>
 
