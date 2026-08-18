@@ -5287,51 +5287,6 @@ function nfBlouseSplit(o){
         select.appendChild(op);
       });
       garment.replaceWith(select);
-
-      /* The original order recalculation handler was attached to the old
-         garment input. Replacing that input with this select disconnects
-         the handler, so Chudi was selected visually while the old Blouse
-         fields stayed visible. Re-bind the conditional UI to the new
-         select and run it immediately. */
-      var syncGarmentFields=function(){
-        var g=String(select.value||"Blouse").toLowerCase();
-        var isChudi=g==="chudi", isSaree=g==="saree";
-        var field=function(n){return form.querySelector('[name="'+n+'"]')};
-        var wrap=function(n){var el=field(n);return el&&el.closest(".field")};
-        var setVisible=function(n,visible){
-          var el=field(n),w=wrap(n);
-          if(el){el.disabled=!visible;el.required=false}
-          if(w)w.classList.toggle("nf-field-hidden",!visible);
-        };
-        ["normal_qty","lining_qty","design_qty"].forEach(function(n){setVisible(n,!isChudi&&!isSaree)});
-        ["chudi_qty","chudi_lining","chudi_lining_qty","chudi_rate"].forEach(function(n){setVisible(n,isChudi)});
-        ["saree_qty","saree_rate"].forEach(function(n){setVisible(n,isSaree)});
-
-        var n=isChudi||isSaree?0:Number(field("normal_qty")?.value||0);
-        var l=isChudi||isSaree?0:Number(field("lining_qty")?.value||0);
-        var d=isChudi||isSaree?0:Number(field("design_qty")?.value||0);
-        var cq=isChudi?Math.max(0,Number(field("chudi_qty")?.value||0)):0;
-        var sq=isSaree?Math.max(0,Number(field("saree_qty")?.value||0)):0;
-        var rates=typeof getRates==="function"?getRates():{};
-        var cr=isChudi?Math.max(0,Number(field("chudi_rate")?.value||rates.chudi||0)):0;
-        var sr=isSaree?Math.max(0,Number(field("saree_rate")?.value||rates.saree||0)):0;
-        var totalQty=isChudi?cq:isSaree?sq:n+l+d;
-        var total=isChudi?cq*cr:isSaree?sq*sr:n*Number(rates.normal||0)+l*Number(rates.lining||0)+d*Number(rates.design||0);
-        var q=field("quantity"),u=field("unit_price"),t=field("total_amount"),rt=field("rate_type");
-        if(q){q.value=totalQty;q.readOnly=true}
-        if(u){u.value=(totalQty?total/totalQty:0).toFixed(2);u.readOnly=true}
-        if(t){t.value=total.toFixed(2);t.readOnly=true}
-        if(rt)rt.value="normal";
-        var a=field("advance_amount"),live=document.getElementById("liveBalance");
-        if(live)live.textContent=typeof money==="function"?money(Math.max(0,total-Number(a?.value||0))):String(Math.max(0,total-Number(a?.value||0)));
-      };
-      select.addEventListener("change",syncGarmentFields);
-      ["normal_qty","lining_qty","design_qty","chudi_qty","chudi_lining","chudi_lining_qty","saree_qty","chudi_rate","saree_rate"].forEach(function(n){
-        var el=form.querySelector('[name="'+n+'"]');
-        if(el)el.addEventListener("input",syncGarmentFields);
-        if(el)el.addEventListener("change",syncGarmentFields);
-      });
-      syncGarmentFields();
     }
 
     var row=(id && window.state && state.orders||[]).find(function(o){return o.id===id;});
@@ -5348,10 +5303,6 @@ function nfBlouseSplit(o){
         '<div class="nf-extra-field"><label>🥻 எத்தனை Saree / சேலை</label><input name="nf_saree_qty" type="number" min="0" step="1" value="'+Number(x.saree||0)+'"></div>'+
       '</div>';
     form.appendChild(box);
-    /* New Order already has the canonical Chudi/Saree fields in formDefs.
-       Keep the legacy extra box only for Edit Order, where existing saved
-       records may still use its extra GARMENT_SPLIT fields. */
-    if(!id)box.classList.add("nf-field-hidden");
   };
 })();
 
@@ -6870,5 +6821,172 @@ html{
 })();
 </script>
 
+\n<script id="nf-final-chudi-new-order-sync-fix">
+(function(){
+  "use strict";
+
+  function q(id){return document.getElementById(id);}
+  function garmentValue(id){
+    return String(q("qo-garment-"+id)?.value||"Blouse").trim().toLowerCase();
+  }
+  function eachQuick(id, selector, fn){
+    var box=q("quick-order-"+id);
+    if(!box)return;
+    box.querySelectorAll(selector).forEach(fn);
+  }
+
+  /* Final customer-card / Orders-page Chudi visibility sync. */
+  window.updateQuickGarment=function(id){
+    var box=q("quick-order-"+id);
+    if(!box)return;
+    var raw=q("qo-garment-"+id)?.value||"Blouse";
+    var g=String(raw).trim().toLowerCase();
+    /* Keep the saved value canonical because saveQuickOrder uses the
+       existing "Chudi" / "Blouse" values as its source of truth. */
+    if(g==="chudi" && q("qo-garment-"+id))q("qo-garment-"+id).value="Chudi";
+    else if(g==="blouse" && q("qo-garment-"+id))q("qo-garment-"+id).value="Blouse";
+    var chudi=g==="chudi", blouse=g==="blouse";
+
+    eachQuick(id,".nf-quick-blouse",function(el){
+      el.classList.toggle("nf-field-hidden",!blouse);
+      el.style.display=blouse?"":"none";
+    });
+    eachQuick(id,".nf-quick-chudi",function(el){
+      el.classList.toggle("nf-field-hidden",!chudi);
+      el.style.display=chudi?"":"none";
+    });
+    eachQuick(id,".nf-quick-saree",function(el){
+      el.classList.add("nf-field-hidden");
+      el.style.display="none";
+    });
+
+    updateChudiLiningLabel(id);
+    if(typeof window.updateQuickOrderCalc==="function")window.updateQuickOrderCalc(id);
+  };
+
+  /* Keep the existing Blouse + Saree calculation intact; normalize only the
+     garment branch so Chudi can never fall through to the Blouse calculation. */
+  window.updateQuickOrderCalc=function(id){
+    var g=garmentValue(id);
+    var r=typeof getQuickBlouseRates==="function"
+      ?getQuickBlouseRates(id)
+      :(typeof getRates==="function"?getRates():{normal:0,lining:0,design:0,chudi:0,saree:0});
+
+    var n=Math.max(0,Number(q("qo-normal-"+id)?.value||0));
+    var l=Math.max(0,Number(q("qo-lining-"+id)?.value||0));
+    var d=Math.max(0,Number(q("qo-design-"+id)?.value||0));
+    var cq=Math.max(0,Number(q("qo-chudi-"+id)?.value||0));
+    var cr=Math.max(0,Number(q("qo-chudi-rate-"+id)?.value||r.chudi||0));
+    var sq=Math.max(0,Number(q("qo-saree-"+id)?.value||0));
+    var sr=Math.max(0,Number(q("qo-saree-rate-"+id)?.value||r.saree||0));
+
+    var designTotal=0;
+    if(typeof getQuickDesignRates==="function"){
+      designTotal=getQuickDesignRates(id,d,r.design||0)
+        .reduce(function(sum,v){return sum+Math.max(0,Number(v||0));},0);
+    }else{
+      designTotal=d*(r.design||0);
+    }
+
+    var qty=0,garmentTotal=0;
+    if(g==="chudi"){
+      qty=cq;
+      garmentTotal=cq*cr;
+    }else{
+      qty=n+l+d+sq;
+      garmentTotal=n*(r.normal||0)+l*(r.lining||0)+designTotal+sq*sr;
+    }
+
+    var ls=q("qo-lining-source-"+id)?.value||"";
+    var lq=Math.max(0,Number(q("qo-lining-qty-"+id)?.value||0));
+    var lr=Math.max(0,Number(q("qo-lining-cost-rate-"+id)?.value||0));
+    var liningTotal=ls==="shop"?lq*lr:0;
+    var total=garmentTotal+liningTotal;
+
+    if(q("qo-qty-"+id))q("qo-qty-"+id).value=qty;
+    if(q("qo-lining-total-"+id))q("qo-lining-total-"+id).textContent=money(liningTotal);
+    if(q("qo-lining-total-display-"+id))q("qo-lining-total-display-"+id).textContent=money(liningTotal);
+    if(q("qo-garment-total-"+id))q("qo-garment-total-"+id).textContent=money(garmentTotal);
+    if(q("qo-saree-total-"+id))q("qo-saree-total-"+id).textContent=money(sq*sr);
+    if(q("qo-total-"+id))q("qo-total-"+id).textContent=money(total);
+    if(q("qo-chudi-total-"+id))q("qo-chudi-total-"+id).textContent=money(cq*cr);
+  };
+
+  function ensureChudiTotal(id){
+    var box=q("quick-order-"+id);
+    if(!box || q("qo-chudi-total-"+id))return;
+    var rate=q("qo-chudi-rate-"+id);
+    if(!rate)return;
+    var field=rate.closest(".field");
+    if(!field)return;
+    var totalField=document.createElement("div");
+    totalField.className="field nf-quick-chudi";
+    totalField.innerHTML='<label>👚 Chudi மொத்தம்</label><div id="qo-chudi-total-'+id+'" class="autoTotal">₹0.00</div>';
+    field.parentNode.insertBefore(totalField,field.nextSibling);
+  }
+
+  function syncOne(id){
+    if(!q("quick-order-"+id))return;
+    ensureChudiTotal(id);
+    window.updateQuickGarment(id);
+  }
+
+  function syncAll(){
+    document.querySelectorAll('[id^="quick-order-"]').forEach(function(box){
+      var id=box.id.slice("quick-order-".length);
+      if(id)syncOne(id);
+    });
+  }
+
+  /* Use capture-phase listeners so this still works even if another part of
+     the large app adds/replaces a garment change handler later. */
+  document.addEventListener("change",function(e){
+    var el=e.target;
+    if(el && /^qo-garment-/.test(el.id||"")){
+      syncOne(el.id.slice("qo-garment-".length));
+    }else if(el && /^qo-chudi-lining-/.test(el.id||"")){
+      var m=el.id.match(/^qo-chudi-lining-(.+)$/);
+      if(m)updateChudiLiningLabel(m[1]);
+    }
+  },true);
+
+  document.addEventListener("input",function(e){
+    var el=e.target;
+    if(el && /^(qo-chudi|qo-chudi-rate|qo-chudi-lining-qty)-/.test(el.id||"")){
+      var m=el.id.match(/^qo-(?:chudi|chudi-rate|chudi-lining-qty)-(.+)$/);
+      if(m)window.updateQuickOrderCalc(m[1]);
+    }
+  },true);
+
+  function initialSync(){
+    document.querySelectorAll('[id^="quick-order-"]').forEach(function(box){
+      var id=box.id.slice("quick-order-".length);
+      if(id)syncOne(id);
+    });
+  }
+
+  if(document.readyState==="loading"){
+    document.addEventListener("DOMContentLoaded",function(){setTimeout(initialSync,50);},{once:true});
+  }else{
+    setTimeout(initialSync,50);
+  }
+
+  /* Customer cards and the Orders-page modal are rendered dynamically.
+     Observe only added/removed nodes; do not observe attribute changes, so
+     our own class/style updates cannot cause an observer loop. */
+  if(window.MutationObserver){
+    var observer=new MutationObserver(function(mutations){
+      var needs=false;
+      for(var i=0;i<mutations.length;i++){
+        if(mutations[i].addedNodes.length || mutations[i].removedNodes.length){
+          needs=true;break;
+        }
+      }
+      if(needs)setTimeout(initialSync,0);
+    });
+    observer.observe(document.body,{childList:true,subtree:true});
+  }
+})();
+</script>\n
 </body>
 </html>
