@@ -3406,7 +3406,7 @@ const clothPhotoActionsHtml="";
  <div class="field"><label>Advance வாங்கியது</label><input id="qo-advance-${id}" class="input" type="number" min="0" step="0.01" value="0"></div><div class="field"><label>Status</label><select id="qo-status-${id}" class="input"><option value="Pending">Pending</option><option value="In Progress">Progress</option><option value="Ready">Ready</option><option value="Delivered">Delivered</option><option value="Cancelled">Cancel</option></select></div>
  <div class="field full"><label>Notes</label><textarea id="qo-notes-${id}" class="input" placeholder="தேவைப்பட்டால் குறிப்பு"></textarea></div>
  </div><div class="customerActions" style="margin-top:10px"><button class="btn primary nf-quick-save-btn" onclick="saveQuickOrder('${id}')">💾 Save Order</button><button class="btn secondary" onclick="toggleQuickOrder('${id}')">Close</button></div></div></div>
- <div class="customerSection"><h4>⏰ Delivery Reminder</h4>${customerReminderHTML(st.os)}<div class="reminderSettings" style="margin-top:8px"><div class="field" style="min-width:100%"><label class="mini">ஒரு நாளில் 10 reminder நேரங்கள்</label><div class="reminderTimesGrid">${REMINDER_TIMES.map(t=>`<span class="reminderTimeChip">🔔 ${t}</span>`).join("")}</div></div><button class="btn warning" onclick="enableDailyNotifications()">🔔 10 Daily Notifications ON</button></div><div class="hint">Notification permission கொடுத்தால் இந்த 10 நேரங்களில் phone notification வரும். App/browser active-ஆ இருக்கும்போது இந்த HTML version வேலை செய்யும்.</div></div>
+ <div class="customerSection"><h4>⏰ Delivery Reminder</h4>${customerReminderHTML(st.os)}<div class="reminderSettings" style="margin-top:8px"><div class="field" style="min-width:100%"><label class="mini">ஒரு நாளில் 10 reminder நேரங்கள்</label><div class="reminderTimesGrid">${REMINDER_TIMES.map(t=>`<span class="reminderTimeChip">🔔 ${t}</span>`).join("")}</div></div><button class="btn warning" onclick="enableDailyNotifications()">🔔 10 Daily Notifications ON</button></div><div class="hint">Notification permission கொடுத்தால் இந்த 10 நேரங்களில் phone notification வரும். Android native notification ஆக schedule செய்யப்படும்.</div></div>
   </article>`;
 }
 /* =========================================================
@@ -4056,36 +4056,226 @@ $("shopPhotoInput")?.addEventListener("change",e=>savePhoto("shop",e.target.file
 $("shopCameraInput")?.addEventListener("change",e=>savePhoto("shop",e.target.files[0]));
 
 
-async function requestNotificationPermission(){
-if(!("Notification" in window)){toast("இந்த browser phone notification support செய்யவில்லை.",true);return "denied"}
-if(Notification.permission==="granted")return "granted";
-try{return await Notification.requestPermission()}catch{return "denied"}
+async function getNFLocalNotifications(){
+ const cap=window.Capacitor;
+ if(!cap)return null;
+ try{
+   if(cap.Plugins && cap.Plugins.LocalNotifications){
+     return cap.Plugins.LocalNotifications;
+   }
+   return null;
+ }catch(e){
+   return null;
+ }
 }
-const REMINDER_TIMES=["08:00","09:30","11:00","12:30","14:00","15:30","17:00","18:30","20:00","21:30"];
+
+async function ensureNFNotificationChannel(){
+ const LocalNotifications=await getNFLocalNotifications();
+ if(!LocalNotifications)return false;
+ try{
+   if(LocalNotifications.createChannel){
+     await LocalNotifications.createChannel({
+       id:"nf_daily_reminders",
+       name:"Daily Tailoring Reminders",
+       description:"New Fashion Tailoring delivery reminders",
+       importance:4,
+       visibility:1,
+       sound:"default",
+       vibration:true
+     });
+   }
+ }catch(e){
+   console.log("Notification channel:",e);
+ }
+ return true;
+}
+
+async function requestNotificationPermission(){
+ const LocalNotifications=await getNFLocalNotifications();
+
+ if(!LocalNotifications){
+   toast("Notification plugin கிடைக்கவில்லை. APK-ஐ மீண்டும் build செய்ய வேண்டும்.",true);
+   return "denied";
+ }
+
+ try{
+   const current=await LocalNotifications.checkPermissions();
+
+   if(current && current.display==="granted"){
+     await ensureNFNotificationChannel();
+     return "granted";
+   }
+
+   const result=await LocalNotifications.requestPermissions();
+
+   if(result && result.display==="granted"){
+     await ensureNFNotificationChannel();
+     return "granted";
+   }
+
+   return "denied";
+ }catch(error){
+   console.error("Native notification permission error:",error);
+   return "denied";
+ }
+}
+
+const REMINDER_TIMES=[
+ "08:00","09:30","11:00","12:30","14:00",
+ "15:30","17:00","18:30","20:00","21:30"
+];
+
+const NF_NOTIFICATION_IDS=[
+ 8001,8002,8003,8004,8005,
+ 8006,8007,8008,8009,8010
+];
+
 let reminderTimer=null;
-function runPhoneReminders(){
- if(!("Notification" in window)||Notification.permission!=="granted")return;
- const active=state.orders.filter(o=>!isFinished(o)&&o.delivery_date);
+
+function nfReminderBody(){
+ const active=(state.orders||[]).filter(o=>!isFinished(o)&&o.delivery_date);
  const late=active.filter(o=>dueInfo(o)?.kind==="late");
  const dueToday=active.filter(o=>dueInfo(o)?.kind==="today");
  const dueSoon=active.filter(o=>dueInfo(o)?.kind==="soon");
- if(!late.length&&!dueToday.length&&!dueSoon.length)return;
- const now=new Date();
- const hh=String(now.getHours()).padStart(2,"0"),mm=String(now.getMinutes()).padStart(2,"0");
- const slot=`${hh}:${mm}`;
- if(!REMINDER_TIMES.includes(slot))return;
- const today=localDate(),key=`nf_reminder_slot_${today}_${slot}`;
- if(localStorage.getItem(key)==="1")return;
- const people=[...late,...dueToday,...dueSoon].slice(0,5).map(o=>{const c=state.customers.find(x=>x.id===o.customer_id)||{};const d=dueInfo(o);const tag=d?.kind==="late"?`${d.days} நாள் late`:d?.kind==="today"?"இன்று":`${d?.days??"—"} நாள் உள்ளது`;return `👤 ${c.name||"Customer"} · 📞 ${c.phone||"Phone இல்லை"} · ${tag}`;}).join(" | "); const extra=(late.length+dueToday.length+dueSoon.length)>5?` +${late.length+dueToday.length+dueSoon.length-5} பேர்`:""; const body=`🚨 Late ${late.length} · 🔔 Today ${dueToday.length} · ⏰ Next 5 days ${dueSoon.length}${extra}\n${people}`;
- try{new Notification("New Fashion Tailoring — Daily Reminder",{body,icon:""});localStorage.setItem(key,"1")}catch{}
+
+ const relevant=[...late,...dueToday,...dueSoon].slice(0,5);
+
+ const people=relevant.map(o=>{
+   const c=(state.customers||[]).find(x=>x.id===o.customer_id)||{};
+   const d=dueInfo(o);
+   const tag=d?.kind==="late"
+     ? `${d.days} நாள் late`
+     : d?.kind==="today"
+       ? "இன்று"
+       : `${d?.days??"—"} நாள் உள்ளது`;
+
+   return `👤 ${c.name||"Customer"} · 📞 ${c.phone||"Phone இல்லை"} · ${tag}`;
+ }).join(" | ");
+
+ const total=late.length+dueToday.length+dueSoon.length;
+ const extra=total>5?` +${total-5} பேர்`:"";
+
+ return `🚨 Late ${late.length} · 🔔 Today ${dueToday.length} · ⏰ Next 5 days ${dueSoon.length}${extra}\n${people}`;
 }
+
+async function ensureNFExactAlarmPermission(){
+ const LocalNotifications=await getNFLocalNotifications();
+ if(!LocalNotifications)return false;
+
+ try{
+   if(typeof LocalNotifications.checkExactNotificationSetting!=="function"){
+     return true;
+   }
+
+   const setting=await LocalNotifications.checkExactNotificationSetting();
+
+   if(setting && setting.exact_alarm==="granted"){
+     return true;
+   }
+
+   if(typeof LocalNotifications.changeExactNotificationSetting==="function"){
+     await LocalNotifications.changeExactNotificationSetting();
+     toast("⏰ Exact alarm permission ON செய்து, app-க்கு திரும்பி மீண்டும் Notifications ON அழுத்துங்கள்.");
+   }else{
+     toast("⏰ Exact alarm permission கிடைக்கவில்லை. Phone Settings-ல் Allow செய்யுங்கள்.",true);
+   }
+
+   return false;
+ }catch(error){
+   console.error("Exact alarm permission error:",error);
+   toast("⏰ Exact alarm permission check செய்ய முடியவில்லை.",true);
+   return false;
+ }
+}
+
+async function scheduleNativeDailyNotifications(){
+ const LocalNotifications=await getNFLocalNotifications();
+
+ if(!LocalNotifications){
+   toast("Notification plugin கிடைக்கவில்லை.",true);
+   return false;
+ }
+
+ try{
+   const exactReady=await ensureNFExactAlarmPermission();
+   if(!exactReady)return false;
+
+   await ensureNFNotificationChannel();
+
+   try{
+     await LocalNotifications.cancel({
+       notifications:NF_NOTIFICATION_IDS.map(id=>({id}))
+     });
+   }catch(e){
+     console.log("Old notification cancel:",e);
+   }
+
+   const notifications=REMINDER_TIMES.map((time,index)=>{
+     const [hour,minute]=time.split(":").map(Number);
+
+     return {
+       id:NF_NOTIFICATION_IDS[index],
+       title:"🔔 New Fashion Tailoring",
+       body:"Delivery Reminder — pending orders-ஐ check செய்யுங்கள்.",
+       channelId:"nf_daily_reminders",
+       schedule:{
+         on:{
+           hour,
+           minute
+         },
+         allowWhileIdle:true
+       },
+       autoCancel:true
+     };
+   });
+
+   const result=await LocalNotifications.schedule({notifications});
+
+   console.log("Native daily notifications scheduled:",result);
+   return true;
+
+ }catch(error){
+   console.error("Native notification schedule error:",error);
+   return false;
+ }
+}
+
+async function runPhoneReminders(){
+ return true;
+}
+
 function startReminderScheduler(){
- if(reminderTimer)clearInterval(reminderTimer);
+ if(reminderTimer){
+   clearInterval(reminderTimer);
+   reminderTimer=null;
+ }
+
  if(localStorage.getItem("nf_notification_enabled")!=="1")return;
- runPhoneReminders();
- reminderTimer=setInterval(runPhoneReminders,20000);
+
+ scheduleNativeDailyNotifications().catch(e=>{
+   console.error("Native reminder scheduler:",e);
+ });
 }
-function enableDailyNotifications(){requestNotificationPermission().then(p=>{if(p==="granted"){localStorage.setItem("nf_notification_enabled","1");startReminderScheduler();toast("ஒரு நாளில் 10 Daily Reminder நேரங்கள் ON. Phone notification permission வழங்கப்பட்டுள்ளது.")}else toast("Notification permission கிடைக்கவில்லை.",true)})}
+
+async function enableDailyNotifications(){
+ const permission=await requestNotificationPermission();
+
+ if(permission!=="granted"){
+   toast("Notification permission கிடைக்கவில்லை.",true);
+   return;
+ }
+
+ const scheduled=await scheduleNativeDailyNotifications();
+
+ if(!scheduled){
+   return;
+ }
+
+ localStorage.setItem("nf_notification_enabled","1");
+
+ toast("✅ 10 Daily Notifications ON. தினமும் 08:00 முதல் 21:30 வரை notification வரும்.");
+}
+
 updateBackButton();
 supabaseClient.auth.onAuthStateChange((_event,session)=>{if(session?.user){showApp(session.user);setTimeout(()=>loadAll(true),0)}else showLogin()});
 (async()=>{const {data}=await supabaseClient.auth.getSession();if(data?.session?.user){showApp(data.session.user);await loadAll(true)}else showLogin()})();
@@ -5143,39 +5333,10 @@ window.renderPendingCustomerCard=function(){
   }).join("");
 };
 
-/* ---------- Detailed 10-times-per-day notifications ---------- */
-window.runPhoneReminders=function(){
-  if(!("Notification" in window)||Notification.permission!=="granted")return;
-  var active=(state.orders||[]).filter(function(o){return !isFinished(o)&&o.delivery_date;});
-  var relevant=active.filter(function(o){return daysBetween(localDate(),o.delivery_date)<=5;});
-  if(!relevant.length)return;
-
-  var now=new Date();
-  var slot=String(now.getHours()).padStart(2,"0")+":"+String(now.getMinutes()).padStart(2,"0");
-  if(!REMINDER_TIMES.includes(slot))return;
-
-  var key="nf_detailed_reminder_"+localDate()+"_"+slot;
-  if(localStorage.getItem(key)==="1")return;
-
-  var body=relevant.slice(0,30).map(function(o){
-    var c=(state.customers||[]).find(function(x){return x.id===o.customer_id;})||{};
-    var b=nfBlouseSplit(o),x=nfGarmentExtra(o),parts=[];
-    if(b.normal)parts.push("Normal blouse "+b.normal);
-    if(b.lining)parts.push("Lining blouse "+b.lining);
-    if(b.design)parts.push("Design blouse "+b.design);
-    if(x.chudi)parts.push("Chudi "+x.chudi);
-    if(x.chudiLiningQty)parts.push("Chudi lining "+x.chudiLiningQty);
-    if(x.saree)parts.push("Saree "+x.saree);
-    var d=daysBetween(localDate(),o.delivery_date);
-    var when=d<0?"Late "+Math.abs(d)+" நாள்":d===0?"இன்று":d+" நாள்";
-    return "📅 "+dateText(o.delivery_date)+" · 👤 "+(c.name||"Customer")+" · "+(parts.join(" · ")||Number(o.quantity||0)+" pcs")+" · "+when;
-  }).join("\n");
-
-  try{
-    new Notification("New Fashion Tailoring — Delivery Reminder",{body:body,icon:""});
-    localStorage.setItem(key,"1");
-  }catch(e){}
-};
+/* ---------- Native 10-times-per-day notifications ----------
+   Android notifications are scheduled by Capacitor Local Notifications.
+   The old browser Notification API is intentionally not used here.
+*/
 
 /* ---------- Re-render hooks; old render functions remain intact ---------- */
 (function(){
@@ -5199,10 +5360,9 @@ window.runPhoneReminders=function(){
   },{once:true});
 })();
 
-/* Important browser limitation:
-   Web Notification from a plain HTML page requires permission and the page
-   must remain running. This extension keeps the ten existing daily time
-   slots, but does not claim OS-level delivery when the page is fully closed. */
+/* Native Android notification note:
+   Daily reminders are scheduled through Capacitor Local Notifications,
+   so they do not depend on the HTML page remaining open. */
 })();
 </script>
 
