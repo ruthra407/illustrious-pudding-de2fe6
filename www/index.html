@@ -3200,19 +3200,6 @@ function populateQuickOrderEditor(id,o){
  updateQuickOrderCalc(id);
 }
 function makeOrderNo(){return "ORD-"+Date.now().toString().slice(-10)}
-async function updateQuickOrderCalc(id){
- const s={
-  normal:Math.max(0,Number($("qo-normal-"+id)?.value||0)),
-  lining:Math.max(0,Number($("qo-lining-"+id)?.value||0)),
-  design:Math.max(0,Number($("qo-design-"+id)?.value||0))
- };
- const rates=getRates();
- const totalQty=s.normal+s.lining+s.design;
- const total=s.normal*rates.normal+s.lining*rates.lining+s.design*rates.design;
- const q=$("qo-qty-"+id),t=$("qo-total-"+id);
- if(q)q.value=totalQty;
- if(t)t.textContent=money(total);
-}
 function updateQuickGarment(id){
  const g=$("qo-garment-"+id)?.value||"Blouse";
  document.querySelectorAll("#quick-order-"+id+" .nf-quick-blouse").forEach(x=>x.classList.toggle("nf-field-hidden",g!=="Blouse"));
@@ -7207,6 +7194,184 @@ html{
 
 })();
 </script>
+
+
+<style id="nf-edit-order-compact-ui">
+/*
+  EDIT ORDER UI ONLY
+  - Layout/color changes only.
+  - No inputs/options are removed.
+  - No calculation/save/sync JavaScript is changed.
+  - Scoped to .nf-edit-mode so New Order remains untouched.
+*/
+#app .nf-edit-mode{
+  --nf-edit-accent:#6c4df6;
+  --nf-edit-accent-soft:#f6f3ff;
+  --nf-edit-pink-soft:#fff5f8;
+  --nf-edit-cyan-soft:#f1fbfd;
+  --nf-edit-line:#e8e4ef;
+}
+
+/* Compact two-column rows: words on the left, numeric value on the right. */
+#app .nf-edit-mode .moneyStat{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 116px;
+  align-items:center;
+  gap:10px;
+  min-width:0;
+  padding:9px 10px;
+  border:1px solid var(--nf-edit-line);
+  border-radius:12px;
+  background:#fff;
+}
+
+#app .nf-edit-mode .moneyStat span{
+  min-width:0;
+  font-size:12px;
+  line-height:1.3;
+  font-weight:750;
+  color:#5f5a69;
+}
+
+#app .nf-edit-mode .moneyStat .input,
+#app .nf-edit-mode .moneyStat input[type="number"]{
+  width:100%;
+  min-width:0;
+  min-height:40px;
+  margin:0;
+  padding:7px 9px;
+  text-align:right;
+  font-size:15px;
+  font-weight:800;
+  background:#fff;
+}
+
+/* Very light category accents — deliberately restrained. */
+#app .nf-edit-mode .nf-quick-blouse > .formgrid > .moneyStat:nth-child(1),
+#app .nf-edit-mode .nf-quick-blouse > .formgrid > .moneyStat:nth-child(2){
+  background:linear-gradient(90deg,#faf8ff,#fff);
+}
+#app .nf-edit-mode .nf-quick-blouse > .formgrid > .moneyStat:nth-child(3),
+#app .nf-edit-mode .nf-quick-blouse > .formgrid > .moneyStat:nth-child(4){
+  background:linear-gradient(90deg,#fff8fb,#fff);
+}
+#app .nf-edit-mode .nf-quick-blouse > .formgrid > .moneyStat:nth-child(5),
+#app .nf-edit-mode .nf-quick-blouse > .formgrid > .moneyStat:nth-child(6){
+  background:linear-gradient(90deg,#f7fbff,#fff);
+}
+
+/* Total count gets a calm emphasis, not a loud color. */
+#app .nf-edit-mode .nf-quick-blouse > .formgrid > .moneyStat:last-child{
+  border-color:#dcd7f2;
+  background:var(--nf-edit-accent-soft);
+}
+#app .nf-edit-mode .nf-quick-blouse > .formgrid > .moneyStat:last-child input{
+  color:#4f3ec2;
+  background:#fff;
+}
+
+/* Design rate rows: keep label/text left and numbers right. */
+#app .nf-edit-mode .nf-design-rate-row{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  align-items:center;
+  gap:10px;
+  padding:7px 9px;
+}
+#app .nf-edit-mode .nf-design-rate-row>div{
+  min-width:0;
+}
+#app .nf-edit-mode .nf-design-rate-row .nf-design-rate-input{
+  width:92px;
+  min-height:38px;
+  text-align:right;
+  font-weight:800;
+}
+
+/* Lining and Saree sections stay available; only soften their presentation. */
+#app .nf-edit-mode .nf-lining-cost-box{
+  background:#fffdf8;
+  border-color:#eee3c8;
+  border-radius:13px;
+}
+#app .nf-edit-mode .nf-lining-cost-grid{
+  gap:8px;
+}
+#app .nf-edit-mode .nf-lining-cost-field{
+  min-width:0;
+}
+#app .nf-edit-mode .nf-lining-cost-field label{
+  display:block;
+  margin-bottom:5px;
+  font-size:11px;
+  line-height:1.25;
+  font-weight:750;
+  color:#68616a;
+}
+#app .nf-edit-mode .nf-lining-cost-field input[type="number"]{
+  text-align:right;
+  font-weight:800;
+}
+
+#app .nf-edit-mode .nf-quick-blouse > .field[style*="fff8df"]{
+  background:#fffdf8 !important;
+  border-color:#eee3c8 !important;
+}
+
+/* Chudi numeric rows follow the same word/value alignment. */
+#app .nf-edit-mode .nf-quick-chudi:has(input[type="number"]){
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 116px;
+  align-items:center;
+  gap:10px;
+}
+#app .nf-edit-mode .nf-quick-chudi:has(input[type="number"]) label{
+  margin:0;
+  line-height:1.3;
+}
+#app .nf-edit-mode .nf-quick-chudi:has(input[type="number"]) input[type="number"]{
+  text-align:right;
+  font-weight:800;
+}
+
+/* Keep the overall editor visually compact. */
+#app .nf-edit-mode > .formgrid{
+  gap:8px;
+}
+#app .nf-edit-mode > .formgrid > .field{
+  min-width:0;
+}
+#app .nf-edit-mode .customerActions{
+  gap:8px;
+}
+#app .nf-edit-mode .nf-quick-save-btn{
+  box-shadow:0 6px 14px rgba(108,77,246,.14);
+}
+
+@media(max-width:560px){
+  #app .nf-edit-mode .moneyStat,
+  #app .nf-edit-mode .nf-quick-chudi:has(input[type="number"]){
+    grid-template-columns:minmax(0,1fr) 102px;
+    gap:7px;
+    padding:8px;
+  }
+
+  #app .nf-edit-mode .moneyStat span,
+  #app .nf-edit-mode .nf-quick-chudi:has(input[type="number"]) label{
+    font-size:11px;
+  }
+
+  #app .nf-edit-mode .moneyStat input[type="number"],
+  #app .nf-edit-mode .nf-quick-chudi:has(input[type="number"]) input[type="number"]{
+    min-height:38px;
+    font-size:14px;
+  }
+
+  #app .nf-edit-mode .nf-design-rate-row{
+    grid-template-columns:minmax(0,1fr) auto;
+  }
+}
+</style>
 
 </body>
 </html>
