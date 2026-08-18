@@ -3763,16 +3763,11 @@ function openOrderFullDetails(orderId){
     ${item("Cloth Received",esc(dateText(o.cloth_received_date)))}
     ${item("Delivery Date",esc(dateText(o.delivery_date)))}
     ${item("Status",statusPill(o.status))}
-    ${item("Rate Type",esc(o.rate_type||"—"))}
-    ${item("Unit Price",money(o.unit_price))}
-    ${garment==="Blouse"&&Number((typeof nfGarmentExtra==="function"?nfGarmentExtra(o):{}).saree||0)>0?item("Saree Calculation",`${Number(nfGarmentExtra(o).saree||0)} × ${money(nfOrderRates(o).saree||0)} = ${money(Number(nfGarmentExtra(o).saree||0)*Number(nfOrderRates(o).saree||0))}`):""}
     ${item("Total Order",money(total))}
     ${item("Advance Paid",`${money(pay.advance)}<br><small>தேதி: ${nfFormatPaymentDate(pay.advanceDate)}</small>`)}
     ${item("Customer Paid",money(pay.customerPaid))}
     ${item("Total Paid",money(pay.totalPaid))}
     ${item("Balance Due",`${money(pay.balance)}${pay.balancePaidDate?`<br><small>Balance Paid Date: ${nfFormatPaymentDate(pay.balancePaidDate)}</small>`:""}`)}
-    ${liningSource||liningQty?item("Lining Cloth",esc((liningSource==="customer"?"Customer கொடுத்தது":"நாம் வாங்கியது")+(liningQty?" · "+liningQty:""))):""}
-    ${liningTotal||liningQty?item("Lining Cost",esc(liningQty&&liningRate?`${liningQty} lining × ${money(liningRate)} = ${money(liningTotal)}`:money(liningTotal))):""}
     ${notes?item("Notes",esc(notes),true):""}
   </div>
   ${paymentHistory}
@@ -6901,6 +6896,7 @@ html{
 .nf-order-card-actions{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 12px;padding:10px;border-radius:14px;background:linear-gradient(135deg,#f7f4ff,#fff4f8);border:1px solid #e4ddf4}
 .nf-order-card-actions .btn{flex:1;min-width:145px}
 .nf-order-card-actions .nf-edit-order-btn{background:linear-gradient(135deg,#6c4df6,#ef4f8a);color:#fff;border:0;box-shadow:0 7px 18px rgba(108,77,246,.18)}
+.nf-order-full-action-row{margin:0 0 12px}.nf-order-full-action-row .btn{width:100%;min-height:44px}
 .nf-customer-order-full-btn{background:linear-gradient(135deg,#14aebd,#3d83ef)!important;color:#fff!important;border:0!important;box-shadow:0 7px 18px rgba(20,174,189,.18)}
 .nf-customer-order-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:7px}
 .nf-customer-order-actions .btn{min-height:40px}
@@ -6947,26 +6943,6 @@ html{
     window.customerCard.__nfFinalOrderSync=true;
   }
 
-  /* The previous wrapper above cannot safely inject per-order buttons into the
-     template string after interpolation. Instead, patch the already rendered
-     customer cards after each render, while keeping the original card markup. */
-  function patchRenderedCustomerCards(){
-    (state.customers||[]).forEach(function(c){
-      var card=document.getElementById("customer-card-"+c.id);
-      if(!card)return;
-      var lines=card.querySelectorAll(".customerOrderLine");
-      lines.forEach(function(line){
-        if(line.querySelector(".nf-customer-order-actions"))return;
-        var id=(line.id||"").replace(/^customer-order-/i,"");
-        if(!id)return;
-        var wrap=document.createElement("div");
-        wrap.className="nf-customer-order-actions";
-        wrap.innerHTML='<button type="button" class="btn nf-customer-order-full-btn" onclick="openCustomerOrderFullDetails(\''+id+'\')">📋 Order Full Details</button>';
-        line.appendChild(wrap);
-      });
-    });
-  }
-
   window.openCustomerOrderFullDetails=function(orderId){
     var o=(state.orders||[]).find(function(x){return String(x.id)===String(orderId);});
     if(!o){toast("இந்த customer-க்கு Order Full Details கிடைக்கவில்லை.",true);return;}
@@ -6990,6 +6966,7 @@ html{
         '<button type="button" class="btn primary" onclick="event.stopPropagation();openOrdersNewOrderForCustomer(\''+o.customer_id+'\')">＋ New Order</button>'+
         '<button type="button" class="btn nf-edit-order-btn" onclick="event.stopPropagation();openOrdersEditOrder(\''+o.id+'\')">✏️ Edit Order</button>'+ 
       '</div>'+
+      '<div class="nf-order-full-action-row"><button type="button" class="btn nf-customer-order-full-btn" onclick="event.stopPropagation();openOrderFullDetails(\''+o.id+'\')">📋 Order Full Details</button></div>'+
       '<div class="actions">'+delivered+'<button type="button" class="btn danger" onclick="event.stopPropagation();removeRow(\'orders\',\''+o.id+'\')">Delete</button></div>';
     }
 
@@ -7226,19 +7203,7 @@ html{
       (Math.abs(exactSavedOrderTotal-breakdownTotal)>0.009?'<div class="mini" style="margin-top:8px;color:#8a6200">ℹ️ Saved Order Total: '+money(exactSavedOrderTotal)+' · Item-wise breakdown: '+money(breakdownTotal)+'</div>':"")+ 
     '</div>';
   };
-  /* Re-render hook: ensure customer-card additions survive every loadAll(). */
-  var baseRenderAll=window.renderAll;
-  if(typeof baseRenderAll==="function" && !baseRenderAll.__nfFinalOrderSync){
-    window.renderAll=function(){
-      baseRenderAll.apply(this,arguments);
-      try{patchRenderedCustomerCards();}catch(e){console.error("Customer order action patch failed",e);}
-    };
-    window.renderAll.__nfFinalOrderSync=true;
-  }
 
-  document.addEventListener("DOMContentLoaded",function(){
-    setTimeout(function(){try{patchRenderedCustomerCards();}catch(e){}},80);
-  },{once:true});
 
 })();
 </script>
