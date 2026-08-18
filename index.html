@@ -2483,6 +2483,38 @@ body{
 .nf-payment-live-grid .nf-pay-balance{background:#f0edff;border-color:#d9d0ff}
 @media(max-width:560px){.nf-payment-live-grid{grid-template-columns:1fr 1fr}}
 </style>
+
+<style id="nf-edit-order-layout-final-safe">
+/* FINAL SAFE PATCH — Edit Order layout only.
+   No form fields, calculations, save logic, or sync logic are changed. */
+#app .nf-edit-mode .moneyStat{
+  display:grid !important;
+  grid-template-columns:minmax(0,1fr) 116px !important;
+  align-items:center !important;
+  gap:10px !important;
+}
+#app .nf-edit-mode .moneyStat > span{
+  display:block !important;
+  min-width:0 !important;
+  margin:0 !important;
+  text-align:left !important;
+}
+#app .nf-edit-mode .moneyStat > input[type="number"],
+#app .nf-edit-mode .moneyStat > .input{
+  display:block !important;
+  width:100% !important;
+  min-width:0 !important;
+  margin:0 !important;
+  text-align:right !important;
+}
+@media(max-width:560px){
+  #app .nf-edit-mode .moneyStat{
+    grid-template-columns:minmax(0,1fr) 102px !important;
+    gap:7px !important;
+  }
+}
+</style>
+
 </head>
 <body>
 
