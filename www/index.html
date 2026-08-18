@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="nf-build" content="verified-2026-08-15">
+<meta name="nf-build" content="verified-2026-08-18-notification-fix">
 <title>New Fashion Tailoring – Online Management | Phase 4.3</title>
 <link rel="manifest" href="manifest.json">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -4056,24 +4056,48 @@ $("shopPhotoInput")?.addEventListener("change",e=>savePhoto("shop",e.target.file
 $("shopCameraInput")?.addEventListener("change",e=>savePhoto("shop",e.target.files[0]));
 
 
+let nfLocalNotificationsPromise=null;
+
 async function getNFLocalNotifications(){
  const cap=window.Capacitor;
  if(!cap)return null;
- try{
-   if(cap.Plugins && cap.Plugins.LocalNotifications){
-     return cap.Plugins.LocalNotifications;
-   }
-   return null;
- }catch(e){
-   return null;
+
+ if(nfLocalNotificationsPromise){
+   return nfLocalNotificationsPromise;
  }
+
+ nfLocalNotificationsPromise=(async()=>{
+   try{
+     /*
+      * Capacitor 8 official plugins use registerPlugin().
+      * This plain index.html is not bundled with an ES-module import, so
+      * do NOT depend on the legacy cap.Plugins registry alone.
+      */
+     if(typeof cap.registerPlugin==="function"){
+       const plugin=cap.registerPlugin("LocalNotifications");
+       if(plugin)return plugin;
+     }
+
+     /* Backward-compatible fallback for older Capacitor runtimes. */
+     if(cap.Plugins && cap.Plugins.LocalNotifications){
+       return cap.Plugins.LocalNotifications;
+     }
+   }catch(e){
+     console.error("LocalNotifications registration error:",e);
+   }
+
+   return null;
+ })();
+
+ return nfLocalNotificationsPromise;
 }
 
 async function ensureNFNotificationChannel(){
  const LocalNotifications=await getNFLocalNotifications();
  if(!LocalNotifications)return false;
+
  try{
-   if(LocalNotifications.createChannel){
+   if(typeof LocalNotifications.createChannel==="function"){
      await LocalNotifications.createChannel({
        id:"nf_daily_reminders",
        name:"Daily Tailoring Reminders",
@@ -4090,32 +4114,66 @@ async function ensureNFNotificationChannel(){
  return true;
 }
 
+function nfDelay(ms){
+ return new Promise(resolve=>setTimeout(resolve,ms));
+}
+
 async function requestNotificationPermission(){
  const LocalNotifications=await getNFLocalNotifications();
 
  if(!LocalNotifications){
-   toast("Notification plugin கிடைக்கவில்லை. APK-ஐ மீண்டும் build செய்ய வேண்டும்.",true);
+   toast("Notification plugin கிடைக்கவில்லை. APK-ல் Local Notifications plugin register ஆகவில்லை.",true);
    return "denied";
  }
 
  try{
-   const current=await LocalNotifications.checkPermissions();
+   /*
+    * Android 13+ requires the runtime POST_NOTIFICATIONS permission.
+    * Always verify the result again after the system dialog closes.
+    */
+   let current=await LocalNotifications.checkPermissions();
 
-   if(current && current.display==="granted"){
+   if(current?.display==="granted"){
      await ensureNFNotificationChannel();
      return "granted";
    }
 
-   const result=await LocalNotifications.requestPermissions();
+   let result=await LocalNotifications.requestPermissions();
 
-   if(result && result.display==="granted"){
+   /*
+    * Android may update the permission state just after the native
+    * permission dialog resolves. Re-check after a short delay.
+    */
+   await nfDelay(350);
+
+   current=await LocalNotifications.checkPermissions();
+
+   if(current?.display==="granted"){
      await ensureNFNotificationChannel();
      return "granted";
    }
 
-   return "denied";
+   if(result?.display==="granted"){
+     await ensureNFNotificationChannel();
+     return "granted";
+   }
+
+   /*
+    * One more check handles a slower Android permission-state update.
+    */
+   await nfDelay(500);
+   current=await LocalNotifications.checkPermissions();
+
+   if(current?.display==="granted"){
+     await ensureNFNotificationChannel();
+     return "granted";
+   }
+
+   console.warn("Notification permission state:",current,result);
+   return current?.display || result?.display || "denied";
  }catch(error){
    console.error("Native notification permission error:",error);
+   toast("Notification permission error: "+(error?.message||String(error)),true);
    return "denied";
  }
 }
@@ -4167,19 +4225,24 @@ async function ensureNFExactAlarmPermission(){
      return true;
    }
 
-   const setting=await LocalNotifications.checkExactNotificationSetting();
+   let setting=await LocalNotifications.checkExactNotificationSetting();
 
-   if(setting && setting.exact_alarm==="granted"){
+   if(setting?.exact_alarm==="granted"){
      return true;
    }
 
    if(typeof LocalNotifications.changeExactNotificationSetting==="function"){
      await LocalNotifications.changeExactNotificationSetting();
+
+     /*
+      * Android opens the app's exact-alarm settings screen.
+      * The user must return to the app and press the ON button again.
+      */
      toast("⏰ Exact alarm permission ON செய்து, app-க்கு திரும்பி மீண்டும் Notifications ON அழுத்துங்கள்.");
-   }else{
-     toast("⏰ Exact alarm permission கிடைக்கவில்லை. Phone Settings-ல் Allow செய்யுங்கள்.",true);
+     return false;
    }
 
+   toast("⏰ Exact alarm permission கிடைக்கவில்லை. Phone Settings-ல் Allow செய்யுங்கள்.",true);
    return false;
  }catch(error){
    console.error("Exact alarm permission error:",error);
@@ -4236,6 +4299,7 @@ async function scheduleNativeDailyNotifications(){
 
  }catch(error){
    console.error("Native notification schedule error:",error);
+   toast("Notification schedule error: "+(error?.message||String(error)),true);
    return false;
  }
 }
