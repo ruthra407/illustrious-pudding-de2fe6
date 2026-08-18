@@ -3407,7 +3407,7 @@ const clothPhotoActionsHtml="";
  <div class="moneyStat"><span>Normal blouse — ஒன்றுக்கு விலை</span><input id="qo-normal-rate-${id}" class="input" type="number" min="0" step="0.01" value="${getRates().normal}" oninput="updateQuickOrderCalc('${id}')"></div>
  <div class="moneyStat"><span>Lining blouse — எத்தனை</span><input id="qo-lining-${id}" class="input" type="number" min="0" step="1" value="0" oninput="updateQuickOrderCalc('${id}')"></div>
  <div class="moneyStat"><span>Lining blouse — ஒன்றுக்கு விலை</span><input id="qo-lining-rate-${id}" class="input" type="number" min="0" step="0.01" value="${getRates().lining}" oninput="updateQuickOrderCalc('${id}')"></div>
- <div class="moneyStat"><span>Design blouse — எத்தனை</span><input id="qo-design-${id}" class="input" type="number" min="0" step="1" value="0" oninput="updateQuickOrderCalc('${id}');renderQuickDesignRates('${id}')"></div>
+ <div class="moneyStat nf-design-legacy-count" style="display:none!important"><span>Design blouse — எத்தனை</span><input id="qo-design-${id}" class="input" type="number" min="0" step="1" value="0" oninput="updateQuickOrderCalc('${id}');renderQuickDesignRates('${id}')"></div>
  <div class="moneyStat nf-design-single-rate"><span>Design blouse — ஒன்றுக்கு விலை</span><input id="qo-design-rate-${id}" class="input" type="number" min="0" step="0.01" value="${getRates().design}" oninput="updateQuickOrderCalc('${id}')"></div>
  <div class="moneyStat"><span>மொத்த Blouse + Saree count</span><input id="qo-qty-${id}" class="input" type="number" value="0" readonly></div></div></div>
  <div class="field full nf-design-rate-box nf-quick-blouse" id="qo-design-rates-box-${id}" style="display:none"></div>
