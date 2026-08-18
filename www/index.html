@@ -6821,5 +6821,144 @@ html{
 })();
 </script>
 
+\n<script id="nf-final-chudi-new-order-sync-fix">
+(function(){
+  "use strict";
+
+  function q(id){return document.getElementById(id);}
+  function garmentValue(id){
+    return String(q("qo-garment-"+id)?.value||"Blouse").trim().toLowerCase();
+  }
+  function eachQuick(id, selector, fn){
+    var box=q("quick-order-"+id);
+    if(!box)return;
+    box.querySelectorAll(selector).forEach(fn);
+  }
+
+  /* Final customer-card / Orders-page Chudi visibility sync. */
+  window.updateQuickGarment=function(id){
+    var box=q("quick-order-"+id);
+    if(!box)return;
+    var raw=q("qo-garment-"+id)?.value||"Blouse";
+    var g=String(raw).trim().toLowerCase();
+    /* Keep the saved value canonical because saveQuickOrder uses the
+       existing "Chudi" / "Blouse" values as its source of truth. */
+    if(g==="chudi" && q("qo-garment-"+id))q("qo-garment-"+id).value="Chudi";
+    else if(g==="blouse" && q("qo-garment-"+id))q("qo-garment-"+id).value="Blouse";
+    var chudi=g==="chudi", blouse=g==="blouse";
+
+    eachQuick(id,".nf-quick-blouse",function(el){
+      el.classList.toggle("nf-field-hidden",!blouse);
+      el.style.display=blouse?"":"none";
+    });
+    eachQuick(id,".nf-quick-chudi",function(el){
+      el.classList.toggle("nf-field-hidden",!chudi);
+      el.style.display=chudi?"":"none";
+    });
+    eachQuick(id,".nf-quick-saree",function(el){
+      el.classList.add("nf-field-hidden");
+      el.style.display="none";
+    });
+
+    updateChudiLiningLabel(id);
+    if(typeof window.updateQuickOrderCalc==="function")window.updateQuickOrderCalc(id);
+  };
+
+  /* Keep the existing Blouse + Saree calculation intact; normalize only the
+     garment branch so Chudi can never fall through to the Blouse calculation. */
+  window.updateQuickOrderCalc=function(id){
+    var g=garmentValue(id);
+    var r=typeof getQuickBlouseRates==="function"
+      ?getQuickBlouseRates(id)
+      :(typeof getRates==="function"?getRates():{normal:0,lining:0,design:0,chudi:0,saree:0});
+
+    var n=Math.max(0,Number(q("qo-normal-"+id)?.value||0));
+    var l=Math.max(0,Number(q("qo-lining-"+id)?.value||0));
+    var d=Math.max(0,Number(q("qo-design-"+id)?.value||0));
+    var cq=Math.max(0,Number(q("qo-chudi-"+id)?.value||0));
+    var cr=Math.max(0,Number(q("qo-chudi-rate-"+id)?.value||r.chudi||0));
+    var sq=Math.max(0,Number(q("qo-saree-"+id)?.value||0));
+    var sr=Math.max(0,Number(q("qo-saree-rate-"+id)?.value||r.saree||0));
+
+    var designTotal=0;
+    if(typeof getQuickDesignRates==="function"){
+      designTotal=getQuickDesignRates(id,d,r.design||0)
+        .reduce(function(sum,v){return sum+Math.max(0,Number(v||0));},0);
+    }else{
+      designTotal=d*(r.design||0);
+    }
+
+    var qty=0,garmentTotal=0;
+    if(g==="chudi"){
+      qty=cq;
+      garmentTotal=cq*cr;
+    }else{
+      qty=n+l+d+sq;
+      garmentTotal=n*(r.normal||0)+l*(r.lining||0)+designTotal+sq*sr;
+    }
+
+    var ls=q("qo-lining-source-"+id)?.value||"";
+    var lq=Math.max(0,Number(q("qo-lining-qty-"+id)?.value||0));
+    var lr=Math.max(0,Number(q("qo-lining-cost-rate-"+id)?.value||0));
+    var liningTotal=ls==="shop"?lq*lr:0;
+    var total=garmentTotal+liningTotal;
+
+    if(q("qo-qty-"+id))q("qo-qty-"+id).value=qty;
+    if(q("qo-lining-total-"+id))q("qo-lining-total-"+id).textContent=money(liningTotal);
+    if(q("qo-lining-total-display-"+id))q("qo-lining-total-display-"+id).textContent=money(liningTotal);
+    if(q("qo-garment-total-"+id))q("qo-garment-total-"+id).textContent=money(garmentTotal);
+    if(q("qo-saree-total-"+id))q("qo-saree-total-"+id).textContent=money(sq*sr);
+    if(q("qo-total-"+id))q("qo-total-"+id).textContent=money(total);
+    if(q("qo-chudi-total-"+id))q("qo-chudi-total-"+id).textContent=money(cq*cr);
+  };
+
+  function ensureChudiTotal(id){
+    var box=q("quick-order-"+id);
+    if(!box || q("qo-chudi-total-"+id))return;
+    var rate=q("qo-chudi-rate-"+id);
+    if(!rate)return;
+    var field=rate.closest(".field");
+    if(!field)return;
+    var totalField=document.createElement("div");
+    totalField.className="field nf-quick-chudi";
+    totalField.innerHTML='<label>👚 Chudi மொத்தம்</label><div id="qo-chudi-total-'+id+'" class="autoTotal">₹0.00</div>';
+    field.parentNode.insertBefore(totalField,field.nextSibling);
+  }
+
+  function syncOne(id){
+    if(!q("quick-order-"+id))return;
+    ensureChudiTotal(id);
+    window.updateQuickGarment(id);
+  }
+
+  function syncAll(){
+    document.querySelectorAll('[id^="quick-order-"]').forEach(function(box){
+      var id=box.id.slice("quick-order-".length);
+      if(id)syncOne(id);
+    });
+  }
+
+  document.addEventListener("change",function(e){
+    var el=e.target;
+    if(el && /^qo-garment-/.test(el.id||""))syncOne(el.id.slice("qo-garment-".length));
+  });
+
+  document.addEventListener("input",function(e){
+    var el=e.target;
+    if(el && /^(qo-chudi|qo-chudi-rate)-/.test(el.id||"")){
+      var m=el.id.match(/^qo-(?:chudi|chudi-rate)-(.+)$/);
+      if(m)window.updateQuickOrderCalc(m[1]);
+    }
+  });
+
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",function(){setTimeout(syncAll,0);},{once:true});
+  else setTimeout(syncAll,0);
+
+  if(window.MutationObserver){
+    var observer=new MutationObserver(function(){syncAll();});
+    observer.observe(document.body,{childList:true,subtree:true});
+  }
+})();
+</script>\n
 </body>
 </html>
