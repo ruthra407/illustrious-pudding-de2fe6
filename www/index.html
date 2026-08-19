@@ -138,7 +138,7 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}.hidden{display:
 
 .customerOrderLine .orderActions{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
 @media(max-width:560px){.rateGrid{grid-template-columns:1fr}.calcBar input{min-width:140px}}
-/* V3.6 — Customer Card Design calculation rows: restrained emphasis. */
+/* V3.9 — Customer Card Design calculation rows: restrained emphasis. */
 .nf-customer-design-rate-row{
   background:linear-gradient(90deg,#faf8ff,#fff);
   border:1px solid #e7e1f4;
@@ -154,16 +154,31 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}.hidden{display:
 .nf-customer-design-rate-row .rateMath{
   white-space:nowrap;
 }
-@media(max-width:560px){
-  .nf-customer-design-rate-row{
-    display:grid;
-    grid-template-columns:minmax(0,1fr) auto;
-    gap:7px;
-    align-items:center;
+/* V3.8 — Design calculation must remain a single horizontal row
+   even on the mobile breakpoint used by Customer Card. */
+@media(max-width:700px){
+  .customerRateRow{
+    display:flex;
+    flex-direction:row !important;
+    align-items:center !important;
+    justify-content:space-between;
+    gap:8px;
   }
-  .nf-customer-design-rate-row .rateMath{
+  .customerRateRow .rateLabel{
+    flex:1 1 auto;
+    min-width:0;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .customerRateRow .rateMath{
+    flex:0 0 auto;
+    white-space:nowrap !important;
     text-align:right;
-    font-size:11px;
+    font-size:12px;
+  }
+  .customerRateRow.nf-customer-design-rate-row{
+    border-left:3px solid #9b51e0;
   }
 }
 
@@ -1184,6 +1199,30 @@ body{
   .nf-design-picker-actions .btn{flex:1;min-width:120px}
 }
 
+
+/* V3.9 — All Customer Card calculation summaries use row presentation.
+   No calculation/data logic is changed. */
+@media(max-width:700px){
+  .customerWorkSummary .nf-customer-calc-row,
+  .customerWorkSummary .nf-customer-summary-row{
+    display:flex !important;
+    flex-direction:row !important;
+    align-items:center !important;
+    justify-content:space-between !important;
+    gap:8px !important;
+  }
+  .customerWorkSummary .nf-customer-calc-row > :first-child,
+  .customerWorkSummary .nf-customer-summary-row > :first-child{
+    flex:1 1 auto;
+    min-width:0;
+  }
+  .customerWorkSummary .nf-customer-calc-row > :last-child,
+  .customerWorkSummary .nf-customer-summary-row > :last-child{
+    flex:0 0 auto;
+    white-space:nowrap;
+    text-align:right;
+  }
+}
 </style>
 
 <style id="phase3-premium-final">
@@ -7633,14 +7672,14 @@ html{
           if(q<=0)return;
           var label='🎨 Design '+(i+1);
           if(String(it.name||"").trim())label+=' — '+String(it.name).trim();
-          designRows+='<div class="customerRateRow nf-customer-design-rate-row"><span class="rateLabel">'+label+' · '+q+'</span><span class="rateMath">'+q+' × '+money(r)+' = <b>'+money(q*r)+'</b></span></div>';
+          designRows+='<div class="customerRateRow nf-customer-design-rate-row"><span class="rateLabel">'+label+'</span><span class="rateMath">'+q+' × '+money(r)+' = <b>'+money(q*r)+'</b></span></div>';
         });
       }else{
         /* Legacy orders without saved 3-slot data remain visible and
            continue using their saved aggregate Design blouse rate. */
         var s=splitFor(o),r=ratesFor(o),q=Number(s.design||0);
         if(q>0){
-          designRows+='<div class="customerRateRow nf-customer-design-rate-row"><span class="rateLabel">🎨 Design blouse · '+q+'</span><span class="rateMath">'+q+' × '+money(r.design)+' = <b>'+money(q*r.design)+'</b></span></div>';
+          designRows+='<div class="customerRateRow nf-customer-design-rate-row"><span class="rateLabel">🎨 Design blouse</span><span class="rateMath">'+q+' × '+money(r.design)+' = <b>'+money(q*r.design)+'</b></span></div>';
         }
       }
     });
