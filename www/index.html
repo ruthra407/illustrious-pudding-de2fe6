@@ -1,10 +1,10 @@
 <!doctype html>
-<html nf-build="verified-2026-08-19-v3.14-order-card-row-layout" lang="ta">
+<html nf-build="verified-2026-08-19-v3.15-no-overlap-row-layout-fixed-selects" lang="ta">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="nf-build" content="verified-2026-08-19-v3.14-order-card-row-layout">
-<title>New Fashion Tailoring – Online Management | Phase 4.3 • V3.14</title>
+<meta name="nf-build" content="verified-2026-08-19-v3.15-no-overlap-row-layout-fixed-selects">
+<title>New Fashion Tailoring – Online Management | Phase 4.3 • V3.15</title>
 <link rel="manifest" href="manifest.json">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -1223,51 +1223,6 @@ body{
     text-align:right;
   }
 }
-
-/* V3.14 — ORDER CARD EDIT/NEW ORDER ROW LAYOUT ONLY
-   Base: V3.13. Do not alter Customer Card editor, calculations, save/sync, or auth. */
-#ordersNewOrderContent .formgrid{
-  display:grid !important; grid-template-columns:1fr !important; gap:8px !important;
-}
-#ordersNewOrderContent .formgrid > .field{
-  display:grid !important; grid-template-columns:minmax(150px,1fr) minmax(150px,1.25fr) !important;
-  align-items:center !important; gap:10px !important; width:100% !important;
-}
-#ordersNewOrderContent .formgrid > .field.full{grid-column:auto !important}
-#ordersNewOrderContent .formgrid > .field > label{margin:0 !important; min-width:0 !important}
-#ordersNewOrderContent .formgrid > .field > .moneyStat{
-  display:grid !important; grid-template-columns:minmax(150px,1fr) minmax(120px,1fr) !important;
-  align-items:center !important; gap:10px !important;
-}
-#ordersNewOrderContent .formgrid > .field > .moneyStat > span{min-width:0 !important}
-#ordersNewOrderContent .nf-quick-blouse > .formgrid{grid-template-columns:1fr !important}
-#ordersNewOrderContent .nf-quick-blouse > .formgrid > .moneyStat{
-  display:grid !important; grid-template-columns:minmax(150px,1fr) minmax(120px,1fr) !important;
-  align-items:center !important; gap:10px !important;
-}
-#ordersNewOrderContent .nf-quick-blouse > .formgrid > .moneyStat > span{min-width:0 !important}
-#ordersNewOrderContent .nf-lining-cost-grid{
-  display:grid !important; grid-template-columns:1fr !important; gap:8px !important;
-}
-#ordersNewOrderContent .nf-lining-cost-field{
-  display:grid !important; grid-template-columns:minmax(150px,1fr) minmax(150px,1.25fr) !important;
-  align-items:center !important; gap:10px !important;
-}
-#ordersNewOrderContent .nf-lining-cost-field label{margin:0 !important}
-#ordersNewOrderContent .nf-lining-cost-total{text-align:right !important}
-#ordersNewOrderContent .nf-design-rate-list .nf-design-rate-row{
-  display:grid !important; grid-template-columns:minmax(0,1fr) auto !important;
-  align-items:center !important; gap:10px !important;
-}
-@media(max-width:560px){
-  #ordersNewOrderContent .formgrid > .field,
-  #ordersNewOrderContent .formgrid > .field > .moneyStat,
-  #ordersNewOrderContent .nf-quick-blouse > .formgrid > .moneyStat,
-  #ordersNewOrderContent .nf-lining-cost-field{
-    grid-template-columns:minmax(120px,1fr) minmax(110px,1.15fr) !important; gap:7px !important;
-  }
-}
-
 </style>
 
 <style id="phase3-premium-final">
@@ -2992,7 +2947,6 @@ body{
 }
 </style>
 
-<!-- V3.14: Only Order Card Edit/New Order presentation is row-wise. Existing buttons, functions, calculations, save/sync, and auth are untouched. -->
 </head>
 <body>
 
@@ -8238,5 +8192,245 @@ html{
   };
 })();
 </script>
+
+<!-- =========================================================
+     V3.15 — FINAL NON-OVERLAP ROW LAYOUT + SELECT VISIBILITY
+     Source: V3.13
+     Scope: visual/layout only.
+     - Customer Card Edit/New Order and Orders-card New/Edit Order
+       use the same label-left / value-right row geometry.
+     - Long Tamil labels wrap inside their own column.
+     - Controls never push into the label column.
+     - Design-slot rows are contained inside their own card.
+     - No buttons, fields, calculations, save/load, or sync logic removed/changed.
+     - This is the LAST CSS authority layer to avoid cascade overlap.
+     ========================================================= -->
+<style id="nf-v3_14-final-no-overlap-row-layout">
+/* Common box sizing and containment for both shared quick-order editors. */
+#app [id^="quick-order-"],
+#app [id^="quick-order-"] *,
+#app .nf-standard-edit-layout,
+#app .nf-standard-edit-layout *{
+  box-sizing:border-box !important;
+}
+
+/* Every normal order field is one self-contained label/value row. */
+#app [id^="quick-order-"] > .formgrid > .field:not(.full),
+#app .nf-standard-edit-layout .field:not(.full){
+  display:grid !important;
+  grid-template-columns:minmax(0,1fr) minmax(116px,42%) !important;
+  align-items:center !important;
+  column-gap:9px !important;
+  row-gap:6px !important;
+  min-width:0 !important;
+  width:100% !important;
+  max-width:100% !important;
+  overflow:visible !important;
+}
+
+/* Labels stay completely inside the left column. */
+#app [id^="quick-order-"] > .formgrid > .field:not(.full) > label,
+#app [id^="quick-order-"] .moneyStat > span,
+#app [id^="quick-order-"] .nf-lining-cost-field > label,
+#app [id^="quick-order-"] .nf-quick-chudi > label,
+#app .nf-standard-edit-layout .field:not(.full) > label{
+  grid-column:1 !important;
+  min-width:0 !important;
+  width:auto !important;
+  max-width:100% !important;
+  margin:0 !important;
+  white-space:normal !important;
+  overflow:visible !important;
+  text-overflow:clip !important;
+  overflow-wrap:anywhere !important;
+  word-break:break-word !important;
+  line-height:1.3 !important;
+  text-align:left !important;
+}
+
+/* Inputs/selects/textareas stay completely inside the right column. */
+#app [id^="quick-order-"] > .formgrid > .field:not(.full) > input,
+#app [id^="quick-order-"] > .formgrid > .field:not(.full) > select,
+#app [id^="quick-order-"] > .formgrid > .field:not(.full) > textarea,
+#app [id^="quick-order-"] > .formgrid > .field:not(.full) > .input,
+#app [id^="quick-order-"] .moneyStat > input,
+#app [id^="quick-order-"] .moneyStat > select,
+#app [id^="quick-order-"] .nf-lining-cost-field > input,
+#app [id^="quick-order-"] .nf-lining-cost-field > select,
+#app [id^="quick-order-"] .nf-quick-chudi > input,
+#app [id^="quick-order-"] .nf-quick-chudi > select,
+#app .nf-standard-edit-layout .field:not(.full) > input,
+#app .nf-standard-edit-layout .field:not(.full) > select,
+#app .nf-standard-edit-layout .field:not(.full) > textarea{
+  grid-column:2 !important;
+  min-width:0 !important;
+  width:100% !important;
+  max-width:100% !important;
+  margin:0 !important;
+  justify-self:stretch !important;
+  text-align:right !important;
+}
+
+/* Money rows use the same geometry instead of a second competing layout. */
+#app [id^="quick-order-"] .moneyStat{
+  display:grid !important;
+  grid-template-columns:minmax(0,1fr) minmax(116px,42%) !important;
+  align-items:center !important;
+  column-gap:9px !important;
+  min-width:0 !important;
+  width:100% !important;
+  max-width:100% !important;
+  overflow:visible !important;
+}
+#app [id^="quick-order-"] .moneyStat > span{
+  grid-column:1 !important;
+}
+#app [id^="quick-order-"] .moneyStat > input,
+#app [id^="quick-order-"] .moneyStat > select{
+  grid-column:2 !important;
+}
+
+/* Lining and Chudi special rows obey the same containment rule. */
+#app [id^="quick-order-"] .nf-lining-cost-field,
+#app [id^="quick-order-"] .nf-quick-chudi{
+  display:grid !important;
+  grid-template-columns:minmax(0,1fr) minmax(116px,42%) !important;
+  align-items:center !important;
+  column-gap:9px !important;
+  min-width:0 !important;
+  width:100% !important;
+  max-width:100% !important;
+  overflow:visible !important;
+}
+
+/* Select text should not visually spill into the label column. */
+#app [id^="quick-order-"] select,
+#app .nf-standard-edit-layout select{
+  min-width:0 !important;
+  max-width:100% !important;
+  width:100% !important;
+  overflow:visible !important;
+  text-overflow:clip !important;
+  white-space:nowrap !important;
+  min-height:38px !important;
+}
+
+/* Design section: title spans the card; each slot is its own contained row. */
+#app [id^="quick-order-"] .nf-design-slot-card{
+  display:grid !important;
+  grid-template-columns:minmax(0,1fr) minmax(108px,38%) !important;
+  align-items:center !important;
+  column-gap:8px !important;
+  row-gap:6px !important;
+  min-width:0 !important;
+  width:100% !important;
+  max-width:100% !important;
+  overflow:visible !important;
+}
+#app [id^="quick-order-"] .nf-design-slot-card h5,
+#app [id^="quick-order-"] .nf-design-slot-card .nf-design-slot-sub{
+  grid-column:1/-1 !important;
+  min-width:0 !important;
+  max-width:100% !important;
+}
+#app [id^="quick-order-"] .nf-design-slot-card label{
+  grid-column:1 !important;
+  min-width:0 !important;
+  max-width:100% !important;
+  margin:0 !important;
+  white-space:normal !important;
+  overflow-wrap:anywhere !important;
+  word-break:break-word !important;
+  line-height:1.25 !important;
+}
+#app [id^="quick-order-"] .nf-design-slot-card input{
+  grid-column:2 !important;
+  min-width:0 !important;
+  width:100% !important;
+  max-width:100% !important;
+  margin:0 !important;
+  justify-self:stretch !important;
+  text-align:right !important;
+}
+
+/* Orders-card action buttons remain intact and wrap safely. */
+#app .nf-order-card-actions,
+#app .nf-order-screen-actions{
+  display:flex !important;
+  flex-wrap:wrap !important;
+  min-width:0 !important;
+  max-width:100% !important;
+}
+#app .nf-order-card-actions .btn,
+#app .nf-order-screen-actions .btn{
+  min-width:0 !important;
+  max-width:100% !important;
+}
+
+/* Mobile: reserve a readable control column without allowing overlap. */
+@media(max-width:560px){
+  #app [id^="quick-order-"] > .formgrid > .field:not(.full),
+  #app .nf-standard-edit-layout .field:not(.full),
+  #app [id^="quick-order-"] .moneyStat,
+  #app [id^="quick-order-"] .nf-lining-cost-field,
+  #app [id^="quick-order-"] .nf-quick-chudi{
+    grid-template-columns:minmax(0,1fr) minmax(118px,44%) !important;
+    column-gap:7px !important;
+    row-gap:6px !important;
+  }
+
+  #app [id^="quick-order-"] .nf-design-slot-card{
+    grid-template-columns:minmax(0,1fr) minmax(104px,38%) !important;
+    column-gap:7px !important;
+    row-gap:6px !important;
+    padding:8px !important;
+  }
+
+  #app [id^="quick-order-"] > .formgrid > .field:not(.full) > label,
+  #app [id^="quick-order-"] .moneyStat > span,
+  #app [id^="quick-order-"] .nf-lining-cost-field > label,
+  #app [id^="quick-order-"] .nf-quick-chudi > label,
+  #app .nf-standard-edit-layout .field:not(.full) > label{
+    font-size:12px !important;
+  }
+
+  #app [id^="quick-order-"] input,
+  #app [id^="quick-order-"] select,
+  #app [id^="quick-order-"] textarea{
+    width:100% !important;
+    max-width:100% !important;
+    min-width:0 !important;
+  }
+  #app [id^="quick-order-"] select{
+    overflow:visible !important;
+    text-overflow:clip !important;
+  }
+
+  #app .nf-order-card-actions{
+    display:grid !important;
+    grid-template-columns:minmax(0,1fr) minmax(0,1fr) !important;
+    gap:7px !important;
+  }
+  #app .nf-order-card-actions .btn{
+    width:100% !important;
+  }
+}
+
+/* Very narrow phones: slightly smaller control column, still fully contained. */
+@media(max-width:360px){
+  #app [id^="quick-order-"] > .formgrid > .field:not(.full),
+  #app .nf-standard-edit-layout .field:not(.full),
+  #app [id^="quick-order-"] .moneyStat,
+  #app [id^="quick-order-"] .nf-lining-cost-field,
+  #app [id^="quick-order-"] .nf-quick-chudi{
+    grid-template-columns:minmax(0,1fr) minmax(112px,45%) !important;
+  }
+
+  #app [id^="quick-order-"] .nf-design-slot-card{
+    grid-template-columns:minmax(0,1fr) 100px !important;
+  }
+}
+</style>
+
 </body>
 </html>
