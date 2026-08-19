@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="nf-build" content="verified-2026-08-18-notification-fix">
-<title>New Fashion Tailoring – Online Management | Phase 4.3</title>
+<meta name="nf-build" content="verified-2026-08-18-v3-universal-order-layout">
+<title>New Fashion Tailoring – Online Management | Phase 4.3 • V3</title>
 <link rel="manifest" href="manifest.json">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -2487,20 +2487,20 @@ body{
 <style id="nf-edit-order-layout-final-safe">
 /* FINAL SAFE PATCH — Edit Order layout only.
    No form fields, calculations, save logic, or sync logic are changed. */
-#app .nf-edit-mode .moneyStat{
+#app [id^="quick-order-"] .moneyStat{
   display:grid !important;
   grid-template-columns:minmax(0,1fr) 116px !important;
   align-items:center !important;
   gap:10px !important;
 }
-#app .nf-edit-mode .moneyStat > span{
+#app [id^="quick-order-"] .moneyStat > span{
   display:block !important;
   min-width:0 !important;
   margin:0 !important;
   text-align:left !important;
 }
-#app .nf-edit-mode .moneyStat > input[type="number"],
-#app .nf-edit-mode .moneyStat > .input{
+#app [id^="quick-order-"] .moneyStat > input[type="number"],
+#app [id^="quick-order-"] .moneyStat > .input{
   display:block !important;
   width:100% !important;
   min-width:0 !important;
@@ -2508,7 +2508,7 @@ body{
   text-align:right !important;
 }
 @media(max-width:560px){
-  #app .nf-edit-mode .moneyStat{
+  #app [id^="quick-order-"] .moneyStat{
     grid-template-columns:minmax(0,1fr) 102px !important;
     gap:7px !important;
   }
@@ -2522,7 +2522,7 @@ body{
  * Edit Order and New Order order fields use a consistent label/value row.
  * No calculation, save, load, sync, or field names are changed here.
  */
-#app .nf-edit-mode .moneyStat,
+#app [id^="quick-order-"] .moneyStat,
 #app .nf-standard-edit-layout .field{
   display:grid !important;
   grid-template-columns:minmax(0,1fr) 116px !important;
@@ -2530,7 +2530,7 @@ body{
   gap:10px !important;
 }
 
-#app .nf-edit-mode .moneyStat > span,
+#app [id^="quick-order-"] .moneyStat > span,
 #app .nf-standard-edit-layout .field > label{
   display:block !important;
   min-width:0 !important;
@@ -2538,8 +2538,8 @@ body{
   text-align:left !important;
 }
 
-#app .nf-edit-mode .moneyStat > input[type="number"],
-#app .nf-edit-mode .moneyStat > .input,
+#app [id^="quick-order-"] .moneyStat > input[type="number"],
+#app [id^="quick-order-"] .moneyStat > .input,
 #app .nf-standard-edit-layout .field > input[type="number"],
 #app .nf-standard-edit-layout .field > select,
 #app .nf-standard-edit-layout .field > textarea{
@@ -2550,10 +2550,291 @@ body{
 }
 
 @media(max-width:560px){
-  #app .nf-edit-mode .moneyStat,
+  #app [id^="quick-order-"] .moneyStat,
   #app .nf-standard-edit-layout .field{
     grid-template-columns:minmax(0,1fr) 102px !important;
     gap:7px !important;
+  }
+}
+</style>
+
+
+<style id="nf-v3-universal-order-label-value-layout">
+/*
+  VERSION 3 — UNIVERSAL NEW ORDER / EDIT ORDER UI
+  UI/CSS ONLY.
+  Applies to both Customer Card and Orders-page New/Edit Order editors.
+  No fields are removed. No calculation, save, load, or sync JavaScript is changed.
+*/
+
+/* Outer order fields: label/word left, value/control right. */
+#app [id^="quick-order-"] > .formgrid > .field:not(.full){
+  display:grid !important;
+  grid-template-columns:minmax(0,1fr) minmax(112px,180px) !important;
+  align-items:center !important;
+  gap:10px !important;
+  min-width:0 !important;
+  padding:7px 9px !important;
+  border:1px solid #e9e6f0 !important;
+  border-radius:12px !important;
+  background:#fff !important;
+}
+
+#app [id^="quick-order-"] > .formgrid > .field:not(.full) > label{
+  min-width:0 !important;
+  margin:0 !important;
+  line-height:1.3 !important;
+  font-size:12px !important;
+  font-weight:800 !important;
+  color:#5d5867 !important;
+}
+
+#app [id^="quick-order-"] > .formgrid > .field:not(.full) > .input,
+#app [id^="quick-order-"] > .formgrid > .field:not(.full) > input,
+#app [id^="quick-order-"] > .formgrid > .field:not(.full) > select,
+#app [id^="quick-order-"] > .formgrid > .field:not(.full) > textarea{
+  width:100% !important;
+  min-width:0 !important;
+  margin:0 !important;
+  text-align:right !important;
+  font-weight:800 !important;
+}
+
+/* Light, restrained category differentiation. */
+#app [id^="quick-order-"] > .formgrid > .field:nth-child(1){
+  background:linear-gradient(90deg,#faf8ff,#fff) !important;
+  border-color:#e2dcfb !important;
+}
+#app [id^="quick-order-"] > .formgrid > .field:nth-child(2){
+  background:linear-gradient(90deg,#fff8fb,#fff) !important;
+  border-color:#f0dce6 !important;
+}
+#app [id^="quick-order-"] > .formgrid > .field:nth-child(3){
+  background:linear-gradient(90deg,#f7fbff,#fff) !important;
+  border-color:#dceaf5 !important;
+}
+
+/* The full blouse / saree / lining sections retain their existing options,
+   but their numeric rows follow the same left-label/right-value rule. */
+#app [id^="quick-order-"] .moneyStat{
+  display:grid !important;
+  grid-template-columns:minmax(0,1fr) minmax(102px,116px) !important;
+  align-items:center !important;
+  gap:10px !important;
+  min-width:0 !important;
+  padding:8px 9px !important;
+  border:1px solid #e8e4ef !important;
+  border-radius:12px !important;
+  background:#fff !important;
+}
+
+#app [id^="quick-order-"] .moneyStat > span{
+  min-width:0 !important;
+  margin:0 !important;
+  line-height:1.3 !important;
+  font-size:12px !important;
+  font-weight:750 !important;
+  color:#625d6b !important;
+}
+
+#app [id^="quick-order-"] .moneyStat > input[type="number"],
+#app [id^="quick-order-"] .moneyStat > .input{
+  width:100% !important;
+  min-width:0 !important;
+  min-height:40px !important;
+  margin:0 !important;
+  text-align:right !important;
+  font-size:15px !important;
+  font-weight:850 !important;
+}
+
+/* Keep the three blouse categories visually distinct without over-coloring. */
+#app [id^="quick-order-"] .nf-quick-blouse > .formgrid > .moneyStat:nth-child(1),
+#app [id^="quick-order-"] .nf-quick-blouse > .formgrid > .moneyStat:nth-child(2){
+  background:linear-gradient(90deg,#faf8ff,#fff) !important;
+}
+#app [id^="quick-order-"] .nf-quick-blouse > .formgrid > .moneyStat:nth-child(3),
+#app [id^="quick-order-"] .nf-quick-blouse > .formgrid > .moneyStat:nth-child(4){
+  background:linear-gradient(90deg,#fff8fb,#fff) !important;
+}
+#app [id^="quick-order-"] .nf-quick-blouse > .formgrid > .moneyStat:nth-child(5),
+#app [id^="quick-order-"] .nf-quick-blouse > .formgrid > .moneyStat:nth-child(6){
+  background:linear-gradient(90deg,#f7fbff,#fff) !important;
+}
+
+/* Total count gets restrained emphasis. */
+#app [id^="quick-order-"] .nf-quick-blouse > .formgrid > .moneyStat:last-child{
+  background:#f6f3ff !important;
+  border-color:#dcd7f2 !important;
+}
+#app [id^="quick-order-"] .nf-quick-blouse > .formgrid > .moneyStat:last-child input{
+  color:#4f3ec2 !important;
+}
+
+/* Lining cost: each label/value pair follows the same rule. */
+#app [id^="quick-order-"] .nf-lining-cost-grid{
+  grid-template-columns:1fr !important;
+  gap:7px !important;
+}
+#app [id^="quick-order-"] .nf-lining-cost-field{
+  display:grid !important;
+  grid-template-columns:minmax(0,1fr) minmax(102px,160px) !important;
+  align-items:center !important;
+  gap:9px !important;
+  min-width:0 !important;
+  padding:7px 9px !important;
+  border:1px solid #eee3c8 !important;
+  border-radius:11px !important;
+  background:#fffdf8 !important;
+}
+#app [id^="quick-order-"] .nf-lining-cost-field > label{
+  margin:0 !important;
+  min-width:0 !important;
+  font-size:11px !important;
+  line-height:1.3 !important;
+  font-weight:750 !important;
+  color:#68616a !important;
+}
+#app [id^="quick-order-"] .nf-lining-cost-field > .input,
+#app [id^="quick-order-"] .nf-lining-cost-field > input,
+#app [id^="quick-order-"] .nf-lining-cost-field > select{
+  width:100% !important;
+  min-width:0 !important;
+  margin:0 !important;
+  text-align:right !important;
+  font-weight:800 !important;
+}
+#app [id^="quick-order-"] .nf-lining-cost-field > .nf-lining-cost-total{
+  text-align:right !important;
+  font-weight:850 !important;
+}
+
+/* Chudi rows: same universal word/value alignment. */
+#app [id^="quick-order-"] .nf-quick-chudi{
+  display:grid !important;
+  grid-template-columns:minmax(0,1fr) minmax(102px,116px) !important;
+  align-items:center !important;
+  gap:10px !important;
+  min-width:0 !important;
+  padding:7px 9px !important;
+  border:1px solid #e5e8f1 !important;
+  border-radius:12px !important;
+  background:#f9fbff !important;
+}
+#app [id^="quick-order-"] .nf-quick-chudi > label{
+  margin:0 !important;
+  min-width:0 !important;
+  line-height:1.3 !important;
+  font-size:12px !important;
+  font-weight:750 !important;
+  color:#5f6370 !important;
+}
+#app [id^="quick-order-"] .nf-quick-chudi > input[type="number"],
+#app [id^="quick-order-"] .nf-quick-chudi > .input,
+#app [id^="quick-order-"] .nf-quick-chudi > select{
+  width:100% !important;
+  min-width:0 !important;
+  margin:0 !important;
+  text-align:right !important;
+  font-weight:850 !important;
+}
+
+/* Keep full sections compact and preserve all existing controls. */
+#app [id^="quick-order-"] > .formgrid{
+  gap:8px !important;
+}
+
+@media(max-width:560px){
+  #app [id^="quick-order-"] > .formgrid > .field:not(.full),
+  #app [id^="quick-order-"] .nf-quick-chudi{
+    grid-template-columns:minmax(0,1fr) 102px !important;
+    gap:7px !important;
+    padding:7px 8px !important;
+  }
+
+  #app [id^="quick-order-"] .moneyStat{
+    grid-template-columns:minmax(0,1fr) 102px !important;
+    gap:7px !important;
+    padding:7px 8px !important;
+  }
+
+  #app [id^="quick-order-"] > .formgrid > .field:not(.full) > label,
+  #app [id^="quick-order-"] .nf-quick-chudi > label,
+  #app [id^="quick-order-"] .moneyStat > span{
+    font-size:11px !important;
+  }
+
+  #app [id^="quick-order-"] .moneyStat > input[type="number"],
+  #app [id^="quick-order-"] .nf-quick-chudi > input[type="number"]{
+    min-height:38px !important;
+    font-size:14px !important;
+  }
+
+  #app [id^="quick-order-"] .nf-lining-cost-field{
+    grid-template-columns:minmax(0,1fr) 102px !important;
+    gap:7px !important;
+  }
+}
+</style>
+
+
+<style id="nf-v3_2-final-order-layout">
+/*
+ V3.2 FINAL UI LAYER
+ - New Order + Edit Order only
+ - words/labels left, numeric/select/date values right
+ - no fields removed
+ - no calculation/save/sync logic changed
+ - restrained colors only
+*/
+#app [id^="quick-order-"] > .formgrid > .field:not(.full),
+#app [id^="quick-order-"] .nf-quick-chudi,
+#app [id^="quick-order-"] .moneyStat,
+#app [id^="quick-order-"] .nf-lining-cost-field{
+  min-width:0 !important;
+  box-sizing:border-box !important;
+}
+#app [id^="quick-order-"] > .formgrid > .field:not(.full){
+  grid-template-columns:minmax(0,1fr) minmax(108px,180px) !important;
+}
+#app [id^="quick-order-"] .moneyStat,
+#app [id^="quick-order-"] .nf-quick-chudi,
+#app [id^="quick-order-"] .nf-lining-cost-field{
+  grid-template-columns:minmax(0,1fr) minmax(102px,116px) !important;
+}
+#app [id^="quick-order-"] .moneyStat > span,
+#app [id^="quick-order-"] .nf-quick-chudi > label,
+#app [id^="quick-order-"] .nf-lining-cost-field > label{
+  min-width:0 !important;
+  text-align:left !important;
+}
+#app [id^="quick-order-"] .moneyStat input,
+#app [id^="quick-order-"] .moneyStat select,
+#app [id^="quick-order-"] .nf-quick-chudi input,
+#app [id^="quick-order-"] .nf-quick-chudi select,
+#app [id^="quick-order-"] .nf-lining-cost-field input,
+#app [id^="quick-order-"] .nf-lining-cost-field select,
+#app [id^="quick-order-"] > .formgrid > .field:not(.full) > input,
+#app [id^="quick-order-"] > .formgrid > .field:not(.full) > select{
+  width:100% !important;
+  min-width:0 !important;
+  margin:0 !important;
+  text-align:right !important;
+}
+#app [id^="quick-order-"] .nf-design-single-rate{
+  display:grid !important;
+}
+#app [id^="quick-order-"] .nf-price-breakdown{
+  display:grid !important;
+}
+@media(max-width:560px){
+  #app [id^="quick-order-"] > .formgrid > .field:not(.full){
+    grid-template-columns:minmax(0,1fr) 102px !important;
+  }
+  #app [id^="quick-order-"] .moneyStat,
+  #app [id^="quick-order-"] .nf-quick-chudi,
+  #app [id^="quick-order-"] .nf-lining-cost-field{
+    grid-template-columns:minmax(0,1fr) 102px !important;
   }
 }
 </style>
@@ -3236,17 +3517,48 @@ function openCustomerOrderEditor(customerId,orderId){
 }
 
 function clearQuickOrderEditor(id){
- ["qo-normal-","qo-lining-","qo-design-","qo-normal-rate-","qo-lining-rate-","qo-design-rate-","qo-chudi-","qo-chudi-lining-qty-","qo-saree-","qo-lining-qty-","qo-lining-cost-rate-","qo-advance-"].forEach(prefix=>{const e=$(prefix+id);if(e)e.value=0});
- const rr0=getRates();["qo-normal-rate-","qo-lining-rate-","qo-design-rate-"].forEach((prefix,i)=>{const e=$(prefix+id);if(e)e.value=[rr0.normal,rr0.lining,rr0.design][i]});
- const cloth=$("qo-cloth-"+id),delivery=$("qo-delivery-"+id),status=$("qo-status-"+id),ls=$("qo-lining-source-"+id),notes=$("qo-notes-"+id);
+ const zeroFields=[
+   "qo-normal-","qo-lining-","qo-design-","qo-chudi-",
+   "qo-chudi-lining-qty-","qo-saree-","qo-lining-qty-",
+   "qo-lining-cost-rate-","qo-advance-"
+ ];
+ zeroFields.forEach(prefix=>{const e=$(prefix+id);if(e)e.value="0";});
+ const rr0=getRates();
+ [
+   ["qo-normal-rate-",rr0.normal],
+   ["qo-lining-rate-",rr0.lining],
+   ["qo-design-rate-",rr0.design],
+   ["qo-chudi-rate-",rr0.chudi],
+   ["qo-saree-rate-",rr0.saree]
+ ].forEach(([prefix,value])=>{
+   const e=$(prefix+id);
+   if(e)e.value=Number(value||0);
+ });
+ const cloth=$("qo-cloth-"+id),
+       delivery=$("qo-delivery-"+id),
+       status=$("qo-status-"+id),
+       ls=$("qo-lining-source-"+id),
+       notes=$("qo-notes-"+id),
+       chudiLining=$("qo-chudi-lining-"+id),
+       g=$("qo-garment-"+id);
  if(cloth)cloth.value=localDate();
  if(delivery)delivery.value="";
  if(status)status.value="Pending";
  if(ls)ls.value="";
  if(notes)notes.value="";
- const g=$("qo-garment-"+id);if(g)g.value="Blouse";
- const box=$("quick-order-"+id);if(box){box.dataset.editOrderId="";box.classList.remove("nf-edit-mode");}
- const dr=$("qo-design-rates-box-"+id);if(dr){dr.innerHTML="";dr.style.display="none";}
+ if(chudiLining)chudiLining.value="no";
+ if(g)g.value="Blouse";
+ const box=$("quick-order-"+id);
+ if(box){
+   box.dataset.editOrderId="";
+   box.classList.remove("nf-edit-mode");
+ }
+ const dr=$("qo-design-rates-box-"+id);
+ if(dr){
+   dr.innerHTML="";
+   dr.style.display="none";
+ }
+ updateChudiLiningLabel(id);
  updateQuickGarment(id);
  updateQuickOrderCalc(id);
  renderQuickDesignRates(id,[]);
@@ -3513,7 +3825,7 @@ function mountOrdersQuickForm(customerId){
    "saveQuickOrder('"+key+"','"+String(customerId).replace(/'/g,"\\'")+"')"
  );
  const options=state.customers.map(c=>'<option value="'+esc(c.id)+'" '+(String(c.id)===String(customerId)?"selected":"")+'>'+esc(c.name||"Customer")+'</option>').join("");
- panel.innerHTML='<div class="field" style="margin-bottom:12px"><label>Customer</label><select id="ordersQuickCustomer" class="input" onchange="mountOrdersQuickForm(this.value)"><option value="">Select customer</option>'+options+'</select></div>'+markup;
+ panel.innerHTML='<div class="field" style="margin-bottom:12px"><label>Customer</label><select id="ordersQuickCustomerStart" class="input" onchange="mountOrdersQuickForm(this.value)"><option value="">Select customer</option>'+options+'</select></div>'+markup;
  const box=$("quick-order-"+key);
  if(box){
    box.classList.remove("hidden");
@@ -3530,11 +3842,11 @@ function openOrdersQuickAdd(){
  const modal=$("ordersNewOrderScreen"),panel=$("ordersNewOrderContent");
  if(!modal||!panel)return;
  const options=state.customers.map(c=>'<option value="'+esc(c.id)+'">'+esc(c.name||"Customer")+'</option>').join("");
- panel.innerHTML='<div class="field" style="margin-bottom:12px"><label>Customer</label><select id="ordersQuickCustomer" class="input" onchange="mountOrdersQuickForm(this.value)"><option value="">Select customer</option>'+options+'</select></div><div class="hint">Customer-ஐ தேர்வு செய்ததும் Customer Card-ல் இருக்கும் அதே <b>New Order</b> system இங்கே முழுமையாக வரும்.</div>';
+ panel.innerHTML='<div class="field" style="margin-bottom:12px"><label>Customer</label><select id="ordersQuickCustomerStart" class="input" onchange="mountOrdersQuickForm(this.value)"><option value="">Select customer</option>'+options+'</select></div><div class="hint">Customer-ஐ தேர்வு செய்ததும் Customer Card-ல் இருக்கும் அதே <b>New Order</b> system இங்கே முழுமையாக வரும்.</div>';
  modal.classList.add("open");
  const base=history.state||{view:"orders"};
  if(!base.__nfOrdersNewOrder){history.pushState({...base,__nfOrdersNewOrder:true},"",location.hash||"#orders-new-order");}
- const select=$("ordersQuickCustomer");
+ const select=$("ordersQuickCustomerStart");
  if(select)select.focus();
 }
 
@@ -6066,8 +6378,7 @@ window.renderPendingCustomerCard=function(){
 
 <style id="nf-edit-order-cleanup">
 /* Edit Order: Design blouse price is entered per design in the 3 slots below. */
-#app .nf-edit-mode .nf-price-breakdown{display:none!important}
-#app .nf-edit-mode .nf-design-single-rate{display:none!important}
+/* V3.2: these editor fields remain visible; removal is only for the separate Order Full Details view. */
 
 /* FINAL FIX: the legacy Order Edit modal uses the standard form renderer,
    not the Quick Order editor. Give that modal the same label | value layout. */
@@ -7119,7 +7430,7 @@ html{
   window.openOrdersNewOrderForCustomer=function(customerId){
     openOrdersQuickAdd();
     setTimeout(function(){
-      var select=$("ordersQuickCustomer");
+      var select=$("ordersQuickCustomerStart");
       if(select){select.value=String(customerId);mountOrdersQuickForm(customerId);}
       var title=$("ordersNewOrderScreenTitle");
       if(title)title.textContent="🧾 New Order";
@@ -7321,7 +7632,7 @@ html{
   - No calculation/save/sync JavaScript is changed.
   - Scoped to .nf-edit-mode so New Order remains untouched.
 */
-#app .nf-edit-mode{
+#app [id^="quick-order-"]{
   --nf-edit-accent:#6c4df6;
   --nf-edit-accent-soft:#f6f3ff;
   --nf-edit-pink-soft:#fff5f8;
@@ -7330,7 +7641,7 @@ html{
 }
 
 /* Compact two-column rows: words on the left, numeric value on the right. */
-#app .nf-edit-mode .moneyStat{
+#app [id^="quick-order-"] .moneyStat{
   display:grid;
   grid-template-columns:minmax(0,1fr) 116px;
   align-items:center;
@@ -7342,7 +7653,7 @@ html{
   background:#fff;
 }
 
-#app .nf-edit-mode .moneyStat span{
+#app [id^="quick-order-"] .moneyStat span{
   min-width:0;
   font-size:12px;
   line-height:1.3;
@@ -7350,8 +7661,8 @@ html{
   color:#5f5a69;
 }
 
-#app .nf-edit-mode .moneyStat .input,
-#app .nf-edit-mode .moneyStat input[type="number"]{
+#app [id^="quick-order-"] .moneyStat .input,
+#app [id^="quick-order-"] .moneyStat input[type="number"]{
   width:100%;
   min-width:0;
   min-height:40px;
@@ -7364,41 +7675,41 @@ html{
 }
 
 /* Very light category accents — deliberately restrained. */
-#app .nf-edit-mode .nf-quick-blouse > .formgrid > .moneyStat:nth-child(1),
-#app .nf-edit-mode .nf-quick-blouse > .formgrid > .moneyStat:nth-child(2){
+#app [id^="quick-order-"] .nf-quick-blouse > .formgrid > .moneyStat:nth-child(1),
+#app [id^="quick-order-"] .nf-quick-blouse > .formgrid > .moneyStat:nth-child(2){
   background:linear-gradient(90deg,#faf8ff,#fff);
 }
-#app .nf-edit-mode .nf-quick-blouse > .formgrid > .moneyStat:nth-child(3),
-#app .nf-edit-mode .nf-quick-blouse > .formgrid > .moneyStat:nth-child(4){
+#app [id^="quick-order-"] .nf-quick-blouse > .formgrid > .moneyStat:nth-child(3),
+#app [id^="quick-order-"] .nf-quick-blouse > .formgrid > .moneyStat:nth-child(4){
   background:linear-gradient(90deg,#fff8fb,#fff);
 }
-#app .nf-edit-mode .nf-quick-blouse > .formgrid > .moneyStat:nth-child(5),
-#app .nf-edit-mode .nf-quick-blouse > .formgrid > .moneyStat:nth-child(6){
+#app [id^="quick-order-"] .nf-quick-blouse > .formgrid > .moneyStat:nth-child(5),
+#app [id^="quick-order-"] .nf-quick-blouse > .formgrid > .moneyStat:nth-child(6){
   background:linear-gradient(90deg,#f7fbff,#fff);
 }
 
 /* Total count gets a calm emphasis, not a loud color. */
-#app .nf-edit-mode .nf-quick-blouse > .formgrid > .moneyStat:last-child{
+#app [id^="quick-order-"] .nf-quick-blouse > .formgrid > .moneyStat:last-child{
   border-color:#dcd7f2;
   background:var(--nf-edit-accent-soft);
 }
-#app .nf-edit-mode .nf-quick-blouse > .formgrid > .moneyStat:last-child input{
+#app [id^="quick-order-"] .nf-quick-blouse > .formgrid > .moneyStat:last-child input{
   color:#4f3ec2;
   background:#fff;
 }
 
 /* Design rate rows: keep label/text left and numbers right. */
-#app .nf-edit-mode .nf-design-rate-row{
+#app [id^="quick-order-"] .nf-design-rate-row{
   display:grid;
   grid-template-columns:minmax(0,1fr) auto;
   align-items:center;
   gap:10px;
   padding:7px 9px;
 }
-#app .nf-edit-mode .nf-design-rate-row>div{
+#app [id^="quick-order-"] .nf-design-rate-row>div{
   min-width:0;
 }
-#app .nf-edit-mode .nf-design-rate-row .nf-design-rate-input{
+#app [id^="quick-order-"] .nf-design-rate-row .nf-design-rate-input{
   width:92px;
   min-height:38px;
   text-align:right;
@@ -7406,18 +7717,18 @@ html{
 }
 
 /* Lining and Saree sections stay available; only soften their presentation. */
-#app .nf-edit-mode .nf-lining-cost-box{
+#app [id^="quick-order-"] .nf-lining-cost-box{
   background:#fffdf8;
   border-color:#eee3c8;
   border-radius:13px;
 }
-#app .nf-edit-mode .nf-lining-cost-grid{
+#app [id^="quick-order-"] .nf-lining-cost-grid{
   gap:8px;
 }
-#app .nf-edit-mode .nf-lining-cost-field{
+#app [id^="quick-order-"] .nf-lining-cost-field{
   min-width:0;
 }
-#app .nf-edit-mode .nf-lining-cost-field label{
+#app [id^="quick-order-"] .nf-lining-cost-field label{
   display:block;
   margin-bottom:5px;
   font-size:11px;
@@ -7425,67 +7736,129 @@ html{
   font-weight:750;
   color:#68616a;
 }
-#app .nf-edit-mode .nf-lining-cost-field input[type="number"]{
+#app [id^="quick-order-"] .nf-lining-cost-field input[type="number"]{
   text-align:right;
   font-weight:800;
 }
 
-#app .nf-edit-mode .nf-quick-blouse > .field[style*="fff8df"]{
+#app [id^="quick-order-"] .nf-quick-blouse > .field[style*="fff8df"]{
   background:#fffdf8 !important;
   border-color:#eee3c8 !important;
 }
 
 /* Chudi numeric rows follow the same word/value alignment. */
-#app .nf-edit-mode .nf-quick-chudi:has(input[type="number"]){
+#app [id^="quick-order-"] .nf-quick-chudi:has(input[type="number"]){
   display:grid;
   grid-template-columns:minmax(0,1fr) 116px;
   align-items:center;
   gap:10px;
 }
-#app .nf-edit-mode .nf-quick-chudi:has(input[type="number"]) label{
+#app [id^="quick-order-"] .nf-quick-chudi:has(input[type="number"]) label{
   margin:0;
   line-height:1.3;
 }
-#app .nf-edit-mode .nf-quick-chudi:has(input[type="number"]) input[type="number"]{
+#app [id^="quick-order-"] .nf-quick-chudi:has(input[type="number"]) input[type="number"]{
   text-align:right;
   font-weight:800;
 }
 
 /* Keep the overall editor visually compact. */
-#app .nf-edit-mode > .formgrid{
+#app [id^="quick-order-"] > .formgrid{
   gap:8px;
 }
-#app .nf-edit-mode > .formgrid > .field{
+#app [id^="quick-order-"] > .formgrid > .field{
   min-width:0;
 }
-#app .nf-edit-mode .customerActions{
+#app [id^="quick-order-"] .customerActions{
   gap:8px;
 }
-#app .nf-edit-mode .nf-quick-save-btn{
+#app [id^="quick-order-"] .nf-quick-save-btn{
   box-shadow:0 6px 14px rgba(108,77,246,.14);
 }
 
 @media(max-width:560px){
-  #app .nf-edit-mode .moneyStat,
-  #app .nf-edit-mode .nf-quick-chudi:has(input[type="number"]){
+  #app [id^="quick-order-"] .moneyStat,
+  #app [id^="quick-order-"] .nf-quick-chudi:has(input[type="number"]){
     grid-template-columns:minmax(0,1fr) 102px;
     gap:7px;
     padding:8px;
   }
 
-  #app .nf-edit-mode .moneyStat span,
-  #app .nf-edit-mode .nf-quick-chudi:has(input[type="number"]) label{
+  #app [id^="quick-order-"] .moneyStat span,
+  #app [id^="quick-order-"] .nf-quick-chudi:has(input[type="number"]) label{
     font-size:11px;
   }
 
-  #app .nf-edit-mode .moneyStat input[type="number"],
-  #app .nf-edit-mode .nf-quick-chudi:has(input[type="number"]) input[type="number"]{
+  #app [id^="quick-order-"] .moneyStat input[type="number"],
+  #app [id^="quick-order-"] .nf-quick-chudi:has(input[type="number"]) input[type="number"]{
     min-height:38px;
     font-size:14px;
   }
 
-  #app .nf-edit-mode .nf-design-rate-row{
+  #app [id^="quick-order-"] .nf-design-rate-row{
     grid-template-columns:minmax(0,1fr) auto;
+  }
+}
+</style>
+
+
+<style id="nf-v3_3-final-authoritative-order-layout">
+/* V3.3 FINAL UI LAYER — layout only; no fields/calculation/save/sync logic changed. */
+#app [id^="quick-order-"] .moneyStat{
+  display:grid !important; grid-template-columns:minmax(0,1fr) 116px !important;
+  align-items:center !important; gap:10px !important; min-width:0 !important; box-sizing:border-box !important;
+}
+#app [id^="quick-order-"] .moneyStat > span{
+  display:block !important; min-width:0 !important; margin:0 !important;
+  text-align:left !important; line-height:1.3 !important;
+}
+#app [id^="quick-order-"] .moneyStat > input,
+#app [id^="quick-order-"] .moneyStat > select,
+#app [id^="quick-order-"] .moneyStat > .input{
+  display:block !important; width:100% !important; min-width:0 !important;
+  margin:0 !important; text-align:right !important;
+}
+#app [id^="quick-order-"] > .formgrid > .field:not(.full){
+  display:grid !important; grid-template-columns:minmax(0,1fr) minmax(108px,180px) !important;
+  align-items:center !important; gap:10px !important; min-width:0 !important; box-sizing:border-box !important;
+}
+#app [id^="quick-order-"] > .formgrid > .field:not(.full) > label{
+  min-width:0 !important; margin:0 !important; text-align:left !important; line-height:1.3 !important;
+}
+#app [id^="quick-order-"] > .formgrid > .field:not(.full) > input,
+#app [id^="quick-order-"] > .formgrid > .field:not(.full) > select{
+  width:100% !important; min-width:0 !important; margin:0 !important; text-align:right !important;
+}
+#app [id^="quick-order-"] .nf-quick-chudi{
+  display:grid !important; grid-template-columns:minmax(0,1fr) 116px !important;
+  align-items:center !important; gap:10px !important; min-width:0 !important;
+}
+#app [id^="quick-order-"] .nf-quick-chudi > label{
+  min-width:0 !important; margin:0 !important; text-align:left !important;
+}
+#app [id^="quick-order-"] .nf-quick-chudi > input,
+#app [id^="quick-order-"] .nf-quick-chudi > select{
+  width:100% !important; min-width:0 !important; margin:0 !important; text-align:right !important;
+}
+#app [id^="quick-order-"] .nf-lining-cost-field{
+  display:grid !important; grid-template-columns:minmax(0,1fr) 116px !important;
+  align-items:center !important; gap:9px !important; min-width:0 !important;
+}
+#app [id^="quick-order-"] .nf-lining-cost-field > label{
+  min-width:0 !important; margin:0 !important; text-align:left !important;
+}
+#app [id^="quick-order-"] .nf-lining-cost-field > input,
+#app [id^="quick-order-"] .nf-lining-cost-field > select,
+#app [id^="quick-order-"] .nf-lining-cost-field > .input,
+#app [id^="quick-order-"] .nf-lining-cost-field > .nf-lining-cost-total{
+  width:100% !important; min-width:0 !important; margin:0 !important; text-align:right !important;
+}
+@media(max-width:560px){
+  #app [id^="quick-order-"] .moneyStat,
+  #app [id^="quick-order-"] .nf-quick-chudi,
+  #app [id^="quick-order-"] .nf-lining-cost-field,
+  #app [id^="quick-order-"] > .formgrid > .field:not(.full){
+    grid-template-columns:minmax(0,1fr) 102px !important; gap:7px !important;
   }
 }
 </style>
