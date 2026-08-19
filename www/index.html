@@ -7863,5 +7863,83 @@ html{
 }
 </style>
 
+
+<style id="nf-v3_4-design-blouse-authoritative-layout">
+/*
+  V3.4 — DESIGN BLOUSE COMPACT LAYOUT
+  UI/CSS ONLY.
+  - Customer Card / New Order / Edit Order shared quick-order Design slots.
+  - Keeps all 3 Design slots, names, quantities, rates and subtotals.
+  - Words/labels stay on the left; numeric values stay on the right.
+  - No JavaScript, calculation, save, Supabase or sync logic changed.
+*/
+#app [id^="quick-order-"] .nf-design-slot-card{
+  display:grid !important;
+  grid-template-columns:minmax(0,1fr) minmax(108px,150px) !important;
+  align-items:center !important;
+  column-gap:9px !important;
+  row-gap:6px !important;
+  min-width:0 !important;
+  padding:9px !important;
+  box-sizing:border-box !important;
+}
+
+#app [id^="quick-order-"] .nf-design-slot-card h5{
+  grid-column:1/-1 !important;
+  margin:0 !important;
+}
+
+#app [id^="quick-order-"] .nf-design-slot-card label{
+  display:block !important;
+  min-width:0 !important;
+  margin:0 !important;
+  line-height:1.25 !important;
+  text-align:left !important;
+  overflow-wrap:anywhere !important;
+}
+
+#app [id^="quick-order-"] .nf-design-slot-card input{
+  width:100% !important;
+  min-width:0 !important;
+  min-height:38px !important;
+  margin:0 !important;
+  box-sizing:border-box !important;
+  text-align:right !important;
+}
+
+#app [id^="quick-order-"] .nf-design-slot-card .nf-di-name{
+  text-align:left !important;
+}
+
+#app [id^="quick-order-"] .nf-design-slot-card .nf-design-slot-sub{
+  grid-column:1/-1 !important;
+  width:100% !important;
+  margin:0 !important;
+  text-align:right !important;
+}
+
+@media(max-width:700px){
+  #app [id^="quick-order-"] .nf-design-slot-card{
+    grid-template-columns:minmax(0,1fr) minmax(102px,130px) !important;
+  }
+}
+
+@media(max-width:560px){
+  #app [id^="quick-order-"] .nf-design-slot-card{
+    grid-template-columns:minmax(0,1fr) 102px !important;
+    column-gap:7px !important;
+    row-gap:6px !important;
+    padding:8px !important;
+  }
+  #app [id^="quick-order-"] .nf-design-slot-card label{
+    font-size:10px !important;
+  }
+  #app [id^="quick-order-"] .nf-design-slot-card input{
+    min-height:38px !important;
+    font-size:14px !important;
+  }
+}
+</style>
+
 </body>
 </html>
