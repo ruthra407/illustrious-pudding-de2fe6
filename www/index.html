@@ -1,10 +1,10 @@
 <!doctype html>
-<html lang="ta">
+<html nf-build="verified-2026-08-19-v3.11-customer-card-clean" lang="ta">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="nf-build" content="verified-2026-08-19-v3.7-duplicate-ids-fixed">
-<title>New Fashion Tailoring – Online Management | Phase 4.3 • V3.5</title>
+<title>New Fashion Tailoring – Online Management | Phase 4.3 • V3.11</title>
 <link rel="manifest" href="manifest.json">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -2907,6 +2907,19 @@ body{
 }
 </style>
 
+
+<style id="nf-v310-customer-card-readability">
+/* V3.10 — Customer Card calculation numbers: larger and easier to read. */
+.customerRateRow .rateLabel{font-size:16px !important;font-weight:850 !important}
+.customerRateRow .rateMath{font-size:16px !important;font-weight:900 !important;line-height:1.25}
+.customerRateRow .rateMath b{font-size:17px !important;font-weight:950 !important}
+@media(max-width:700px){
+  .customerRateRow .rateLabel{font-size:15.5px !important}
+  .customerRateRow .rateMath{font-size:15.5px !important}
+  .customerRateRow .rateMath b{font-size:16.5px !important}
+}
+</style>
+
 </head>
 <body>
 
@@ -3368,7 +3381,22 @@ function blouseSplitText(o){
  if(s.design)parts.push(`Design ${s.design}`);
  return parts.length?parts.join(" · "):`${Number(o?.quantity||0)} pcs`;
 }
-function cleanOrderNotes(v){return String(v||"").replace(/BLOUSE_SPLIT:\{[^}]+\}\s*\|?\s*/,"").replace(/BLOUSE_RATES:\{[^}]+\}\s*\|?\s*/,"").replace(/DESIGN_RATES:\[[^\]]*\]\s*\|?\s*/,"").trim()}
+function cleanOrderNotes(v){
+  return String(v||"")
+    .replace(/(?:^|\s*\|\s*)BLOUSE_SPLIT:\{[^}]+\}/g,"")
+    .replace(/(?:^|\s*\|\s*)BLOUSE_RATES:\{[^}]+\}/g,"")
+    .replace(/(?:^|\s*\|\s*)DESIGN_RATES:\[[^\]]*\]/g,"")
+    .replace(/(?:^|\s*\|\s*)DESIGN_ITEMS:\[[^\]]*\]/g,"")
+    .replace(/(?:^|\s*\|\s*)GARMENT_SPLIT:\{[^}]+\}/g,"")
+    .replace(/(?:^|\s*\|\s*)CHUDI_RATE:[^|\s]+/g,"")
+    .replace(/(?:^|\s*\|\s*)SAREE_RATE:[^|\s]+/g,"")
+    .replace(/(?:^|\s*\|\s*)LINING_COST:\{[^}]+\}/g,"")
+    .replace(/(?:^|\s*\|\s*)(Lining cloth:\s*(?:Customer கொடுத்தது|நாம் வாங்கியது))/gi,"$1")
+    .replace(/\s*\|\s*\|\s*/g," | ")
+    .replace(/^\s*\|\s*|\s*\|\s*$/g,"")
+    .replace(/\s{2,}/g," ")
+    .trim();
+}
 function makeBlouseSplitNote(s,rates,userNotes=""){
  const marker=`BLOUSE_SPLIT:${JSON.stringify({normal:Number(s.normal||0),lining:Number(s.lining||0),design:Number(s.design||0)})}`;
  const rateMarker=`BLOUSE_RATES:${JSON.stringify({normal:Number(rates.normal||0),lining:Number(rates.lining||0),design:Number(rates.design||0)})}`;
@@ -5905,7 +5933,7 @@ window.renderPendingCustomerCard=function(){
         '<div class="nfPendingType"><b>'+s.chudiLining+'</b>Chudi lining</div>'+
         '<div class="nfPendingType"><b>'+s.saree+'</b>Saree</div>'+
       '</div>'+
-      '<div class="nfPendingDate"><label>📅 Pending since</label><div class="nfPendingDateRow"><input id="nf-pending-date-'+esc(c.id)+'" type="date" value="'+esc(r.since||'')+'"><button class="nfPendingSave" type="button" onclick=\'savePendingSince("'+String(c.id).replace(/"/g,'&quot;')+'")\'>Update</button></div></div>'+
+      '<div class="nfPendingDate"><label>📅 Pending since</label><div class="nfPendingDateRow"><input id="nf-pending-date-card-" type="date" value="'+esc(r.since||'')+'"><button class="nfPendingSave" type="button" onclick=\'savePendingSince("'+String(c.id).replace(/"/g,'&quot;')+'")\'>Update</button></div></div>'+
       (lines?'<div class="nfPendingOrders">'+lines+'</div>':'')+
     '</div>';
   }).join("");
@@ -7718,9 +7746,9 @@ html{
         '<div class="customerRateList">'+rateRow('Saree',sareeQty,sareeTotal)+
           (sareeLiningShopQty>0?'<div class="customerRateRow"><span class="rateLabel">Lining cloth '+sareeLiningShopQty+'</span><span class="rateMath">Shop cost = <b>'+money(sareeLiningShopTotal)+'</b></span></div>':"")+ 
         '</div><div class="customerRateTotal"><span>Saree Section Total</span><span>'+money(sareeTotal+sareeLiningShopTotal)+'</span></div></div>':'')+
-      '<div class="customerWorkSection"><h4>📝 Notes</h4><div class="customerNotesBox">'+(notes.length?notes.map(function(n){return "• "+escSafe(n);}).join("<br>"):"குறிப்பு இல்லை.")+'</div></div>'+ 
       '<div class="customerRateTotal" style="margin-top:10px;background:linear-gradient(135deg,#14aebd,#3d83ef)"><span>மொத்த Rate</span><span>'+money(exactSavedOrderTotal)+'</span></div>'+ 
       (Math.abs(exactSavedOrderTotal-breakdownTotal)>0.009?'<div class="mini" style="margin-top:8px;color:#8a6200">ℹ️ Saved Order Total: '+money(exactSavedOrderTotal)+' · Item-wise breakdown: '+money(breakdownTotal)+'</div>':"")+ 
+      '<div class="customerWorkSection"><h4>📝 Alteration notes</h4><div class="customerNotesBox">'+(notes.length?notes.map(function(n){return "• "+escSafe(n);}).join("<br>"):"குறிப்பு இல்லை.")+'</div></div>'+ 
     '</div>';
   };
 
