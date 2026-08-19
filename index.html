@@ -1,10 +1,10 @@
 <!doctype html>
-<html nf-build="verified-2026-08-19-v3.14-v3_13-rechecked" lang="ta">
+<html nf-build="verified-2026-08-19-v3.15-customer-home" lang="ta">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="nf-build" content="verified-2026-08-19-v3.14-v3_13-rechecked">
-<title>New Fashion Tailoring – Online Management | Phase 4.3 • V3.14</title>
+<meta name="nf-build" content="verified-2026-08-19-v3.15-customer-home">
+<title>New Fashion Tailoring – Online Management | Phase 4.3 • V3.16</title>
 <link rel="manifest" href="manifest.json">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -2983,7 +2983,6 @@ body{
 <button class="navbtn" data-view="measurements">📏 Measurements</button>
 <button class="navbtn" data-view="orders">🧾 Orders</button>
 <button class="navbtn" data-view="alterations">✏️ Alterations</button>
-<button class="navbtn" data-view="payments">💰 Payments</button>
 <button class="navbtn" id="nfPendingMenuBtn" type="button" onclick="togglePendingCustomerCard()">🧵 <span>Pending Customer</span><span id="nfPendingBadge">0</span></button>
 <div id="nfPendingCard" aria-label="Pending Customer card">
   <div id="nfPendingCardHead"><b>🧵 Pending blouse</b><span>Card-லேயே date update</span></div>
@@ -3049,11 +3048,6 @@ body{
 <div class="card"><div class="toolbar"><input id="alterationSearch" class="input search" placeholder="Search customer / details"><button class="btn secondary" onclick="loadAll()">↻ Refresh</button></div><div id="alterationsTable"></div></div>
 </section>
 
-<section id="view-payments" class="view">
-<div class="pagehead"><div><h2>Payments</h2><p>Today collection மற்றும் payment history.</p></div><div class="spacer"></div></div>
-<div class="card nf-section-card">
-<div class="toolbar"><input id="paymentSearch" class="input search" placeholder="Search order / payment method / reference"><button class="btn secondary" onclick="loadAll()">↻ Refresh</button></div><div id="paymentsTable"></div></div>
-</section>
 
 <section id="view-designs" class="view">
 <div class="pagehead"><div><h2>🎨 Blouse Design Studio</h2><p>Online-ல் design தேடி, பிடித்த design-ஐ இங்கே save செய்து customer-க்கு காட்டலாம்.</p></div><div class="spacer"></div><button class="btn primary" onclick="openModal('design')">＋ Add Design</button></div>
@@ -3093,7 +3087,6 @@ body{
   <button data-p4-view="dashboard"><span class="p4Icon">⌂</span><span>Home</span></button>
   <button data-p4-view="customers"><span class="p4Icon">👥</span><span>Customers</span></button>
   <button data-p4-view="orders"><span class="p4Icon">🧾</span><span>Orders</span></button>
-  <button data-p4-view="payments"><span class="p4Icon">₹</span><span>Payments</span></button>
 </nav>
 
 
@@ -8456,5 +8449,265 @@ html{
   document.addEventListener("DOMContentLoaded",()=>setTimeout(refresh,120),{once:true});
 })();
 </script>
+
+<!-- =========================================================
+     V3.15 — CUSTOMER HOME + PAYMENTS NAV REMOVAL
+     - Payments page/navigation removed from visible UI.
+     - Home bottom tab now opens a compact Customer Directory.
+     - Compact card shows customer photo, name, phone, village and added date.
+     - Full Customers page remains unchanged for management/details.
+     - Customer profile photo is stored locally, matching the existing
+       local photo approach already used by this app.
+     ========================================================= -->
+<style id="nf-v315-customer-home-css">
+  /* Payments must disappear from navigation/UI without deleting payment
+     calculation/entry functions used by customer/order flows. */
+  #sidebar [data-view="payments"],
+  #p4MobileNav [data-p4-view="payments"],
+  #view-payments{display:none!important}
+
+  #view-customer-home{display:none}
+  #view-customer-home.active{display:block}
+
+  .nf-v315-customer-home-list{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:14px;
+  }
+  .nf-v315-customer-home-card{
+    position:relative;
+    min-width:0;
+    display:flex;
+    align-items:center;
+    gap:13px;
+    padding:15px;
+    border:1px solid #e7e3ef;
+    border-radius:19px;
+    background:linear-gradient(145deg,#fff,#faf8ff);
+    box-shadow:0 10px 26px rgba(40,38,68,.08);
+    overflow:hidden;
+  }
+  .nf-v315-customer-home-card::before{
+    content:"";
+    position:absolute;
+    left:0;top:0;bottom:0;width:4px;
+    background:linear-gradient(180deg,#6c4df6,#ef4f8a);
+  }
+  .nf-v315-customer-home-photo{
+    width:64px;height:64px;flex:0 0 64px;
+    border-radius:18px;
+    overflow:hidden;
+    display:grid;place-items:center;
+    background:linear-gradient(135deg,#eee7ff,#fbe4ee);
+    color:#6c4df6;font-size:28px;font-weight:900;
+    border:1px solid #e5def4;
+  }
+  .nf-v315-customer-home-photo img{
+    width:100%;height:100%;object-fit:cover;display:block;
+  }
+  .nf-v315-customer-home-info{min-width:0;flex:1}
+  .nf-v315-customer-home-name{
+    margin:0;font-size:18px;font-weight:950;color:#20212a;
+    overflow-wrap:anywhere;word-break:break-word;
+  }
+  .nf-v315-customer-home-phone{
+    display:block;margin-top:5px;color:#666577;font-size:14px;font-weight:750;
+    overflow-wrap:anywhere;word-break:break-word;
+  }
+  .nf-v315-customer-home-village,
+  .nf-v315-customer-home-date{
+    display:block;margin-top:4px;color:#77758a;font-size:12px;font-weight:700;
+    overflow-wrap:anywhere;word-break:break-word;
+  }
+  .nf-v315-customer-home-actions{
+    display:flex;gap:6px;flex:0 0 auto;
+  }
+  .nf-v315-customer-home-actions button{
+    width:38px;height:38px;border:0;border-radius:11px;
+    background:#f1eff8;color:#514b67;font-size:17px;
+  }
+  .nf-v315-customer-home-actions button:active{transform:scale(.96)}
+  .nf-v315-customer-home-empty{
+    padding:34px 18px;text-align:center;color:#77758a;
+    border:1px dashed #d9d3e4;border-radius:18px;background:#fff;
+  }
+  @media(max-width:700px){
+    .nf-v315-customer-home-list{grid-template-columns:1fr;gap:10px}
+  }
+  @media(max-width:430px){
+    .nf-v315-customer-home-card{padding:12px;gap:10px;border-radius:16px}
+    .nf-v315-customer-home-photo{width:56px;height:56px;flex-basis:56px;border-radius:15px}
+    .nf-v315-customer-home-name{font-size:16px}
+    .nf-v315-customer-home-phone{font-size:13px}
+    .nf-v315-customer-home-actions button{width:36px;height:36px}
+  }
+</style>
+
+<script id="nf-v315-customer-home-js">
+(function(){
+  "use strict";
+  var PHOTO_PREFIX="nf_customer_profile_photo_";
+
+  function safeEsc(v){
+    return typeof esc==="function" ? esc(v) : String(v==null?"":v).replace(/[&<>\"']/g,function(c){
+      return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c];
+    });
+  }
+
+  function photoKey(id){ return PHOTO_PREFIX+String(id); }
+  function getProfilePhoto(id){
+    try{return localStorage.getItem(photoKey(id))||"";}catch(e){return "";}
+  }
+  function setProfilePhoto(id,dataUrl){
+    try{localStorage.setItem(photoKey(id),dataUrl);return true;}catch(e){
+      if(typeof toast==="function")toast("Customer photo save செய்ய முடியவில்லை. Storage space பார்க்கவும்.",true);
+      return false;
+    }
+  }
+  function removeProfilePhoto(id){try{localStorage.removeItem(photoKey(id));}catch(e){}}
+
+  function chooseProfilePhoto(id){
+    var input=document.createElement("input");
+    input.type="file";input.accept="image/*";input.capture="environment";
+    input.onchange=function(){
+      var f=input.files&&input.files[0];if(!f)return;
+      if(!f.type || f.type.indexOf("image/")!==0){
+        if(typeof toast==="function")toast("Image file மட்டும் தேர்வு செய்யுங்கள்.",true);return;
+      }
+      if(f.size>3*1024*1024){
+        if(typeof toast==="function")toast("Customer photo 3MB-க்கு குறைவாக இருக்க வேண்டும்.",true);return;
+      }
+      var r=new FileReader();
+      r.onload=function(){
+        if(setProfilePhoto(id,r.result)){
+          renderCustomerHome();
+          if(typeof renderCustomers==="function")renderCustomers();
+          if(typeof toast==="function")toast("Customer photo சேமிக்கப்பட்டது.");
+        }
+      };
+      r.readAsDataURL(f);
+    };
+    input.click();
+  }
+
+  function renderCustomerHome(){
+    var mount=document.getElementById("nfV315CustomerHomeList");
+    if(!mount)return;
+    var customers=(window.state&&Array.isArray(state.customers)?state.customers:[]).slice();
+    customers.sort(function(a,b){return String(a.name||"").localeCompare(String(b.name||""),"ta",{sensitivity:"base"});});
+    if(!customers.length){
+      mount.innerHTML='<div class="nf-v315-customer-home-empty">👤 இன்னும் Customer இல்லை.</div>';
+      return;
+    }
+    mount.innerHTML=customers.map(function(c){
+      var id=String(c.id||"");
+      var photo=getProfilePhoto(id);
+      var photoHtml=photo
+        ? '<img src="'+safeEsc(photo)+'" alt="Customer photo">'
+        : '👤';
+      return '<article class="nf-v315-customer-home-card" data-customer-id="'+safeEsc(id)+'">'
+        +'<div class="nf-v315-customer-home-photo">'+photoHtml+'</div>'
+        +'<div class="nf-v315-customer-home-info">'
+        +'<h3 class="nf-v315-customer-home-name">'+safeEsc(c.name||"Customer")+'</h3>'
+        +'<span class="nf-v315-customer-home-phone">📞 '+safeEsc(c.phone||"Phone இல்லை")+'</span>'
+        +'<span class="nf-v315-customer-home-village">📍 '+safeEsc(c.village||"ஊர் இல்லை")+'</span>'
+        +'<span class="nf-v315-customer-home-date">📅 சேர்த்த தேதி: '+safeEsc(typeof dateText==="function" ? dateText(c.created_at||"") : String(c.created_at||"—").slice(0,10))+'</span>'
+        +'</div>'
+        +'<div class="nf-v315-customer-home-actions">'
+        +'<button type="button" title="Customer photo" aria-label="Customer photo" data-nf-photo="'+safeEsc(id)+'">📷</button>'
+        +'</div></article>';
+    }).join("");
+
+    mount.querySelectorAll("[data-nf-photo]").forEach(function(btn){
+      btn.addEventListener("click",function(e){e.stopPropagation();chooseProfilePhoto(btn.dataset.nfPhoto);});
+    });
+  }
+
+  function ensureCustomerHomeView(){
+    var main=document.querySelector("main.main");
+    if(!main)return;
+    if(!document.getElementById("view-customer-home")){
+      var sec=document.createElement("section");
+      sec.id="view-customer-home";
+      sec.className="view";
+      sec.innerHTML='<div class="pagehead"><div><h2>Customers</h2><p>Customer பெயர், phone number, ஊர், photo, சேர்த்த தேதி.</p></div></div>'
+        +'<div class="card"><div id="nfV315CustomerHomeList" class="nf-v315-customer-home-list"></div></div>';
+      main.insertBefore(sec,main.firstElementChild);
+    }
+    renderCustomerHome();
+  }
+
+  function setP4Active(view){
+    document.querySelectorAll("#p4MobileNav [data-p4-view]").forEach(function(b){
+      b.classList.toggle("active",b.dataset.p4View===view);
+    });
+  }
+
+  function patchNavigation(){
+    /* Home bottom tab is now the compact customer directory. */
+    var home=document.querySelector('#p4MobileNav [data-p4-view="dashboard"]');
+    if(home){
+      home.dataset.p4View="customer-home";
+      home.innerHTML='<span class="p4Icon">👤</span><span>Customers</span>';
+      home.setAttribute("aria-label","Customers");
+      home.title="Customers";
+    }
+    /* Payments bottom/side navigation is intentionally removed from UI. */
+    document.querySelectorAll('#p4MobileNav [data-p4-view="payments"], #sidebar [data-view="payments"]').forEach(function(el){el.remove();});
+  }
+
+  var originalGoView=window.goView;
+  if(typeof originalGoView==="function" && !originalGoView.__nfV315){
+    function v315GoView(view,push){
+      if(view==="payments") view="customer-home";
+      ensureCustomerHomeView();
+      originalGoView.apply(this,[view,push]);
+      setP4Active(view);
+      if(view==="customer-home")renderCustomerHome();
+    }
+    v315GoView.__nfV315=true;
+    window.goView=v315GoView;
+  }
+
+  /* Existing Phase 4.3 script wraps goView after its own nav setup.
+     Re-apply our wrapper once that code has finished loading. */
+  function boot(){
+    ensureCustomerHomeView();
+    patchNavigation();
+    if(typeof window.goView==="function" && !window.goView.__nfV315){
+      var base=window.goView;
+      function wrapped(view,push){
+        if(view==="payments")view="customer-home";
+        ensureCustomerHomeView();
+        base.apply(this,[view,push]);
+        setP4Active(view);
+        if(view==="customer-home")renderCustomerHome();
+      }
+      wrapped.__nfV315=true;
+      window.goView=wrapped;
+    }
+    /* Keep Payments page inaccessible even if an old click handler fires. */
+    document.querySelectorAll('[data-view="payments"], [data-p4-view="payments"]').forEach(function(el){el.remove();});
+    renderCustomerHome();
+  }
+
+  /* Refresh the compact directory after the app's normal render cycle. */
+  var oldRenderAll=window.renderAll;
+  if(typeof oldRenderAll==="function" && !oldRenderAll.__nfV315){
+    window.renderAll=function(){
+      oldRenderAll.apply(this,arguments);
+      try{ensureCustomerHomeView();patchNavigation();renderCustomerHome();}catch(e){console.error("V3.15 customer home",e);}
+    };
+    window.renderAll.__nfV315=true;
+  }
+
+  /* If the existing Phase 4 wrapper replaces goView after this script,
+     a short DOM-ready pass restores the final navigation state. */
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",boot,{once:true});
+  else setTimeout(boot,0);
+  window.nfV315ProfilePhoto={get:getProfilePhoto,set:setProfilePhoto,remove:removeProfilePhoto,choose:chooseProfilePhoto,render:renderCustomerHome};
+})();
+</script>
+
 </body>
 </html>
