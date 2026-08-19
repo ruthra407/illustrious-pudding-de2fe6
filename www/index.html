@@ -1,10 +1,10 @@
 <!doctype html>
-<html nf-build="verified-2026-08-19-v3.12-customer-card-edit-fixes" lang="ta">
+<html nf-build="verified-2026-08-19-v3.13-v3_12-minimal-fix" lang="ta">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="nf-build" content="verified-2026-08-19-v3.7-duplicate-ids-fixed">
-<title>New Fashion Tailoring – Online Management | Phase 4.3 • V3.12</title>
+<meta name="nf-build" content="verified-2026-08-19-v3.13-v3_12-minimal-fix">
+<title>New Fashion Tailoring – Online Management | Phase 4.3 • V3.13</title>
 <link rel="manifest" href="manifest.json">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -8112,5 +8112,85 @@ html{
 }
 </style>
 
+
+
+<!-- =========================================================
+     V3.13 — MINIMAL PATCH FROM V3.12
+     Scope: Customer Card -> Edit Order only.
+     1) Keep long dropdown values fully visible on mobile.
+     2) Keep long labels/words from being clipped.
+     3) Keep Edit Order label as "Alteration notes".
+     4) Prevent the generated "Lining cloth: நாம் வாங்கியது" sentence
+        (and its optional quantity decoration) from returning to notes.
+     No login/auth/Supabase configuration or unrelated business logic changed.
+     ========================================================= -->
+<style id="nf-v3_13-minimal-edit-order-display-fix">
+/* Long labels must wrap instead of disappearing behind the value column. */
+#app [id^="quick-order-"] > .formgrid > .field:not(.full) > label,
+#app [id^="quick-order-"] .moneyStat > span,
+#app [id^="quick-order-"] .nf-quick-chudi > label,
+#app [id^="quick-order-"] .nf-lining-cost-field > label{
+  min-width:0 !important;
+  overflow:visible !important;
+  white-space:normal !important;
+  overflow-wrap:anywhere !important;
+  word-break:break-word !important;
+  line-height:1.35 !important;
+}
+
+/* Mobile: 102px was too narrow for Tamil dropdown values such as
+   "நாம் வாங்கியது" and for Status. Give selects their own readable width.
+   Numeric/date inputs keep their existing compact width. */
+#app [id^="quick-order-"] > .formgrid > .field:not(.full) > select,
+#app [id^="quick-order-"] .nf-lining-cost-field > select,
+#app [id^="quick-order-"] .nf-quick-chudi > select{
+  min-width:0 !important;
+  width:100% !important;
+  text-overflow:clip !important;
+  white-space:nowrap !important;
+  color-scheme:light;
+}
+#app [id^="quick-order-"] select option{
+  background:#fff;
+  color:#211b20;
+}
+
+@media(max-width:560px){
+  #app [id^="quick-order-"] > .formgrid > .field:not(.full){
+    grid-template-columns:minmax(0,1fr) minmax(150px,160px) !important;
+    gap:7px !important;
+  }
+  #app [id^="quick-order-"] .nf-lining-cost-field{
+    grid-template-columns:minmax(0,1fr) 150px !important;
+    gap:7px !important;
+  }
+  #app [id^="quick-order-"] .nf-quick-chudi{
+    grid-template-columns:minmax(0,1fr) 140px !important;
+    gap:7px !important;
+  }
+  #app [id^="quick-order-"] > .formgrid > .field:not(.full) > label,
+  #app [id^="quick-order-"] .moneyStat > span,
+  #app [id^="quick-order-"] .nf-quick-chudi > label,
+  #app [id^="quick-order-"] .nf-lining-cost-field > label{
+    font-size:12px !important;
+  }
+}
+</style>
+<script id="nf-v3_13-minimal-notes-cleanup">
+(function(){
+  "use strict";
+  if(typeof window.cleanOrderNotes!="function") return;
+  const baseCleanOrderNotes=window.cleanOrderNotes;
+  window.cleanOrderNotes=function(value){
+    /* Clean the raw text BEFORE the older cleaner removes the sentence
+       prefix; otherwise a stored quantity such as "· 6" could survive. */
+    let raw=String(value||"");
+    raw=raw.replace(/(?:^|[|\n])\s*(?:🧵\s*)?Lining\s+cloth\s*[:：-]\s*(?:Customer\s*கொடுத்தது|நாம்\s*வாங்கியது)(?:\s*[·•,-]?\s*\d+(?:\.\d+)?)?\s*(?=\||$|\n)/giu, "");
+    raw=raw.replace(/(?:^|\s)(?:🧵\s*)?Lining\s+cloth\s*[:：-]\s*(?:Customer\s*கொடுத்தது|நாம்\s*வாங்கியது)(?:\s*[·•,-]?\s*\d+(?:\.\d+)?)?/giu, " ");
+    let s=baseCleanOrderNotes(raw);
+    return s.replace(/\s*\|\s*\|\s*/g," | ").replace(/^\s*\|\s*|\s*\|\s*$/g,"").replace(/\s{2,}/g," ").trim();
+  };
+})();
+</script>
 </body>
 </html>
