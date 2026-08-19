@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="nf-build" content="verified-2026-08-18-v3-universal-order-layout">
-<title>New Fashion Tailoring – Online Management | Phase 4.3 • V3</title>
+<meta name="nf-build" content="verified-2026-08-19-v3.5-customer-design-calculation-rows">
+<title>New Fashion Tailoring – Online Management | Phase 4.3 • V3.5</title>
 <link rel="manifest" href="manifest.json">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -138,6 +138,14 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}.hidden{display:
 
 .customerOrderLine .orderActions{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
 @media(max-width:560px){.rateGrid{grid-template-columns:1fr}.calcBar input{min-width:140px}}
+/* V3.5 — Customer Card Design calculation rows: restrained emphasis. */
+.nf-customer-design-rate-row{
+  background:linear-gradient(90deg,#faf8ff,#fff);
+  border-radius:9px;
+  padding:8px 9px;
+  margin:2px 0;
+}
+
 
 .kpiDetails{margin-top:12px;display:grid;gap:7px;text-align:left;max-height:300px;overflow:auto}
 .kpiDetailRow{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.22);border-radius:11px;padding:9px;color:#fff}
@@ -7579,6 +7587,31 @@ html{
       return qty>0?'<div class="customerRateRow"><span class="rateLabel">'+label+' '+qty+'</span><span class="rateMath">'+qty+' × '+money(qty?total/qty:0)+' = <b>'+money(total)+'</b></span></div>':"";
     };
 
+    /* V3.5 — Customer Card: show each saved Design blouse slot as its
+       own calculation row. Each slot keeps its own quantity + rate.
+       No order data, save logic, sync logic, or New/Edit Order fields
+       are changed here. */
+    var designRows="";
+    blouseOrders.forEach(function(o){
+      var items=designItemsFor(o);
+      if(items.length){
+        items.forEach(function(it,i){
+          var q=Number(it.qty||0), r=Number(it.rate||0);
+          if(q<=0)return;
+          var label='🎨 Design '+(i+1);
+          if(String(it.name||"").trim())label+=' — '+String(it.name).trim();
+          designRows+='<div class="customerRateRow nf-customer-design-rate-row"><span class="rateLabel">'+label+' · '+q+'</span><span class="rateMath">'+q+' × '+money(r)+' = <b>'+money(q*r)+'</b></span></div>';
+        });
+      }else{
+        /* Legacy orders without saved 3-slot data remain visible and
+           continue using their saved aggregate Design blouse rate. */
+        var s=splitFor(o),r=ratesFor(o),q=Number(s.design||0);
+        if(q>0){
+          designRows+='<div class="customerRateRow nf-customer-design-rate-row"><span class="rateLabel">🎨 Design blouse · '+q+'</span><span class="rateMath">'+q+' × '+money(r.design)+' = <b>'+money(q*r.design)+'</b></span></div>';
+        }
+      }
+    });
+
     return '<div class="customerWorkSummary">'+
       '<div class="customerWorkSection"><h4>👗 Blouse Section</h4>'+ 
         '<div class="customerWorkGrid">'+
@@ -7590,7 +7623,7 @@ html{
         '<div class="customerRateList">'+
           rateRow('Normal blouse',normalQty,normalTotal)+
           rateRow('Lining blouse',liningQty,liningTotal)+
-          rateRow('Design blouse',designQty,designTotal)+
+          designRows+
           rateRow('Saree',blouseSareeQty,blouseSareeTotal)+
           (st.liningCustomer>0?'<div class="customerLiningNote">🧵 Lining cloth: Customer கொடுத்தது — '+st.liningCustomer+' (Rate தேவையில்லை)</div>':"")+ 
           (blouseLiningShopQty>0?'<div class="customerRateRow"><span class="rateLabel">Lining cloth '+blouseLiningShopQty+'</span><span class="rateMath">Shop cost = <b>'+money(blouseLiningShopTotal)+'</b></span></div>':"")+ 
