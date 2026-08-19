@@ -1,10 +1,9 @@
 <!doctype html>
-<html nf-build="verified-2026-08-19-v3.12-customer-card-edit-notes-fixed" lang="ta">
+<html nf-build="verified-2026-08-19-v3.12-customer-card-edit-fixes" lang="ta">
 <head>
-<meta name="nf-version" content="V3.13">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="nf-build" content="verified-2026-08-19-v3.12-customer-card-edit-notes-fixed"">
+<meta name="nf-build" content="verified-2026-08-19-v3.7-duplicate-ids-fixed">
 <title>New Fashion Tailoring – Online Management | Phase 4.3 • V3.12</title>
 <link rel="manifest" href="manifest.json">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -2628,6 +2627,33 @@ body{
 </style>
 
 
+<style id="nf-v3_12-edit-order-text-visibility">
+/* V3.12 — Edit Order text visibility only. */
+#app [id^="quick-order-"] > .formgrid > .field > label,
+#app [id^="quick-order-"] .moneyStat > span,
+#app [id^="quick-order-"] .nf-lining-cost-field > label,
+#app [id^="quick-order-"] .nf-quick-chudi > label{
+  white-space:normal !important;
+  overflow:visible !important;
+  text-overflow:clip !important;
+  overflow-wrap:anywhere !important;
+  word-break:break-word !important;
+  line-height:1.35 !important;
+}
+#app [id^="quick-order-"] > .formgrid > .field:not(.full),
+#app [id^="quick-order-"] .moneyStat,
+#app [id^="quick-order-"] .nf-lining-cost-field,
+#app [id^="quick-order-"] .nf-quick-chudi{min-width:0 !important;}
+@media(max-width:560px){
+  #app [id^="quick-order-"] > .formgrid > .field:not(.full),
+  #app [id^="quick-order-"] .moneyStat,
+  #app [id^="quick-order-"] .nf-lining-cost-field,
+  #app [id^="quick-order-"] .nf-quick-chudi{
+    grid-template-columns:minmax(0,1fr) 104px !important;
+  }
+}
+</style>
+
 <style id="nf-v3-universal-order-label-value-layout">
 /*
   VERSION 3 — UNIVERSAL NEW ORDER / EDIT ORDER UI
@@ -2918,53 +2944,6 @@ body{
   .customerRateRow .rateLabel{font-size:15.5px !important}
   .customerRateRow .rateMath{font-size:15.5px !important}
   .customerRateRow .rateMath b{font-size:16.5px !important}
-}
-</style>
-
-
-<style id="nf-v312-edit-order-readability">
-/* V3.12 — Edit Order mobile readability.
-   Labels wrap fully instead of being clipped; values remain on the right. */
-#app [id^="quick-order-"] > .formgrid > .field:not(.full) > label,
-#app [id^="quick-order-"] .moneyStat > span,
-#app [id^="quick-order-"] .nf-quick-chudi > label,
-#app [id^="quick-order-"] .nf-lining-cost-field > label{
-  min-width:0 !important;
-  max-width:100% !important;
-  overflow:visible !important;
-  white-space:normal !important;
-  overflow-wrap:anywhere !important;
-  word-break:break-word !important;
-  line-height:1.35 !important;
-}
-#app [id^="quick-order-"] > .formgrid > .field:not(.full),
-#app [id^="quick-order-"] .moneyStat,
-#app [id^="quick-order-"] .nf-quick-chudi,
-#app [id^="quick-order-"] .nf-lining-cost-field{
-  min-width:0 !important;
-  overflow:visible !important;
-}
-#app [id^="quick-order-"] .nf-quick-notes-label{
-  display:block !important;
-  margin-bottom:6px !important;
-  font-weight:850 !important;
-}
-#app [id^="quick-order-"] textarea[id^="qo-notes-"]{
-  white-space:pre-wrap !important;
-}
-@media(max-width:560px){
-  #app [id^="quick-order-"] > .formgrid > .field:not(.full),
-  #app [id^="quick-order-"] .moneyStat,
-  #app [id^="quick-order-"] .nf-quick-chudi,
-  #app [id^="quick-order-"] .nf-lining-cost-field{
-    grid-template-columns:minmax(0,1fr) 108px !important;
-  }
-  #app [id^="quick-order-"] > .formgrid > .field:not(.full) > label,
-  #app [id^="quick-order-"] .moneyStat > span,
-  #app [id^="quick-order-"] .nf-quick-chudi > label,
-  #app [id^="quick-order-"] .nf-lining-cost-field > label{
-    font-size:12px !important;
-  }
 }
 </style>
 
@@ -3439,29 +3418,13 @@ function cleanOrderNotes(v){
     .replace(/(?:^|\s*\|\s*)CHUDI_RATE:[^|\s]+/g,"")
     .replace(/(?:^|\s*\|\s*)SAREE_RATE:[^|\s]+/g,"")
     .replace(/(?:^|\s*\|\s*)LINING_COST:\{[^}]+\}/g,"")
-    /* Lining source is structured data, never free-form Alteration notes. */
-    .replace(/(?:^|\s*\|\s*)Lining cloth\s*:\s*(?:Customer கொடுத்தது|நாம் வாங்கியது)/gi,"")
-    /* Remove legacy duplicated variants left by older saves. */
-    .replace(/(?:^|\s*\|\s*)Lining cloth\s*[:：]\s*(?:Customer\s*கொடுத்தது|நாம்\s*வாங்கியது)(?:\s*\|)?/gi,"")
+    /* Remove legacy UI-generated lining sentence wherever it occurs in Notes,
+       including old records where it was stored without a pipe separator. */
+    .replace(/\bLining\s+cloth\s*[:：]\s*(?:Customer\s*கொடுத்தது|நாம்\s*வாங்கியது)\s*/gi,"")
     .replace(/\s*\|\s*\|\s*/g," | ")
     .replace(/^\s*\|\s*|\s*\|\s*$/g,"")
     .replace(/\s{2,}/g," ")
     .trim();
-}/g,"")
-   .replace(/(?:^|\s*\|\s*)BLOUSE_RATES:\{[^}]+\}/g,"")
-   .replace(/(?:^|\s*\|\s*)DESIGN_RATES:\[[^\]]*\]/g,"")
-   .replace(/(?:^|\s*\|\s*)DESIGN_ITEMS:\[[^\]]*\]/g,"")
-   .replace(/(?:^|\s*\|\s*)GARMENT_SPLIT:\{[^}]+\}/g,"")
-   .replace(/(?:^|\s*\|\s*)CHUDI_RATE:[^|\s]+/g,"")
-   .replace(/(?:^|\s*\|\s*)SAREE_RATE:[^|\s]+/g,"")
-   .replace(/(?:^|\s*\|\s*)LINING_COST:\{[^}]+\}/g,"")
-   /* Derived from dedicated lining fields; never keep it in editable notes. */
-   .replace(/(?:^|\s*\|\s*)Lining\s+cloth\s*:\s*(?:Customer\s*கொடுத்தது|நாம்\s*வாங்கியது)/gi,"")
-   .replace(/\s*\|\s*\|\s*/g," | ")
-   .replace(/^\s*\|\s*|\s*\|\s*$/g,"")
-   .replace(/[ \t]{2,}/g," ")
-   .replace(/\n\s*\n+/g,"\n")
-   .trim();
 }
 function makeBlouseSplitNote(s,rates,userNotes=""){
  const marker=`BLOUSE_SPLIT:${JSON.stringify({normal:Number(s.normal||0),lining:Number(s.lining||0),design:Number(s.design||0)})}`;
@@ -3655,6 +3618,13 @@ function latestCustomerOrder(id){
  return list[0]||null;
 }
 
+function updateQuickOrderEditLabels(id){
+  const box=$("quick-order-"+id);
+  if(!box)return;
+  const label=box.querySelector(".nf-quick-notes-label");
+  if(label)label.textContent=box.classList.contains("nf-edit-mode")?"Alteration notes":"Notes";
+}
+
 function openCustomerOrderEditor(customerId,orderId){
  const order=orderId?state.orders.find(x=>x.id===orderId):latestCustomerOrder(customerId);
  if(!order){toast("இந்த customer-க்கு Edit செய்ய order இல்லை. முதலில் New Order சேமிக்கவும்.",true);return;}
@@ -3668,6 +3638,7 @@ function openCustomerOrderEditor(customerId,orderId){
    box.classList.remove("hidden");
    box.classList.toggle("nf-edit-mode",!!order);
    box.dataset.editOrderId=order?.id||"";
+   updateQuickOrderEditLabels(customerId);
    const title=box.querySelector(".nf-quick-edit-title");
    if(title)title.textContent=order?`✏️ Edit Order — ${order.order_no||"Order"}`:"🧾 New Order";
    const save=box.querySelector(".nf-quick-save-btn");
@@ -3712,8 +3683,6 @@ function clearQuickOrderEditor(id){
  if(g)g.value="Blouse";
  const box=$("quick-order-"+id);
  if(box){
-   const notesLabel=box.querySelector(".nf-quick-notes-label");
-   if(notesLabel)notesLabel.textContent="Notes";
    box.dataset.editOrderId="";
    box.classList.remove("nf-edit-mode");
  }
@@ -3738,8 +3707,6 @@ function populateQuickOrderEditor(id,o){
  set("qo-advance-",Number(o.advance_amount||0));
  set("qo-status-",o.status||"Pending");
  set("qo-notes-",cleanOrderNotes(o.notes||""));
- const notesLabel=document.querySelector("#quick-order-"+CSS.escape(String(id))+" .nf-quick-notes-label");
- if(notesLabel)notesLabel.textContent="Alteration notes";
  const s=blouseSplit(o),gx=typeof nfGarmentExtra==="function"?nfGarmentExtra(o):{chudi:0,chudiLining:"no",chudiLiningQty:0,saree:0};
  set("qo-normal-",s.normal||0);set("qo-lining-",s.lining||0);set("qo-design-",s.design||0);
  const or=nfOrderRates(o);
@@ -3813,8 +3780,7 @@ async function saveQuickOrder(id,customerId){
    notes+=" | GARMENT_SPLIT:"+JSON.stringify(existingExtra)+" | SAREE_RATE:"+sr;
  }
  if(garment==="Blouse"&&s.design>0)notes+=" | DESIGN_RATES:"+JSON.stringify(designRates);
- /* Lining source is stored in dedicated columns. Do not append the
-    derived "Lining cloth: ..." sentence to editable notes. */
+ /* V3.12: Lining source stays in structured fields; never append it to Alteration notes. */
  if(ls==="shop")notes+=` | LINING_COST:${JSON.stringify({source:ls,qty:lq,rate:lr,total:liningTotal})}`;
  const payload={customer_id:customerId,order_no:existing?.order_no||makeOrderNo(),garment_type:garment,order_date:existing?.order_date||localDate(),cloth_received_date:cloth,delivery_date:delivery,quantity:qty,unit_price:qty?garmentTotal/qty:0,total_amount:total,advance_amount:advance,balance_amount:Math.max(0,total-advance),status,rate_type:garment==="Chudi"?"normal":(s.normal>0?"normal":s.lining>0?"lining":s.design>0?"design":"normal"),lining_cloth_source:ls||null,lining_cloth_qty:lq,notes};
  try{
@@ -7629,6 +7595,7 @@ html{
     box.classList.remove("hidden");
     box.classList.add("nf-edit-mode");
     box.dataset.editOrderId=o.id;
+    updateQuickOrderEditLabels(key);
     var title=box.querySelector(".nf-quick-edit-title");
     if(title)title.textContent="✏️ Edit Order — "+(o.order_no||"Order");
     var save=box.querySelector(".nf-quick-save-btn");
@@ -8145,43 +8112,5 @@ html{
 }
 </style>
 
-
-<script id="nf-v313-alteration-notes-label-fix">
-(function(){
-  "use strict";
-  function syncAlterationNotesLabel(id){
-    var box=document.getElementById("quick-order-"+id);
-    if(!box)return;
-    var label=box.querySelector(".nf-quick-notes-label");
-    if(!label)return;
-    label.textContent=box.classList.contains("nf-edit-mode") ? "Alteration notes" : "Notes";
-  }
-  window.nfV313SyncAlterationNotesLabel=syncAlterationNotesLabel;
-  var oldPopulate=window.populateQuickOrderEditor;
-  if(typeof oldPopulate==="function" && !oldPopulate.__nfV313Wrapped){
-    window.populateQuickOrderEditor=function(id,o){
-      oldPopulate.apply(this,arguments);
-      syncAlterationNotesLabel(id);
-    };
-    window.populateQuickOrderEditor.__nfV313Wrapped=true;
-  }
-  var oldClear=window.clearQuickOrderEditor;
-  if(typeof oldClear==="function" && !oldClear.__nfV313Wrapped){
-    window.clearQuickOrderEditor=function(id){
-      oldClear.apply(this,arguments);
-      syncAlterationNotesLabel(id);
-    };
-    window.clearQuickOrderEditor.__nfV313Wrapped=true;
-  }
-  document.addEventListener("DOMContentLoaded",function(){
-    document.querySelectorAll('[id^="quick-order-"]').forEach(function(box){
-      syncAlterationNotesLabel(box.id.replace(/^quick-order-/,""));
-    });
-  });
-})();
-</script>
-
 </body>
 </html>
-
-<!-- V3.12: Edit Order readability + Alteration notes + derived lining-note persistence fix. -->
