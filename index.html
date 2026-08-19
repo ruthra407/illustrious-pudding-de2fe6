@@ -1,10 +1,10 @@
 <!doctype html>
-<html nf-build="verified-2026-08-19-v3.13-v3_12-minimal-fix" lang="ta">
+<html nf-build="verified-2026-08-19-v3.14-v3_13-rechecked" lang="ta">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="nf-build" content="verified-2026-08-19-v3.13-v3_12-minimal-fix">
-<title>New Fashion Tailoring – Online Management | Phase 4.3 • V3.13</title>
+<meta name="nf-build" content="verified-2026-08-19-v3.14-v3_13-rechecked">
+<title>New Fashion Tailoring – Online Management | Phase 4.3 • V3.14</title>
 <link rel="manifest" href="manifest.json">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -4474,11 +4474,25 @@ if(type==="payment"){
 if(type==="design"){const f=$("designPhotoFile"),cam=$("designCameraFile");const dataUrl=f?.dataset.dataUrl||cam?.dataset.dataUrl;const remove=f?.dataset.remove==="1"||cam?.dataset.remove==="1";if(dataUrl)payload.image_url=dataUrl;else if(remove)payload.image_url=null;}
 if(type==="order"){
  const garment=String(fd.get("garment_type")||"Blouse").toLowerCase();
+ const compactGarment=garment.replace(/\s+/g,"");
+ const combined=compactGarment==="blouse+chudi"||compactGarment==="blousechudi"||compactGarment==="both";
  const split={normal:Math.max(0,Number(fd.get("normal_qty")||0)),lining:Math.max(0,Number(fd.get("lining_qty")||0)),design:Math.max(0,Number(fd.get("design_qty")||0))};
  const rates=getRates();
  const cq=Math.max(0,Number(fd.get("chudi_qty")||0)),cl=fd.get("chudi_lining")==="yes"?"yes":"no",clq=Math.max(0,Number(fd.get("chudi_lining_qty")||0)),cr=Math.max(0,Number(fd.get("chudi_rate")||rates.chudi||0));
  const sq=Math.max(0,Number(fd.get("saree_qty")||fd.get("nf_saree_qty")||0)),sr=Math.max(0,Number(fd.get("saree_rate")||fd.get("nf_saree_rate")||rates.saree||0));
- if(garment==="chudi"){
+ if(combined){
+   payload.garment_type="Blouse";
+   payload.quantity=split.normal+split.lining+split.design+cq+sq;
+   payload.total_amount=split.normal*rates.normal+split.lining*rates.lining+split.design*rates.design+cq*cr+sq*sr;
+   payload.unit_price=payload.quantity?payload.total_amount/payload.quantity:0;
+   const active=["normal","lining","design"].filter(k=>split[k]>0);
+   payload.rate_type=active[0]||"normal";
+   payload.notes=makeBlouseSplitNote(split,rates,payload.notes||"");
+   payload.notes=String(payload.notes||"").replace(/\s*\|\s*GARMENT_SPLIT:\{[^}]+\}/g,"").replace(/\s*\|\s*(?:CHUDI_RATE|SAREE_RATE):[0-9.]+/g,"").trim();
+   payload.notes+=(payload.notes?" | ":"")+"GARMENT_SPLIT:"+JSON.stringify({chudi:cq,chudiLining:cl,chudiLiningQty:clq,saree:sq});
+   if(cq>0)payload.notes+=" | CHUDI_RATE:"+cr;
+   if(sq>0)payload.notes+=" | SAREE_RATE:"+sr;
+ }else if(garment==="chudi"){
    payload.quantity=cq;payload.total_amount=cq*cr;payload.unit_price=cr;payload.rate_type="normal";
    payload.notes="GARMENT_SPLIT:"+JSON.stringify({chudi:cq,chudiLining:cl,chudiLiningQty:clq,saree:0})+" | CHUDI_RATE:"+cr;
  }else if(garment==="saree"){
@@ -4501,7 +4515,7 @@ if(type==="order"){
  if(!payload.status)payload.status="Pending";
  if(!payload.lining_cloth_source)payload.lining_cloth_source=null;
  if(payload.lining_cloth_qty==null)payload.lining_cloth_qty=0;
- if(payload.quantity<=0){$("formMsg").textContent=garment==="chudi"?"குறைந்தது 1 Chudi எண்ணிக்கை கொடுக்க வேண்டும்.":garment==="saree"?"குறைந்தது 1 Saree எண்ணிக்கை கொடுக்க வேண்டும்.":"குறைந்தது 1 blouse எண்ணிக்கை கொடுக்க வேண்டும்.";$("formMsg").className="msg error";return;}
+ if(payload.quantity<=0){$("formMsg").textContent=combined?"Blouse அல்லது Chudi எண்ணிக்கை கொடுக்க வேண்டும்.":garment==="chudi"?"குறைந்தது 1 Chudi எண்ணிக்கை கொடுக்க வேண்டும்.":garment==="saree"?"குறைந்தது 1 Saree எண்ணிக்கை கொடுக்க வேண்டும்.":"குறைந்தது 1 blouse எண்ணிக்கை கொடுக்க வேண்டும்.";$("formMsg").className="msg error";return;}
 }
 const b=$("saveBtn");b.disabled=true;b.textContent="Saving...";
 try{
@@ -8190,6 +8204,256 @@ html{
     let s=baseCleanOrderNotes(raw);
     return s.replace(/\s*\|\s*\|\s*/g," | ").replace(/^\s*\|\s*|\s*\|\s*$/g,"").replace(/\s{2,}/g," ").trim();
   };
+})();
+</script>
+
+
+<!-- =========================================================
+     V3.14 — SINGLE ORDER: BLOUSE + CHUDI COMBINED FLOW
+     Base: V3.13. Additive patch only.
+     - One customer/order can contain Blouse + Chudi together.
+     - New/Edit order uses one combined editor and one calculation.
+     - Saved order keeps existing DB schema; Chudi is stored in GARMENT_SPLIT.
+     - Customer card / full details / order card / calculation all derive from
+       the same saved split so the two garment types never become separate orders.
+     ========================================================= -->
+<style id="nf-v3_14-blouse-chudi-combined-css">
+.nf-combined-garment-box{margin:8px 0 12px;padding:10px;border:1px solid #ddd5ff;border-radius:13px;background:linear-gradient(135deg,#f7f4ff,#fff1f7)}
+.nf-combined-garment-box .nf-combined-title{font-weight:900;margin-bottom:7px}
+.nf-combined-garment-box .nf-combined-options{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.nf-combined-garment-box label{display:flex;align-items:center;gap:8px;min-width:0;padding:10px;border:1px solid #e4dfef;border-radius:11px;background:#fff;font-weight:850;cursor:pointer}
+.nf-combined-garment-box input{width:18px;height:18px;flex:0 0 18px}
+.nf-combined-calc{display:grid;gap:7px;margin-top:9px}
+.nf-combined-calc-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 11px;border-radius:11px;background:#fff;border:1px solid #e6e2ee}
+.nf-combined-calc-row .label{min-width:0;font-weight:800;overflow-wrap:anywhere}
+.nf-combined-calc-row .math{flex:0 0 auto;white-space:nowrap;font-weight:900}
+.nf-combined-grand{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:9px;padding:12px;border-radius:13px;background:linear-gradient(135deg,#6c4df6,#ef4f8a);color:#fff;font-weight:950}
+@media(max-width:560px){
+  .nf-combined-garment-box .nf-combined-options{grid-template-columns:1fr}
+  .nf-combined-calc-row{align-items:flex-start;flex-wrap:wrap}
+  .nf-combined-calc-row .math{white-space:normal;text-align:right;margin-left:auto}
+  .nf-combined-grand{font-size:14px}
+}
+</style>
+<script id="nf-v3_14-blouse-chudi-combined-js">
+(function(){
+  "use strict";
+  const N=v=>Math.max(0,Number(v||0));
+  const extraOf=o=>typeof window.nfGarmentExtra==="function"?window.nfGarmentExtra(o):{chudi:0,chudiLining:"no",chudiLiningQty:0,saree:0};
+  const blouseOf=o=>typeof window.blouseSplit==="function"?window.blouseSplit(o||{}):{normal:0,lining:0,design:0};
+  const ratesOf=o=>typeof window.nfOrderRates==="function"?window.nfOrderRates(o||{}):(typeof window.getRates==="function"?window.getRates():{});
+
+  function hasBlouse(o){const b=blouseOf(o),x=extraOf(o),g=String(o&&o.garment_type||"").toLowerCase();return N(b.normal)+N(b.lining)+N(b.design)>0 || (!g||g==="blouse")&&N(o&&o.quantity)>0&&N(x.chudi)===0&&N(x.saree)===0;}
+  function hasChudi(o){return N(extraOf(o).chudi)>0 || N(extraOf(o).chudiLiningQty)>0;}
+  function combinedLabel(o){const b=hasBlouse(o),c=hasChudi(o),s=N(extraOf(o).saree)>0;if(b&&c)return "Blouse + Chudi";if(b&&s)return "Blouse + Saree";if(c&&s)return "Chudi + Saree";if(c)return "Chudi";if(s)return "Saree";return String(o&&o.garment_type||"Blouse");}
+  window.nfV314CombinedLabel=combinedLabel;
+
+  function isCombinedValue(v){v=String(v||"").toLowerCase().replace(/\s+/g,"");return v==="blouse+chudi"||v==="both"||v==="blousechudi";}
+
+  /* ---------- Customer-card / Orders-page inline editor ---------- */
+  function ensureQuickSelector(id){
+    const sel=document.getElementById("qo-garment-"+id); if(!sel)return;
+    if(!sel.querySelector('option[value="Blouse+Chudi"]')){
+      const op=document.createElement("option");op.value="Blouse+Chudi";op.textContent="Blouse + Chudi / பிளவுஸ் + சுடிதார்";sel.appendChild(op);
+    }
+  }
+
+  const baseUpdateQuickGarment=window.updateQuickGarment;
+  window.updateQuickGarment=function(id){
+    ensureQuickSelector(id);
+    const sel=document.getElementById("qo-garment-"+id); if(!sel)return;
+    const g=String(sel.value||"Blouse");
+    const combined=isCombinedValue(g), blouse=combined||g==="Blouse", chudi=combined||g==="Chudi";
+    document.querySelectorAll("#quick-order-"+id+" .nf-quick-blouse").forEach(x=>x.classList.toggle("nf-field-hidden",!blouse));
+    document.querySelectorAll("#quick-order-"+id+" .nf-quick-chudi").forEach(x=>x.classList.toggle("nf-field-hidden",!chudi));
+    document.querySelectorAll("#quick-order-"+id+" .nf-quick-saree").forEach(x=>x.classList.add("nf-field-hidden"));
+    updateQuickOrderCalcV314(id);
+  };
+
+  function updateQuickOrderCalcV314(id){
+    const sel=document.getElementById("qo-garment-"+id);if(!sel)return;
+    const g=String(sel.value||"Blouse"),combined=isCombinedValue(g),blouse=combined||g==="Blouse",chudi=combined||g==="Chudi";
+    const br=typeof window.getQuickBlouseRates==="function"?window.getQuickBlouseRates(id):(typeof getRates==="function"?getRates():{});
+    const n=N(document.getElementById("qo-normal-"+id)?.value),l=N(document.getElementById("qo-lining-"+id)?.value),d=N(document.getElementById("qo-design-"+id)?.value);
+    const dr=typeof window.getQuickDesignRates==="function"?window.getQuickDesignRates(id,d,br.design||0):Array.from({length:d},()=>N(br.design));
+    const designTotal=dr.reduce((s,v)=>s+N(v),0);
+    const cq=N(document.getElementById("qo-chudi-"+id)?.value),cr=N(document.getElementById("qo-chudi-rate-"+id)?.value);
+    const sq=N(document.getElementById("qo-saree-"+id)?.value),sr=N(document.getElementById("qo-saree-rate-"+id)?.value);
+    const blouseTotal=blouse?(n*N(br.normal)+l*N(br.lining)+designTotal+sq*sr):0;
+    const chudiTotal=chudi?cq*cr:0;
+    const ls=document.getElementById("qo-lining-source-"+id)?.value||"",lq=N(document.getElementById("qo-lining-qty-"+id)?.value),lr=N(document.getElementById("qo-lining-cost-rate-"+id)?.value);
+    const liningTotal=ls==="shop"?lq*lr:0;
+    const total=blouseTotal+chudiTotal+liningTotal;
+    const qty=(blouse?(n+l+d+sq):0)+(chudi?cq:0);
+    const q=document.getElementById("qo-qty-"+id);if(q)q.value=qty;
+    const set=(x,v)=>{const e=document.getElementById(x+id);if(e)e.textContent=money(v)};
+    set("qo-lining-total-",liningTotal);set("qo-lining-total-display-",liningTotal);set("qo-garment-total-",blouseTotal+chudiTotal);set("qo-saree-total-",sq*sr);set("qo-total-",total);
+    const old=document.getElementById("nf-combined-calc-"+id);
+    if(old)old.remove();
+    const anchor=document.getElementById("qo-total-"+id)?.closest(".field")||document.getElementById("qo-total-"+id)?.parentElement;
+    if(anchor&&combined){
+      const box=document.createElement("div");box.id="nf-combined-calc-"+id;box.className="nf-combined-calc";
+      const rows=[];
+      if(n>0)rows.push(`<div class="nf-combined-calc-row"><span class="label">👗 Normal blouse</span><span class="math">${n} × ${money(N(br.normal))} = <b>${money(n*N(br.normal))}</b></span></div>`);
+      if(l>0)rows.push(`<div class="nf-combined-calc-row"><span class="label">🧵 Lining blouse</span><span class="math">${l} × ${money(N(br.lining))} = <b>${money(l*N(br.lining))}</b></span></div>`);
+      if(d>0)rows.push(`<div class="nf-combined-calc-row"><span class="label">🎨 Design blouse</span><span class="math"><b>${money(designTotal)}</b></span></div>`);
+      if(cq>0)rows.push(`<div class="nf-combined-calc-row"><span class="label">👚 Chudi / சுடிதார்</span><span class="math">${cq} × ${money(cr)} = <b>${money(chudiTotal)}</b></span></div>`);
+      if(sq>0)rows.push(`<div class="nf-combined-calc-row"><span class="label">🥻 Saree</span><span class="math">${sq} × ${money(sr)} = <b>${money(sq*sr)}</b></span></div>`);
+      if(liningTotal>0)rows.push(`<div class="nf-combined-calc-row"><span class="label">🧵 Lining cloth</span><span class="math"><b>${money(liningTotal)}</b></span></div>`);
+      box.innerHTML=rows.join("")+`<div class="nf-combined-grand"><span>Blouse + Chudi Total</span><b>${money(total)}</b></div>`;
+      anchor.appendChild(box);
+    }
+  }
+  window.updateQuickOrderCalc=updateQuickOrderCalcV314;
+
+  /* Preserve the existing editor loader, then infer the combined selector from saved split data. */
+  const basePopulate=window.populateQuickOrderEditor;
+  if(typeof basePopulate==="function"){
+    window.populateQuickOrderEditor=function(id,o){
+      basePopulate.apply(this,arguments);
+      const sel=document.getElementById("qo-garment-"+id);if(!sel)return;
+      ensureQuickSelector(id);
+      const b=blouseOf(o),x=extraOf(o);
+      if(N(x.chudi)>0 && (N(b.normal)+N(b.lining)+N(b.design)>0 || String(o.garment_type||"").toLowerCase()==="blouse"))sel.value="Blouse+Chudi";
+      updateQuickGarment(id);
+    };
+  }
+
+  /* Save one order, with both components in the same GARMENT_SPLIT marker. */
+  window.saveQuickOrder=async function(id,customerId){
+    customerId=customerId||id;
+    const box=document.getElementById("quick-order-"+id),editOrderId=box?.dataset.editOrderId||"",existing=editOrderId?(state.orders||[]).find(x=>x.id===editOrderId):null;
+    const isOrdersEditor=String(id||"").indexOf("orders_")===0;
+    const garment=document.getElementById("qo-garment-"+id)?.value||"Blouse",combined=isCombinedValue(garment),isBlouse=combined||garment==="Blouse",isChudi=combined||garment==="Chudi";
+    const cloth=document.getElementById("qo-cloth-"+id)?.value||null,delivery=document.getElementById("qo-delivery-"+id)?.value||null;
+    const r=typeof getQuickBlouseRates==="function"?getQuickBlouseRates(id):(typeof getRates==="function"?getRates():{});
+    const s={normal:N(document.getElementById("qo-normal-"+id)?.value),lining:N(document.getElementById("qo-lining-"+id)?.value),design:N(document.getElementById("qo-design-"+id)?.value)};
+    const designRates=typeof getQuickDesignRates==="function"?getQuickDesignRates(id,s.design,r.design||0):Array.from({length:s.design},()=>N(r.design));
+    if(s.design>0&&designRates.length!==s.design){toast("ஒவ்வொரு Design blouse-க்கும் rate கொடுக்க வேண்டும்.",true);return}
+    const designTotal=designRates.reduce((sum,v)=>sum+N(v),0);
+    const cq=isChudi?N(document.getElementById("qo-chudi-"+id)?.value):0,cl=document.getElementById("qo-chudi-lining-"+id)?.value==="yes"?"yes":"no",clq=isChudi?N(document.getElementById("qo-chudi-lining-qty-"+id)?.value):0,cr=isChudi?N(document.getElementById("qo-chudi-rate-"+id)?.value||r.chudi):0;
+    const sq=isBlouse?N(document.getElementById("qo-saree-"+id)?.value):0,sr=isBlouse?N(document.getElementById("qo-saree-rate-"+id)?.value||r.saree):0;
+    const blouseTotal=isBlouse?(s.normal*N(r.normal)+s.lining*N(r.lining)+designTotal+sq*sr):0;
+    const chudiTotal=isChudi?cq*cr:0;
+    const ls=document.getElementById("qo-lining-source-"+id)?.value||"",lq=N(document.getElementById("qo-lining-qty-"+id)?.value),lr=N(document.getElementById("qo-lining-cost-rate-"+id)?.value),liningTotal=ls==="shop"?lq*lr:0;
+    const total=blouseTotal+chudiTotal+liningTotal,qty=(isBlouse?(s.normal+s.lining+s.design+sq):0)+(isChudi?cq:0);
+    const advance=N(document.getElementById("qo-advance-"+id)?.value),status=document.getElementById("qo-status-"+id)?.value||"Pending";
+    if(!delivery){toast("Delivery Date தேர்வு செய்யுங்கள்.",true);return}
+    if(qty<=0){toast(combined?"குறைந்தது 1 blouse அல்லது 1 Chudi எண்ணிக்கை கொடுக்க வேண்டும்.":isChudi?"குறைந்தது 1 Chudi கொடுக்க வேண்டும்.":"குறைந்தது 1 blouse கொடுக்க வேண்டும்.",true);return}
+    if(ls==="shop"&&lq>0&&lr<=0){toast("நாம் வாங்கிய Lining-க்கு விலை கொடுக்க வேண்டும்.",true);return}
+    if(ls==="shop"&&lq<=0&&lr>0){toast("நாம் வாங்கிய Lining எத்தனை என்று கொடுக்க வேண்டும்.",true);return}
+    let notes=isBlouse?makeBlouseSplitNote(s,r,document.getElementById("qo-notes-"+id)?.value||""):"";
+    const split={chudi:cq,chudiLining:cl,chudiLiningQty:clq,saree:sq};
+    notes=String(notes||"").replace(/\s*\|\s*GARMENT_SPLIT:\{[^}]+\}/g,"").replace(/\s*\|\s*(?:CHUDI_RATE|SAREE_RATE):[0-9.]+/g,"").trim();
+    notes+=(notes?" | ":"")+"GARMENT_SPLIT:"+JSON.stringify(split);
+    if(cq>0)notes+=" | CHUDI_RATE:"+cr;
+    if(sq>0)notes+=" | SAREE_RATE:"+sr;
+    if(isBlouse&&s.design>0)notes+=" | DESIGN_RATES:"+JSON.stringify(designRates);
+    if(ls==="shop")notes+=` | LINING_COST:${JSON.stringify({source:ls,qty:lq,rate:lr,total:liningTotal})}`;
+    const storedGarment=isBlouse?"Blouse":"Chudi";
+    const payload={customer_id:customerId,order_no:existing?.order_no||makeOrderNo(),garment_type:storedGarment,order_date:existing?.order_date||localDate(),cloth_received_date:cloth,delivery_date:delivery,quantity:qty,unit_price:qty?total/qty:0,total_amount:total,advance_amount:advance,balance_amount:Math.max(0,total-advance),status,rate_type:isBlouse?(s.normal>0?"normal":s.lining>0?"lining":s.design>0?"design":"normal"):"normal",lining_cloth_source:ls||null,lining_cloth_qty:lq,notes};
+    try{
+      const result=existing?await supabaseClient.from("orders").update(payload).eq("id",existing.id):await supabaseClient.from("orders").insert(payload);
+      if(result.error)throw result.error;
+      box.dataset.editOrderId="";await loadAll(true);
+      const title=box.querySelector(".nf-quick-edit-title"),save=box.querySelector(".nf-quick-save-btn");if(title)title.textContent="🧾 New Order";if(save)save.textContent="💾 Save Order";
+      toast(existing?"Order details updated.":"இந்த customer-க்கு New Order சேமிக்கப்பட்டது.");
+      if(isOrdersEditor){
+        setTimeout(function(){
+          if(typeof closeOrdersQuickAdd==="function")closeOrdersQuickAdd(false);
+          const screenTitle=document.getElementById("ordersNewOrderScreenTitle");if(screenTitle)screenTitle.textContent="🧾 New Order";
+          if(typeof goView==="function")goView("orders");
+        },60);
+      }
+    }catch(err){toast("Order save failed: "+err.message,true)}
+  };
+
+  /* ---------- Customer calculation: combined orders are split by component ---------- */
+  window.nfCustomerWorkSummaryHTML=function(st){
+    st=st||{};const os=st.os||[];let normal=0,lining=0,design=0,chudi=0,chudiLining=0,normalTotal=0,liningTotal=0,designTotal=0,sareeTotal=0,chudiTotal=0,liningCustomer=0,liningShop=0,liningShopTotal=0;
+    os.forEach(o=>{
+      const b=blouseOf(o),x=extraOf(o),r=ratesOf(o);
+      const bn=N(b.normal),bl=N(b.lining),bd=N(b.design),cq=N(x.chudi),cl=N(x.chudiLiningQty);
+      normal+=bn;lining+=bl;design+=bd;chudi+=cq;chudiLining+=cl;
+      normalTotal+=bn*N(r.normal);
+      liningTotal+=bl*N(r.lining);
+      designTotal+=bd*N(r.design);
+      sareeTotal+=N(x.saree)*N(r.saree);
+      chudiTotal+=cq*N(r.chudi);
+      const src=String(o.lining_cloth_source||"").toLowerCase(),lq=N(o.lining_cloth_qty),lc=typeof window.nfLiningCost==="function"?window.nfLiningCost(o):{};
+      if(src==="customer")liningCustomer+=lq;if(src==="shop"||src==="tailor"){liningShop+=lq;liningShopTotal+=N(lc.total)}
+    });
+    const saree=os.reduce((a,o)=>a+N(extraOf(o).saree),0);
+    const row=(label,qty,rate,total)=>qty>0?`<div class="customerRateRow"><span class="rateLabel">${label} ${qty}</span><span class="rateMath">${qty} × ${money(rate)} = <b>${money(total)}</b></span></div>`:"";
+    const notes=[...new Set(os.map(o=>typeof cleanOrderNotes==="function"?cleanOrderNotes(o.notes):"").filter(Boolean))];
+    return `<div class="customerWorkSummary">
+      <div class="customerWorkSection"><h4>👗 Blouse Section</h4><div class="customerWorkGrid"><div class="customerWorkItem"><b>${normal}</b><span>Normal blouse</span></div><div class="customerWorkItem"><b>${lining}</b><span>Lining blouse</span></div><div class="customerWorkItem"><b>${design}</b><span>Design blouse</span></div><div class="customerWorkItem"><b>${saree}</b><span>Saree</span></div></div><div class="customerRateList">${row("Normal blouse",normal,normal?normalTotal/(normal||1):0,normalTotal)}${row("Lining blouse",lining,lining?liningTotal/(lining||1):0,liningTotal)}${row("Design blouse",design,design?designTotal/(design||1):0,designTotal)}${saree?row("Saree",saree,saree?sareeTotal/saree:0,sareeTotal):""}${liningCustomer?`<div class="customerLiningNote">🧵 Lining cloth: Customer கொடுத்தது — ${liningCustomer}</div>`:""}${liningShop?row("Lining cloth",liningShop,liningShop?liningShopTotal/liningShop:0,liningShopTotal):""}</div><div class="customerRateTotal"><span>Blouse Section Total</span><span>${money(normalTotal+liningTotal+designTotal+sareeTotal+liningShopTotal)}</span></div></div>
+      <div class="customerWorkSection"><h4>👚 Chudi Section</h4><div class="customerWorkGrid"><div class="customerWorkItem"><b>${chudi}</b><span>Chudi / சுடிதார்</span></div><div class="customerWorkItem"><b>${chudiLining}</b><span>Chudi lining</span></div><div class="customerWorkItem"><b>${money(chudiTotal)}</b><span>Chudi Total</span></div></div><div class="customerRateList">${row("Chudi",chudi,chudi?chudiTotal/chudi:0,chudiTotal)}</div><div class="customerRateTotal"><span>Chudi Section Total</span><span>${money(chudiTotal)}</span></div></div>
+      <div class="customerWorkSection"><h4>🧾 Order Composition</h4><div class="customerNotesBox">${os.length?os.map(o=>`• <b>${esc(o.order_no||"Order")}</b> — ${esc(combinedLabel(o))}`).join("<br>"):"குறிப்பு இல்லை."}</div></div>
+      <div class="customerRateTotal" style="margin-top:10px;background:linear-gradient(135deg,#14aebd,#3d83ef)"><span>மொத்த Rate</span><span>${money(normalTotal+liningTotal+designTotal+sareeTotal+liningShopTotal+chudiTotal)}</span></div>
+    </div>`;
+  };
+
+  /* ---------- Order Full Details ---------- */
+  window.openOrderFullDetails=function(orderId){
+    const o=(state.orders||[]).find(x=>String(x.id)===String(orderId));if(!o){toast("Order details கிடைக்கவில்லை.",true);return;}
+    const box=$("nfOrderFullDetails"),content=$("nfOrderFullDetailsContent");if(!box||!content)return;
+    const x=extraOf(o),b=blouseOf(o),r=ratesOf(o),pay=nfOrderPaymentInfo(o),lining=typeof nfLiningCost==="function"?nfLiningCost(o):{},total=orderTotal(o);
+    const parts=[];
+    if(N(b.normal))parts.push(`Normal blouse ${N(b.normal)}`);if(N(b.lining))parts.push(`Lining blouse ${N(b.lining)}`);if(N(b.design))parts.push(`Design blouse ${N(b.design)}`);if(N(x.chudi))parts.push(`Chudi / சுடிதார் ${N(x.chudi)}`);if(N(x.chudiLiningQty))parts.push(`Chudi lining ${N(x.chudiLiningQty)}`);if(N(x.saree))parts.push(`Saree ${N(x.saree)}`);
+    const item=(label,value,full=false)=>`<div class="nf-order-detail-item${full?" full":""}"><span class="nf-order-detail-label">${label}</span><span class="nf-order-detail-value">${value||"—"}</span></div>`;
+    const currentStatus=String(o.status||"Pending");
+    const statusButtons=[["In Progress","Progress","primary"],["Ready","Ready","success"],["Delivered","Delivered","success"],["Cancelled","Cancel","danger"]];
+    const statusControl=`<div class="nf-order-status-control"><div class="nf-order-status-title">Order Progress</div><div class="nf-order-status-buttons">${statusButtons.map(([v,l,c])=>`<button type="button" class="btn ${c} nf-status-btn${currentStatus===v?" active":""}" onclick="updateOrderStatus('${o.id}','${v}')">${l}</button>`).join("")}</div><div class="nf-order-status-current">Current Status: <b>${esc(currentStatus)}</b></div></div>`;
+    const calcRows=[
+      N(b.normal)?item("Normal blouse",`${N(b.normal)} × ${money(N(r.normal))} = <b>${money(N(b.normal)*N(r.normal))}</b>`):"",
+      N(b.lining)?item("Lining blouse",`${N(b.lining)} × ${money(N(r.lining))} = <b>${money(N(b.lining)*N(r.lining))}</b>`):"",
+      N(b.design)?item("Design blouse",`${N(b.design)} = <b>${money(N(b.design)*N(r.design))}</b>`):"",
+      N(x.chudi)?item("Chudi / சுடிதார்",`${N(x.chudi)} × ${money(N(r.chudi))} = <b>${money(N(x.chudi)*N(r.chudi))}</b>`):"",
+      N(x.chudiLiningQty)?item("Chudi lining",String(N(x.chudiLiningQty))):"",
+      N(x.saree)?item("Saree",`${N(x.saree)} × ${money(N(r.saree))} = <b>${money(N(x.saree)*N(r.saree))}</b>`):"",
+      N(lining.total)?item("Lining cloth",money(N(lining.total))):""
+    ].join("");
+    content.innerHTML=`${statusControl}<div class="nf-order-detail-grid">${item("Order No",esc(o.order_no))}${item("Customer",esc(customerName(o.customer_id)))}${item("Garment",esc(combinedLabel(o)))}${item("Customer கொடுத்தது",esc(parts.join(" · ")))}${item("Quantity",String(N(o.quantity)))}${item("Order Date",esc(dateText(o.order_date)))}${item("Cloth Received",esc(dateText(o.cloth_received_date)))}${item("Delivery Date",esc(dateText(o.delivery_date)))}${item("Status",statusPill(o.status))}${item("Calculation",calcRows,true)}${item("Total Order",money(total))}${item("Advance Paid",money(pay.advance))}${item("Customer Paid",money(pay.customerPaid))}${item("Total Paid",money(pay.totalPaid))}${item("Balance Due",money(pay.balance))}${cleanOrderNotes(o.notes)?item("Notes",esc(cleanOrderNotes(o.notes)),true):""}</div><div class="nf-order-full-actions"><button class="btn primary" type="button" onclick="closeOrderFullDetails(true);openCustomerOrderEditor('${o.customer_id}','${o.id}')">✏️ Edit Details</button>${!isFinished(o)?`<button class="btn success" type="button" onclick="closeOrderFullDetails(true);markDelivered('${o.id}')">✅ Delivered</button>`:""}<button class="btn secondary" type="button" onclick="closeOrderFullDetails()">Close</button></div>`;
+    box.classList.remove("open");void box.offsetWidth;box.classList.add("open");box.setAttribute("aria-hidden","false");
+  };
+
+  /* Orders/dashboard labels */
+  const baseDashboardText=window.dashboardOrderGarmentText;
+  window.dashboardOrderGarmentText=function(o){return combinedLabel(o)==="Blouse + Chudi"?`👗 ${N(blouseOf(o).normal)+N(blouseOf(o).lining)+N(blouseOf(o).design)} blouse + 👚 ${N(extraOf(o).chudi)} Chudi`:typeof baseDashboardText==="function"?baseDashboardText(o):combinedLabel(o)};
+
+  /* ---------- Standard Order modal: also support Blouse + Chudi ---------- */
+  const baseOpenModalV314=window.openModal;
+  if(typeof baseOpenModalV314==="function") window.openModal=function(type,id){
+    baseOpenModalV314.apply(this,arguments);
+    if(type!=="order")return;
+    setTimeout(function(){
+      const form=$("formFields"),sel=form?.querySelector('[name="garment_type"]');if(!form||!sel)return;
+      if(!sel.querySelector('option[value="Blouse+Chudi"]')){const op=document.createElement("option");op.value="Blouse+Chudi";op.textContent="Blouse + Chudi / பிளவுஸ் + சுடிதார்";sel.appendChild(op);}
+      const row=id?(state.orders||[]).find(o=>String(o.id)===String(id)):null,x=extraOf(row||{}),b=blouseOf(row||{});
+      if(N(x.chudi)>0&&(N(b.normal)+N(b.lining)+N(b.design)>0||String(row?.garment_type||"").toLowerCase()==="blouse"))sel.value="Blouse+Chudi";
+      const sync=function(){
+        const v=String(sel.value||"Blouse"),combo=isCombinedValue(v),bl=combo||v==="Blouse",ch=combo||v==="Chudi";
+        ["normal_qty","lining_qty","design_qty"].forEach(n=>{const e=form.querySelector('[name="'+n+'"]'),w=e?.closest(".field");if(w)w.classList.toggle("nf-field-hidden",!bl);if(e)e.disabled=!bl});
+        ["chudi_qty","chudi_lining","chudi_lining_qty","chudi_rate"].forEach(n=>{const e=form.querySelector('[name="'+n+'"]'),w=e?.closest(".field");if(w)w.classList.toggle("nf-field-hidden",!ch);if(e)e.disabled=!ch});
+        ["saree_qty","saree_rate"].forEach(n=>{const e=form.querySelector('[name="'+n+'"]'),w=e?.closest(".field");if(w)w.classList.toggle("nf-field-hidden",!bl);if(e)e.disabled=!bl});
+        const n=N(form.querySelector('[name="normal_qty"]')?.value),l=N(form.querySelector('[name="lining_qty"]')?.value),d=N(form.querySelector('[name="design_qty"]')?.value),cq=N(form.querySelector('[name="chudi_qty"]')?.value),sq=N(form.querySelector('[name="saree_qty"]')?.value),r=getRates(),cr=N(form.querySelector('[name="chudi_rate"]')?.value||r.chudi),sr=N(form.querySelector('[name="saree_rate"]')?.value||r.saree),ls=form.querySelector('[name="lining_cloth_source"]')?.value||"",lq=N(form.querySelector('[name="lining_cloth_qty"]')?.value),liningInfo=typeof window.nfLiningCost==="function"?window.nfLiningCost(row||{}):{};
+        const liningCost=ls==="shop"?lq*N(liningInfo.rate):0;
+        const qty=(bl?(n+l+d+sq):0)+(ch?cq:0),total=(bl?(n*N(r.normal)+l*N(r.lining)+d*N(r.design)+sq*sr):0)+(ch?cq*cr:0)+liningCost;
+        const q=form.querySelector('[name="quantity"]'),u=form.querySelector('[name="unit_price"]'),tt=form.querySelector('[name="total_amount"]');if(q){q.value=qty;q.readOnly=true}if(u){u.value=(qty?total/qty:0).toFixed(2);u.readOnly=true}if(tt){tt.value=total.toFixed(2);tt.readOnly=true}
+      };
+      if(!sel.dataset.nfV314Bound){sel.addEventListener("change",sync);sel.dataset.nfV314Bound="1";} sync();
+    },30);
+  };
+
+  /* Make the combined selector available on every render without duplicating fields. */
+  function refresh(){(state.customers||[]).forEach(c=>{const sel=$("qo-garment-"+c.id);if(sel)ensureQuickSelector(c.id)});}
+  const oldRenderAll=window.renderAll;
+  if(typeof oldRenderAll==="function"&&!oldRenderAll.__nfV314){
+    window.renderAll=function(){oldRenderAll.apply(this,arguments);try{refresh()}catch(e){console.error("V3.14 combined refresh",e)}};
+    window.renderAll.__nfV314=true;
+  }
+  document.addEventListener("DOMContentLoaded",()=>setTimeout(refresh,120),{once:true});
 })();
 </script>
 </body>
