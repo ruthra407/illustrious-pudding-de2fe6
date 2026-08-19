@@ -1,11 +1,11 @@
 <!doctype html>
-<html nf-build="verified-2026-08-19-v3.14-clean-reset-from-v3_13" lang="ta">
+<html nf-build="verified-2026-08-19-v3.16-order-card-new-order-same-row-layout" lang="ta">
 <head>
-<!-- V3.14 CLEAN RESET: based directly on V3.13; only Order Card New Order + Edit Order UI buttons removed. Underlying logic retained. -->
+<!-- V3.15: Order Card buttons use existing shared Edit Order and New Order functions; underlying data/save/sync/login logic unchanged. -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="nf-build" content="verified-2026-08-19-v3.14-clean-reset-from-v3_13">
-<title>New Fashion Tailoring – Online Management | Phase 4.3 • V3.14</title>
+<meta name="nf-build" content="verified-2026-08-19-v3.16-order-card-new-order-same-row-layout">
+<title>New Fashion Tailoring – Online Management | Phase 4.3 • V3.16</title>
 <link rel="manifest" href="manifest.json">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -1224,6 +1224,45 @@ body{
     text-align:right;
   }
 }
+
+/* V3.16 — New Order uses the same row presentation as Customer Card Edit Order.
+   Presentation only: no fields, calculations, save/update, sync, or login logic changed. */
+#app [id^="quick-order-"].nf-customer-row-layout .moneyStat{
+  display:grid !important;
+  grid-template-columns:minmax(0,1fr) 116px !important;
+  align-items:center !important;
+  gap:10px !important;
+}
+#app [id^="quick-order-"].nf-customer-row-layout .moneyStat > span{
+  min-width:0 !important;
+  text-align:left !important;
+}
+#app [id^="quick-order-"].nf-customer-row-layout .moneyStat > input[type="number"],
+#app [id^="quick-order-"].nf-customer-row-layout .moneyStat > .input{
+  width:100% !important;
+  min-width:0 !important;
+  text-align:right !important;
+}
+#app [id^="quick-order-"].nf-customer-row-layout .nf-design-rate-row{
+  display:grid !important;
+  grid-template-columns:minmax(0,1fr) auto !important;
+  align-items:center !important;
+  gap:10px !important;
+}
+#app [id^="quick-order-"].nf-customer-row-layout .nf-quick-chudi:has(input[type="number"]){
+  display:grid !important;
+  grid-template-columns:minmax(0,1fr) 116px !important;
+  align-items:center !important;
+  gap:10px !important;
+}
+@media(max-width:560px){
+  #app [id^="quick-order-"].nf-customer-row-layout .moneyStat,
+  #app [id^="quick-order-"].nf-customer-row-layout .nf-quick-chudi:has(input[type="number"]){
+    grid-template-columns:minmax(0,1fr) 102px !important;
+    gap:7px !important;
+  }
+}
+
 </style>
 
 <style id="phase3-premium-final">
@@ -3963,6 +4002,7 @@ function mountOrdersQuickForm(customerId){
  const box=$("quick-order-"+key);
  if(box){
    box.classList.remove("hidden");
+   box.classList.add("nf-customer-row-layout");
    box.dataset.editOrderId="";
    updateQuickGarment(key);
    updateChudiLiningLabel(key);
@@ -7512,6 +7552,8 @@ html{
     function actions(o){
       var delivered=!isFinished(o)?'<button type="button" class="btn success" onclick="event.stopPropagation();markDelivered(\''+o.id+'\')">Delivered</button>':'';
       return '<div class="nf-order-card-actions">'+
+      '<button type="button" class="btn nf-edit-order-btn" onclick="event.stopPropagation();openOrdersEditOrder(\''+o.id+'\')">✏️ Edit Order</button>'+
+      '<button type="button" class="btn primary" onclick="event.stopPropagation();openOrdersNewOrderForCustomer(\''+o.customer_id+'\')">＋ New Order</button>'+
       '</div>'+
       '<div class="nf-order-full-action-row"><button type="button" class="btn nf-customer-order-full-btn" onclick="event.stopPropagation();openOrderFullDetails(\''+o.id+'\')">📋 Order Full Details</button></div>'+
       '<div class="actions">'+delivered+'<button type="button" class="btn danger" onclick="event.stopPropagation();removeRow(\'orders\',\''+o.id+'\')">Delete</button></div>';
