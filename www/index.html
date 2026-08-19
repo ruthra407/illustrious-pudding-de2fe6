@@ -1,11 +1,10 @@
 <!doctype html>
-<html nf-build="verified-2026-08-19-v3.16-order-card-new-order-same-row-layout" lang="ta">
+<html nf-build="verified-2026-08-19-v3.14-order-card-row-layout" lang="ta">
 <head>
-<!-- V3.15: Order Card buttons use existing shared Edit Order and New Order functions; underlying data/save/sync/login logic unchanged. -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="nf-build" content="verified-2026-08-19-v3.16-order-card-new-order-same-row-layout">
-<title>New Fashion Tailoring – Online Management | Phase 4.3 • V3.16</title>
+<meta name="nf-build" content="verified-2026-08-19-v3.14-order-card-row-layout">
+<title>New Fashion Tailoring – Online Management | Phase 4.3 • V3.14</title>
 <link rel="manifest" href="manifest.json">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -1225,41 +1224,47 @@ body{
   }
 }
 
-/* V3.16 — New Order uses the same row presentation as Customer Card Edit Order.
-   Presentation only: no fields, calculations, save/update, sync, or login logic changed. */
-#app [id^="quick-order-"].nf-customer-row-layout .moneyStat{
-  display:grid !important;
-  grid-template-columns:minmax(0,1fr) 116px !important;
-  align-items:center !important;
-  gap:10px !important;
+/* V3.14 — ORDER CARD EDIT/NEW ORDER ROW LAYOUT ONLY
+   Base: V3.13. Do not alter Customer Card editor, calculations, save/sync, or auth. */
+#ordersNewOrderContent .formgrid{
+  display:grid !important; grid-template-columns:1fr !important; gap:8px !important;
 }
-#app [id^="quick-order-"].nf-customer-row-layout .moneyStat > span{
-  min-width:0 !important;
-  text-align:left !important;
+#ordersNewOrderContent .formgrid > .field{
+  display:grid !important; grid-template-columns:minmax(150px,1fr) minmax(150px,1.25fr) !important;
+  align-items:center !important; gap:10px !important; width:100% !important;
 }
-#app [id^="quick-order-"].nf-customer-row-layout .moneyStat > input[type="number"],
-#app [id^="quick-order-"].nf-customer-row-layout .moneyStat > .input{
-  width:100% !important;
-  min-width:0 !important;
-  text-align:right !important;
+#ordersNewOrderContent .formgrid > .field.full{grid-column:auto !important}
+#ordersNewOrderContent .formgrid > .field > label{margin:0 !important; min-width:0 !important}
+#ordersNewOrderContent .formgrid > .field > .moneyStat{
+  display:grid !important; grid-template-columns:minmax(150px,1fr) minmax(120px,1fr) !important;
+  align-items:center !important; gap:10px !important;
 }
-#app [id^="quick-order-"].nf-customer-row-layout .nf-design-rate-row{
-  display:grid !important;
-  grid-template-columns:minmax(0,1fr) auto !important;
-  align-items:center !important;
-  gap:10px !important;
+#ordersNewOrderContent .formgrid > .field > .moneyStat > span{min-width:0 !important}
+#ordersNewOrderContent .nf-quick-blouse > .formgrid{grid-template-columns:1fr !important}
+#ordersNewOrderContent .nf-quick-blouse > .formgrid > .moneyStat{
+  display:grid !important; grid-template-columns:minmax(150px,1fr) minmax(120px,1fr) !important;
+  align-items:center !important; gap:10px !important;
 }
-#app [id^="quick-order-"].nf-customer-row-layout .nf-quick-chudi:has(input[type="number"]){
-  display:grid !important;
-  grid-template-columns:minmax(0,1fr) 116px !important;
-  align-items:center !important;
-  gap:10px !important;
+#ordersNewOrderContent .nf-quick-blouse > .formgrid > .moneyStat > span{min-width:0 !important}
+#ordersNewOrderContent .nf-lining-cost-grid{
+  display:grid !important; grid-template-columns:1fr !important; gap:8px !important;
+}
+#ordersNewOrderContent .nf-lining-cost-field{
+  display:grid !important; grid-template-columns:minmax(150px,1fr) minmax(150px,1.25fr) !important;
+  align-items:center !important; gap:10px !important;
+}
+#ordersNewOrderContent .nf-lining-cost-field label{margin:0 !important}
+#ordersNewOrderContent .nf-lining-cost-total{text-align:right !important}
+#ordersNewOrderContent .nf-design-rate-list .nf-design-rate-row{
+  display:grid !important; grid-template-columns:minmax(0,1fr) auto !important;
+  align-items:center !important; gap:10px !important;
 }
 @media(max-width:560px){
-  #app [id^="quick-order-"].nf-customer-row-layout .moneyStat,
-  #app [id^="quick-order-"].nf-customer-row-layout .nf-quick-chudi:has(input[type="number"]){
-    grid-template-columns:minmax(0,1fr) 102px !important;
-    gap:7px !important;
+  #ordersNewOrderContent .formgrid > .field,
+  #ordersNewOrderContent .formgrid > .field > .moneyStat,
+  #ordersNewOrderContent .nf-quick-blouse > .formgrid > .moneyStat,
+  #ordersNewOrderContent .nf-lining-cost-field{
+    grid-template-columns:minmax(120px,1fr) minmax(110px,1.15fr) !important; gap:7px !important;
   }
 }
 
@@ -2987,6 +2992,7 @@ body{
 }
 </style>
 
+<!-- V3.14: Only Order Card Edit/New Order presentation is row-wise. Existing buttons, functions, calculations, save/sync, and auth are untouched. -->
 </head>
 <body>
 
@@ -4002,7 +4008,6 @@ function mountOrdersQuickForm(customerId){
  const box=$("quick-order-"+key);
  if(box){
    box.classList.remove("hidden");
-   box.classList.add("nf-customer-row-layout");
    box.dataset.editOrderId="";
    updateQuickGarment(key);
    updateChudiLiningLabel(key);
@@ -7552,8 +7557,8 @@ html{
     function actions(o){
       var delivered=!isFinished(o)?'<button type="button" class="btn success" onclick="event.stopPropagation();markDelivered(\''+o.id+'\')">Delivered</button>':'';
       return '<div class="nf-order-card-actions">'+
-      '<button type="button" class="btn nf-edit-order-btn" onclick="event.stopPropagation();openOrdersEditOrder(\''+o.id+'\')">✏️ Edit Order</button>'+
-      '<button type="button" class="btn primary" onclick="event.stopPropagation();openOrdersNewOrderForCustomer(\''+o.customer_id+'\')">＋ New Order</button>'+
+        '<button type="button" class="btn primary" onclick="event.stopPropagation();openOrdersNewOrderForCustomer(\''+o.customer_id+'\')">＋ New Order</button>'+
+        '<button type="button" class="btn nf-edit-order-btn" onclick="event.stopPropagation();openOrdersEditOrder(\''+o.id+'\')">✏️ Edit Order</button>'+ 
       '</div>'+
       '<div class="nf-order-full-action-row"><button type="button" class="btn nf-customer-order-full-btn" onclick="event.stopPropagation();openOrderFullDetails(\''+o.id+'\')">📋 Order Full Details</button></div>'+
       '<div class="actions">'+delivered+'<button type="button" class="btn danger" onclick="event.stopPropagation();removeRow(\'orders\',\''+o.id+'\')">Delete</button></div>';
