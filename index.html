@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="nf-build" content="verified-2026-08-19-v3.5-customer-design-calculation-rows">
+<meta name="nf-build" content="verified-2026-08-19-v3.7-duplicate-ids-fixed">
 <title>New Fashion Tailoring – Online Management | Phase 4.3 • V3.5</title>
 <link rel="manifest" href="manifest.json">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -138,12 +138,33 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}.hidden{display:
 
 .customerOrderLine .orderActions{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
 @media(max-width:560px){.rateGrid{grid-template-columns:1fr}.calcBar input{min-width:140px}}
-/* V3.5 — Customer Card Design calculation rows: restrained emphasis. */
+/* V3.6 — Customer Card Design calculation rows: restrained emphasis. */
 .nf-customer-design-rate-row{
   background:linear-gradient(90deg,#faf8ff,#fff);
+  border:1px solid #e7e1f4;
   border-radius:9px;
   padding:8px 9px;
-  margin:2px 0;
+  margin:3px 0;
+}
+.nf-customer-design-rate-row .rateLabel{
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.nf-customer-design-rate-row .rateMath{
+  white-space:nowrap;
+}
+@media(max-width:560px){
+  .nf-customer-design-rate-row{
+    display:grid;
+    grid-template-columns:minmax(0,1fr) auto;
+    gap:7px;
+    align-items:center;
+  }
+  .nf-customer-design-rate-row .rateMath{
+    text-align:right;
+    font-size:11px;
+  }
 }
 
 
@@ -3850,11 +3871,11 @@ function openOrdersQuickAdd(){
  const modal=$("ordersNewOrderScreen"),panel=$("ordersNewOrderContent");
  if(!modal||!panel)return;
  const options=state.customers.map(c=>'<option value="'+esc(c.id)+'">'+esc(c.name||"Customer")+'</option>').join("");
- panel.innerHTML='<div class="field" style="margin-bottom:12px"><label>Customer</label><select id="ordersQuickCustomerStart" class="input" onchange="mountOrdersQuickForm(this.value)"><option value="">Select customer</option>'+options+'</select></div><div class="hint">Customer-ஐ தேர்வு செய்ததும் Customer Card-ல் இருக்கும் அதே <b>New Order</b> system இங்கே முழுமையாக வரும்.</div>';
+ panel.innerHTML='<div class="field" style="margin-bottom:12px"><label>Customer</label><select id="ordersQuickCustomerStartInline" class="input" onchange="mountOrdersQuickForm(this.value)"><option value="">Select customer</option>'+options+'</select></div><div class="hint">Customer-ஐ தேர்வு செய்ததும் Customer Card-ல் இருக்கும் அதே <b>New Order</b> system இங்கே முழுமையாக வரும்.</div>';
  modal.classList.add("open");
  const base=history.state||{view:"orders"};
  if(!base.__nfOrdersNewOrder){history.pushState({...base,__nfOrdersNewOrder:true},"",location.hash||"#orders-new-order");}
- const select=$("ordersQuickCustomerStart");
+ const select=$("ordersQuickCustomerStartInline");
  if(select)select.focus();
 }
 
@@ -7593,7 +7614,19 @@ html{
        are changed here. */
     var designRows="";
     blouseOrders.forEach(function(o){
-      var items=designItemsFor(o);
+      /* V3.6 display hardening:
+         - only the supported 3 saved design slots are rendered
+         - quantity/rate are numeric and never produce NaN
+         - zero/negative quantities are ignored
+         - saved order data is not mutated */
+      var rawDesignItems=designItemsFor(o);
+      var items=(Array.isArray(rawDesignItems)?rawDesignItems:[]).slice(0,3).map(function(it){
+        return {
+          name:String(it && it.name || "").trim(),
+          qty:Math.max(0,Number(it && it.qty || 0)),
+          rate:Math.max(0,Number(it && it.rate || 0))
+        };
+      });
       if(items.length){
         items.forEach(function(it,i){
           var q=Number(it.qty||0), r=Number(it.rate||0);
