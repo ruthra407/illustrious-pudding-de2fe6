@@ -1,10 +1,11 @@
 <!doctype html>
-<html nf-build="verified-2026-08-19-v3.11-customer-card-clean" lang="ta">
+<html nf-build="verified-2026-08-19-v3.12-customer-card-edit-notes-fixed" lang="ta">
 <head>
+<meta name="nf-version" content="V3.13">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="nf-build" content="verified-2026-08-19-v3.7-duplicate-ids-fixed">
-<title>New Fashion Tailoring – Online Management | Phase 4.3 • V3.11</title>
+<meta name="nf-build" content="verified-2026-08-19-v3.12-customer-card-edit-notes-fixed"">
+<title>New Fashion Tailoring – Online Management | Phase 4.3 • V3.12</title>
 <link rel="manifest" href="manifest.json">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -2920,6 +2921,53 @@ body{
 }
 </style>
 
+
+<style id="nf-v312-edit-order-readability">
+/* V3.12 — Edit Order mobile readability.
+   Labels wrap fully instead of being clipped; values remain on the right. */
+#app [id^="quick-order-"] > .formgrid > .field:not(.full) > label,
+#app [id^="quick-order-"] .moneyStat > span,
+#app [id^="quick-order-"] .nf-quick-chudi > label,
+#app [id^="quick-order-"] .nf-lining-cost-field > label{
+  min-width:0 !important;
+  max-width:100% !important;
+  overflow:visible !important;
+  white-space:normal !important;
+  overflow-wrap:anywhere !important;
+  word-break:break-word !important;
+  line-height:1.35 !important;
+}
+#app [id^="quick-order-"] > .formgrid > .field:not(.full),
+#app [id^="quick-order-"] .moneyStat,
+#app [id^="quick-order-"] .nf-quick-chudi,
+#app [id^="quick-order-"] .nf-lining-cost-field{
+  min-width:0 !important;
+  overflow:visible !important;
+}
+#app [id^="quick-order-"] .nf-quick-notes-label{
+  display:block !important;
+  margin-bottom:6px !important;
+  font-weight:850 !important;
+}
+#app [id^="quick-order-"] textarea[id^="qo-notes-"]{
+  white-space:pre-wrap !important;
+}
+@media(max-width:560px){
+  #app [id^="quick-order-"] > .formgrid > .field:not(.full),
+  #app [id^="quick-order-"] .moneyStat,
+  #app [id^="quick-order-"] .nf-quick-chudi,
+  #app [id^="quick-order-"] .nf-lining-cost-field{
+    grid-template-columns:minmax(0,1fr) 108px !important;
+  }
+  #app [id^="quick-order-"] > .formgrid > .field:not(.full) > label,
+  #app [id^="quick-order-"] .moneyStat > span,
+  #app [id^="quick-order-"] .nf-quick-chudi > label,
+  #app [id^="quick-order-"] .nf-lining-cost-field > label{
+    font-size:12px !important;
+  }
+}
+</style>
+
 </head>
 <body>
 
@@ -3391,11 +3439,29 @@ function cleanOrderNotes(v){
     .replace(/(?:^|\s*\|\s*)CHUDI_RATE:[^|\s]+/g,"")
     .replace(/(?:^|\s*\|\s*)SAREE_RATE:[^|\s]+/g,"")
     .replace(/(?:^|\s*\|\s*)LINING_COST:\{[^}]+\}/g,"")
-    .replace(/(?:^|\s*\|\s*)(Lining cloth:\s*(?:Customer கொடுத்தது|நாம் வாங்கியது))/gi,"$1")
+    /* Lining source is structured data, never free-form Alteration notes. */
+    .replace(/(?:^|\s*\|\s*)Lining cloth\s*:\s*(?:Customer கொடுத்தது|நாம் வாங்கியது)/gi,"")
+    /* Remove legacy duplicated variants left by older saves. */
+    .replace(/(?:^|\s*\|\s*)Lining cloth\s*[:：]\s*(?:Customer\s*கொடுத்தது|நாம்\s*வாங்கியது)(?:\s*\|)?/gi,"")
     .replace(/\s*\|\s*\|\s*/g," | ")
     .replace(/^\s*\|\s*|\s*\|\s*$/g,"")
     .replace(/\s{2,}/g," ")
     .trim();
+}/g,"")
+   .replace(/(?:^|\s*\|\s*)BLOUSE_RATES:\{[^}]+\}/g,"")
+   .replace(/(?:^|\s*\|\s*)DESIGN_RATES:\[[^\]]*\]/g,"")
+   .replace(/(?:^|\s*\|\s*)DESIGN_ITEMS:\[[^\]]*\]/g,"")
+   .replace(/(?:^|\s*\|\s*)GARMENT_SPLIT:\{[^}]+\}/g,"")
+   .replace(/(?:^|\s*\|\s*)CHUDI_RATE:[^|\s]+/g,"")
+   .replace(/(?:^|\s*\|\s*)SAREE_RATE:[^|\s]+/g,"")
+   .replace(/(?:^|\s*\|\s*)LINING_COST:\{[^}]+\}/g,"")
+   /* Derived from dedicated lining fields; never keep it in editable notes. */
+   .replace(/(?:^|\s*\|\s*)Lining\s+cloth\s*:\s*(?:Customer\s*கொடுத்தது|நாம்\s*வாங்கியது)/gi,"")
+   .replace(/\s*\|\s*\|\s*/g," | ")
+   .replace(/^\s*\|\s*|\s*\|\s*$/g,"")
+   .replace(/[ \t]{2,}/g," ")
+   .replace(/\n\s*\n+/g,"\n")
+   .trim();
 }
 function makeBlouseSplitNote(s,rates,userNotes=""){
  const marker=`BLOUSE_SPLIT:${JSON.stringify({normal:Number(s.normal||0),lining:Number(s.lining||0),design:Number(s.design||0)})}`;
@@ -3646,6 +3712,8 @@ function clearQuickOrderEditor(id){
  if(g)g.value="Blouse";
  const box=$("quick-order-"+id);
  if(box){
+   const notesLabel=box.querySelector(".nf-quick-notes-label");
+   if(notesLabel)notesLabel.textContent="Notes";
    box.dataset.editOrderId="";
    box.classList.remove("nf-edit-mode");
  }
@@ -3670,6 +3738,8 @@ function populateQuickOrderEditor(id,o){
  set("qo-advance-",Number(o.advance_amount||0));
  set("qo-status-",o.status||"Pending");
  set("qo-notes-",cleanOrderNotes(o.notes||""));
+ const notesLabel=document.querySelector("#quick-order-"+CSS.escape(String(id))+" .nf-quick-notes-label");
+ if(notesLabel)notesLabel.textContent="Alteration notes";
  const s=blouseSplit(o),gx=typeof nfGarmentExtra==="function"?nfGarmentExtra(o):{chudi:0,chudiLining:"no",chudiLiningQty:0,saree:0};
  set("qo-normal-",s.normal||0);set("qo-lining-",s.lining||0);set("qo-design-",s.design||0);
  const or=nfOrderRates(o);
@@ -3743,7 +3813,8 @@ async function saveQuickOrder(id,customerId){
    notes+=" | GARMENT_SPLIT:"+JSON.stringify(existingExtra)+" | SAREE_RATE:"+sr;
  }
  if(garment==="Blouse"&&s.design>0)notes+=" | DESIGN_RATES:"+JSON.stringify(designRates);
- if(ls)notes+=` | Lining cloth: ${ls==="customer"?"Customer கொடுத்தது":"நாம் வாங்கியது"}`;
+ /* Lining source is stored in dedicated columns. Do not append the
+    derived "Lining cloth: ..." sentence to editable notes. */
  if(ls==="shop")notes+=` | LINING_COST:${JSON.stringify({source:ls,qty:lq,rate:lr,total:liningTotal})}`;
  const payload={customer_id:customerId,order_no:existing?.order_no||makeOrderNo(),garment_type:garment,order_date:existing?.order_date||localDate(),cloth_received_date:cloth,delivery_date:delivery,quantity:qty,unit_price:qty?garmentTotal/qty:0,total_amount:total,advance_amount:advance,balance_amount:Math.max(0,total-advance),status,rate_type:garment==="Chudi"?"normal":(s.normal>0?"normal":s.lining>0?"lining":s.design>0?"design":"normal"),lining_cloth_source:ls||null,lining_cloth_qty:lq,notes};
  try{
@@ -3885,7 +3956,7 @@ const clothPhotoActionsHtml="";
  <div class="field full nf-lining-cost-box"><h4>🧵 Lining — Customer Amount-ல் சேர்க்க</h4><div class="nf-lining-cost-grid"><div class="nf-lining-cost-field"><label>Lining யார் வாங்கியது?</label><select id="qo-lining-source-${id}" class="input" onchange="updateQuickOrderCalc('${id}')"><option value="">தேவையில்லை</option><option value="customer">Customer கொடுத்தது</option><option value="shop">நாம் வாங்கியது</option></select></div><div class="nf-lining-cost-field"><label>Lining எத்தனை</label><input id="qo-lining-qty-${id}" class="input" type="number" min="0" step="1" value="0" oninput="updateQuickOrderCalc('${id}')"></div><div class="nf-lining-cost-field"><label>நாம் வாங்கிய Lining விலை / ஒன்று</label><input id="qo-lining-cost-rate-${id}" class="input" type="number" min="0" step="0.01" value="0" oninput="updateQuickOrderCalc('${id}')"></div><div class="nf-lining-cost-field"><label>Lining மொத்த விலை</label><div id="qo-lining-total-${id}" class="nf-lining-cost-total">₹0.00</div></div></div></div>
  <div class="field nf-quick-chudi"><label>👚 எத்தனை Chudi / சுடிதார்</label><input id="qo-chudi-${id}" class="input" type="number" min="0" step="1" value="0" oninput="updateQuickOrderCalc('${id}')"></div><div class="field nf-quick-chudi"><label>🧵 Chudi-க்கு lining கொடுத்தாரா?</label><select id="qo-chudi-lining-${id}" class="input" onchange="updateChudiLiningLabel('${id}')"><option value="no">இல்லை</option><option value="yes">ஆம்</option></select></div><div class="field nf-quick-chudi"><label id="qo-chudi-lining-label-${id}">🧵 நாம் வாங்கிய Chudi lining எத்தனை</label><input id="qo-chudi-lining-qty-${id}" class="input" type="number" min="0" step="1" value="0"></div><div class="field nf-quick-chudi"><label>👚 Chudi விலை / ஒன்றுக்கு</label><input id="qo-chudi-rate-${id}" class="input" type="number" min="0" step="0.01" value="${getRates().chudi}" oninput="updateQuickOrderCalc('${id}')"></div>
  <div class="field"><label>Advance வாங்கியது</label><input id="qo-advance-${id}" class="input" type="number" min="0" step="0.01" value="0"></div><div class="field"><label>Status</label><select id="qo-status-${id}" class="input"><option value="Pending">Pending</option><option value="In Progress">Progress</option><option value="Ready">Ready</option><option value="Delivered">Delivered</option><option value="Cancelled">Cancel</option></select></div>
- <div class="field full"><label>Notes</label><textarea id="qo-notes-${id}" class="input" placeholder="தேவைப்பட்டால் குறிப்பு"></textarea></div>
+ <div class="field full"><label class="nf-quick-notes-label">Notes</label><textarea id="qo-notes-${id}" class="input" placeholder="தேவைப்பட்டால் குறிப்பு"></textarea></div>
  </div><div class="customerActions" style="margin-top:10px"><button class="btn primary nf-quick-save-btn" onclick="saveQuickOrder('${id}')">💾 Save Order</button><button class="btn secondary" onclick="toggleQuickOrder('${id}')">Close</button></div></div></div>
  <div class="customerSection"><h4>⏰ Delivery Reminder</h4>${customerReminderHTML(st.os)}<div class="reminderSettings" style="margin-top:8px"><div class="field" style="min-width:100%"><label class="mini">ஒரு நாளில் 10 reminder நேரங்கள்</label><div class="reminderTimesGrid">${REMINDER_TIMES.map(t=>`<span class="reminderTimeChip">🔔 ${t}</span>`).join("")}</div></div><button class="btn warning" onclick="enableDailyNotifications()">🔔 10 Daily Notifications ON</button></div><div class="hint">Notification permission கொடுத்தால் இந்த 10 நேரங்களில் phone notification வரும். Android native notification ஆக schedule செய்யப்படும்.</div></div>
   </article>`;
@@ -8074,5 +8145,43 @@ html{
 }
 </style>
 
+
+<script id="nf-v313-alteration-notes-label-fix">
+(function(){
+  "use strict";
+  function syncAlterationNotesLabel(id){
+    var box=document.getElementById("quick-order-"+id);
+    if(!box)return;
+    var label=box.querySelector(".nf-quick-notes-label");
+    if(!label)return;
+    label.textContent=box.classList.contains("nf-edit-mode") ? "Alteration notes" : "Notes";
+  }
+  window.nfV313SyncAlterationNotesLabel=syncAlterationNotesLabel;
+  var oldPopulate=window.populateQuickOrderEditor;
+  if(typeof oldPopulate==="function" && !oldPopulate.__nfV313Wrapped){
+    window.populateQuickOrderEditor=function(id,o){
+      oldPopulate.apply(this,arguments);
+      syncAlterationNotesLabel(id);
+    };
+    window.populateQuickOrderEditor.__nfV313Wrapped=true;
+  }
+  var oldClear=window.clearQuickOrderEditor;
+  if(typeof oldClear==="function" && !oldClear.__nfV313Wrapped){
+    window.clearQuickOrderEditor=function(id){
+      oldClear.apply(this,arguments);
+      syncAlterationNotesLabel(id);
+    };
+    window.clearQuickOrderEditor.__nfV313Wrapped=true;
+  }
+  document.addEventListener("DOMContentLoaded",function(){
+    document.querySelectorAll('[id^="quick-order-"]').forEach(function(box){
+      syncAlterationNotesLabel(box.id.replace(/^quick-order-/,""));
+    });
+  });
+})();
+</script>
+
 </body>
 </html>
+
+<!-- V3.12: Edit Order readability + Alteration notes + derived lining-note persistence fix. -->
