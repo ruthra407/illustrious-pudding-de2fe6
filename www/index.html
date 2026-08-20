@@ -3283,6 +3283,32 @@ body{
 .nf-dashboard-compat{display:none!important}
 </style>
 
+
+<style id="v5-1-remove-dashboard-collection">
+/* V5.1 — Dashboard: remove Collections card and close the gap. */
+#view-dashboard .nf-dashboard-collection-card{
+  display:none !important;
+}
+#view-dashboard{
+  margin-top:0 !important;
+  padding-top:0 !important;
+}
+#view-dashboard .nf-dashboard-customer-hub{
+  margin-top:0 !important;
+}
+</style>
+
+
+<style id="v5-1-customer-hub-fill">
+/* V5.1 — Customer Hub fills the space formerly occupied by Collections. */
+@media (max-width:700px){
+  #view-dashboard .nf-dashboard-customer-hub{
+    margin-top:0 !important;
+    padding-top:0 !important;
+  }
+}
+</style>
+
 </head>
 <body>
 
