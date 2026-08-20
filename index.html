@@ -3318,30 +3318,6 @@ body{
 }
 </style>
 
-
-<style id="nf-v56-heading-fixed-details-scroll">
-/* V5.6 — Customer Cards / Orders only.
-   Keep the page heading visible below the fixed shop header while the
-   page details/cards continue to scroll underneath it. No other page is changed. */
-#view-customers > .pagehead,
-#view-orders > .pagehead{
-  position:sticky!important;
-  top:var(--nf-header-offset)!important;
-  z-index:40!important;
-  background:var(--bg)!important;
-  padding-top:4px!important;
-  padding-bottom:12px!important;
-}
-
-@media(max-width:700px){
-  #view-customers > .pagehead,
-  #view-orders > .pagehead{
-    top:var(--nf-header-offset)!important;
-    padding-top:4px!important;
-    padding-bottom:10px!important;
-  }
-}
-</style>
 </head>
 <body>
 
