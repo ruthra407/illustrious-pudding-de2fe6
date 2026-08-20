@@ -1,10 +1,10 @@
 <!doctype html>
-<html nf-build="verified-2026-08-19-v3.14-v3_13-rechecked" lang="ta">
+<html nf-build="verified-2026-08-20-v4.2-rechecked" lang="ta">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="nf-build" content="verified-2026-08-19-v3.14-v3_13-rechecked">
-<title>New Fashion Tailoring – Online Management | Phase 4.3 • V3.14</title>
+<meta name="nf-build" content="verified-2026-08-20-v4.2-rechecked">
+<title>New Fashion Tailoring – Online Management | Phase 4.3 • V4.2</title>
 <link rel="manifest" href="manifest.json">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -3021,11 +3021,6 @@ body{
   <div id="dashboardCustomersList" class="dashboardCustomersList"></div>
 </div>
 
-<div class="summarygrid">
-<div class="summary"><div class="mini">Total blouse / pieces</div><b id="statPieces">0</b></div>
-<div class="summary"><div class="mini">Total order value</div><b id="statSales">₹0</b></div>
-<div class="summary"><div class="mini">Late orders</div><b id="statLate">0</b></div>
-</div>
 <div class="kpiGrid">
 <div class="kpiCard kpiPending clickable" role="button" tabindex="0" onclick="goView('orders')"><div class="kpiTitle">🔴 Pending Orders</div><div id="kpiPending" class="kpiNum">0</div><div id="kpiPendingSmall" class="kpiSmall">வேலை முடிக்க வேண்டிய orders</div><div id="kpiPendingDetails" class="kpiDetails"></div></div>
 <div class="kpiCard kpiToday clickable" role="button" tabindex="0" onclick="goView('payments')"><div class="kpiTitle">💰 Today Collection</div><div id="kpiToday" class="kpiNum">₹0</div><div class="kpiSmall">இன்று பெற்ற payment</div></div>
@@ -3033,7 +3028,6 @@ body{
 <div class="kpiCard kpiReminder clickable" role="button" tabindex="0" onclick="goView('orders')"><div class="kpiTitle">🔔 Daily Reminder</div><div id="kpiReminder" class="kpiNum">0</div><div class="kpiSmall">அடுத்த 5 நாட்கள் + late</div></div>
 <div class="kpiCard kpiMonthly clickable" role="button" tabindex="0" onclick="goView('payments')"><div class="kpiTitle">📅 Monthly Collection</div><div id="kpiMonthly" class="kpiNum">₹0</div><div id="kpiMonthlySmall" class="kpiSmall">இந்த மாதம்</div></div>
 </div>
-<div class="card dashboardDues"><div class="pagehead"><div><h3 style="margin:0">💳 Customer Dues</h3><p>யார் எவ்வளவு கொடுக்க வேண்டும் — பெயர், phone, balance</p></div></div><div id="dashboardDuesList"></div></div>
 <div class="card dashboardNext5" style="margin-top:14px">
 <div class="pagehead"><div><h3 style="margin:0">⏰ Next 5 Days Delivery</h3><p>அடுத்த 5 நாட்களில் delivery — customer name, garment count, date, எத்தனை நாளில்</p></div></div>
 <b id="dueSoonCount" class="big">0</b><div id="dueSoonList"></div>
@@ -3341,10 +3335,7 @@ $("statCustomers").textContent=state.customers.length;
 $("statOrders").textContent=state.orders.length;
 $("statTodayCollection").textContent=money(todayCollection());
 $("statBalance").textContent=money(totalBalance());
-$("statPieces").textContent=totalPieces();
-$("statSales").textContent=money(totalSales());
 const late=state.orders.filter(o=>dueInfo(o)?.kind==="late"),today=state.orders.filter(o=>dueInfo(o)?.kind==="today"),soon=state.orders.filter(o=>dueInfo(o)?.kind==="soon");
-$("statLate").textContent=late.length;
 $("kpiPending").textContent=pendingOrdersCount();
 $("kpiToday").textContent=money(todayCollection());
 $("kpiDelivery").textContent=today.length;
@@ -3360,7 +3351,6 @@ $("kpiDeliveryDetails").innerHTML=today.length?today.map(o=>{
  return `<div class="kpiDetailRow" onclick="openOrderFullDetails('${o.id}')"><b>👤 ${esc(c.name||"Unknown Customer")} · 📞 ${esc(c.phone||"Phone இல்லை")}</b><span>📅 ${dateText(o.delivery_date)} · ${dashboardOrderGarmentText(o)}</span></div>`;
 }).join(""):`<div class="kpiDetailRow">இன்று delivery இல்லை.</div>`;
 $("kpiMonthly").textContent=money(monthlyCollection());
- renderDashboardDues();
 $("kpiMonthlySmall").textContent=new Date().toLocaleDateString("ta-IN",{month:"long",year:"numeric"});
 $("dueSoonCount").textContent=soon.length;
 $("dueSoonList").innerHTML=smallOrderList(soon,"இன்னும்");
