@@ -9102,6 +9102,29 @@ body.nf-dashboard-mode #view-dashboard .nf-dch-list{
   window.addEventListener("pageshow",sync,{passive:true});
 })();
 </script>
+
+<style id="nf-v53-gap-final-fix">
+/* V5.3 FINAL: remove the duplicate layout top padding on Dashboard only.
+   The fixed header already reserves space through #app padding-top.
+   Do not affect Customers / Orders / Payments pages. */
+@media(max-width:700px){
+  body.nf-dashboard-mode #app>.layout{
+    padding-top:0!important;
+  }
+  body.nf-dashboard-mode #app>.layout>.main{
+    padding-top:0!important;
+    margin-top:0!important;
+  }
+  body.nf-dashboard-mode #view-dashboard.active{
+    margin-top:0!important;
+    padding-top:0!important;
+  }
+  body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub{
+    margin-top:0!important;
+  }
+}
+</style>
+
 </body>
 </html>
 
@@ -9256,3 +9279,38 @@ body.nf-dashboard-mode #view-dashboard .nf-dch-pill{padding:4px 6px!important;fo
   window.addEventListener("popstate",function(){setTimeout(syncDashboardMode,0)});
 })();
 </script>
+
+<style id="nf-v53-customer-title-final">
+/* V5.3 FINAL — restore the original Customer Hub title layout.
+   Left: Customers title + subtitle stacked vertically.
+   Right: View All button.  Tabs remain below this header row. */
+body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-head{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) auto!important;
+  align-items:center!important;
+  justify-content:initial!important;
+  flex-direction:initial!important;
+  column-gap:10px!important;
+}
+body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-head > div:first-child{
+  display:block!important;
+  min-width:0!important;
+  width:auto!important;
+}
+body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-title{
+  display:block!important;
+  white-space:nowrap!important;
+}
+body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-sub{
+  display:block!important;
+  margin-top:3px!important;
+  white-space:normal!important;
+}
+body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-head > .btn{
+  grid-column:2!important;
+  grid-row:1!important;
+  align-self:center!important;
+  justify-self:end!important;
+  flex:none!important;
+}
+</style>
