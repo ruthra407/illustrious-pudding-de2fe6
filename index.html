@@ -3266,14 +3266,34 @@ body{
 
 <main class="main">
 <section id="view-dashboard" class="view active">
+<div class="nf-dashboard-collection-card" role="button" tabindex="0" onclick="goView('payments')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();goView('payments')}">
+  <div class="nf-dashboard-collection-head">
+    <div class="nf-dashboard-collection-title">💰 Collections</div>
+    <div class="nf-dashboard-collection-sync">Today + Monthly · calculation sync</div>
+  </div>
+  <div class="nf-dashboard-collection-grid">
+    <div class="nf-dashboard-collection-item">
+      <div class="nf-dashboard-collection-label">💰 Today Collection</div>
+      <div id="kpiToday" class="nf-dashboard-collection-value">₹0</div>
+      <div class="nf-dashboard-collection-small">இன்று பெற்ற payment</div>
+    </div>
+    <div class="nf-dashboard-collection-item">
+      <div class="nf-dashboard-collection-label">📅 Monthly Collection</div>
+      <div id="kpiMonthly" class="nf-dashboard-collection-value">₹0</div>
+      <div id="kpiMonthlySmall" class="nf-dashboard-collection-small">இந்த மாதம்</div>
+    </div>
+  </div>
+</div>
+
 <div class="pagehead"><div><h2>Dashboard</h2><p>உங்கள் tailoring வேலை, delivery reminder, collection, balance எல்லாம் இங்கே தெரியும்.</p></div></div>
 
-<div class="stats">
-<div class="stat clickable" role="button" tabindex="0" onclick="goView('customers')" style="display:none !important;"><div class="label">Customers</div><div id="statCustomers" class="num">0</div></div>
-<div class="stat clickable" role="button" tabindex="0" onclick="goView('orders')" style="display:none !important;"><div class="label">Orders</div><div id="statOrders" class="num">0</div></div>
-<div class="stat clickable" role="button" tabindex="0" onclick="goView('payments')" style="display:none !important;"><div class="label">Today Collection</div><div id="statTodayCollection" class="num">₹0</div></div>
-<div class="stat clickable" role="button" tabindex="0" onclick="goView('customers')" style="display:none !important;"><div class="label">Pending Balance</div><div id="statBalance" class="num">₹0</div></div>
+<div class="stats nf-dashboard-hidden-stats" aria-hidden="true">
+<div class="stat"><div class="label">Customers</div><div id="statCustomers" class="num">0</div></div>
+<div class="stat"><div class="label">Orders</div><div id="statOrders" class="num">0</div></div>
+<div class="stat"><div class="label">Today Collection</div><div id="statTodayCollection" class="num">₹0</div></div>
+<div class="stat"><div class="label">Pending Balance</div><div id="statBalance" class="num">₹0</div></div>
 </div>
+
 
 
 <div class="card dashboardCustomersCard nf-dashboard-customer-hub">
@@ -3293,17 +3313,13 @@ body{
 </div>
 
 <div class="kpiGrid">
-<div class="kpiCard kpiPending clickable" role="button" tabindex="0" onclick="goView('orders')"><div class="kpiTitle">🔴 Pending Orders</div><div id="kpiPending" class="kpiNum">0</div><div id="kpiPendingSmall" class="kpiSmall">வேலை முடிக்க வேண்டிய orders</div><div id="kpiPendingDetails" class="kpiDetails"></div></div>
-<div class="kpiCard kpiToday clickable" role="button" tabindex="0" onclick="goView('payments')"><div class="kpiTitle">💰 Today Collection</div><div id="kpiToday" class="kpiNum">₹0</div><div class="kpiSmall">இன்று பெற்ற payment</div></div>
-<div class="kpiCard kpiDelivery clickable" role="button" tabindex="0" onclick="goView('orders')"><div class="kpiTitle">🚚 Today Delivery</div><div id="kpiDelivery" class="kpiNum">0</div><div class="kpiSmall">இன்று கொடுக்க வேண்டியவை</div><div id="kpiDeliveryDetails" class="kpiDetails"></div></div>
 <div class="kpiCard kpiReminder clickable" role="button" tabindex="0" onclick="goView('orders')"><div class="kpiTitle">🔔 Daily Reminder</div><div id="kpiReminder" class="kpiNum">0</div><div class="kpiSmall">அடுத்த 5 நாட்கள் + late</div></div>
-<div class="kpiCard kpiMonthly clickable" role="button" tabindex="0" onclick="goView('payments')"><div class="kpiTitle">📅 Monthly Collection</div><div id="kpiMonthly" class="kpiNum">₹0</div><div id="kpiMonthlySmall" class="kpiSmall">இந்த மாதம்</div></div>
 </div>
-<div class="card dashboardNext5" style="margin-top:14px">
-<div class="pagehead"><div><h3 style="margin:0">⏰ Next 5 Days Delivery</h3><p>அடுத்த 5 நாட்களில் delivery — customer name, garment count, date, எத்தனை நாளில்</p></div></div>
-<b id="dueSoonCount" class="big">0</b><div id="dueSoonList"></div>
+<div class="nf-dashboard-compat" aria-hidden="true">
+  <span id="kpiPending"></span><span id="kpiPendingSmall"></span><span id="kpiPendingDetails"></span>
+  <span id="kpiDelivery"></span><span id="kpiDeliveryDetails"></span>
+  <span id="dueSoonCount"></span><span id="dueSoonList"></span>
 </div>
-
 <div class="card" style="margin-top:14px"><div class="pagehead"><div><h2 style="font-size:20px">Daily Update</h2><p>இன்றைய நிலவரம்</p></div></div><div id="dailyUpdate"></div></div>
 <div class="card" style="margin-top:14px"><div class="pagehead"><div><h2 style="font-size:20px">Recent Orders</h2></div></div><div id="recentOrders"></div></div>
 </section>
@@ -8851,3 +8867,89 @@ html{
 </script>
 </body>
 </html>
+
+<style id="nf-dashboard-collection-combined">
+/* Dashboard: Today + Monthly Collection combined card. Calculation IDs are preserved for existing sync logic. */
+#view-dashboard .nf-dashboard-hidden-stats,
+#view-dashboard .nf-dashboard-compat{
+  display:none!important;
+}
+#view-dashboard .nf-dashboard-collection-card{
+  margin:0 0 14px;
+  padding:16px;
+  border:1px solid rgba(255,255,255,.28);
+  border-radius:21px;
+  background:linear-gradient(135deg,#ff8a3d 0%,#f5b83d 48%,#28b47e 100%);
+  color:#fff;
+  box-shadow:var(--p3-shadow);
+  position:relative;
+  overflow:hidden;
+  cursor:pointer;
+  transition:transform .16s ease,box-shadow .18s ease,filter .18s ease;
+}
+#view-dashboard .nf-dashboard-collection-card::after{
+  content:"";
+  position:absolute;
+  width:155px;height:155px;
+  right:-45px;bottom:-65px;
+  border-radius:50%;
+  background:rgba(255,255,255,.15);
+  pointer-events:none;
+}
+#view-dashboard .nf-dashboard-collection-card:active{transform:scale(.99)}
+@media (hover:hover) and (pointer:fine){
+  #view-dashboard .nf-dashboard-collection-card:hover{
+    transform:translateY(-2px);
+    box-shadow:var(--p3-shadow2);
+    filter:saturate(1.03);
+  }
+}
+#view-dashboard .nf-dashboard-collection-head{
+  position:relative;z-index:1;
+  display:flex;align-items:baseline;justify-content:space-between;gap:10px;
+  margin-bottom:10px;
+}
+#view-dashboard .nf-dashboard-collection-title{
+  font-size:18px;font-weight:950;
+}
+#view-dashboard .nf-dashboard-collection-sync{
+  font-size:11px;font-weight:750;opacity:.92;text-align:right;
+}
+#view-dashboard .nf-dashboard-collection-grid{
+  position:relative;z-index:1;
+  display:grid;grid-template-columns:1fr 1fr;
+  gap:0;
+  background:rgba(255,255,255,.12);
+  border:1px solid rgba(255,255,255,.20);
+  border-radius:15px;
+  overflow:hidden;
+}
+#view-dashboard .nf-dashboard-collection-item{
+  min-width:0;padding:13px 14px;
+}
+#view-dashboard .nf-dashboard-collection-item + .nf-dashboard-collection-item{
+  border-left:1px solid rgba(255,255,255,.24);
+}
+#view-dashboard .nf-dashboard-collection-label{
+  font-size:13px;font-weight:850;line-height:1.25;
+}
+#view-dashboard .nf-dashboard-collection-value{
+  margin-top:6px;
+  font-size:28px;font-weight:950;line-height:1.05;
+  letter-spacing:-.5px;
+}
+#view-dashboard .nf-dashboard-collection-small{
+  margin-top:5px;font-size:11px;line-height:1.3;opacity:.92;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+@media(max-width:560px){
+  #view-dashboard .nf-dashboard-collection-card{padding:13px;border-radius:18px}
+  #view-dashboard .nf-dashboard-collection-head{margin-bottom:8px}
+  #view-dashboard .nf-dashboard-collection-title{font-size:16px}
+  #view-dashboard .nf-dashboard-collection-sync{font-size:9px}
+  #view-dashboard .nf-dashboard-collection-item{padding:11px 10px}
+  #view-dashboard .nf-dashboard-collection-label{font-size:11px}
+  #view-dashboard .nf-dashboard-collection-value{font-size:23px}
+  #view-dashboard .nf-dashboard-collection-small{font-size:9px}
+}
+</style>
