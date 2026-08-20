@@ -2958,7 +2958,59 @@ body{
 }
 </style>
 
-</head>
+<style id="nf-v43-dashboard-customer-hub">
+/* V4.3 — Dashboard Customer Hub: synced with Customer Cards */
+.nf-dashboard-customer-hub{
+  margin-top:14px;
+  padding:0;
+  overflow:hidden;
+  border:0;
+  border-radius:24px;
+  background:linear-gradient(135deg,#6c4df6 0%,#7d4de9 45%,#b348a0 100%);
+  box-shadow:0 16px 40px rgba(78,48,154,.18);
+}
+.nf-dch-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:18px 18px 12px;color:#fff}
+.nf-dch-title{font-size:22px;font-weight:950}
+.nf-dch-sub{font-size:12px;opacity:.9;margin-top:3px}
+.nf-dch-head .btn{background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.25);color:#fff}
+.nf-dch-tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;padding:0 12px 12px}
+.nf-dch-tab{border:1px solid rgba(255,255,255,.18);border-radius:12px;background:rgba(255,255,255,.10);color:#fff;padding:10px 8px;font-weight:850;font-size:12px;min-width:0}
+.nf-dch-tab.active{background:#fff;color:#5d43d0;box-shadow:0 7px 18px rgba(37,20,91,.18)}
+.nf-dch-tab span{display:inline-grid;place-items:center;min-width:22px;height:20px;margin-left:4px;padding:0 5px;border-radius:999px;background:rgba(0,0,0,.08)}
+.nf-dch-list{padding:0 12px 14px;display:grid;gap:10px;max-height:720px;overflow:auto}
+.nf-dch-card{position:relative;background:#fff;border-radius:18px;padding:13px 13px 12px;box-shadow:0 7px 18px rgba(35,25,70,.10);cursor:pointer}
+.nf-dch-card:active{transform:scale(.995)}
+.nf-dch-card-top{display:flex;align-items:flex-start;gap:10px}
+.nf-dch-no{flex:0 0 34px;width:34px;height:34px;border-radius:11px;display:grid;place-items:center;background:#f0edff;color:#5b45c8;font-weight:950}
+.nf-dch-identity{min-width:0;flex:1}
+.nf-dch-name{font-size:17px;font-weight:950;color:#241f2b;overflow-wrap:anywhere}
+.nf-dch-contact{font-size:12px;color:#777184;margin-top:3px;line-height:1.45}
+.nf-dch-arrow{flex:0 0 auto;font-size:22px;color:#9b8290;line-height:1}
+.nf-dch-info{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:10px}
+.nf-dch-box{min-width:0;border-radius:11px;padding:9px;background:#f7f7fb}
+.nf-dch-box:nth-child(1){background:#f0edff}
+.nf-dch-box:nth-child(2){background:#fff0f6}
+.nf-dch-box:nth-child(3){background:#e9f9f5}
+.nf-dch-box b{display:block;font-size:13px;color:#272431;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nf-dch-box span{display:block;font-size:10px;color:#777184;margin-top:2px}
+.nf-dch-meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}
+.nf-dch-pill{padding:5px 8px;border-radius:999px;background:#f4f3f8;color:#5f5968;font-size:11px;font-weight:800}
+.nf-dch-pill.new{background:#fff0c7;color:#8a6100}
+.nf-dch-pill.delivered{background:#dff8ed;color:#117452}
+.nf-dch-reminder{margin-top:8px;border-radius:10px;padding:8px 9px;background:#fff7df;color:#7a5a00;font-size:11px;font-weight:750}
+.nf-dch-reminder.late{background:#ffebee;color:#b4233c}
+.nf-dch-empty{background:rgba(255,255,255,.96);border-radius:16px;padding:22px;text-align:center;color:#777184}
+@media(max-width:560px){
+  .nf-dch-head{padding:15px 13px 10px}
+  .nf-dch-title{font-size:19px}
+  .nf-dch-head .btn{padding:8px 10px;min-height:38px}
+  .nf-dch-tabs{grid-template-columns:1fr;gap:6px;padding:0 9px 9px}
+  .nf-dch-tab{padding:9px 8px}
+  .nf-dch-list{padding:0 9px 10px}
+  .nf-dch-info{grid-template-columns:1fr 1fr}
+  .nf-dch-box:nth-child(3){grid-column:1/-1}
+}
+</style></head>
 <body>
 
 <div id="loginPage" class="loginpage">
@@ -3016,9 +3068,20 @@ body{
 </div>
 
 
-<div class="card dashboardCustomersCard" style="display:none !important;">
-  <div class="pagehead"><div><h3 style="margin:0">👥 Customers</h3><p>Customer பெயரை tap செய்தால் அவருடைய Customer Card திறக்கும்.</p></div><button class="btn secondary" type="button" onclick="goView('customers')">View All</button></div>
-  <div id="dashboardCustomersList" class="dashboardCustomersList"></div>
+<div class="card dashboardCustomersCard nf-dashboard-customer-hub">
+  <div class="nf-dch-head">
+    <div>
+      <div class="nf-dch-title">👥 Customers</div>
+      <div class="nf-dch-sub">Customer Cards-லிருந்து நேரடியாக sync ஆகும்</div>
+    </div>
+    <button class="btn secondary" type="button" onclick="goView('customers')">View All</button>
+  </div>
+  <div class="nf-dch-tabs" role="tablist" aria-label="Customer categories">
+    <button type="button" class="nf-dch-tab active" data-dch-tab="all" onclick="setDashboardCustomerTab('all')">ALL CUSTOMERS <span id="dchCountAll">0</span></button>
+    <button type="button" class="nf-dch-tab" data-dch-tab="new" onclick="setDashboardCustomerTab('new')">NEW CUSTOMERS <span id="dchCountNew">0</span></button>
+    <button type="button" class="nf-dch-tab" data-dch-tab="delivered" onclick="setDashboardCustomerTab('delivered')">DELIVERED CUSTOMERS <span id="dchCountDelivered">0</span></button>
+  </div>
+  <div id="dashboardCustomersList" class="nf-dch-list"></div>
 </div>
 
 <div class="kpiGrid">
@@ -3319,11 +3382,103 @@ function dashboardOrderGarmentText(o){
  return `👗 ${Math.max(0,Number(o?.quantity||0))} ${label}`;
 }
 
+let dashboardCustomerTab="all";
+
+function dashboardLatestOrder(id){
+ const list=customerOrders(id).slice().sort((a,b)=>{
+   return String(b.created_at||b.order_date||"").localeCompare(String(a.created_at||a.order_date||""));
+ });
+ return list[0]||null;
+}
+function dashboardCustomerCategory(c){
+ const orders=customerOrders(c.id);
+ if(!orders.length)return "new";
+ const delivered=orders.filter(o=>String(o.status||"")==="Delivered");
+ const allFinished=orders.every(o=>["Delivered","Cancelled"].includes(String(o.status||"")));
+ // A customer moves to Delivered only when there is a Delivered order
+ // and no active (Pending/In Progress/Ready) order remains.
+ return delivered.length>0 && allFinished ? "delivered" : "new";
+}
+function dashboardLatestDeliveredOrder(id){
+ const list=customerOrders(id).filter(o=>String(o.status||"")==="Delivered").slice().sort((a,b)=>{
+   return String(b.delivery_date||b.created_at||b.order_date||"").localeCompare(String(a.delivery_date||a.created_at||a.order_date||""));
+ });
+ return list[0]||null;
+}
+function dashboardDeliveredSort(a,b){
+ const ad=dashboardLatestDeliveredOrder(a.id),bd=dashboardLatestDeliveredOrder(b.id);
+ const av=String(ad?.delivery_date||ad?.created_at||ad?.order_date||"");
+ const bv=String(bd?.delivery_date||bd?.created_at||bd?.order_date||"");
+ return bv.localeCompare(av);
+}
+function dashboardCustomerSort(a,b){
+ return String(b.created_at||"").localeCompare(String(a.created_at||""));
+}
+function dashboardCustomerInfo(c,category="new"){
+ const o=category==="delivered" ? (dashboardLatestDeliveredOrder(c.id)||dashboardLatestOrder(c.id)) : dashboardLatestOrder(c.id);
+ const village=c.village||localStorage.getItem("nf_village_"+c.id)||"ஊர் இல்லை";
+ const address=c.address||"முகவரி இல்லை";
+ let detail=o?dashboardOrderGarmentText(o):"Order இல்லை";
+ let reminder="";
+ if(o?.delivery_date && String(o.status||"")!=="Delivered" && String(o.status||"")!=="Cancelled"){
+   const d=dueInfo(o);
+   if(d?.kind==="late")reminder=`🚨 ${d.days} நாள் late`;
+   else if(d?.kind==="today")reminder="🔔 இன்று delivery";
+   else if(d?.kind==="soon")reminder=`⏰ ${d.days} நாள் உள்ளது`;
+   else reminder=`📅 Delivery: ${dateText(o.delivery_date)}`;
+ }
+ return {o,village,address,detail,reminder};
+}
+function dashboardCustomerCard(c,index,category){
+ const x=dashboardCustomerInfo(c,category),o=x.o;
+ const status=category==="delivered"?"delivered":"new";
+ const statusText=category==="delivered"?"DELIVERED":"NEW";
+ const orderNo=o?.order_no||"Order இல்லை";
+ const delivery=o?.delivery_date?dateText(o.delivery_date):"—";
+ const phone=c.phone||"Phone இல்லை";
+ return `<article class="nf-dch-card" role="button" tabindex="0"
+   onclick="goToCustomer('${String(c.id).replace(/'/g,"\\'")}')"
+   onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();goToCustomer('${String(c.id).replace(/'/g,"\\'")}')}"
+   aria-label="Open customer ${esc(c.name||"Customer")}">
+   <div class="nf-dch-card-top">
+     <span class="nf-dch-no">${index+1}</span>
+     <div class="nf-dch-identity">
+       <div class="nf-dch-name">${esc(c.name||"Customer")}</div>
+       <div class="nf-dch-contact">📞 ${esc(phone)} · 📍 ${esc(x.village)}<br>🏠 ${esc(x.address)}</div>
+     </div>
+     <span class="nf-dch-arrow">›</span>
+   </div>
+   <div class="nf-dch-info">
+     <div class="nf-dch-box"><b>${esc(orderNo)}</b><span>Order No</span></div>
+     <div class="nf-dch-box"><b>${esc(x.detail)}</b><span>Garment / Details</span></div>
+     <div class="nf-dch-box"><b>${esc(delivery)}</b><span>Delivery Date</span></div>
+   </div>
+   <div class="nf-dch-meta">
+     <span class="nf-dch-pill ${status}">${statusText}</span>
+     ${o?.status?`<span class="nf-dch-pill">${esc(o.status)}</span>`:""}
+     ${o?`<span class="nf-dch-pill">📅 Order: ${esc(dateText(o.order_date))}</span>`:""}
+   </div>
+   ${x.reminder?`<div class="nf-dch-reminder ${x.reminder.includes("late")?"late":""}">${esc(x.reminder)}</div>`:""}
+ </article>`;
+}
+function setDashboardCustomerTab(tab){
+ dashboardCustomerTab=["all","new","delivered"].includes(tab)?tab:"all";
+ document.querySelectorAll(".nf-dch-tab").forEach(b=>b.classList.toggle("active",b.dataset.dchTab===dashboardCustomerTab));
+ renderDashboardCustomers();
+}
 function renderDashboardCustomers(){
  const box=$("dashboardCustomersList");
  if(!box)return;
  const customers=Array.isArray(state.customers)?state.customers:[];
- box.innerHTML=customers.length?customers.map((c,i)=>`<button type="button" class="dashboardCustomerRow" onclick="goToCustomer('${String(c.id).replace(/'/g,"\\'")}')" aria-label="Open customer ${esc(c.name||"Customer")}"><span class="dashboardCustomerNo">${i+1}</span><span class="dashboardCustomerName">${esc(c.name||"Customer")}</span><span class="dashboardCustomerArrow">›</span></button>`).join(""):`<div class="dashboardCustomerEmpty">Customers இன்னும் சேர்க்கப்படவில்லை.</div>`;
+ const all=customers.slice().sort(dashboardCustomerSort);
+ const fresh=all.filter(c=>dashboardCustomerCategory(c)==="new").sort(dashboardCustomerSort);
+ const delivered=all.filter(c=>dashboardCustomerCategory(c)==="delivered").sort(dashboardDeliveredSort);
+ const countAll=$("dchCountAll"),countNew=$("dchCountNew"),countDelivered=$("dchCountDelivered");
+ if(countAll)countAll.textContent=all.length;
+ if(countNew)countNew.textContent=fresh.length;
+ if(countDelivered)countDelivered.textContent=delivered.length;
+ const source=dashboardCustomerTab==="new"?fresh:dashboardCustomerTab==="delivered"?delivered:all;
+ box.innerHTML=source.length?source.map((c,i)=>dashboardCustomerCard(c,i,dashboardCustomerTab==="delivered"?"delivered":"new")).join(""):`<div class="nf-dch-empty">${dashboardCustomerTab==="delivered"?"இன்னும் Delivered Customers இல்லை.":"Customers இன்னும் சேர்க்கப்படவில்லை."}</div>`;
 }
 function renderDashboardDues(){
  const rows=state.customers.map(c=>({c,s:customerStats(c.id)})).filter(x=>x.s.balance>0).sort((a,b)=>b.s.balance-a.s.balance);
