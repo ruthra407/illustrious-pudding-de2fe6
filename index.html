@@ -1,10 +1,10 @@
 <!doctype html>
-<html nf-build="V5.7-customer-order-scroll-fix" lang="ta">
+<html nf-build="verified-2026-08-20-v4.2-rechecked" lang="ta">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="nf-build" content="V5.7-customer-order-scroll-fix">
-<title>New Fashion Tailoring – Online Management | V5.7 • Customer & Order Scroll Fix</title>
+<meta name="nf-build" content="verified-2026-08-20-v4.2-rechecked">
+<title>New Fashion Tailoring – Online Management | Phase 4.3 • V4.2</title>
 <link rel="manifest" href="manifest.json">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -3318,6 +3318,30 @@ body{
 }
 </style>
 
+
+<style id="nf-v56-heading-fixed-details-scroll">
+/* V5.6 — Customer Cards / Orders only.
+   Keep the page heading visible below the fixed shop header while the
+   page details/cards continue to scroll underneath it. No other page is changed. */
+#view-customers > .pagehead,
+#view-orders > .pagehead{
+  position:sticky!important;
+  top:var(--nf-header-offset)!important;
+  z-index:40!important;
+  background:var(--bg)!important;
+  padding-top:4px!important;
+  padding-bottom:12px!important;
+}
+
+@media(max-width:700px){
+  #view-customers > .pagehead,
+  #view-orders > .pagehead{
+    top:var(--nf-header-offset)!important;
+    padding-top:4px!important;
+    padding-bottom:10px!important;
+  }
+}
+</style>
 </head>
 <body>
 
@@ -9414,141 +9438,6 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-head >
   window.addEventListener("popstate",function(){
     var v=history.state&&history.state.view;
     if(v!=="customers")clearCustomerFocus();
-  });
-})();
-</script>
-
-<!-- V5.7 — SAFE CUSTOMER/ORDER SCROLL FIX FROM V5.6 BASE
-     Scope: Customers + Orders pages and Customer Hub -> selected customer only.
-     No global page-height lock; direct Customers/Orders scrolling remains normal. -->
-<style id="nf-v57-safe-page-scroll-fix">
-:root{--nf-v57-sticky-pagehead-top:var(--nf-header-height,88px)}
-
-/* Remove the extra top gap only on the two requested pages. */
-#app > .layout > .main:has(#view-customers.active),
-#app > .layout > .main:has(#view-orders.active){
-  padding-top:0!important;
-}
-
-/* Keep only the page heading fixed below the shop header while the details below it scroll. */
-#view-customers.active > .pagehead,
-#view-orders.active > .pagehead{
-  position:sticky!important;
-  top:var(--nf-v57-sticky-pagehead-top)!important;
-  z-index:40!important;
-  margin-top:0!important;
-  margin-bottom:10px!important;
-  padding:0 0 10px!important;
-  background:var(--p3-bg,#f6f7fb)!important;
-}
-
-/* The selected Customer Card must not pull the next customer into the same scroll view. */
-#view-customers.nf-customer-focus-mode .customerCards > .customerCard:not(.nf-customer-focus-selected){
-  display:none!important;
-}
-#view-customers.nf-customer-focus-mode .customerCards{
-  display:grid!important;
-  grid-template-columns:1fr!important;
-}
-#view-customers.nf-customer-focus-mode .customerCard.nf-customer-focus-selected{
-  display:block!important;
-  scroll-margin-top:calc(var(--nf-header-height,88px) + 120px)!important;
-}
-
-/* Never constrain the normal Customers/Orders page to a fixed viewport height. */
-#view-customers.active,
-#view-orders.active{
-  height:auto!important;
-  min-height:0!important;
-  max-height:none!important;
-  overflow:visible!important;
-}
-#view-customers.active .customerCards,
-#view-orders.active #ordersTable{
-  overflow:visible!important;
-  max-height:none!important;
-}
-</style>
-<script id="nf-v57-safe-page-scroll-fix-js">
-(function(){
-  "use strict";
-  var focusPending=false;
-  var focusId="";
-
-  function clearFocus(){
-    focusPending=false;
-    focusId="";
-    var view=document.getElementById("view-customers");
-    if(view)view.classList.remove("nf-customer-focus-mode");
-    document.querySelectorAll("#view-customers .customerCard.nf-customer-focus-selected").forEach(function(card){
-      card.classList.remove("nf-customer-focus-selected");
-    });
-  }
-
-  function applyFocus(id,scrollToCard){
-    var view=document.getElementById("view-customers");
-    if(!view)return;
-    focusId=String(id||"");
-    if(!focusId){clearFocus();return;}
-    view.classList.add("nf-customer-focus-mode");
-    document.querySelectorAll("#view-customers .customerCard.nf-customer-focus-selected").forEach(function(card){
-      card.classList.remove("nf-customer-focus-selected");
-    });
-    var card=document.getElementById("customer-card-"+focusId);
-    if(card){
-      card.classList.add("nf-customer-focus-selected");
-      if(scrollToCard){
-        setTimeout(function(){
-          var latest=document.getElementById("customer-card-"+focusId);
-          if(latest)latest.scrollIntoView({behavior:"smooth",block:"start"});
-        },100);
-      }
-    }
-  }
-
-  /* Re-apply the selected customer after Customer Cards re-render. */
-  var baseRender=window.renderCustomers;
-  if(typeof baseRender==="function"&&!baseRender.__nfV57Safe){
-    window.renderCustomers=function(){
-      baseRender.apply(this,arguments);
-      if(focusId)applyFocus(focusId,false);
-    };
-    window.renderCustomers.__nfV57Safe=true;
-  }
-
-  /* Hub -> selected customer: enter Customers in focus mode. */
-  window.goToCustomer=function(id){
-    var target=String(id||"");
-    if(!target)return;
-    focusPending=true;
-    focusId=target;
-    if(typeof goView==="function")goView("customers");
-    setTimeout(function(){applyFocus(target,true);},80);
-  };
-
-  /* Any ordinary Customers navigation must show the full customer list. */
-  var baseGoView=window.goView;
-  if(typeof baseGoView==="function"&&!baseGoView.__nfV57Safe){
-    window.goView=function(view,push){
-      var isCustomer=String(view)==="customers";
-      var keepFocus=isCustomer&&focusPending;
-      if(isCustomer&&!keepFocus)clearFocus();
-      var result=baseGoView.apply(this,arguments);
-      focusPending=false;
-      return result;
-    };
-    window.goView.__nfV57Safe=true;
-  }
-
-  /* Bottom navigation and drawer navigation are ordinary navigation, not focus mode. */
-  document.querySelectorAll('#p4MobileNav [data-p4-view="customers"], .navbtn[data-view="customers"]').forEach(function(btn){
-    btn.addEventListener("click",function(){clearFocus();},{capture:true});
-  });
-
-  /* Browser/Android Back should return to the normal Customers list if it lands there. */
-  window.addEventListener("popstate",function(){
-    var v=history.state&&history.state.view;
-    if(v==="customers")clearFocus();
   });
 })();
 </script>
