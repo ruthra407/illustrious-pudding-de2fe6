@@ -9017,3 +9017,153 @@ html{
   #view-dashboard .nf-dashboard-collection-small{font-size:9px}
 }
 </style>
+
+<style id="v51-max-customer-visible">
+/* V5.1 — Maximize visible customers in Customer Hub.
+   Customer data, ordering, delivery calculation and sync logic are untouched. */
+
+/* Remove the dashboard collection block and the empty space before it. */
+#view-dashboard .nf-dashboard-collection-card{
+  display:none !important;
+}
+#view-dashboard{
+  padding-top:0 !important;
+  margin-top:0 !important;
+}
+
+/* Keep the Customer Hub compact while preserving its internal scrolling. */
+#view-dashboard .nf-dashboard-customer-hub{
+  margin-top:0 !important;
+}
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-head{
+  padding:10px 10px 6px !important;
+}
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-title{
+  font-size:18px !important;
+  line-height:1.1 !important;
+}
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-sub{
+  font-size:10px !important;
+  line-height:1.2 !important;
+  margin-top:2px !important;
+}
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-head .btn{
+  min-height:34px !important;
+  padding:6px 9px !important;
+  font-size:11px !important;
+}
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-tabs{
+  gap:5px !important;
+  padding:0 7px 7px !important;
+}
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-tab{
+  min-height:38px !important;
+  padding:7px 5px !important;
+  font-size:11px !important;
+  border-radius:10px !important;
+}
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
+  height:calc(100dvh - 230px) !important;
+  max-height:calc(100dvh - 230px) !important;
+  min-height:360px !important;
+  padding:0 7px 8px !important;
+  gap:6px !important;
+  overflow-y:auto !important;
+  overflow-x:hidden !important;
+  overscroll-behavior:contain !important;
+  -webkit-overflow-scrolling:touch !important;
+  touch-action:pan-y !important;
+}
+
+/* Compact customer card: more customers per screen without removing data. */
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-card{
+  border-radius:13px !important;
+  padding:8px 8px 7px !important;
+  box-shadow:0 4px 10px rgba(35,25,70,.08) !important;
+}
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-card-top{
+  grid-template-columns:26px minmax(0,1fr) minmax(92px,106px) 12px !important;
+  gap:5px !important;
+}
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-no{
+  width:26px !important;
+  height:26px !important;
+  border-radius:8px !important;
+  font-size:12px !important;
+}
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-name{
+  font-size:15px !important;
+  line-height:1.08 !important;
+}
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-contact{
+  font-size:9px !important;
+  line-height:1.2 !important;
+  margin-top:2px !important;
+}
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-delivery{
+  padding:5px 4px !important;
+  border-radius:9px !important;
+  box-shadow:none !important;
+}
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-delivery-label{
+  font-size:10px !important;
+  line-height:1.05 !important;
+}
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-delivery-date{
+  font-size:9px !important;
+  margin-top:2px !important;
+  line-height:1.05 !important;
+}
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-arrow{
+  font-size:17px !important;
+}
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-info{
+  grid-template-columns:1fr 1fr !important;
+  gap:5px !important;
+  margin-top:6px !important;
+}
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-box{
+  padding:5px 6px !important;
+  border-radius:8px !important;
+}
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-box b{
+  font-size:10px !important;
+  line-height:1.1 !important;
+}
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-box span{
+  font-size:8px !important;
+  margin-top:1px !important;
+}
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-meta{
+  gap:4px !important;
+  margin-top:5px !important;
+}
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-pill{
+  padding:3px 6px !important;
+  font-size:8px !important;
+}
+
+@media(max-width:560px){
+  #view-dashboard .nf-dashboard-customer-hub .nf-dch-head{
+    padding:9px 8px 5px !important;
+  }
+  #view-dashboard .nf-dashboard-customer-hub .nf-dch-tabs{
+    gap:4px !important;
+    padding:0 6px 6px !important;
+  }
+  #view-dashboard .nf-dashboard-customer-hub .nf-dch-tab{
+    min-height:36px !important;
+    font-size:10px !important;
+  }
+  #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
+    height:calc(100dvh - 220px) !important;
+    max-height:calc(100dvh - 220px) !important;
+    min-height:330px !important;
+    padding:0 6px 7px !important;
+    gap:5px !important;
+  }
+  #view-dashboard .nf-dashboard-customer-hub .nf-dch-card{
+    padding:7px 7px 6px !important;
+  }
+}
+</style>
