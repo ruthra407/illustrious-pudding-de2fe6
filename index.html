@@ -3218,6 +3218,71 @@ body{
   .nf-dch-delivery-date{font-size:12px}
 }
 </style>
+
+
+<style id="v50-final-dashboard-layout">
+/* V5.0 — Dashboard cleanup and Customer Hub internal scroll.
+   Existing customer data/sync/calculation logic is untouched. */
+
+/* No unwanted gap before the Collections card. */
+#view-dashboard{margin-top:0!important}
+#view-dashboard .nf-dashboard-collection-card{
+  margin-top:-10px!important;
+  margin-bottom:12px!important;
+}
+
+/* Daily Update moved into the side menu. */
+#nfDailySummaryCard{
+  display:block;
+  margin:10px 2px 14px;
+  padding:11px;
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:16px;
+  background:rgba(255,255,255,.07);
+  color:#fff;
+  box-shadow:0 10px 24px rgba(0,0,0,.14);
+}
+#nfDailySummaryCard .nfDailySummaryHead{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:7px;
+  margin-bottom:7px;
+}
+#nfDailySummaryCard .nfDailySummaryHead b{font-size:12px}
+#nfDailySummaryCard .nfDailySummaryHead span{font-size:9px;color:#c9c5d3}
+#nfDailySummaryCard #dailyUpdate{
+  font-size:10px;
+  line-height:1.45;
+  color:#e7e2eb;
+}
+#nfDailySummaryCard #dailyUpdate p{margin:4px 0}
+#nfDailySummaryCard #dailyUpdate b{color:#fff}
+
+/* Customer Hub: the section stays in place; only its customer list scrolls. */
+#view-dashboard .nf-dashboard-customer-hub{
+  overflow:hidden!important;
+}
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
+  height:min(68dvh,900px)!important;
+  max-height:min(68dvh,900px)!important;
+  overflow-y:auto!important;
+  overflow-x:hidden!important;
+  overscroll-behavior:contain!important;
+  -webkit-overflow-scrolling:touch!important;
+  touch-action:pan-y!important;
+}
+@media(max-width:560px){
+  #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
+    height:68dvh!important;
+    max-height:68dvh!important;
+  }
+}
+
+/* Compatibility-only nodes are not visible UI. */
+.nf-dashboard-compat{display:none!important}
+</style>
+
 </head>
 <body>
 
@@ -3260,6 +3325,10 @@ body{
   <div id="nfPendingCardHead"><b>🧵 Pending blouse</b><span>Card-லேயே date update</span></div>
   <div id="nfPendingList"><div class="nfPendingEmpty">Pending blouse இல்லை.</div></div>
 </div>
+<div id="nfDailySummaryCard" aria-label="Daily Update Summary">
+  <div class="nfDailySummaryHead"><b>📊 Daily Update</b><span>இன்றைய நிலவரம்</span></div>
+  <div id="dailyUpdate"></div>
+</div>
 <button class="navbtn" data-view="designs">🎨 Designs</button>
 <button class="navbtn logout" id="sideLogout">⎋ Logout</button>
 </aside>
@@ -3284,8 +3353,6 @@ body{
     </div>
   </div>
 </div>
-
-<div class="pagehead"><div><h2>Dashboard</h2><p>உங்கள் tailoring வேலை, delivery reminder, collection, balance எல்லாம் இங்கே தெரியும்.</p></div></div>
 
 <div class="stats nf-dashboard-hidden-stats" aria-hidden="true">
 <div class="stat"><div class="label">Customers</div><div id="statCustomers" class="num">0</div></div>
@@ -3312,16 +3379,13 @@ body{
   <div id="dashboardCustomersList" class="nf-dch-list"></div>
 </div>
 
-<div class="kpiGrid">
-<div class="kpiCard kpiReminder clickable" role="button" tabindex="0" onclick="goView('orders')"><div class="kpiTitle">🔔 Daily Reminder</div><div id="kpiReminder" class="kpiNum">0</div><div class="kpiSmall">அடுத்த 5 நாட்கள் + late</div></div>
-</div>
 <div class="nf-dashboard-compat" aria-hidden="true">
+  <span id="kpiReminder"></span>
   <span id="kpiPending"></span><span id="kpiPendingSmall"></span><span id="kpiPendingDetails"></span>
   <span id="kpiDelivery"></span><span id="kpiDeliveryDetails"></span>
   <span id="dueSoonCount"></span><span id="dueSoonList"></span>
 </div>
-<div class="card" style="margin-top:14px"><div class="pagehead"><div><h2 style="font-size:20px">Daily Update</h2><p>இன்றைய நிலவரம்</p></div></div><div id="dailyUpdate"></div></div>
-<div class="card" style="margin-top:14px"><div class="pagehead"><div><h2 style="font-size:20px">Recent Orders</h2></div></div><div id="recentOrders"></div></div>
+<div class="nf-dashboard-compat" aria-hidden="true"><span id="recentOrders"></span></div>
 </section>
 
 <section id="view-customers" class="view">
