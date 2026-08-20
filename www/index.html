@@ -9043,3 +9043,69 @@ html{
   #view-dashboard .nf-dashboard-collection-small{font-size:9px}
 }
 </style>
+<style id="nf-v52-dashboard-scroll-fix">
+/* V5.2 — Dashboard only: fixed header + fixed Customer Hub controls;
+   only the customer-card list scrolls. Other screens keep normal scrolling. */
+body.nf-dashboard-mode{overflow:hidden!important;height:100dvh!important;overscroll-behavior:none!important}
+body.nf-dashboard-mode #app{height:100dvh!important;min-height:100dvh!important;overflow:hidden!important;padding-top:var(--nf-header-height)!important}
+body.nf-dashboard-mode #app>.layout{height:calc(100dvh - var(--nf-header-height))!important;min-height:0!important;overflow:hidden!important}
+body.nf-dashboard-mode #app>.layout>.main{height:100%!important;min-height:0!important;overflow:hidden!important}
+body.nf-dashboard-mode #view-dashboard.active{height:100%!important;min-height:0!important;margin-top:0!important;padding-top:0!important;padding-bottom:78px!important;display:flex!important;flex-direction:column!important;overflow:hidden!important}
+body.nf-dashboard-mode #view-dashboard .nf-dashboard-collection-card{display:none!important}
+body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub{flex:1 1 auto!important;min-height:0!important;height:auto!important;max-height:none!important;margin:0!important;padding:0!important;overflow:hidden!important;display:flex!important;flex-direction:column!important}
+body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-head,
+body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-tabs{flex:0 0 auto!important}
+body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{flex:1 1 auto!important;min-height:0!important;height:auto!important;max-height:none!important;overflow-y:auto!important;overflow-x:hidden!important;overscroll-behavior:contain!important;-webkit-overflow-scrolling:touch!important;touch-action:pan-y!important;padding-bottom:14px!important}
+/* Compact customer cards without removing their displayed information. */
+body.nf-dashboard-mode #view-dashboard .nf-dch-card{padding:9px 10px 8px!important;border-radius:14px!important}
+body.nf-dashboard-mode #view-dashboard .nf-dch-card-top{grid-template-columns:30px minmax(0,1fr) minmax(100px,112px) 16px!important;gap:6px!important}
+body.nf-dashboard-mode #view-dashboard .nf-dch-no{width:30px!important;height:30px!important;border-radius:9px!important;font-size:13px!important}
+body.nf-dashboard-mode #view-dashboard .nf-dch-name{font-size:16px!important;line-height:1.15!important}
+body.nf-dashboard-mode #view-dashboard .nf-dch-contact{font-size:10px!important;line-height:1.25!important;margin-top:2px!important}
+body.nf-dashboard-mode #view-dashboard .nf-dch-delivery{padding:5px 5px 6px!important;border-radius:11px!important}
+body.nf-dashboard-mode #view-dashboard .nf-dch-delivery-label{font-size:11px!important}
+body.nf-dashboard-mode #view-dashboard .nf-dch-delivery-date{margin-top:2px!important;font-size:10px!important}
+body.nf-dashboard-mode #view-dashboard .nf-dch-arrow{font-size:18px!important}
+body.nf-dashboard-mode #view-dashboard .nf-dch-info{gap:5px!important;margin-top:6px!important}
+body.nf-dashboard-mode #view-dashboard .nf-dch-box{padding:6px 7px!important;border-radius:9px!important}
+body.nf-dashboard-mode #view-dashboard .nf-dch-box b{font-size:11px!important}
+body.nf-dashboard-mode #view-dashboard .nf-dch-box span{font-size:9px!important;margin-top:1px!important}
+body.nf-dashboard-mode #view-dashboard .nf-dch-meta{gap:4px!important;margin-top:5px!important}
+body.nf-dashboard-mode #view-dashboard .nf-dch-pill{padding:4px 6px!important;font-size:9px!important}
+@media(max-width:700px){
+  body.nf-dashboard-mode #view-dashboard.active{padding-bottom:72px!important}
+  body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-head{padding:11px 11px 7px!important}
+  body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-title{font-size:18px!important}
+  body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-sub{font-size:10px!important}
+  body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-head .btn{min-height:36px!important;padding:6px 9px!important;font-size:12px!important}
+  body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-tabs{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:5px!important;padding:0 7px 7px!important}
+  body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-tab{min-height:38px!important;padding:6px 4px!important;font-size:10px!important;line-height:1.05!important}
+  body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-tab span{min-width:18px!important;height:18px!important;font-size:10px!important}
+  body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{padding:0 7px 10px!important;gap:6px!important}
+}
+@media(max-width:390px){
+  body.nf-dashboard-mode #view-dashboard .nf-dch-card-top{grid-template-columns:28px minmax(0,1fr) minmax(94px,104px) 14px!important}
+  body.nf-dashboard-mode #view-dashboard .nf-dch-name{font-size:15px!important}
+  body.nf-dashboard-mode #view-dashboard .nf-dch-delivery-label{font-size:10px!important}
+}
+</style>
+<script id="nf-v52-dashboard-scroll-fix-js">
+(function(){
+  "use strict";
+  function syncDashboardMode(){
+    var dashboard=document.getElementById("view-dashboard");
+    document.body.classList.toggle("nf-dashboard-mode",!!(dashboard&&dashboard.classList.contains("active")));
+  }
+  function patchGoView(){
+    if(typeof window.goView!=="function"||window.goView.__nfV52DashboardMode)return;
+    var base=window.goView;
+    function wrappedGoView(view,push){var result=base.apply(this,arguments);syncDashboardMode();return result}
+    wrappedGoView.__nfV52DashboardMode=true;
+    window.goView=wrappedGoView;
+  }
+  patchGoView();
+  syncDashboardMode();
+  window.addEventListener("load",function(){patchGoView();syncDashboardMode()},{once:true});
+  window.addEventListener("popstate",function(){setTimeout(syncDashboardMode,0)});
+})();
+</script>
