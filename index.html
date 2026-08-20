@@ -3010,7 +3010,153 @@ body{
   .nf-dch-info{grid-template-columns:1fr 1fr}
   .nf-dch-box:nth-child(3){grid-column:1/-1}
 }
-</style></head>
+</style>
+<style id="nf-customer-hub-final-visual-fix">
+/* FINAL CUSTOMER HUB MOBILE FIX
+   Keep the category header visible, purple, and independent from any
+   card/overlay styling. Reset the inner list scroll whenever a category changes.
+*/
+#view-dashboard .nf-dashboard-customer-hub{
+  position:relative !important;
+  z-index:2 !important;
+  isolation:isolate !important;
+  opacity:1 !important;
+  visibility:visible !important;
+  filter:none !important;
+  background:linear-gradient(135deg,#6c4df6 0%,#7d4de9 45%,#b348a0 100%) !important;
+  color:#fff !important;
+}
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-head,
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-tabs{
+  position:relative !important;
+  z-index:3 !important;
+  opacity:1 !important;
+  visibility:visible !important;
+}
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-head{
+  color:#fff !important;
+}
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-title,
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-sub{
+  color:#fff !important;
+}
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-tab{
+  opacity:1 !important;
+  visibility:visible !important;
+  color:#fff !important;
+  background:rgba(255,255,255,.12) !important;
+  border-color:rgba(255,255,255,.22) !important;
+}
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-tab.active{
+  color:#5d43d0 !important;
+  background:#fff !important;
+}
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
+  position:relative !important;
+  z-index:3 !important;
+  opacity:1 !important;
+  visibility:visible !important;
+  background:transparent !important;
+  scroll-behavior:auto !important;
+}
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-card{
+  opacity:1 !important;
+  visibility:visible !important;
+}
+@media(max-width:560px){
+  #view-dashboard .nf-dashboard-customer-hub .nf-dch-head{
+    padding:16px 13px 10px !important;
+  }
+  #view-dashboard .nf-dashboard-customer-hub .nf-dch-tabs{
+    grid-template-columns:1fr !important;
+    gap:6px !important;
+    padding:0 9px 9px !important;
+  }
+  #view-dashboard .nf-dashboard-customer-hub .nf-dch-tab{
+    min-height:44px !important;
+    font-size:13px !important;
+  }
+  #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
+    max-height:none !important;
+    overflow:visible !important;
+    padding:0 9px 12px !important;
+  }
+}
+</style>
+
+<style id="v45-customer-hub-visibility-fix">
+/* V4.5: keep Customer Hub header + tabs visible above card content */
+#customerHub,
+.customer-hub,
+#customerHub .customer-hub-header,
+#customerHub .customer-hub-tabs,
+#customerHub .hub-header,
+#customerHub .hub-tabs {
+  position: relative !important;
+  z-index: 20 !important;
+  isolation: isolate !important;
+}
+
+/* Do not allow a translucent/white overlay to cover the hub controls */
+#customerHub .customer-hub-header,
+#customerHub .hub-header {
+  background: rgba(255,255,255,0.98) !important;
+  opacity: 1 !important;
+  color: #171725 !important;
+}
+
+#customerHub .customer-hub-header *,
+#customerHub .hub-header * {
+  opacity: 1 !important;
+}
+
+#customerHub .customer-hub-header h1,
+#customerHub .customer-hub-header h2,
+#customerHub .customer-hub-header h3,
+#customerHub .customer-hub-header p,
+#customerHub .customer-hub-header span,
+#customerHub .customer-hub-header button,
+#customerHub .hub-header h1,
+#customerHub .hub-header h2,
+#customerHub .hub-header h3,
+#customerHub .hub-header p,
+#customerHub .hub-header span,
+#customerHub .hub-header button {
+  color: inherit !important;
+}
+
+#customerHub .customer-hub-tabs,
+#customerHub .hub-tabs {
+  background: rgba(255,255,255,0.98) !important;
+  opacity: 1 !important;
+}
+
+#customerHub .customer-hub-tabs *,
+#customerHub .hub-tabs * {
+  opacity: 1 !important;
+}
+
+/* Preserve the requested purple/white active-tab appearance */
+#customerHub .customer-hub-tabs button,
+#customerHub .hub-tabs button {
+  position: relative !important;
+  z-index: 21 !important;
+}
+
+#customerHub .customer-hub-tabs button:not(.active),
+#customerHub .hub-tabs button:not(.active) {
+  color: #5b46c8 !important;
+  background: #ffffff !important;
+}
+
+#customerHub .customer-hub-tabs button.active,
+#customerHub .hub-tabs button.active {
+  color: #5b46c8 !important;
+  background: #ffffff !important;
+}
+</style>
+
+</head>
 <body>
 
 <div id="loginPage" class="loginpage">
@@ -3465,6 +3611,9 @@ function setDashboardCustomerTab(tab){
  dashboardCustomerTab=["all","new","delivered"].includes(tab)?tab:"all";
  document.querySelectorAll(".nf-dch-tab").forEach(b=>b.classList.toggle("active",b.dataset.dchTab===dashboardCustomerTab));
  renderDashboardCustomers();
+ const list=$("dashboardCustomersList");
+ if(list)list.scrollTop=0;
+ window.scrollTo({top:Math.max(0,window.scrollY),behavior:"auto"});
 }
 function renderDashboardCustomers(){
  const box=$("dashboardCustomersList");
