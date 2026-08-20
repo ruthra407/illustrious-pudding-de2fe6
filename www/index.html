@@ -8955,6 +8955,153 @@ html{
   document.addEventListener("DOMContentLoaded",()=>setTimeout(refresh,120),{once:true});
 })();
 </script>
+
+<style id="nf-v52-final-customer-hub-layout-fix">
+/* V5.2 FINAL — dashboard only.
+   Customer Hub title/tabs stay fixed; only customer details scroll.
+   Other pages keep their existing scroll behavior. */
+body.nf-dashboard-mode{
+  overflow:hidden!important;
+  height:100dvh!important;
+  overscroll-behavior:none!important;
+}
+body.nf-dashboard-mode #app{
+  height:100dvh!important;
+  min-height:100dvh!important;
+  overflow:hidden!important;
+}
+body.nf-dashboard-mode #app>.layout{
+  height:calc(100dvh - var(--nf-header-height))!important;
+  min-height:0!important;
+  overflow:hidden!important;
+}
+body.nf-dashboard-mode #app>.layout>.main{
+  height:100%!important;
+  min-height:0!important;
+  overflow:hidden!important;
+  padding-top:0!important;
+}
+body.nf-dashboard-mode #view-dashboard.active{
+  height:100%!important;
+  min-height:0!important;
+  margin:0!important;
+  padding-top:0!important;
+  padding-bottom:72px!important;
+  display:flex!important;
+  flex-direction:column!important;
+  overflow:hidden!important;
+}
+
+/* Collections is intentionally removed; Customer Hub fills that space. */
+body.nf-dashboard-mode #view-dashboard .nf-dashboard-collection-card{
+  display:none!important;
+}
+
+/* Customer Hub itself is the fixed frame. */
+body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub{
+  flex:1 1 auto!important;
+  min-height:0!important;
+  height:auto!important;
+  max-height:none!important;
+  margin:0!important;
+  padding:0!important;
+  overflow:hidden!important;
+  display:flex!important;
+  flex-direction:column!important;
+}
+
+/* Preserve the requested title row: title/subtitle on the left, View All on the right. */
+body.nf-dashboard-mode #view-dashboard .nf-dch-head{
+  flex:0 0 auto!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  flex-direction:row!important;
+  position:relative!important;
+  z-index:5!important;
+}
+body.nf-dashboard-mode #view-dashboard .nf-dch-head>div{
+  min-width:0!important;
+  flex:1 1 auto!important;
+}
+body.nf-dashboard-mode #view-dashboard .nf-dch-head>.btn{
+  flex:0 0 auto!important;
+}
+
+/* Tabs are also fixed. Only the list below them moves. */
+body.nf-dashboard-mode #view-dashboard .nf-dch-tabs{
+  flex:0 0 auto!important;
+  position:relative!important;
+  z-index:5!important;
+}
+body.nf-dashboard-mode #view-dashboard .nf-dch-list{
+  flex:1 1 auto!important;
+  min-height:0!important;
+  height:auto!important;
+  max-height:none!important;
+  overflow-y:auto!important;
+  overflow-x:hidden!important;
+  overscroll-behavior:contain!important;
+  -webkit-overflow-scrolling:touch!important;
+  touch-action:pan-y!important;
+}
+
+/* Remove the unnecessary white gap under the fixed header. */
+@media(max-width:700px){
+  body.nf-dashboard-mode #app>.layout>.main{
+    padding:0 9px 0!important;
+  }
+  body.nf-dashboard-mode #view-dashboard.active{
+    padding-bottom:72px!important;
+  }
+  body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-head{
+    padding:16px 13px 10px!important;
+  }
+  body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-title{
+    font-size:19px!important;
+  }
+  body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-sub{
+    font-size:12px!important;
+  }
+  body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-head .btn{
+    min-height:38px!important;
+    padding:8px 10px!important;
+  }
+  body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-tabs{
+    grid-template-columns:repeat(3,minmax(0,1fr))!important;
+    gap:6px!important;
+    padding:0 9px 9px!important;
+  }
+  body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-tab{
+    min-height:44px!important;
+    padding:9px 8px!important;
+    font-size:12px!important;
+  }
+  body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
+    padding:0 9px 12px!important;
+    gap:8px!important;
+  }
+}
+</style>
+<script id="nf-v52-final-customer-hub-mode-js">
+(function(){
+  "use strict";
+  function sync(){
+    var dashboard=document.getElementById("view-dashboard");
+    document.body.classList.toggle("nf-dashboard-mode",!!(dashboard&&dashboard.classList.contains("active")));
+  }
+  function start(){
+    sync();
+    var dashboard=document.getElementById("view-dashboard");
+    if(dashboard){
+      new MutationObserver(sync).observe(dashboard,{attributes:true,attributeFilter:["class"]});
+    }
+  }
+  if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",start,{once:true});
+  else start();
+  window.addEventListener("pageshow",sync,{passive:true});
+})();
+</script>
 </body>
 </html>
 
