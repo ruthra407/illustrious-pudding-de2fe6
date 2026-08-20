@@ -3157,7 +3157,7 @@ body{
 </style>
 
 <style id="v45-customer-hub-delivery-badge">
-/* V4.5 — Customer Hub: countdown beside name, delivery date directly below. */
+/* V4.7 — Customer Hub: top delivery badge retained; duplicate lower delivery date/reminder removed. */
 .nf-dch-card-top{
   position:relative;
   display:grid;
@@ -3269,8 +3269,8 @@ body{
 <div class="pagehead"><div><h2>Dashboard</h2><p>உங்கள் tailoring வேலை, delivery reminder, collection, balance எல்லாம் இங்கே தெரியும்.</p></div></div>
 
 <div class="stats">
-<div class="stat clickable" role="button" tabindex="0" onclick="goView('customers')"><div class="label">Customers</div><div id="statCustomers" class="num">0</div></div>
-<div class="stat clickable" role="button" tabindex="0" onclick="goView('orders')"><div class="label">Orders</div><div id="statOrders" class="num">0</div></div>
+<div class="stat clickable" role="button" tabindex="0" onclick="goView('customers')" style="display:none !important;"><div class="label">Customers</div><div id="statCustomers" class="num">0</div></div>
+<div class="stat clickable" role="button" tabindex="0" onclick="goView('orders')" style="display:none !important;"><div class="label">Orders</div><div id="statOrders" class="num">0</div></div>
 <div class="stat clickable" role="button" tabindex="0" onclick="goView('payments')" style="display:none !important;"><div class="label">Today Collection</div><div id="statTodayCollection" class="num">₹0</div></div>
 <div class="stat clickable" role="button" tabindex="0" onclick="goView('customers')" style="display:none !important;"><div class="label">Pending Balance</div><div id="statBalance" class="num">₹0</div></div>
 </div>
@@ -3674,14 +3674,12 @@ function dashboardCustomerCard(c,index,category){
    <div class="nf-dch-info">
      <div class="nf-dch-box"><b>${esc(orderNo)}</b><span>Order No</span></div>
      <div class="nf-dch-box"><b>${esc(x.detail)}</b><span>Garment / Details</span></div>
-     <div class="nf-dch-box"><b>${esc(delivery)}</b><span>Delivery Date</span></div>
    </div>
    <div class="nf-dch-meta">
      <span class="nf-dch-pill ${status}">${statusText}</span>
      ${o?.status?`<span class="nf-dch-pill">${esc(o.status)}</span>`:""}
      ${o?`<span class="nf-dch-pill">📅 Order: ${esc(dateText(o.order_date))}</span>`:""}
    </div>
-   ${x.reminder?`<div class="nf-dch-reminder ${x.reminder.includes("late")?"late":""}">${esc(x.reminder)}</div>`:""}
  </article>`;
 }
 function setDashboardCustomerTab(tab){
