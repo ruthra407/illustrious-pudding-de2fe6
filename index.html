@@ -9314,3 +9314,97 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-head >
   flex:none!important;
 }
 </style>
+
+
+<style id="nf-v55-customer-focus-scroll-fix">
+/* V5.5 — Customer Hub -> single customer focus.
+   Dashboard Hub opens the selected customer's full Customer Card only.
+   Direct Customers page remains a normal, fully scrollable multi-customer page. */
+#view-customers.nf-customer-focus-mode .customerCards > .customerCard{
+  display:none!important;
+}
+#view-customers.nf-customer-focus-mode .customerCards > .customerCard.nf-customer-focus-selected{
+  display:block!important;
+}
+#view-customers.nf-customer-focus-mode .customerCards{
+  grid-template-columns:1fr!important;
+}
+</style>
+<script id="nf-v55-customer-focus-scroll-fix-js">
+(function(){
+  "use strict";
+  var focusId="";
+  var renderBase=window.renderCustomers;
+
+  function clearCustomerFocus(){
+    focusId="";
+    var view=document.getElementById("view-customers");
+    if(view)view.classList.remove("nf-customer-focus-mode");
+    document.querySelectorAll("#view-customers .customerCard.nf-customer-focus-selected").forEach(function(card){
+      card.classList.remove("nf-customer-focus-selected");
+    });
+  }
+
+  function applyCustomerFocus(id,scrollToCard){
+    var view=document.getElementById("view-customers");
+    if(!view)return;
+    focusId=String(id||"");
+    if(!focusId){clearCustomerFocus();return;}
+    view.classList.add("nf-customer-focus-mode");
+    document.querySelectorAll("#view-customers .customerCard.nf-customer-focus-selected").forEach(function(card){
+      card.classList.remove("nf-customer-focus-selected");
+    });
+    var card=document.getElementById("customer-card-"+focusId);
+    if(card){
+      card.classList.add("nf-customer-focus-selected");
+      if(scrollToCard){
+        setTimeout(function(){
+          var latest=document.getElementById("customer-card-"+focusId);
+          if(latest)latest.scrollIntoView({behavior:"smooth",block:"start"});
+        },80);
+      }
+    }
+  }
+
+  /* Preserve focus if the app re-renders the Customer Cards after a save/sync. */
+  if(typeof renderBase==="function"&&!renderBase.__nfV55FocusWrapped){
+    window.renderCustomers=function(){
+      renderBase.apply(this,arguments);
+      if(focusId){applyCustomerFocus(focusId,false);}
+    };
+    window.renderCustomers.__nfV55FocusWrapped=true;
+  }
+
+  /* Customer Hub card -> open only that customer's full card. */
+  window.goToCustomer=function(id){
+    var targetId=String(id||"");
+    if(!targetId)return;
+    focusId=targetId;
+    goView("customers");
+    setTimeout(function(){
+      applyCustomerFocus(targetId,true);
+    },60);
+  };
+
+  /* Direct Customers navigation must always restore the normal multi-customer list. */
+  document.querySelectorAll('.navbtn[data-view="customers"]').forEach(function(btn){
+    btn.addEventListener("click",clearCustomerFocus);
+  });
+
+  /* If the user reaches Customers through another existing code path, keep it normal
+     unless the path explicitly calls goToCustomer(). */
+  var originalGoView=window.goView;
+  if(typeof originalGoView==="function"&&!originalGoView.__nfV55FocusWrapped){
+    window.goView=function(view,push){
+      if(view!=="customers")clearCustomerFocus();
+      return originalGoView.apply(this,arguments);
+    };
+    window.goView.__nfV55FocusWrapped=true;
+  }
+
+  window.addEventListener("popstate",function(){
+    var v=history.state&&history.state.view;
+    if(v!=="customers")clearCustomerFocus();
+  });
+})();
+</script>
