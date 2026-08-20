@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="nf-build" content="verified-2026-08-20-v4.2-rechecked">
-<title>New Fashion Tailoring – Online Management | Phase 4.3 • V4.2</title>
+<title>New Fashion Tailoring – Online Management | V5.7</title>
 <link rel="manifest" href="manifest.json">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -3317,6 +3317,150 @@ body{
   }
 }
 </style>
+
+
+<style id="nf-v57-management-scroll-fix">
+/* V5.7 — Customer Cards + Orders: keep page chrome fixed; scroll only the content area.
+   Dashboard behaviour and all other screens remain unchanged. */
+body.nf-management-scroll-mode{
+  overflow:hidden!important;
+  height:100dvh!important;
+  overscroll-behavior:none!important;
+}
+body.nf-management-scroll-mode #app{
+  height:100dvh!important;
+  min-height:100dvh!important;
+  overflow:hidden!important;
+}
+body.nf-management-scroll-mode #app>.layout{
+  height:calc(100dvh - var(--nf-header-height))!important;
+  min-height:0!important;
+  overflow:hidden!important;
+}
+body.nf-management-scroll-mode #app>.layout>.main{
+  height:100%!important;
+  min-height:0!important;
+  overflow:hidden!important;
+}
+body.nf-management-scroll-mode #view-customers.active,
+body.nf-management-scroll-mode #view-orders.active{
+  height:100%!important;
+  min-height:0!important;
+  margin-top:0!important;
+  display:flex!important;
+  flex-direction:column!important;
+  overflow:hidden!important;
+}
+
+/* Headings/search controls stay in place. */
+body.nf-management-scroll-mode #view-customers>.pagehead,
+body.nf-management-scroll-mode #view-orders>.pagehead{
+  flex:0 0 auto!important;
+}
+body.nf-management-scroll-mode #view-customers>.customerSearchBox{
+  flex:0 0 auto!important;
+  overflow:visible!important;
+}
+
+/* Customer Cards: only the cards region scrolls. */
+body.nf-management-scroll-mode #view-customers>#customersTable{
+  flex:1 1 auto!important;
+  min-height:0!important;
+  overflow-y:auto!important;
+  overflow-x:hidden!important;
+  overscroll-behavior:contain!important;
+  -webkit-overflow-scrolling:touch!important;
+  touch-action:pan-y!important;
+  padding:2px 2px 14px!important;
+  scrollbar-gutter:stable;
+}
+
+/* Orders: page heading + search/filter remain fixed; order list scrolls. */
+body.nf-management-scroll-mode #view-orders>.nf-section-card{
+  flex:1 1 auto!important;
+  min-height:0!important;
+  display:flex!important;
+  flex-direction:column!important;
+  overflow:hidden!important;
+}
+body.nf-management-scroll-mode #view-orders>.nf-section-card>.toolbar{
+  flex:0 0 auto!important;
+  position:static!important;
+  top:auto!important;
+  margin:0 0 8px!important;
+  padding:0!important;
+  background:transparent!important;
+  backdrop-filter:none!important;
+  -webkit-backdrop-filter:none!important;
+}
+body.nf-management-scroll-mode #view-orders>#ordersTable{
+  flex:1 1 auto!important;
+  min-height:0!important;
+  overflow-y:auto!important;
+  overflow-x:auto!important;
+  overscroll-behavior:contain!important;
+  -webkit-overflow-scrolling:touch!important;
+  touch-action:pan-y!important;
+  scrollbar-gutter:stable;
+}
+body.nf-management-scroll-mode #view-orders .nf-mobile-order-list{
+  padding:2px 2px 14px!important;
+}
+
+/* When Customer Hub opens one customer, only that customer's full card scrolls.
+   The next customer cannot enter the scroll area. */
+body.nf-management-scroll-mode #view-customers.nf-customer-focus-mode>#customersTable{
+  overflow:hidden!important;
+  overscroll-behavior:none!important;
+  padding-bottom:0!important;
+}
+body.nf-management-scroll-mode #view-customers.nf-customer-focus-mode>#customersTable>.customerCard.nf-customer-focus-selected{
+  height:100%!important;
+  max-height:100%!important;
+  overflow-y:auto!important;
+  overflow-x:hidden!important;
+  overscroll-behavior:contain!important;
+  -webkit-overflow-scrolling:touch!important;
+  touch-action:pan-y!important;
+  margin-bottom:0!important;
+}
+
+@media(max-width:700px){
+  body.nf-management-scroll-mode #view-customers.active,
+  body.nf-management-scroll-mode #view-orders.active{
+    padding-bottom:72px!important;
+  }
+  body.nf-management-scroll-mode #view-customers>#customersTable{
+    padding-bottom:10px!important;
+  }
+  body.nf-management-scroll-mode #view-orders>#ordersTable{
+    padding-bottom:10px!important;
+  }
+}
+</style>
+<script id="nf-v57-management-scroll-fix-js">
+(function(){
+  "use strict";
+  function syncManagementMode(){
+    var customers=document.getElementById("view-customers");
+    var orders=document.getElementById("view-orders");
+    var activeCustomers=!!(customers&&customers.classList.contains("active"));
+    var activeOrders=!!(orders&&orders.classList.contains("active"));
+    document.body.classList.toggle("nf-management-scroll-mode",activeCustomers||activeOrders);
+  }
+  function start(){
+    syncManagementMode();
+    ["view-customers","view-orders"].forEach(function(id){
+      var el=document.getElementById(id);
+      if(el)new MutationObserver(syncManagementMode).observe(el,{attributes:true,attributeFilter:["class"]});
+    });
+  }
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",start,{once:true});
+  else start();
+  window.addEventListener("pageshow",syncManagementMode,{passive:true});
+  window.addEventListener("popstate",function(){setTimeout(syncManagementMode,0)});
+})();
+</script>
 
 </head>
 <body>
