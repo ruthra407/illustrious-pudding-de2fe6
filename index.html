@@ -3721,6 +3721,23 @@ body{
 }
 </style>
 
+
+<style id="v5-4-home-only-scroll-fix">
+@media (max-width:700px){
+  /* Restore normal scrolling for every non-dashboard view. */
+  #view-dashboard:not(.active),
+  #view-customers.active,#view-measurements.active,#view-orders.active,#view-alterations.active,#view-payments.active,#view-designs.active{
+    height:auto!important;min-height:0!important;max-height:none!important;overflow:visible!important;
+  }
+  #view-customers.active,#view-measurements.active,#view-orders.active,#view-alterations.active,#view-payments.active,#view-designs.active{
+    overflow-y:auto!important;-webkit-overflow-scrolling:touch!important;touch-action:pan-y!important;
+  }
+  /* Home only: lock the page, allow only the Customer Hub list to scroll. */
+  #view-dashboard.active{height:100%!important;min-height:0!important;max-height:100%!important;overflow:hidden!important;}
+  #view-dashboard.active .nf-dashboard-customer-hub{overflow:hidden!important;}
+  #view-dashboard.active .nf-dashboard-customer-hub .nf-dch-list{overflow-y:auto!important;overflow-x:hidden!important;overscroll-behavior:contain!important;-webkit-overflow-scrolling:touch!important;touch-action:pan-y!important;}
+}
+</style>
 </head>
 <body>
 
