@@ -1,10 +1,10 @@
 <!doctype html>
-<html nf-build="verified-2026-08-20-v4.5-delivery-highlight" lang="ta">
+<html nf-build="verified-2026-08-20-v4.2-rechecked" lang="ta">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="nf-build" content="verified-2026-08-20-v4.5-delivery-highlight">
-<title>New Fashion Tailoring – Online Management | Phase 4.3 • V4.5 Delivery Highlight</title>
+<meta name="nf-build" content="verified-2026-08-20-v4.2-rechecked">
+<title>New Fashion Tailoring – Online Management | Phase 4.3 • V4.2</title>
 <link rel="manifest" href="manifest.json">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -3156,6 +3156,68 @@ body{
 }
 </style>
 
+<style id="v45-customer-hub-delivery-badge">
+/* V4.5 — Customer Hub: countdown beside name, delivery date directly below. */
+.nf-dch-card-top{
+  position:relative;
+  display:grid;
+  grid-template-columns:34px minmax(0,1fr) minmax(116px,132px) 20px;
+  align-items:start;
+  gap:9px;
+}
+.nf-dch-identity{min-width:0;padding-top:1px}
+.nf-dch-name{font-size:20px !important;font-weight:950 !important;line-height:1.2}
+.nf-dch-delivery{
+  min-width:0;
+  border-radius:14px;
+  padding:7px 9px 8px;
+  text-align:center;
+  background:linear-gradient(135deg,#fff2c7,#ffe6a0);
+  border:1px solid #f1d37b;
+  box-shadow:0 5px 14px rgba(139,97,0,.10);
+}
+.nf-dch-delivery-label{
+  font-size:15px;
+  line-height:1.15;
+  font-weight:950;
+  color:#7b5600;
+  white-space:normal;
+  overflow-wrap:anywhere;
+}
+.nf-dch-delivery-date{
+  margin-top:4px;
+  font-size:13px;
+  line-height:1.15;
+  font-weight:900;
+  color:#4f3b00;
+}
+.nf-dch-delivery.today{
+  background:linear-gradient(135deg,#fff0b5,#ffd85c);
+  border-color:#efc84d;
+}
+.nf-dch-delivery.soon{
+  background:linear-gradient(135deg,#e8f4ff,#cfe8ff);
+  border-color:#9dcbf5;
+}
+.nf-dch-delivery.soon .nf-dch-delivery-label,
+.nf-dch-delivery.soon .nf-dch-delivery-date{color:#24557e}
+.nf-dch-delivery.late{
+  background:linear-gradient(135deg,#ffe7eb,#ffcbd3);
+  border-color:#ef9eaa;
+}
+.nf-dch-delivery.late .nf-dch-delivery-label,
+.nf-dch-delivery.late .nf-dch-delivery-date{color:#a22c3c}
+@media(max-width:560px){
+  .nf-dch-card-top{
+    grid-template-columns:34px minmax(0,1fr) minmax(108px,122px) 18px;
+    gap:7px;
+  }
+  .nf-dch-name{font-size:19px !important}
+  .nf-dch-delivery{padding:7px 6px}
+  .nf-dch-delivery-label{font-size:14px}
+  .nf-dch-delivery-date{font-size:12px}
+}
+</style>
 </head>
 <body>
 
@@ -3213,6 +3275,22 @@ body{
 <div class="stat clickable" role="button" tabindex="0" onclick="goView('customers')" style="display:none !important;"><div class="label">Pending Balance</div><div id="statBalance" class="num">₹0</div></div>
 </div>
 
+
+<div class="card dashboardCustomersCard nf-dashboard-customer-hub">
+  <div class="nf-dch-head">
+    <div>
+      <div class="nf-dch-title">👥 Customers</div>
+      <div class="nf-dch-sub">Customer Cards-லிருந்து நேரடியாக sync ஆகும்</div>
+    </div>
+    <button class="btn secondary" type="button" onclick="goView('customers')">View All</button>
+  </div>
+  <div class="nf-dch-tabs" role="tablist" aria-label="Customer categories">
+    <button type="button" class="nf-dch-tab active" data-dch-tab="all" onclick="setDashboardCustomerTab('all')">ALL CUSTOMERS <span id="dchCountAll">0</span></button>
+    <button type="button" class="nf-dch-tab" data-dch-tab="new" onclick="setDashboardCustomerTab('new')">NEW CUSTOMERS <span id="dchCountNew">0</span></button>
+    <button type="button" class="nf-dch-tab" data-dch-tab="delivered" onclick="setDashboardCustomerTab('delivered')">DELIVERED CUSTOMERS <span id="dchCountDelivered">0</span></button>
+  </div>
+  <div id="dashboardCustomersList" class="nf-dch-list"></div>
+</div>
 
 <div class="kpiGrid">
 <div class="kpiCard kpiPending clickable" role="button" tabindex="0" onclick="goView('orders')"><div class="kpiTitle">🔴 Pending Orders</div><div id="kpiPending" class="kpiNum">0</div><div id="kpiPendingSmall" class="kpiSmall">வேலை முடிக்க வேண்டிய orders</div><div id="kpiPendingDetails" class="kpiDetails"></div></div>
@@ -3566,15 +3644,30 @@ function dashboardCustomerCard(c,index,category){
  const orderNo=o?.order_no||"Order இல்லை";
  const delivery=o?.delivery_date?dateText(o.delivery_date):"—";
  const phone=c.phone||"Phone இல்லை";
+
+ /* Delivery countdown + date are grouped beside the customer name. */
+ let deliveryLabel="Delivery";
+ let deliveryKind="";
+ if(o?.delivery_date){
+   const d=dueInfo(o);
+   if(d?.kind==="late"){deliveryLabel=`🚨 ${d.days} நாள் late`;deliveryKind="late";}
+   else if(d?.kind==="today"){deliveryLabel="🔔 இன்று delivery";deliveryKind="today";}
+   else if(d?.kind==="soon"){deliveryLabel=`⏰ ${d.days} நாள் உள்ளது`;deliveryKind="soon";}
+ }
+ const safeId=String(c.id).replace(/'/g,"\\'");
  return `<article class="nf-dch-card" role="button" tabindex="0"
-   onclick="goToCustomer('${String(c.id).replace(/'/g,"\\'")}')"
-   onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();goToCustomer('${String(c.id).replace(/'/g,"\\'")}')}"
+   onclick="goToCustomer('${safeId}')"
+   onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();goToCustomer('${safeId}')}"
    aria-label="Open customer ${esc(c.name||"Customer")}">
    <div class="nf-dch-card-top">
      <span class="nf-dch-no">${index+1}</span>
      <div class="nf-dch-identity">
        <div class="nf-dch-name">${esc(c.name||"Customer")}</div>
        <div class="nf-dch-contact">📞 ${esc(phone)} · 📍 ${esc(x.village)}<br>🏠 ${esc(x.address)}</div>
+     </div>
+     <div class="nf-dch-delivery ${deliveryKind}">
+       <div class="nf-dch-delivery-label">${esc(deliveryLabel)}</div>
+       <div class="nf-dch-delivery-date">${esc(delivery)}</div>
      </div>
      <span class="nf-dch-arrow">›</span>
    </div>
@@ -4180,25 +4273,8 @@ function nfCustomerWorkSummaryHTML(st){
   </div>`;
 }
 
-function customerDeliveryHighlight(id){
- const orders=customerOrders(id).filter(o=>o && o.delivery_date && !isFinished(o)).slice().sort((a,b)=>{
-   const ad=String(a.delivery_date||"9999-12-31"),bd=String(b.delivery_date||"9999-12-31");
-   return ad.localeCompare(bd);
- });
- const o=orders[0];
- if(!o)return {badge:"",date:"",kind:""};
- const d=dueInfo(o);
- let badge="",kind=d?.kind||"soon";
- if(d?.kind==="late")badge=`🚨 ${d.days} நாள் late`;
- else if(d?.kind==="today")badge="🔔 இன்று delivery";
- else if(d?.kind==="soon")badge=`⏰ ${d.days} நாள் உள்ளது`;
- else badge=`📅 Delivery`;
- return {badge,date:dateText(o.delivery_date),kind,orderId:o.id};
-}
-
 function customerCard(id){
  const c=state.customers.find(x=>x.id===id),st=customerStats(id),designs=customerDesigns(id),selectedDesigns=selectedCustomerDesigns(id),clothPhotos=customerClothPhotos(id);
- const deliveryHighlight=customerDeliveryHighlight(id);
  const village=c.village||localStorage.getItem("nf_village_"+id)||"",address=c.address||"முகவரி இல்லை";
  const clothPhotoHtml=Array.from({length:3},(_,slot)=>{
    const p=clothPhotos[slot];
@@ -4223,7 +4299,7 @@ const clothPhotoActionsHtml="";
   return `<div class="customerOrderLine" id="customer-order-${esc(o.id)}"><b>${esc(o.order_no)}</b> · ${esc(g)} · ${detail} ${rem}<br><span class="mini">துணி: ${dateText(o.cloth_received_date)} · Delivery: ${dateText(o.delivery_date)} · Advance: ${money(nfOrderPaymentInfo(o).advance)} (${nfFormatPaymentDate(nfOrderPaymentInfo(o).advanceDate)}) · Customer Paid: ${money(nfOrderPaymentInfo(o).customerPaid)} · Balance: ${money(nfOrderBalance(o))}</span>${lining}${nfPriceBreakdownHTML(o)}${cleanOrderNotes(o.notes)?`<br><span class="mini">📝 ${esc(cleanOrderNotes(o.notes))}</span>`:""}<div class="orderActions"><button class="btn success" onclick="markDelivered('${o.id}')">Delivered</button><button class="btn primary" onclick="openCustomerOrderEditor('${id}','${o.id}')">✏️ Edit Details</button></div></div>`;
  }).join("")||`<div class="mini">இன்னும் order இல்லை.</div>`;
  return `<article class="customerCard" id="customer-card-${id}">
- <div class="customerCardHead nf-customer-head"><div class="customerAvatar">👤</div><div class="customerIdentity"><div class="nf-customer-name-row"><h3>${esc(c.name||"Customer")}</h3>${deliveryHighlight.badge?`<div class="nf-customer-delivery-wrap"><span class="nf-customer-delivery-badge ${deliveryHighlight.kind}">${esc(deliveryHighlight.badge)}</span><span class="nf-customer-delivery-date">📅 ${esc(deliveryHighlight.date)}</span></div>`:""}</div><div class="nf-customer-contact"><div class="nf-contact-item"><span>📞 Phone</span><b>${esc(c.phone||"Phone இல்லை")}</b></div><div class="nf-contact-item"><span>📍 ஊர்</span><b>${esc(village||"ஊர் இல்லை")}</b></div><div class="nf-contact-item nf-contact-address"><span>🏠 முகவரி</span><b>${esc(address)}</b></div></div><div class="nf-customer-cloth-photo-manager" aria-label="Customer cloth photos"><div class="nf-customer-cloth-photos">${clothPhotoHtml}</div></div>${c.notes?`<p class="nf-customer-note">📝 ${esc(c.notes)}</p>`:""}</div><div class="customerActions nf-customer-top-actions"><button class="btn secondary" onclick="openModal('customer','${id}')">✏️ Edit Customer</button><button class="btn danger" onclick="deleteCustomer('${id}')">🗑 Delete</button></div></div>
+ <div class="customerCardHead nf-customer-head"><div class="customerAvatar">👤</div><div class="customerIdentity"><h3>${esc(c.name||"Customer")}</h3><div class="nf-customer-contact"><div class="nf-contact-item"><span>📞 Phone</span><b>${esc(c.phone||"Phone இல்லை")}</b></div><div class="nf-contact-item"><span>📍 ஊர்</span><b>${esc(village||"ஊர் இல்லை")}</b></div><div class="nf-contact-item nf-contact-address"><span>🏠 முகவரி</span><b>${esc(address)}</b></div></div><div class="nf-customer-cloth-photo-manager" aria-label="Customer cloth photos"><div class="nf-customer-cloth-photos">${clothPhotoHtml}</div></div>${c.notes?`<p class="nf-customer-note">📝 ${esc(c.notes)}</p>`:""}</div><div class="customerActions nf-customer-top-actions"><button class="btn secondary" onclick="openModal('customer','${id}')">✏️ Edit Customer</button><button class="btn danger" onclick="deleteCustomer('${id}')">🗑 Delete</button></div></div>
  <div class="customerMoneyGrid"><div class="moneyStat"><b>${money(st.total)}</b><span>மொத்த order</span></div><div class="moneyStat"><b>${money(st.paid)}</b><span>Customer paid</span></div><div class="moneyStat"><b>${money(st.advance)}</b><span>Advance வாங்கியது</span></div><div class="moneyStat clickable" onclick="goView('payments')"><b>${money(st.balance)}</b><span>இன்னும் கொடுக்க வேண்டும்</span></div></div>\n <div class="nfCustomerBreakdownMount">${typeof window.nfCustomerWorkSummaryHTML==="function"?window.nfCustomerWorkSummaryHTML(st):""}</div>
  <div class="customerSection"><h4>✏️ Edit Order — இந்த customer card-லேயே</h4><div class="customerActions"><button class="btn primary" onclick="openCustomerOrderEditor('${id}')">✏️ Edit Order</button><button class="btn secondary" onclick="toggleCustomerDesignPicker('${id}')">🎨 Blouse Design (3)</button><button class="btn secondary" onclick="openCustomerMeasurement('${id}')">📏 Measurement</button><button class="btn success" onclick="openCustomerPayment('${id}')">💰 Payment</button></div><div id="customer-design-picker-${id}" class="nf-design-picker hidden"><div class="nf-design-picker-title">🎨 இந்த customer-க்கு 3 blouse design தேர்வு</div><div class="nf-design-slots">${selectedDesignHtml}</div><div class="nf-design-picker-actions"><label class="btn secondary">🖼️ Gallery<input type="file" accept="image/*" style="display:none" onchange="uploadCustomerDesign('${id}',this.files[0])"></label><label class="btn secondary">📷 Camera<input type="file" accept="image/*" capture="environment" style="display:none" onchange="uploadCustomerDesign('${id}',this.files[0])"></label><button class="btn secondary" onclick="searchDesignForCustomer('${id}')">🔎 Google Images</button></div><div class="hint">மூன்று design மட்டும் தேர்வு செய்யலாம். ஒவ்வொன்றையும் ✏️ மாற்றலாம்; 🗑️ நீக்கலாம்.</div><div id="customer-design-search-${id}" class="hidden nf-design-search-wrap"><div class="toolbar"><input class="input search" id="customer-design-q-${id}" placeholder="blouse design search"><button class="btn primary" onclick="runCustomerDesignSearch('${id}')">Search</button></div><div id="customer-design-results-${id}" class="customerDesignGrid"></div></div></div></div>
  <div id="quick-order-${id}" class="hidden" style="margin-top:10px;background:#faf8f6;border:1px solid var(--line);border-radius:13px;padding:12px"><h4 class="nf-quick-edit-title" style="margin:0 0 10px">🧾 New Order</h4><div class="formgrid">
@@ -8775,52 +8851,5 @@ html{
   document.addEventListener("DOMContentLoaded",()=>setTimeout(refresh,120),{once:true});
 })();
 </script>
-
-<style id="nf-v45-customer-delivery-highlight">
-/* V4.5 — Delivery countdown beside customer name; data remains synced with the same customer/order records. */
-.nf-customer-name-row{
-  display:flex;align-items:flex-start;justify-content:space-between;gap:10px;
-  width:100%;min-width:0;
-}
-.nf-customer-name-row h3{
-  flex:1 1 auto;min-width:0;
-}
-.nf-customer-delivery-wrap{
-  flex:0 0 auto;display:flex;flex-direction:column;align-items:flex-end;gap:4px;
-  margin-top:-2px;
-}
-.nf-customer-delivery-badge{
-  display:inline-flex;align-items:center;justify-content:center;
-  min-height:42px;padding:7px 12px;border-radius:14px;
-  font-size:16px;font-weight:950;line-height:1.15;text-align:center;
-  color:#5a4300;background:linear-gradient(135deg,#fff0a8,#ffd166);
-  border:1px solid #f0c94d;box-shadow:0 7px 18px rgba(245,200,75,.22);
-  white-space:nowrap;
-}
-.nf-customer-delivery-badge.today{
-  color:#7a1f00;background:linear-gradient(135deg,#ffd36a,#ff8a3d);border-color:#ff9a45;
-  box-shadow:0 7px 18px rgba(255,138,61,.22);
-}
-.nf-customer-delivery-badge.late{
-  color:#9d1c28;background:linear-gradient(135deg,#ffd9df,#ff9eaa);border-color:#f07b8b;
-  box-shadow:0 7px 18px rgba(239,79,95,.20);
-}
-.nf-customer-delivery-date{
-  font-size:13px;font-weight:850;color:#5f5864;
-  padding:3px 8px;border-radius:9px;background:#f2f0f6;
-  white-space:nowrap;
-}
-@media(max-width:700px){
-  .nf-customer-name-row{gap:8px}
-  .nf-customer-delivery-badge{min-height:38px;padding:6px 9px;font-size:14px;border-radius:12px}
-  .nf-customer-delivery-date{font-size:11px;padding:3px 6px}
-}
-@media(max-width:430px){
-  .nf-customer-name-row{align-items:flex-start}
-  .nf-customer-delivery-wrap{max-width:48%}
-  .nf-customer-delivery-badge{font-size:12px;white-space:normal}
-  .nf-customer-delivery-date{font-size:10px}
-}
-</style>
 </body>
 </html>
