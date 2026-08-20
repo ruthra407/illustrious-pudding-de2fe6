@@ -3011,12 +3011,12 @@ body{
 <div class="stats">
 <div class="stat clickable" role="button" tabindex="0" onclick="goView('customers')"><div class="label">Customers</div><div id="statCustomers" class="num">0</div></div>
 <div class="stat clickable" role="button" tabindex="0" onclick="goView('orders')"><div class="label">Orders</div><div id="statOrders" class="num">0</div></div>
-<div class="stat clickable" role="button" tabindex="0" onclick="goView('payments')"><div class="label">Today Collection</div><div id="statTodayCollection" class="num">₹0</div></div>
-<div class="stat clickable" role="button" tabindex="0" onclick="goView('customers')"><div class="label">Pending Balance</div><div id="statBalance" class="num">₹0</div></div>
+<div class="stat clickable" role="button" tabindex="0" onclick="goView('payments')" style="display:none !important;"><div class="label">Today Collection</div><div id="statTodayCollection" class="num">₹0</div></div>
+<div class="stat clickable" role="button" tabindex="0" onclick="goView('customers')" style="display:none !important;"><div class="label">Pending Balance</div><div id="statBalance" class="num">₹0</div></div>
 </div>
 
 
-<div class="card dashboardCustomersCard">
+<div class="card dashboardCustomersCard" style="display:none !important;">
   <div class="pagehead"><div><h3 style="margin:0">👥 Customers</h3><p>Customer பெயரை tap செய்தால் அவருடைய Customer Card திறக்கும்.</p></div><button class="btn secondary" type="button" onclick="goView('customers')">View All</button></div>
   <div id="dashboardCustomersList" class="dashboardCustomersList"></div>
 </div>
