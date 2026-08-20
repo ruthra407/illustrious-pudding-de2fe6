@@ -2365,10 +2365,19 @@ body{
 
 <style id="nf-v2-fixed-header">
 .topbar{position:fixed!important;top:0!important;left:0!important;right:0!important;z-index:9990!important}
-.layout{padding-top:84px!important;min-height:100dvh!important}
+/* Header is already accounted for by #app padding-top.
+   Do not add a second header-sized gap before normal screens. */
+.layout{padding-top:0!important;min-height:100dvh!important}
 .nf-field-hidden{display:none!important}
-@media(max-width:700px){.layout{padding-top:88px!important}.main{min-height:calc(100dvh - 88px)!important}.topbar{height:auto!important}}
-@media(max-width:390px){.layout{padding-top:84px!important}.main{min-height:calc(100dvh - 84px)!important}}
+@media(max-width:700px){
+  .layout{padding-top:0!important}
+  .main{min-height:calc(100dvh - 88px)!important;padding-top:0!important}
+  .topbar{height:auto!important}
+}
+@media(max-width:390px){
+  .layout{padding-top:0!important}
+  .main{min-height:calc(100dvh - 84px)!important;padding-top:0!important}
+}
 </style>
 
 <style id="dashboard-custom-layout">
@@ -9317,7 +9326,7 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-head >
 
 
 <style id="nf-v55-customer-focus-scroll-fix">
-/* V5.5 — Customer Hub -> single customer focus.
+/* V5.6 — Customer Hub -> single customer focus.
    Dashboard Hub opens the selected customer's full Customer Card only.
    Direct Customers page remains a normal, fully scrollable multi-customer page. */
 #view-customers.nf-customer-focus-mode .customerCards > .customerCard{
