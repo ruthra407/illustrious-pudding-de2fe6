@@ -3319,28 +3319,28 @@ body{
 </style>
 
 
-<style id="nf-v58-customer-order-heading-fix">
-/* V5.8 — Customer/Order card heading only.
-   No header spacing, page layout, data, calculations, or navigation changes. */
-@media (max-width:700px){
-  /* Keep the card itself as the frame; only an explicitly identified
-     details body may scroll. The heading remains outside that scroll area. */
-  .customerCard .nf-customer-head,
-  .customerCard .customerCardHead,
-  .customerCard .card-head{
+<style id="nf-v59-heading-only-final-fix">
+/* V5.9 FINAL — ONLY the Customers/Orders page heading stays below the fixed header.
+   No gap, card content, details scrolling, buttons, options, data, or navigation changes. */
+@media(max-width:700px){
+  #view-customers > .pagehead,
+  #view-orders > .pagehead{
     position:sticky !important;
-    top:0 !important;
-    z-index:5 !important;
-    background:inherit !important;
+    top:var(--nf-header-height) !important;
+    z-index:100 !important;
+    background:var(--bg) !important;
   }
 
-  .dashboardOrderCard .top,
-  .dashboardOrderCard .orderCardHead,
-  .dashboardOrderCard .card-head{
-    position:sticky !important;
-    top:0 !important;
-    z-index:5 !important;
-    background:inherit !important;
+  /* Undo the earlier incorrect card-header sticky selectors. */
+  #view-customers .customerCard .nf-customer-head,
+  #view-customers .customerCard .customerCardHead,
+  #view-customers .customerCard .card-head,
+  #view-orders .dashboardOrderCard .top,
+  #view-orders .dashboardOrderCard .orderCardHead,
+  #view-orders .dashboardOrderCard .card-head{
+    position:static !important;
+    top:auto !important;
+    z-index:auto !important;
   }
 }
 </style>
