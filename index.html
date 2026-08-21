@@ -3348,7 +3348,7 @@ body{
 </style>
 
 <style id="v65-compact-search-fixed-header">
-/* V7.3: compact search button; search field opens only when requested */
+/* V7.0: compact search button; search field opens only when requested */
 .v65-search-wrap{display:flex;align-items:center;gap:7px}
 .v65-search-panel{display:none;align-items:center;gap:7px;flex:1}
 .v65-search-panel.open{display:flex}
@@ -3495,7 +3495,7 @@ body{
 
 
 <style id="v67-final-search-corner-title-clean">
-/* V7.3 — Search is only a small corner button; title prompts are removed. */
+/* V7.0 — Search is only a small corner button; title prompts are removed. */
 #view-customers .nf-search-pagehead,
 #view-orders .nf-search-pagehead{
   position:relative!important;
@@ -3581,7 +3581,7 @@ body{
 
 
 <style id="nf-v69-customer-name-order-id">
-/* V7.3 — Orders identity swap */
+/* V7.0 — Orders identity swap */
 .nf-v69-customer-name{
   color:#6337d8!important;
   font-weight:950!important;
@@ -3606,7 +3606,7 @@ body{
 
 
 <style id="nf-v70-hub-clean-header">
-/* V7.3 — Customers Hub top area only */
+/* V7.0 — Customers Hub top area only */
 #view-dashboard .nf-dashboard-customer-hub{
   border-radius:26px!important;
   padding:0 0 14px!important;
@@ -3696,114 +3696,6 @@ body{
   #view-dashboard .nf-dashboard-customer-hub .nf-dch-head .btn{padding:9px 11px!important;font-size:12px!important}
   #view-dashboard .nf-dashboard-customer-hub .nf-dch-tabs{gap:7px!important;padding:0 9px 4px!important}
   #view-dashboard .nf-dashboard-customer-hub .nf-dch-tab{min-height:55px!important;font-size:10px!important}
-}
-</style>
-
-
-<style id="nf-v71-customer-hub-header-finish">
-/* V7.3 — Customers Hub top area only: remove prompt + boxed, distinct headings */
-.nf-v70-hub-clean .nf-v70-hub-subtitle,
-.nf-v71-remove-prompt { display:none !important; }
-
-.nf-v70-hub-clean{
-  padding:16px 12px 13px !important;
-  border-radius:24px !important;
-  background:linear-gradient(135deg,#5a2bd8 0%,#7139e8 42%,#c42d91 100%) !important;
-}
-
-.nf-v70-hub-clean .nf-v70-hub-title-row{
-  margin:0 0 13px !important;
-  align-items:center !important;
-}
-
-.nf-v70-hub-clean .nf-v70-hub-title{
-  display:inline-flex !important;
-  align-items:center !important;
-  padding:9px 15px !important;
-  border-radius:15px !important;
-  background:rgba(255,255,255,.16) !important;
-  border:1px solid rgba(255,255,255,.34) !important;
-  box-shadow:0 7px 18px rgba(34,10,85,.16) !important;
-  font-size:clamp(25px,6.8vw,34px) !important;
-}
-
-.nf-v70-hub-clean .nf-v70-viewall{
-  background:#fff !important;
-  color:#5a2bd8 !important;
-  border:0 !important;
-  box-shadow:0 7px 18px rgba(31,8,75,.22) !important;
-}
-
-.nf-v70-hub-clean .nf-v70-tabs{
-  gap:9px !important;
-}
-
-.nf-v70-hub-clean .nf-v70-tab{
-  border:0 !important;
-  box-shadow:inset 0 0 0 1px rgba(255,255,255,.20),0 5px 13px rgba(36,8,90,.12) !important;
-}
-
-/* Three tabs are deliberately different, so they scan immediately. */
-.nf-v70-hub-clean .nf-v70-tab:nth-child(1){
-  background:#fff !important;
-  color:#5530c9 !important;
-}
-.nf-v70-hub-clean .nf-v70-tab:nth-child(1) .count{
-  background:#e9e3ff !important;
-  color:#5530c9 !important;
-}
-
-.nf-v70-hub-clean .nf-v70-tab:nth-child(2){
-  background:#f5b942 !important;
-  color:#5b3a00 !important;
-}
-.nf-v70-hub-clean .nf-v70-tab:nth-child(2) .count{
-  background:#ffe8a8 !important;
-  color:#7a4d00 !important;
-}
-
-.nf-v70-hub-clean .nf-v70-tab:nth-child(3){
-  background:#e85d8f !important;
-  color:#6f173d !important;
-}
-.nf-v70-hub-clean .nf-v70-tab:nth-child(3) .count{
-  background:#ffd0df !important;
-  color:#8a214d !important;
-}
-
-.nf-v70-hub-clean .nf-v70-tab.active{
-  transform:translateY(-1px);
-  box-shadow:0 8px 18px rgba(35,10,85,.20) !important;
-}
-
-@media(max-width:430px){
-  .nf-v70-hub-clean{padding:14px 9px 11px !important}
-  .nf-v70-hub-clean .nf-v70-hub-title-row{margin-bottom:11px !important}
-  .nf-v70-hub-clean .nf-v70-hub-title{padding:8px 12px !important}
-  .nf-v70-hub-clean .nf-v70-viewall{padding:9px 11px !important}
-  .nf-v70-hub-clean .nf-v70-tab{min-height:60px !important}
-}
-</style>
-
-
-<style id="nf-v73-final-hub-fix">
-/* V7.3 — Customers Hub only */
-.nf-v73-hide-prompt{display:none!important;}
-
-.nf-v70-hub-clean .nf-v70-hub-subtitle,
-.nf-v70-hub-clean .nf-v71-remove-prompt,
-.nf-v70-hub-clean .nf-v73-hide-prompt{
-  display:none!important;
-}
-
-/* Delivered Customers = rose, not green/teal */
-.nf-v70-hub-clean .nf-v70-tab:nth-child(3){
-  background:#e85d8f!important;
-  color:#6f173d!important;
-}
-.nf-v70-hub-clean .nf-v70-tab:nth-child(3) .count{
-  background:#ffd0df!important;
-  color:#8a214d!important;
 }
 </style>
 
@@ -10002,7 +9894,7 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-head >
 </script>
 
 <style id="nf-v64-customer-hub-outer-spacing-only">
-/* V7.3 — Customer Hub OUTER spacing only.
+/* V7.0 — Customer Hub OUTER spacing only.
    Keep all Customer Details/card internals unchanged.
    Remove only the dashboard main's left/right outer gutter around the Hub.
    No scaling, overlap, typography, controls, or scroll changes. */
