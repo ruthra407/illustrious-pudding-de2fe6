@@ -3318,6 +3318,43 @@ body{
 }
 </style>
 
+
+
+<style id="nf-v58-customer-order-heading-fix">
+/* V5.8 — ONLY Customer Cards / Orders page heading stays visible while the page scrolls.
+   No options are removed. No global scrolling is disabled. No extra top gap is introduced. */
+#view-customers > .pagehead,
+#view-orders > .pagehead{
+  position:sticky !important;
+  top:var(--nf-header-offset,88px) !important;
+  z-index:20 !important;
+  margin-top:0 !important;
+  margin-bottom:13px !important;
+  padding:0 !important;
+  background:transparent !important;
+}
+#view-customers > .pagehead .nf-fixed-page-title,
+#view-orders > .pagehead .nf-fixed-page-title{
+  min-width:0;
+  background:var(--p3-bg,#f6f7fb);
+  border-radius:0 0 12px 12px;
+}
+#view-customers > .pagehead .nf-fixed-page-title h2,
+#view-orders > .pagehead .nf-fixed-page-title h2{
+  margin:0 !important;
+}
+#view-customers > .pagehead .nf-fixed-page-title p,
+#view-orders > .pagehead .nf-fixed-page-title p{
+  margin:4px 0 0 !important;
+}
+@media(max-width:560px){
+  #view-customers > .pagehead,
+  #view-orders > .pagehead{
+    top:var(--nf-header-offset,88px) !important;
+    margin-bottom:10px !important;
+  }
+}
+</style>
 </head>
 <body>
 
@@ -3424,7 +3461,7 @@ body{
 </section>
 
 <section id="view-customers" class="view">
-<div class="pagehead"><div><h2>Customer Cards</h2><p>ஒவ்வொரு customer-க்கும் Order, blouse count, balance, design, delivery reminder — ஒரே card-ல்.</p></div><div class="spacer"></div><div class="nf-customer-page-actions"><button class="btn primary" onclick="openModal('customer')">＋ Add Customer</button></div></div>
+<div class="pagehead"><div class="nf-fixed-page-title"><h2>Customer Cards</h2><p>ஒவ்வொரு customer-க்கும் Order, blouse count, balance, design, delivery reminder — ஒரே card-ல்.</p></div><div class="spacer"></div><div class="nf-customer-page-actions"><button class="btn primary" onclick="openModal('customer')">＋ Add Customer</button></div></div>
 <div class="card customerSearchBox nf-section-card">
 <div class="toolbar" style="margin:0"><input id="customerSearch" class="input search" placeholder="Search name / phone / address / village"><button class="btn secondary" onclick="loadAll()">↻ Refresh</button></div></div>
 <div id="customersTable" class="customerCards"></div>
@@ -3436,7 +3473,7 @@ body{
 </section>
 
 <section id="view-orders" class="view">
-<div class="pagehead"><div><h2>Orders</h2><p>Customer Card-ல் எடுத்த New Order-கள் மட்டும் இங்கே வரும்.</p></div><div class="spacer"></div></div>
+<div class="pagehead"><div class="nf-fixed-page-title"><h2>Orders</h2><p>Customer Card-ல் எடுத்த New Order-கள் மட்டும் இங்கே வரும்.</p></div><div class="spacer"></div></div>
 <div class="card nf-section-card">
 <div class="toolbar"><input id="orderSearch" class="input search" placeholder="Search order / customer / garment"><select id="orderStatusFilter" style="max-width:190px"><option value="">All status</option><option>Pending</option><option>In Progress</option><option>Ready</option><option>Delivered</option><option>Cancelled</option></select><button class="btn secondary" onclick="loadAll()">↻ Refresh</button></div><div id="ordersTable"></div></div>
 </section>
