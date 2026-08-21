@@ -9917,3 +9917,249 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-head >
   }
 }
 </style>
+
+
+
+<!-- =========================================================
+     V7.5 — ORDER CARD ADD CUSTOMER + CUSTOMER CARD EDIT ORDER
+     - Add Customer is a real synced customer record.
+     - The newly created customer is linked to the selected order
+       through the existing orders.customer_id field.
+     - Customer Card removes Order Full Details and moves Edit Order
+       beside the customer name.
+     ========================================================= -->
+<style id="nf-v75-order-customer-sync">
+.nf-order-add-customer-row{
+  display:flex;
+  margin:8px 0 10px;
+}
+.nf-order-add-customer-btn{
+  width:100%;
+  min-height:42px;
+  border:0!important;
+  border-radius:13px!important;
+  background:linear-gradient(135deg,#7b4df6,#d83f9b)!important;
+  color:#fff!important;
+  font-weight:800;
+  box-shadow:0 7px 18px rgba(123,77,246,.20);
+}
+.nf-customer-name-row{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  width:100%;
+  margin-bottom:5px;
+}
+.nf-customer-name-row h3{
+  flex:1 1 auto;
+}
+.nf-customer-inline-edit-order{
+  flex:0 0 auto;
+  min-height:40px!important;
+  padding:8px 13px!important;
+  border:0!important;
+  border-radius:12px!important;
+  background:linear-gradient(135deg,#6c4df6,#ef4f8a)!important;
+  color:#fff!important;
+  font-weight:800;
+  box-shadow:0 6px 15px rgba(108,77,246,.18);
+}
+@media(max-width:560px){
+  .nf-customer-name-row{align-items:flex-start}
+  .nf-customer-inline-edit-order{font-size:13px;white-space:nowrap}
+}
+</style>
+
+<script id="nf-v75-order-customer-sync-js">
+(function(){
+  "use strict";
+
+  var pendingOrderCustomer = null;
+  var pendingCustomerExistingIds = new Set();
+
+  function esc75(v){
+    return typeof esc==="function" ? esc(v) :
+      String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  }
+
+  window.openAddCustomerForOrder=function(orderId){
+    var o=(state.orders||[]).find(function(x){return String(x.id)===String(orderId);});
+    if(!o){ if(typeof toast==="function")toast("Order கிடைக்கவில்லை.",true); return; }
+
+    pendingOrderCustomer=String(orderId);
+    pendingCustomerExistingIds=new Set((state.customers||[]).map(function(c){return String(c.id)}));
+
+    openModal("customer");
+    setTimeout(function(){
+      var title=document.getElementById("modalTitle");
+      if(title)title.textContent="＋ Add Customer — Order-க்கு இணைக்கவும்";
+      var msg=document.getElementById("formMsg");
+      if(msg){
+        msg.textContent="Customer Save செய்தவுடன் இந்த Order-க்கு தானாக sync ஆகும்.";
+        msg.className="msg";
+      }
+    },0);
+  };
+
+  async function linkNewCustomerToOrder(customerId,orderId){
+    var result=await supabaseClient.from("orders")
+      .update({customer_id:customerId})
+      .eq("id",orderId)
+      .select()
+      .single();
+    if(result.error)throw result.error;
+    await loadAll(true);
+    if(typeof renderAll==="function")renderAll();
+    if(typeof toast==="function")toast("Customer Order-க்கு sync செய்யப்பட்டது.");
+  }
+
+  /* The existing customer save handler remains the single save pipeline.
+     We only watch for the newly inserted customer, then link it to the
+     selected order using the same Supabase orders.customer_id relation. */
+  var dataForm=document.getElementById("dataForm");
+  if(dataForm){
+    dataForm.addEventListener("submit",function(){
+      if(!pendingOrderCustomer)return;
+      if(!state.editing || state.editing.type!=="customer" || state.editing.id)return;
+
+      var orderId=pendingOrderCustomer;
+      var started=Date.now();
+      var finished=false;
+
+      var timer=setInterval(async function(){
+        if(finished){clearInterval(timer);return;}
+        var fresh=(state.customers||[]).find(function(c){
+          return !pendingCustomerExistingIds.has(String(c.id));
+        });
+
+        if(fresh){
+          finished=true;
+          clearInterval(timer);
+          pendingOrderCustomer=null;
+          try{
+            await linkNewCustomerToOrder(fresh.id,orderId);
+          }catch(err){
+            if(typeof toast==="function")toast("Customer sync failed: "+err.message,true);
+          }
+          return;
+        }
+
+        if(Date.now()-started>12000){
+          finished=true;
+          clearInterval(timer);
+          pendingOrderCustomer=null;
+        }
+      },150);
+    },true);
+  }
+
+  /* ---------------------------------------------------------
+     CUSTOMER CARD
+     Remove the old Order Full Details button, move Edit Order
+     beside the customer name, and remove the duplicate lower Edit
+     Order action while preserving Design / Measurement / Payment.
+     --------------------------------------------------------- */
+  var baseCustomerCard75=window.customerCard;
+  if(typeof baseCustomerCard75==="function" && !baseCustomerCard75.__nfV75){
+    window.customerCard=function(id){
+      var html=baseCustomerCard75.apply(this,arguments);
+
+      /* Remove any Order Full Details action previously injected. */
+      html=html.replace(/<button[^>]*class="[^"]*nf-customer-order-full-btn[^"]*"[^>]*>[\s\S]*?<\/button>/gi,"");
+
+      var latest=(state.orders||[])
+        .filter(function(o){return String(o.customer_id)===String(id)})
+        .slice()
+        .sort(function(a,b){
+          return String(b.created_at||b.order_date||"").localeCompare(String(a.created_at||a.order_date||""));
+        })[0];
+
+      if(latest){
+        var editButton='<button type="button" class="btn nf-customer-inline-edit-order" onclick="event.stopPropagation();openCustomerOrderEditor(\''+
+          String(id).replace(/'/g,"\\'")+'\','+
+          '\''+String(latest.id).replace(/'/g,"\\'")+'\')">✏️ Edit Order</button>';
+
+        /* Put Edit Order directly beside the customer name. */
+        html=html.replace(
+          /<h3>([\s\S]*?)<\/h3>/,
+          '<div class="nf-customer-name-row"><h3>$1</h3>'+editButton+'</div>'
+        );
+      }
+
+      /* Remove the duplicate lower Edit Order button + heading only.
+         Design, Measurement and Payment buttons stay exactly where they are. */
+      html=html.replace(
+        /<div class="customerSection"><h4>✏️ Edit Order — இந்த customer card-லேயே<\/h4><div class="customerActions"><button class="btn primary" onclick="openCustomerOrderEditor\('[^']*'\)">✏️ Edit Order<\/button>/,
+        '<div class="customerSection"><h4>🛠 Customer Tools</h4><div class="customerActions">'
+      );
+
+      return html;
+    };
+    window.customerCard.__nfV75=true;
+  }
+
+  /* ---------------------------------------------------------
+     ORDERS PAGE
+     Add + Add Customer above the customer name on every order card.
+     --------------------------------------------------------- */
+  var baseRenderOrders75=window.renderOrders;
+  if(typeof baseRenderOrders75==="function" && !baseRenderOrders75.__nfV75){
+    window.renderOrders=function(){
+      baseRenderOrders75.apply(this,arguments);
+
+      document.querySelectorAll(".nf-mobile-order-card").forEach(function(card){
+        if(card.querySelector(".nf-order-add-customer-row"))return;
+
+        var orderNo=card.querySelector(".nf-v69-order-id")?.textContent?.trim()||"";
+        var order=(state.orders||[]).find(function(o){return String(o.order_no)===String(orderNo)});
+        if(!order)return;
+
+        var top=card.querySelector(".nf-mobile-order-top");
+        if(!top)return;
+
+        var row=document.createElement("div");
+        row.className="nf-order-add-customer-row";
+        row.innerHTML='<button type="button" class="btn nf-order-add-customer-btn" onclick="event.stopPropagation();openAddCustomerForOrder(\''+
+          String(order.id).replace(/'/g,"\\'")+'\')">＋ Add Customer</button>';
+        card.insertBefore(row,top);
+      });
+
+      /* Desktop table: keep the same action available without changing
+         the existing table data structure. */
+      document.querySelectorAll("#ordersTable table tbody tr").forEach(function(tr){
+        if(tr.querySelector(".nf-order-add-customer-btn"))return;
+        var orderIdButton=tr.querySelector(".nf-edit-order-btn");
+        if(!orderIdButton)return;
+        var onclick=orderIdButton.getAttribute("onclick")||"";
+        var m=onclick.match(/openOrdersEditOrder\\('([^']+)'\\)/);
+        if(!m)return;
+        var orderId=m[1];
+        var cell=tr.querySelector("td");
+        if(!cell)return;
+        var b=document.createElement("button");
+        b.type="button";
+        b.className="btn nf-order-add-customer-btn";
+        b.style.marginTop="7px";
+        b.textContent="＋ Add Customer";
+        b.onclick=function(e){
+          e.stopPropagation();
+          openAddCustomerForOrder(orderId);
+        };
+        cell.appendChild(b);
+      });
+    };
+    window.renderOrders.__nfV75=true;
+  }
+
+  /* Re-render current view once so the patch is visible immediately. */
+  document.addEventListener("DOMContentLoaded",function(){
+    setTimeout(function(){
+      try{
+        if(typeof renderAll==="function")renderAll();
+        if(typeof renderOrders==="function" && document.getElementById("ordersTable"))renderOrders();
+      }catch(e){console.error("V7.5 patch render",e)}
+    },100);
+  },{once:true});
+
+})();
+</script>
