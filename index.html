@@ -3318,6 +3318,34 @@ body{
 }
 </style>
 
+
+<style id="nf-v57-card-heading-only-fix">
+/* V5.8 — ONLY Customer Card / Order Card heading behavior.
+   Header spacing/layout remains exactly as in the source file.
+   Heading stays visible; details below it are the scroll area. */
+@media (max-width: 700px){
+  #view-customers .customerCard,
+  #view-orders .dashboardOrderCard{
+    display:flex;
+    flex-direction:column;
+    min-height:0;
+  }
+
+  #view-customers .customerCard > .customerCardHead,
+  #view-orders .dashboardOrderCard > .top{
+    flex:0 0 auto;
+  }
+
+  #view-customers .customerCard > .customerCardDetails,
+  #view-orders .dashboardOrderCard > .details{
+    min-height:0;
+    overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
+    overscroll-behavior:contain;
+  }
+}
+</style>
+
 </head>
 <body>
 
