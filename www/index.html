@@ -3348,7 +3348,7 @@ body{
 </style>
 
 <style id="v65-compact-search-fixed-header">
-/* V6.5: compact search button; search field opens only when requested */
+/* V6.6: compact search button; search field opens only when requested */
 .v65-search-wrap{display:flex;align-items:center;gap:7px}
 .v65-search-panel{display:none;align-items:center;gap:7px;flex:1}
 .v65-search-panel.open{display:flex}
@@ -3422,6 +3422,74 @@ body{
   }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init); else init();
   setTimeout(init,500);
+})();
+</script>
+
+
+<style id="v66-search-corner-title-cleanup">
+/* Compact search: small colored corner button, opens the existing search panel */
+.v66-corner-search{
+  position:absolute!important;
+  top:10px!important;
+  right:12px!important;
+  width:46px!important;
+  height:46px!important;
+  min-width:46px!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:14px!important;
+  background:linear-gradient(135deg,#6d3df0,#c52d91)!important;
+  color:#fff!important;
+  box-shadow:0 6px 16px rgba(92,45,170,.25)!important;
+  font-size:21px!important;
+  z-index:5;
+}
+.v66-search-host{position:relative!important}
+.v66-search-panel.v66-open{
+  position:absolute!important;
+  top:62px!important;
+  right:8px!important;
+  left:8px!important;
+  z-index:20;
+  background:#f7f3fb!important;
+  padding:8px!important;
+  border-radius:14px!important;
+  box-shadow:0 8px 22px rgba(50,30,80,.18)!important;
+}
+.v66-search-panel{display:none!important}
+.v66-search-panel.v66-open{display:flex!important}
+
+/* Remove only the descriptive prompt immediately below Customer Cards / Orders titles */
+.page h1 + p,
+.page-title + p,
+.page h1 ~ .subtitle:first-of-type,
+.page-title ~ .subtitle:first-of-type{
+  display:none!important;
+}
+</style>
+<script>
+(function(){
+  function setup(){
+    document.querySelectorAll('.v65-search-wrap').forEach(function(wrap){
+      if(wrap.dataset.v66Done) return;
+      wrap.dataset.v66Done='1';
+      wrap.classList.add('v66-search-host');
+      var icon=wrap.querySelector('.v65-search-icon');
+      var panel=wrap.querySelector('.v65-search-panel');
+      if(!icon || !panel) return;
+      icon.classList.add('v66-corner-search');
+      icon.textContent='🔍';
+      icon.setAttribute('aria-label','Search');
+      icon.addEventListener('click',function(e){
+        e.stopPropagation();
+        panel.classList.toggle('v66-open');
+      });
+    });
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',setup);
+  else setup();
+  setTimeout(setup,400);
+  setTimeout(setup,1000);
 })();
 </script>
 
@@ -9620,7 +9688,7 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-head >
 </script>
 
 <style id="nf-v64-customer-hub-outer-spacing-only">
-/* V6.5 — Customer Hub OUTER spacing only.
+/* V6.6 — Customer Hub OUTER spacing only.
    Keep all Customer Details/card internals unchanged.
    Remove only the dashboard main's left/right outer gutter around the Hub.
    No scaling, overlap, typography, controls, or scroll changes. */
