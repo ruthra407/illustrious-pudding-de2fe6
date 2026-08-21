@@ -1,10 +1,10 @@
 <!doctype html>
-<html nf-build="verified-2026-08-20-v4.2-rechecked" lang="ta">
+<html nf-build="verified-2026-08-21-v7.4-order-update-fix" lang="ta">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="nf-build" content="verified-2026-08-20-v4.2-rechecked">
-<title>New Fashion Tailoring – Online Management | Phase 4.3 • V4.2</title>
+<meta name="nf-build" content="verified-2026-08-21-v7.4-order-update-fix">
+<title>New Fashion Tailoring – Online Management | Phase 4.3 • V7.4</title>
 <link rel="manifest" href="manifest.json">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -3699,6 +3699,7 @@ body{
 }
 </style>
 
+<!-- V7.4: Order edit/update reliability fix. -->
 </head>
 <body>
 
@@ -9290,7 +9291,8 @@ html{
   /* Save one order, with both components in the same GARMENT_SPLIT marker. */
   window.saveQuickOrder=async function(id,customerId){
     customerId=customerId||id;
-    const box=document.getElementById("quick-order-"+id),editOrderId=box?.dataset.editOrderId||"",existing=editOrderId?(state.orders||[]).find(x=>x.id===editOrderId):null;
+    const box=document.getElementById("quick-order-"+id),editOrderId=String(box?.dataset.editOrderId||"").trim(),existing=editOrderId?(state.orders||[]).find(x=>String(x.id)===editOrderId):null;
+    if(editOrderId&&!existing){toast("இந்த Order data கிடைக்கவில்லை. மீண்டும் Edit Order திறக்கவும்.",true);return;}
     const isOrdersEditor=String(id||"").indexOf("orders_")===0;
     const garment=document.getElementById("qo-garment-"+id)?.value||"Blouse",combined=isCombinedValue(garment),isBlouse=combined||garment==="Blouse",isChudi=combined||garment==="Chudi";
     const cloth=document.getElementById("qo-cloth-"+id)?.value||null,delivery=document.getElementById("qo-delivery-"+id)?.value||null;
@@ -9300,7 +9302,10 @@ html{
     if(s.design>0&&designRates.length!==s.design){toast("ஒவ்வொரு Design blouse-க்கும் rate கொடுக்க வேண்டும்.",true);return}
     const designTotal=designRates.reduce((sum,v)=>sum+N(v),0);
     const cq=isChudi?N(document.getElementById("qo-chudi-"+id)?.value):0,cl=document.getElementById("qo-chudi-lining-"+id)?.value==="yes"?"yes":"no",clq=isChudi?N(document.getElementById("qo-chudi-lining-qty-"+id)?.value):0,cr=isChudi?N(document.getElementById("qo-chudi-rate-"+id)?.value||r.chudi):0;
+    /* V7.4 fix: these two values were referenced below but never defined. */
+    const ch=isChudi?Math.min(cq,N(document.getElementById("qo-chudi-handover-"+id)?.value)):0;
     const sq=isBlouse?N(document.getElementById("qo-saree-"+id)?.value):0,sr=isBlouse?N(document.getElementById("qo-saree-rate-"+id)?.value||r.saree):0;
+    const sh=isBlouse?Math.min(sq,N(document.getElementById("qo-saree-handover-"+id)?.value)):0;
     const blouseTotal=isBlouse?(s.normal*N(r.normal)+s.lining*N(r.lining)+designTotal+sq*sr):0;
     const chudiTotal=isChudi?cq*cr:0;
     const ls=document.getElementById("qo-lining-source-"+id)?.value||"",lq=N(document.getElementById("qo-lining-qty-"+id)?.value),lr=N(document.getElementById("qo-lining-cost-rate-"+id)?.value),liningTotal=ls==="shop"?lq*lr:0;
@@ -9310,7 +9315,8 @@ html{
     if(qty<=0){toast(combined?"குறைந்தது 1 blouse அல்லது 1 Chudi எண்ணிக்கை கொடுக்க வேண்டும்.":isChudi?"குறைந்தது 1 Chudi கொடுக்க வேண்டும்.":"குறைந்தது 1 blouse கொடுக்க வேண்டும்.",true);return}
     if(ls==="shop"&&lq>0&&lr<=0){toast("நாம் வாங்கிய Lining-க்கு விலை கொடுக்க வேண்டும்.",true);return}
     if(ls==="shop"&&lq<=0&&lr>0){toast("நாம் வாங்கிய Lining எத்தனை என்று கொடுக்க வேண்டும்.",true);return}
-    let notes=isBlouse?makeBlouseSplitNote(s,r,document.getElementById("qo-notes-"+id)?.value||""):"";
+    const userNotes=typeof cleanOrderNotes==="function"?cleanOrderNotes(document.getElementById("qo-notes-"+id)?.value||""):String(document.getElementById("qo-notes-"+id)?.value||"").trim();
+    let notes=isBlouse?makeBlouseSplitNote(s,r,userNotes):userNotes;
     const split={chudi:cq,chudiLining:cl,chudiLiningQty:clq,saree:sq};
     notes=String(notes||"").replace(/\s*\|\s*GARMENT_SPLIT:\{[^}]+\}/g,"").replace(/\s*\|\s*(?:CHUDI_RATE|SAREE_RATE):[0-9.]+/g,"").trim();
     notes+=(notes?" | ":"")+"GARMENT_SPLIT:"+JSON.stringify(split);notes+=" | GARMENT_HANDOVER:"+JSON.stringify({chudi:ch,saree:sh});
@@ -9321,8 +9327,11 @@ html{
     const storedGarment=isBlouse?"Blouse":"Chudi";
     const payload={customer_id:customerId,order_no:existing?.order_no||makeOrderNo(),garment_type:storedGarment,order_date:existing?.order_date||localDate(),cloth_received_date:cloth,delivery_date:delivery,quantity:qty,unit_price:qty?total/qty:0,total_amount:total,advance_amount:advance,balance_amount:Math.max(0,total-advance),status,rate_type:isBlouse?(s.normal>0?"normal":s.lining>0?"lining":s.design>0?"design":"normal"):"normal",lining_cloth_source:ls||null,lining_cloth_qty:lq,notes};
     try{
-      const result=existing?await supabaseClient.from("orders").update(payload).eq("id",existing.id):await supabaseClient.from("orders").insert(payload);
+      const result=existing
+        ?await supabaseClient.from("orders").update(payload).eq("id",existing.id).select("*").maybeSingle()
+        :await supabaseClient.from("orders").insert(payload).select("*").single();
       if(result.error)throw result.error;
+      if(existing&&!result.data)throw new Error("Order update செய்யப்படவில்லை. Database UPDATE permission / RLS policy-ஐ சரிபார்க்க வேண்டும்.");
       box.dataset.editOrderId="";await loadAll(true);
       const title=box.querySelector(".nf-quick-edit-title"),save=box.querySelector(".nf-quick-save-btn");if(title)title.textContent="🧾 New Order";if(save)save.textContent="💾 Save Order";
       toast(existing?"Order details updated.":"இந்த customer-க்கு New Order சேமிக்கப்பட்டது.");
