@@ -3319,29 +3319,28 @@ body{
 </style>
 
 
-<style id="nf-v57-card-heading-only-fix">
-/* V5.8 — ONLY Customer Card / Order Card heading behavior.
-   Header spacing/layout remains exactly as in the source file.
-   Heading stays visible; details below it are the scroll area. */
-@media (max-width: 700px){
-  #view-customers .customerCard,
-  #view-orders .dashboardOrderCard{
-    display:flex;
-    flex-direction:column;
-    min-height:0;
+<style id="nf-v58-customer-order-heading-fix">
+/* V5.8 — Customer/Order card heading only.
+   No header spacing, page layout, data, calculations, or navigation changes. */
+@media (max-width:700px){
+  /* Keep the card itself as the frame; only an explicitly identified
+     details body may scroll. The heading remains outside that scroll area. */
+  .customerCard .nf-customer-head,
+  .customerCard .customerCardHead,
+  .customerCard .card-head{
+    position:sticky !important;
+    top:0 !important;
+    z-index:5 !important;
+    background:inherit !important;
   }
 
-  #view-customers .customerCard > .customerCardHead,
-  #view-orders .dashboardOrderCard > .top{
-    flex:0 0 auto;
-  }
-
-  #view-customers .customerCard > .customerCardDetails,
-  #view-orders .dashboardOrderCard > .details{
-    min-height:0;
-    overflow-y:auto;
-    -webkit-overflow-scrolling:touch;
-    overscroll-behavior:contain;
+  .dashboardOrderCard .top,
+  .dashboardOrderCard .orderCardHead,
+  .dashboardOrderCard .card-head{
+    position:sticky !important;
+    top:0 !important;
+    z-index:5 !important;
+    background:inherit !important;
   }
 }
 </style>
