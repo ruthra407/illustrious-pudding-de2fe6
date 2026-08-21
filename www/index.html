@@ -3348,7 +3348,7 @@ body{
 </style>
 
 <style id="v65-compact-search-fixed-header">
-/* V6.7: compact search button; search field opens only when requested */
+/* V6.8: compact search button; search field opens only when requested */
 .v65-search-wrap{display:flex;align-items:center;gap:7px}
 .v65-search-panel{display:none;align-items:center;gap:7px;flex:1}
 .v65-search-panel.open{display:flex}
@@ -3495,7 +3495,7 @@ body{
 
 
 <style id="v67-final-search-corner-title-clean">
-/* V6.7 — Search is only a small corner button; title prompts are removed. */
+/* V6.8 — Search is only a small corner button; title prompts are removed. */
 #view-customers .nf-search-pagehead,
 #view-orders .nf-search-pagehead{
   position:relative!important;
@@ -3578,6 +3578,70 @@ body{
   }
 }
 </style>
+
+
+<style id="v68-order-card-identity">
+.nf-order-card .nf-v68-customer-name,
+.order-card .nf-v68-customer-name{
+  color:#6b35d8!important;
+  font-weight:900!important;
+  font-size:clamp(24px,5vw,34px)!important;
+}
+.nf-order-card .nf-v68-order-id,
+.order-card .nf-v68-order-id{
+  color:#6b35d8!important;
+  font-weight:900!important;
+}
+</style>
+<script id="v68-order-card-identity-js">
+(function(){
+  function txt(e){return e?e.textContent.trim():"";}
+  function fix(){
+    document.querySelectorAll('.order-card,.nf-order-card').forEach(function(card){
+      if(card.dataset.v68Identity) return;
+
+      var all=card.querySelectorAll('*');
+      var idEl=null, custRow=null, custVal=null, id='';
+      for(var i=0;i<all.length;i++){
+        var t=txt(all[i]);
+        if(!idEl && /^ORD[-_][A-Z0-9-]+$/i.test(t) && all[i].children.length===0){
+          idEl=all[i]; id=t;
+        }
+      }
+      for(var j=0;j<all.length;j++){
+        var t2=txt(all[j]);
+        if(/^Customer$/i.test(t2) && all[j].children.length>=2){
+          custRow=all[j]; custVal=all[j].children[1]; break;
+        }
+      }
+      if(!idEl || !custVal || !id) return;
+
+      var name=txt(custVal);
+      if(!name || /^ORD[-_]/i.test(name)) return;
+
+      var nameEl=document.createElement('div');
+      nameEl.className='nf-v68-customer-name';
+      nameEl.textContent=name;
+
+      var orderEl=document.createElement('div');
+      orderEl.className='nf-v68-order-id';
+      orderEl.textContent=id;
+
+      idEl.textContent='';
+      idEl.appendChild(nameEl);
+
+      custVal.textContent='';
+      custVal.appendChild(orderEl);
+
+      card.dataset.v68Identity='1';
+    });
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',fix);
+  else fix();
+  setTimeout(fix,500);
+  setTimeout(fix,1200);
+})();
+</script>
 
 </head>
 <body>
@@ -9774,7 +9838,7 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-head >
 </script>
 
 <style id="nf-v64-customer-hub-outer-spacing-only">
-/* V6.7 — Customer Hub OUTER spacing only.
+/* V6.8 — Customer Hub OUTER spacing only.
    Keep all Customer Details/card internals unchanged.
    Remove only the dashboard main's left/right outer gutter around the Hub.
    No scaling, overlap, typography, controls, or scroll changes. */
