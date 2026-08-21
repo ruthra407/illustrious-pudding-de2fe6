@@ -9483,3 +9483,19 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-head >
   });
 })();
 </script>
+
+<style id="nf-v64-customer-hub-outer-spacing-only">
+/* V6.4 — Customer Hub OUTER spacing only.
+   Keep all Customer Details/card internals unchanged.
+   Remove only the dashboard main's left/right outer gutter around the Hub.
+   No scaling, overlap, typography, controls, or scroll changes. */
+@media(max-width:700px){
+  body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub{
+    width:calc(100% + 18px)!important;
+    max-width:none!important;
+    margin-left:-9px!important;
+    margin-right:-9px!important;
+    box-sizing:border-box!important;
+  }
+}
+</style>
