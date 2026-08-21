@@ -3318,33 +3318,6 @@ body{
 }
 </style>
 
-
-<style id="nf-v58-customer-order-heading-fix">
-/* V5.8 — Customer/Order card heading only.
-   No header spacing, page layout, data, calculations, or navigation changes. */
-@media (max-width:700px){
-  /* Keep the card itself as the frame; only an explicitly identified
-     details body may scroll. The heading remains outside that scroll area. */
-  .customerCard .nf-customer-head,
-  .customerCard .customerCardHead,
-  .customerCard .card-head{
-    position:sticky !important;
-    top:0 !important;
-    z-index:5 !important;
-    background:inherit !important;
-  }
-
-  .dashboardOrderCard .top,
-  .dashboardOrderCard .orderCardHead,
-  .dashboardOrderCard .card-head{
-    position:sticky !important;
-    top:0 !important;
-    z-index:5 !important;
-    background:inherit !important;
-  }
-}
-</style>
-
 </head>
 <body>
 
