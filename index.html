@@ -1622,6 +1622,29 @@ body{
   --p4-border:rgba(69,56,95,.11);
 }
 
+
+/* Compact management search: hidden until the corner search button is tapped. */
+.nf-compact-search-wrap{position:relative;display:flex;align-items:center;gap:7px;justify-content:flex-end}
+.nf-compact-search-btn{width:44px;height:44px;border-radius:13px;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.18);color:#fff;font-size:21px;font-weight:800;cursor:pointer;box-shadow:0 5px 14px rgba(40,20,70,.12)}
+.pagehead{position:relative}
+.nf-customer-page-actions{position:relative}
+.nf-customer-page-actions > .nf-compact-search-wrap{position:absolute;right:0;top:0}
+.nf-customer-page-actions > .btn.primary{margin-top:52px}
+#view-orders .pagehead > .nf-compact-search-wrap{position:absolute;right:0;top:0}
+.nf-compact-search-btn{width:44px!important;min-width:44px!important;max-width:44px!important;flex:0 0 44px!important}
+.nf-compact-search-panel{display:none;position:absolute;right:0;top:50px;z-index:30;width:min(330px,calc(100vw - 36px));padding:8px;border-radius:15px;background:rgba(255,255,255,.98);border:1px solid rgba(69,56,95,.12);box-shadow:0 12px 30px rgba(54,39,84,.18)}
+.nf-compact-search-panel.open{display:flex;gap:7px;align-items:center}
+.nf-compact-search-panel .input{min-width:0;flex:1}
+.nf-compact-search-panel .btn{white-space:nowrap;padding:10px 12px}
+.nf-compact-search-panel select{width:132px;max-width:132px}
+.nf-compact-search-card{display:none!important}
+@media(max-width:560px){
+ .nf-compact-search-panel{top:48px}
+ .nf-compact-search-panel.open{flex-wrap:wrap}
+ .nf-compact-search-panel .input{flex-basis:100%;width:100%}
+ .nf-compact-search-panel select{flex:1;width:auto;max-width:none}
+}
+
 /* Smooth screen changes without changing existing logic */
 .view.active{
   animation:p4PageIn .24s ease both;
@@ -3346,6 +3369,52 @@ body{
 .nf-garment-subtitle{margin:12px 2px 7px;padding:7px 10px;border-radius:11px;background:rgba(255,255,255,.62);font-weight:800;color:#5b3d79}
 @media(max-width:520px){.nf-collection-panel{padding:10px;border-radius:17px}.nf-collection-title h4{font-size:17px}.nf-collection-title small{font-size:11px}}
 </style>
+
+<style id="nf-v65-desktop-laptop-view">
+/* V6.5 — Desktop/Laptop presentation only.
+   Mobile layout remains unchanged. */
+@media (min-width: 901px){
+  #app > .layout{
+    display:flex !important;
+    align-items:stretch !important;
+  }
+
+  #sidebar{
+    flex:0 0 250px !important;
+  }
+
+  #app > .layout > .main{
+    flex:1 1 auto !important;
+    min-width:0 !important;
+    max-width:none !important;
+  }
+
+  #app .main{
+    padding-left:20px !important;
+    padding-right:20px !important;
+  }
+
+  #app .page{
+    width:100% !important;
+    max-width:1400px !important;
+    margin-left:auto !important;
+    margin-right:auto !important;
+  }
+
+  /* Customer Hub uses the larger desktop canvas without changing
+     its internal customer-detail design. */
+  #view-dashboard .nf-dashboard-customer-hub{
+    width:100% !important;
+    max-width:none !important;
+  }
+
+  #view-customers .customerCard,
+  #view-orders .dashboardOrderCard{
+    width:100% !important;
+  }
+}
+</style>
+
 </head>
 <body>
 
@@ -3452,9 +3521,9 @@ body{
 </section>
 
 <section id="view-customers" class="view">
-<div class="pagehead"><div><h2>Customer Cards</h2><p>ஒவ்வொரு customer-க்கும் Order, blouse count, balance, design, delivery reminder — ஒரே card-ல்.</p></div><div class="spacer"></div><div class="nf-customer-page-actions"><button class="btn primary" onclick="openModal('customer')">＋ Add Customer</button></div></div>
-<div class="card customerSearchBox nf-section-card">
-<div class="toolbar" style="margin:0"><input id="customerSearch" class="input search" placeholder="Search name / phone / address / village"><button class="btn secondary" onclick="loadAll()">↻ Refresh</button></div></div>
+<div class="pagehead"><div><h2>Customer Cards</h2><p>ஒவ்வொரு customer-க்கும் Order, blouse count, balance, design, delivery reminder — ஒரே card-ல்.</p></div><div class="spacer"></div><div class="nf-customer-page-actions"><div class="nf-compact-search-wrap"><button class="nf-compact-search-btn" type="button" aria-label="Search customers" title="Search" onclick="toggleCompactSearch('customer')">⌕</button><div id="customerCompactSearch" class="nf-compact-search-panel"><input id="customerSearch" class="input search" placeholder="Search name / phone / address / village"><button class="btn secondary" type="button" onclick="loadAll();closeCompactSearch('customer')">↻</button></div></div><button class="btn primary" onclick="openModal('customer')">＋ Add Customer</button></div></div>
+<div class="card customerSearchBox nf-section-card nf-compact-search-card">
+<div class="toolbar" style="margin:0"><input class="input search" placeholder="Search name / phone / address / village"><button class="btn secondary" onclick="loadAll()">↻ Refresh</button></div></div>
 <div id="customersTable" class="customerCards"></div>
 </section>
 
@@ -3464,9 +3533,9 @@ body{
 </section>
 
 <section id="view-orders" class="view">
-<div class="pagehead"><div><h2>Orders</h2><p>Customer Card-ல் எடுத்த New Order-கள் மட்டும் இங்கே வரும்.</p></div><div class="spacer"></div></div>
+<div class="pagehead"><div><h2>Orders</h2><p>Customer Card-ல் எடுத்த New Order-கள் மட்டும் இங்கே வரும்.</p></div><div class="spacer"></div><div class="nf-compact-search-wrap"><button class="nf-compact-search-btn" type="button" aria-label="Search orders" title="Search" onclick="toggleCompactSearch('order')">⌕</button><div id="orderCompactSearch" class="nf-compact-search-panel"><input id="orderSearch" class="input search" placeholder="Search order / customer / garment"><select id="orderStatusFilter"><option value="">All status</option><option>Pending</option><option>In Progress</option><option>Ready</option><option>Delivered</option><option>Cancelled</option></select><button class="btn secondary" type="button" onclick="loadAll();closeCompactSearch('order')">↻</button></div></div></div>
 <div class="card nf-section-card">
-<div class="toolbar"><input id="orderSearch" class="input search" placeholder="Search order / customer / garment"><select id="orderStatusFilter" style="max-width:190px"><option value="">All status</option><option>Pending</option><option>In Progress</option><option>Ready</option><option>Delivered</option><option>Cancelled</option></select><button class="btn secondary" onclick="loadAll()">↻ Refresh</button></div><div id="ordersTable"></div></div>
+<div class="toolbar" style="display:none"><input class="input search" placeholder="Search order / customer / garment"><select><option>All status</option></select><button class="btn secondary" onclick="loadAll()">↻ Refresh</button></div><div id="ordersTable"></div></div>
 </section>
 
 <section id="view-alterations" class="view">
@@ -4087,6 +4156,17 @@ const r=new FileReader();r.onload=()=>{
 function removeCustomerClothPhoto(id,slot){
 const arr=customerClothPhotos(id);arr[slot]=null;setCustomerClothPhotos(id,arr);renderCustomers();toast("Customer துணி photo நீக்கப்பட்டது.");
 }
+function toggleCompactSearch(type){
+ const id=type==='customer'?'customerCompactSearch':'orderCompactSearch';
+ const el=$(id); if(!el)return;
+ document.querySelectorAll('.nf-compact-search-panel.open').forEach(x=>{if(x!==el)x.classList.remove('open')});
+ el.classList.toggle('open');
+ if(el.classList.contains('open')){ const inp=el.querySelector('input'); if(inp){setTimeout(()=>inp.focus(),30)} }
+}
+function closeCompactSearch(type){
+ const el=$(type==='customer'?'customerCompactSearch':'orderCompactSearch'); if(el)el.classList.remove('open');
+}
+
 function editCustomerFromSearch(){
  const input=$("customerSearch");
  const q=(input?.value||"").trim().toLowerCase();
