@@ -10127,6 +10127,149 @@ body.nf-dashboard-mode #view-dashboard .nf-dch-list{
 }
 </style>
 
+
+<style id="nf-v94-dashboard-customer-clean">
+/* V9.4 — Home Customer Hub: compact customer-name selector + clean selected details */
+#view-dashboard .nf-dashboard-customer-hub{
+  background:linear-gradient(135deg,#5b2be0 0%,#7a35e8 42%,#d63b93 100%) !important;
+  border-radius:24px !important;
+  box-shadow:0 18px 42px rgba(75,35,150,.22) !important;
+}
+#view-dashboard .nf-v94-name-panel{
+  margin:0 10px 10px;
+  padding:10px;
+  border-radius:18px;
+  background:rgba(255,255,255,.14);
+  border:1px solid rgba(255,255,255,.25);
+}
+#view-dashboard .nf-v94-name-title{
+  color:#fff;font-weight:950;font-size:13px;margin:0 2px 8px;letter-spacing:.1px;
+}
+#view-dashboard .nf-v94-name-list{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;
+  max-height:176px;overflow-y:auto;overscroll-behavior:contain;
+  -webkit-overflow-scrolling:touch;padding-right:2px;
+}
+#view-dashboard .nf-v94-name-btn{
+  min-width:0;border:1px solid rgba(255,255,255,.25);border-radius:12px;
+  padding:9px 10px;background:rgba(255,255,255,.96);color:#27203a;
+  font-size:13px;font-weight:900;text-align:left;line-height:1.2;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;
+  box-shadow:0 4px 10px rgba(38,17,80,.08);
+}
+#view-dashboard .nf-v94-name-btn.active{
+  color:#fff;background:linear-gradient(135deg,#ff4d9d,#7b3ff2);
+  border-color:rgba(255,255,255,.65);box-shadow:0 6px 14px rgba(42,18,90,.2);
+}
+#view-dashboard .nf-v94-selected{
+  margin:0 10px 12px;padding:0;background:#fff;border-radius:20px;overflow:hidden;
+  box-shadow:0 10px 24px rgba(38,25,76,.14);
+}
+#view-dashboard .nf-v94-selected-head{
+  display:flex;align-items:center;gap:10px;padding:13px 14px;
+  background:linear-gradient(135deg,#eef0ff,#fff0f7);border-bottom:1px solid #e8e1ef;
+}
+#view-dashboard .nf-v94-avatar{
+  width:42px;height:42px;border-radius:13px;display:grid;place-items:center;
+  background:linear-gradient(135deg,#5f35e8,#df3f99);color:#fff;font-size:20px;flex:none;
+}
+#view-dashboard .nf-v94-selected-name{font-size:18px;font-weight:950;color:#171522;overflow-wrap:anywhere}
+#view-dashboard .nf-v94-selected-sub{font-size:11px;color:#6c6576;margin-top:2px}
+#view-dashboard .nf-v94-open{margin-left:auto;border:0;border-radius:11px;padding:9px 10px;background:#f0eaff;color:#5733c9;font-weight:900;white-space:nowrap;cursor:pointer}
+#view-dashboard .nf-v94-detail-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:11px}
+#view-dashboard .nf-v94-detail{
+  border:1px solid #e6e1eb;border-radius:13px;padding:10px;background:#fff;min-width:0;
+}
+#view-dashboard .nf-v94-detail:nth-child(1){background:#f0edff;border-color:#d9d0ff}
+#view-dashboard .nf-v94-detail:nth-child(2){background:#fff0f6;border-color:#f3cfe0}
+#view-dashboard .nf-v94-detail:nth-child(3){background:#eaf9f5;border-color:#c9eadf}
+#view-dashboard .nf-v94-detail:nth-child(4){background:#fff8e5;border-color:#f2dfad}
+#view-dashboard .nf-v94-detail:nth-child(5){background:#eef8ff;border-color:#cce3f6}
+#view-dashboard .nf-v94-detail:nth-child(6){background:#fff0ee;border-color:#f2d0ca}
+#view-dashboard .nf-v94-detail b{display:block;color:#171522;font-size:14px;font-weight:950;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#view-dashboard .nf-v94-detail span{display:block;color:#5e5867;font-size:10px;font-weight:750;margin-top:3px;line-height:1.35}
+#view-dashboard .nf-v94-reminder{margin:0 11px 11px;padding:10px 12px;border-radius:13px;background:#fff7d9;color:#6f5200;font-weight:900;font-size:12px}
+#view-dashboard .nf-v94-reminder.late{background:#ffe9ec;color:#a51e38}
+#view-dashboard .nf-v94-reminder.ok{background:#e6f8ef;color:#126d4c}
+#view-dashboard .nf-v94-empty{padding:18px;text-align:center;color:#6c6576;background:#fff;border-radius:16px}
+@media(max-width:560px){
+  #view-dashboard .nf-v94-name-list{grid-template-columns:repeat(2,minmax(0,1fr));max-height:190px}
+  #view-dashboard .nf-v94-name-btn{font-size:12px;padding:9px 8px}
+  #view-dashboard .nf-v94-selected-name{font-size:17px}
+  #view-dashboard .nf-v94-detail-grid{gap:7px;padding:10px}
+  #view-dashboard .nf-v94-detail{padding:9px}
+  #view-dashboard .nf-v94-detail b{font-size:13px}
+  #view-dashboard .nf-v94-open{font-size:11px;padding:8px 9px}
+}
+</style>
+<script id="nf-v94-dashboard-customer-clean-js">
+(function(){
+  'use strict';
+  var v94SelectedId='';
+  function escV94(x){return typeof esc==='function'?esc(String(x??'')):String(x??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
+  function moneyV94(x){return typeof money==='function'?money(x):'₹'+Number(x||0).toFixed(2);}
+  function dateV94(x){return typeof dateText==='function'?dateText(x):(x||'—');}
+  function latestOrderV94(id){
+    var os=typeof customerOrders==='function'?customerOrders(id):((state.orders||[]).filter(o=>String(o.customer_id)===String(id)));
+    return os.slice().sort(function(a,b){return String(b.created_at||b.order_date||'').localeCompare(String(a.created_at||a.order_date||''));})[0]||null;
+  }
+  function customerCategoryV94(c){return typeof dashboardCustomerCategory==='function'?dashboardCustomerCategory(c):'new';}
+  function buildSelectedV94(c){
+    if(!c)return '<div class="nf-v94-selected"><div class="nf-v94-empty">Customer-ஐ தேர்வு செய்யவும்.</div></div>';
+    var st=typeof customerStats==='function'?customerStats(c.id):{balance:0,os:[]};
+    var o=latestOrderV94(c.id), due=o&&typeof dueInfo==='function'?dueInfo(o):null;
+    var status=o?.status||'Pending';
+    var garment=o?String(o.garment_type||'Blouse'):'Order இல்லை';
+    var qty=o?(typeof blouseSplitText==='function'?blouseSplitText(o):String(o.quantity||0)):'0';
+    var balance=o?(typeof nfOrderBalance==='function'?nfOrderBalance(o):Number(o.total_amount||0)-Number(o.advance_amount||0)):Number(st.balance||0);
+    var delivery=o?dateV94(o.delivery_date):'—';
+    var reminder='';
+    if(due){
+      if(due.kind==='late') reminder='<div class="nf-v94-reminder late">🚨 '+escV94(due.days)+' நாள் late · Delivery '+escV94(delivery)+'</div>';
+      else if(due.kind==='today') reminder='<div class="nf-v94-reminder">🔔 இன்று delivery · '+escV94(delivery)+'</div>';
+      else reminder='<div class="nf-v94-reminder ok">⏰ '+escV94(due.days)+' நாள் உள்ளது · Delivery '+escV94(delivery)+'</div>';
+    }
+    return '<div class="nf-v94-selected">'+
+      '<div class="nf-v94-selected-head"><div class="nf-v94-avatar">👤</div><div style="min-width:0"><div class="nf-v94-selected-name">'+escV94(c.name||'Unknown Customer')+'</div><div class="nf-v94-selected-sub">📞 '+escV94(c.phone||'Phone இல்லை')+' · 📍 '+escV94(c.village||'ஊர் இல்லை')+'</div></div><button class="nf-v94-open" type="button" onclick="goToCustomer(\''+escV94(c.id)+'\')">View Details ›</button></div>'+
+      '<div class="nf-v94-detail-grid">'+
+      '<div class="nf-v94-detail"><b>'+escV94(o?.order_no||'—')+'</b><span>Order No</span></div>'+ 
+      '<div class="nf-v94-detail"><b>'+escV94(garment)+' · '+escV94(qty)+'</b><span>Current Order</span></div>'+ 
+      '<div class="nf-v94-detail"><b>'+moneyV94(o?o.total_amount:0)+'</b><span>Order Amount</span></div>'+ 
+      '<div class="nf-v94-detail"><b>'+moneyV94(o?o.advance_amount:0)+'</b><span>Advance / Paid</span></div>'+ 
+      '<div class="nf-v94-detail"><b>'+moneyV94(balance)+'</b><span>Balance</span></div>'+ 
+      '<div class="nf-v94-detail"><b>'+escV94(status)+'</b><span>Status · Delivery '+escV94(delivery)+'</span></div>'+ 
+      '</div>'+reminder+'</div>';
+  }
+  function renderV94(){
+    var box=document.getElementById('dashboardCustomersList'); if(!box||typeof state==='undefined')return;
+    var customers=Array.isArray(state.customers)?state.customers.slice():[];
+    var all=customers.slice().sort(typeof dashboardCustomerSort==='function'?dashboardCustomerSort:function(a,b){return String(a.name||'').localeCompare(String(b.name||''));});
+    var fresh=all.filter(function(c){return customerCategoryV94(c)==='new'});
+    var delivered=all.filter(function(c){return customerCategoryV94(c)==='delivered'});
+    var source=dashboardCustomerTab==='new'?fresh:dashboardCustomerTab==='delivered'?delivered:all;
+    if(!source.length){box.innerHTML='<div class="nf-v94-empty">Customers இன்னும் சேர்க்கப்படவில்லை.</div>';return;}
+    if(!v94SelectedId||!source.some(function(c){return String(c.id)===String(v94SelectedId)}))v94SelectedId=String(source[0].id);
+    var names=source.map(function(c){var active=String(c.id)===String(v94SelectedId)?' active':'';return '<button type="button" class="nf-v94-name-btn'+active+'" onclick="nfV94SelectCustomer(\''+escV94(c.id)+'\')">'+escV94(c.name||'Unknown Customer')+'</button>';}).join('');
+    var selected=source.find(function(c){return String(c.id)===String(v94SelectedId)})||source[0];
+    box.innerHTML='<div class="nf-v94-name-panel"><div class="nf-v94-name-title">👥 Customer Names · '+source.length+'</div><div class="nf-v94-name-list">'+names+'</div></div>'+buildSelectedV94(selected);
+  }
+  window.nfV94SelectCustomer=function(id){v94SelectedId=String(id||'');renderV94();};
+  var oldRender=window.renderDashboardCustomers;
+  if(typeof oldRender==='function'&&!oldRender.__nfV94){
+    window.renderDashboardCustomers=function(){renderV94();};
+    window.renderDashboardCustomers.__nfV94=true;
+  }
+  var oldRenderDashboard=window.renderDashboard;
+  if(typeof oldRenderDashboard==='function'&&!oldRenderDashboard.__nfV94){
+    window.renderDashboard=function(){oldRenderDashboard.apply(this,arguments);renderV94();};
+    window.renderDashboard.__nfV94=true;
+  }
+  document.addEventListener('click',function(e){
+    var b=e.target.closest('.nf-dch-tab'); if(b)setTimeout(renderV94,0);
+  });
+  setTimeout(renderV94,120);
+})();
+</script>
 </body>
 </html>
 
