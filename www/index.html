@@ -4277,7 +4277,7 @@ body{
 
 
 <style id="v96-my-customers-final">
-/* V9.6 — compact single title + unmistakable three category colors */
+/* V9.7 — compact single title + unmistakable three category colors */
 .nf-dashboard-customer-hub{
   margin-top:10px !important;
   border-radius:20px !important;
@@ -4347,6 +4347,93 @@ body{
   .nf-dch-tab{min-height:46px !important;font-size:10.8px !important;}
 }
 </style>
+
+<style id="v97-compact-my-customers">
+/* V9.7 — compact My Customers header: no empty vertical gap */
+#customerHub,
+.customer-hub,
+.customers-section {
+  padding-top: 4px !important;
+  padding-bottom: 4px !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+}
+#customerHub .customer-tabs,
+#customerHub .customer-filters,
+#customerHub .customer-category-tabs,
+.customer-hub .customer-tabs,
+.customer-hub .customer-filters,
+.customer-hub .customer-category-tabs {
+  display: none !important;
+}
+#customerHub .customers-tabs,
+.customer-hub .customers-tabs {
+  display: none !important;
+}
+
+/* Compact title row */
+.v97-my-customers-row {
+  display:flex !important;
+  align-items:center !important;
+  justify-content:space-between !important;
+  gap:8px !important;
+  min-height:46px !important;
+  margin:0 !important;
+  padding:2px 4px !important;
+}
+.v97-my-customers-title {
+  margin:0 !important;
+  padding:0 !important;
+  font-size:26px !important;
+  line-height:1.05 !important;
+  font-weight:900 !important;
+}
+.v97-filter-btn {
+  width:42px !important;
+  height:42px !important;
+  min-width:42px !important;
+  border-radius:12px !important;
+  border:1px solid rgba(255,255,255,.55) !important;
+  background:rgba(255,255,255,.18) !important;
+  color:#fff !important;
+  font-size:22px !important;
+  font-weight:900 !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  cursor:pointer !important;
+}
+
+/* Filter popup */
+.v97-filter-menu {
+  position:absolute !important;
+  right:12px !important;
+  top:52px !important;
+  z-index:9999 !important;
+  width:220px !important;
+  padding:8px !important;
+  border-radius:16px !important;
+  background:#fff !important;
+  box-shadow:0 12px 32px rgba(35,20,70,.25) !important;
+  border:1px solid #ddd !important;
+}
+.v97-filter-menu button {
+  width:100% !important;
+  padding:12px 10px !important;
+  margin:3px 0 !important;
+  border:0 !important;
+  border-radius:11px !important;
+  background:#f4f1ff !important;
+  color:#24163b !important;
+  font-weight:800 !important;
+  text-align:left !important;
+}
+.v97-filter-menu button.active {
+  background:linear-gradient(135deg,#6d35ef,#d93f96) !important;
+  color:#fff !important;
+}
+</style>
+
 </head>
 <body>
 
@@ -10597,6 +10684,63 @@ body.nf-dashboard-mode #view-dashboard .nf-dch-list{
   .customerCard .customerRateRow .rateMath{font-size:15px !important}
 }
 </style>
+
+
+<script id="v97-compact-filter">
+document.addEventListener("DOMContentLoaded", function () {
+  const findHub = () => {
+    const headings = [...document.querySelectorAll("h1,h2,h3,h4,div,span")];
+    return headings.find(el => (el.textContent || "").trim() === "My Customers");
+  };
+
+  const title = findHub();
+  if (!title || document.getElementById("v97MyCustomersRow")) return;
+
+  const row = document.createElement("div");
+  row.id = "v97MyCustomersRow";
+  row.className = "v97-my-customers-row";
+  row.style.position = "relative";
+  row.innerHTML = `
+    <div class="v97-my-customers-title">My Customers</div>
+    <button class="v97-filter-btn" aria-label="Customer filter">☷</button>
+    <div class="v97-filter-menu" hidden>
+      <button data-filter="all" class="active">All Customers</button>
+      <button data-filter="new">New Customers</button>
+      <button data-filter="delivered">Delivered Customers</button>
+    </div>
+  `;
+
+  const parent = title.parentElement || title;
+  parent.insertBefore(row, title);
+  title.style.display = "none";
+
+  const filterBtn = row.querySelector(".v97-filter-btn");
+  const menu = row.querySelector(".v97-filter-menu");
+
+  filterBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    menu.hidden = !menu.hidden;
+  });
+  document.addEventListener("click", () => { menu.hidden = true; });
+
+  // Keep filter behavior connected to existing category controls if they exist.
+  row.querySelectorAll("[data-filter]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      row.querySelectorAll("[data-filter]").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      const value = btn.dataset.filter;
+      const original = [...document.querySelectorAll("button,[role='tab']")].find(
+        b => (b.textContent || "").toLowerCase().includes(
+          value === "all" ? "all customers" :
+          value === "new" ? "new customers" : "delivered customers"
+        )
+      );
+      if (original) original.click();
+      menu.hidden = true;
+    });
+  });
+});
+</script>
 
 </body>
 </html>
