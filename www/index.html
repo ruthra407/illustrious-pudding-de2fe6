@@ -10013,6 +10013,120 @@ body.nf-dashboard-mode #view-dashboard .nf-dch-list{
 #app{padding-top:var(--nf-header-height)!important}
 @media(max-width:700px){#app{padding-top:var(--nf-header-height)!important}}
 </style>
+
+<style id="v93-clear-box-typography">
+/* V9.3 — Readability pass only.
+   No data, calculations, sync, photo/gallery/camera handlers or layout logic changed. */
+.customerCard .customerWorkItem span,
+.customerCard .customerStat span,
+.customerCard .moneyStat span,
+.customerCard .clothStat span,
+.customerCard .summary .mini,
+.customerCard .customerRateRow .rateLabel,
+.customerCard .customerRateRow .rateMath,
+.customerCard .customerNotesBox,
+.customerCard .customerLiningNote,
+.customerCard .customerSection .mini,
+.customerCard .customerSection p,
+.customerCard .customerSection label,
+.customerCard .nf-garment-subtitle,
+.customerCard .nf-card-extra span,
+.customerCard .nf-pending-extra span,
+.customerCard .customerOrderLine .meta,
+.customerCard .dashboardOrderCard .meta{
+  color:#24212a !important;
+  font-weight:800 !important;
+  opacity:1 !important;
+  text-shadow:none !important;
+}
+
+/* Small labels inside colored statistic boxes: dark, crisp, and readable. */
+.customerCard .customerWorkItem span{
+  font-size:14px !important;
+  line-height:1.35 !important;
+  letter-spacing:.05px !important;
+}
+.customerCard .customerStat span,
+.customerCard .moneyStat span,
+.customerCard .clothStat span{
+  font-size:13px !important;
+  line-height:1.35 !important;
+}
+.customerCard .customerWorkItem b,
+.customerCard .customerStat b,
+.customerCard .moneyStat b,
+.customerCard .clothStat b{
+  color:#17151b !important;
+  font-weight:950 !important;
+  text-shadow:none !important;
+}
+
+/* Calculation rows: strong contrast between label, math and result. */
+.customerCard .customerRateRow{
+  color:#1d1a20 !important;
+  background:#fff !important;
+  border-color:#d7d2df !important;
+}
+.customerCard .customerRateRow .rateLabel{
+  font-size:15px !important;
+  font-weight:900 !important;
+}
+.customerCard .customerRateRow .rateMath{
+  color:#28242d !important;
+  font-size:15px !important;
+  font-weight:900 !important;
+}
+.customerCard .customerRateRow .rateMath b{
+  color:#15131a !important;
+  font-weight:950 !important;
+}
+
+/* Section headings remain colorful, but their supporting text is never washed out. */
+.customerCard .customerWorkSection h4{
+  font-size:19px !important;
+  font-weight:950 !important;
+  line-height:1.3 !important;
+}
+.customerCard .nf-collection-title,
+.customerCard .nf-collection-title h4,
+.customerCard .nf-alteration-notes-title,
+.customerCard .customerRateTotal{
+  text-shadow:none !important;
+}
+
+/* Apply the same clarity treatment to box-style UI across the rest of the app. */
+.card .mini,
+.summary .mini,
+.summary b,
+.stat .label,
+.table td,
+.table th,
+.photoCard,
+.designTile .title,
+.designResult .title,
+.alertbox,
+.kpiCard .kpiTitle,
+.kpiCard .kpiSmall,
+.moneyStat span,
+.clothStat span,
+.moneyStat b,
+.clothStat b{
+  opacity:1 !important;
+}
+.table td,.table th{color:#211e25 !important}
+.table .mini,.table td .mini,.table th .mini{color:#4a4650 !important;font-weight:750 !important}
+.summary .mini{color:#4b4651 !important;font-weight:800 !important}
+
+@media(max-width:700px){
+  .customerCard .customerWorkItem span{font-size:14px !important}
+  .customerCard .customerStat span,
+  .customerCard .moneyStat span,
+  .customerCard .clothStat span{font-size:13px !important}
+  .customerCard .customerRateRow .rateLabel,
+  .customerCard .customerRateRow .rateMath{font-size:15px !important}
+}
+</style>
+
 </body>
 </html>
 
@@ -10665,7 +10779,7 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-head >
 </script>
 
 
-<!-- V9.2 FINAL VISUAL PATCH: colorful section cards + Edit Order beside Edit Customer.
+<!-- V9.3 FINAL VISUAL PATCH: colorful section cards + Edit Order beside Edit Customer.
      Data, calculations, sync, photo/gallery/camera handlers and existing fields are unchanged. -->
 <style id="v92-colorful-sections-final">
 /* Strong but readable section colors. Keep the existing typography/row layout intact. */
@@ -10854,14 +10968,14 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-head >
 
   document.addEventListener('DOMContentLoaded',function(){
     setTimeout(function(){
-      try{ if(typeof renderAll==='function') renderAll(); }catch(e){ console.error('V9.2 visual patch render',e); }
+      try{ if(typeof renderAll==='function') renderAll(); }catch(e){ console.error('V9.3 visual patch render',e); }
     },120);
   },{once:true});
 })();
 </script>
 
 
-<!-- V9.2 COLOR SYSTEM: every customer-card section gets a distinct, readable visual identity.
+<!-- V9.3 COLOR SYSTEM: every customer-card section gets a distinct, readable visual identity.
      Layout, calculations, sync, photos, gallery/camera handlers and data are untouched. -->
 <style id="v92-customer-card-color-system">
 /* ===== CUSTOMER CARD: distinct section identities ===== */
@@ -11046,7 +11160,7 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-head >
 
 <script id="v92-action-order-final">
 (function(){
-  /* V9.2 keeps the action order explicit: Edit Customer, Edit Order, Delete.
+  /* V9.3 keeps the action order explicit: Edit Customer, Edit Order, Delete.
      No handlers or stored data are changed. */
   function normalizeCustomerActions(){
     document.querySelectorAll('.customerCard').forEach(function(card){
