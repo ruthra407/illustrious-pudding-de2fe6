@@ -3700,61 +3700,6 @@ body{
 </style>
 
 <!-- V7.4: Order edit/update reliability fix. -->
-
-<style id="v76-calculation-responsive-fix">
-/* V7.6: calculation rows stay inside their cards on mobile */
-[class*="calculation-row"], .calculation-row { box-sizing:border-box; width:100%; max-width:100%; min-width:0; overflow:hidden; display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
-[class*="calculation-row"] > *, .calculation-row > * { min-width:0; max-width:100%; box-sizing:border-box; overflow-wrap:anywhere; }
-[class*="calculation-row"] .calculation-label, .calculation-row .calculation-label { flex:1 1 45%; min-width:0; }
-[class*="calculation-row"] .calculation-value, .calculation-row .calculation-value { flex:1 1 45%; min-width:0; text-align:right; white-space:normal; overflow-wrap:anywhere; }
-@media (max-width:520px){ [class*="calculation-row"], .calculation-row{gap:5px;padding-left:10px !important;padding-right:10px !important;} [class*="calculation-row"] .calculation-label, [class*="calculation-row"] .calculation-value, .calculation-row .calculation-label, .calculation-row .calculation-value{flex:1 1 100%;width:100%;} [class*="calculation-row"] .calculation-value, .calculation-row .calculation-value{text-align:right;font-size:.95em;} }
-</style>
-
-<style id="v77-real-calculation-overlap-fix">
-/* V7.7: fix the ACTUAL customer-summary calculation rows (.nfV2Row).
-   Keep the values/logic untouched; only constrain the layout. */
-.nfV2Rows{width:100%;max-width:100%;min-width:0;overflow:hidden;}
-.nfV2Row{
-  display:grid !important;
-  grid-template-columns:minmax(0,1fr) minmax(0,1fr) !important;
-  align-items:center;
-  width:100%;
-  max-width:100%;
-  min-width:0;
-  box-sizing:border-box;
-  gap:10px;
-  overflow:hidden;
-}
-.nfV2Name,.nfV2Math{
-  min-width:0 !important;
-  max-width:100% !important;
-  box-sizing:border-box;
-  overflow-wrap:anywhere;
-  word-break:break-word;
-}
-.nfV2Math{
-  white-space:normal !important;
-  text-align:right !important;
-  overflow-wrap:anywhere;
-  word-break:break-word;
-}
-@media (max-width:700px){
-  .nfV2Row{
-    grid-template-columns:minmax(0,1fr) !important;
-    gap:4px;
-  }
-  .nfV2Math{
-    text-align:left !important;
-    width:100%;
-  }
-}
-@media (max-width:420px){
-  .nfV2Row{padding:9px 10px !important;}
-  .nfV2Name{font-size:15px;}
-  .nfV2Math{font-size:14px;}
-}
-</style>
-
 </head>
 <body>
 
@@ -4052,80 +3997,6 @@ async function getTable(name){
 const {data,error}=await supabaseClient.from(name).select("*").order("created_at",{ascending:false});
 if(error)throw new Error(name+": "+error.message);return data||[];
 }
-/* V7.8 — Single source of truth for saved Order Total.
-   Rebuilds the customer-facing amount from the same structured markers used
-   by the item-wise calculation UI, including 3-slot Design blouse rates. */
-function nfCalculatedOrderTotal(o){
-  if(!o)return null;
-  const notes=String(o.notes||"");
-  const hasMarker=/(BLOUSE_SPLIT|BLOUSE_RATES|DESIGN_ITEMS|DESIGN_RATES|GARMENT_SPLIT|CHUDI_RATE|SAREE_RATE|LINING_COST):/.test(notes);
-  if(!hasMarker)return null;
-  const num=v=>{const n=Number(v);return Number.isFinite(n)?Math.max(0,n):0};
-  const json=(re,fb)=>{const m=notes.match(re);if(!m)return fb;try{return JSON.parse(m[1])||fb}catch{return fb}};
-  const split=json(/BLOUSE_SPLIT:(\{[^}]+\})/,{});
-  const rates=json(/BLOUSE_RATES:(\{[^}]+\})/,{});
-  const garment=json(/GARMENT_SPLIT:(\{[^}]+\})/,{});
-  const lining=json(/LINING_COST:(\{[^}]+\})/,{});
-  const normal=num(split.normal),liningQty=num(split.lining),designQty=num(split.design);
-  const normalRate=num(rates.normal),liningRate=num(rates.lining);
-  let designTotal=0,designSeen=false;
-  const dm=notes.match(/DESIGN_ITEMS:(\[[^\]]*\])/);
-  if(dm){
-    try{
-      const items=JSON.parse(dm[1]);
-      if(Array.isArray(items)){
-        designTotal=items.slice(0,3).reduce((sum,x)=>sum+num(x?.qty)*num(x?.rate),0);
-        designSeen=true;
-      }
-    }catch{}
-  }
-  if(!designSeen){
-    const rm=notes.match(/DESIGN_RATES:(\[[^\]]*\])/);
-    if(rm){
-      try{
-        const arr=JSON.parse(rm[1]);
-        if(Array.isArray(arr)){
-          designTotal=arr.slice(0,designQty).reduce((sum,r)=>sum+num(r),0);
-          designSeen=true;
-        }
-      }catch{}
-    }
-  }
-  if(!designSeen)designTotal=designQty*num(rates.design);
-  const chudi=num(garment.chudi),saree=num(garment.saree);
-  const chudiRate=(()=>{const m=notes.match(/CHUDI_RATE:([0-9.]+)/);return num(m?.[1])})();
-  const sareeRate=(()=>{const m=notes.match(/SAREE_RATE:([0-9.]+)/);return num(m?.[1])})();
-  const liningCost=num(lining.total);
-  return normal*normalRate + liningQty*liningRate + designTotal + chudi*chudiRate + saree*sareeRate + liningCost;
-}
-
-async function nfRepairSavedOrderTotals(){
-  if(!state.user || !Array.isArray(state.orders) || !state.orders.length)return;
-  const updates=[];
-  for(const o of state.orders){
-    const total=nfCalculatedOrderTotal(o);
-    if(total===null)continue;
-    const oldTotal=Number(o.total_amount||0);
-    if(Math.abs(oldTotal-total)<0.005)continue;
-    const qty=Math.max(0,Number(o.quantity||0));
-    const lining=Number((String(o.notes||"").match(/LINING_COST:(\{[^}]+\})/)||[])[1]||0);
-    let liningTotal=0;
-    if(lining){try{liningTotal=Math.max(0,Number(JSON.parse(lining).total||0))}catch{}}
-    const garmentTotal=Math.max(0,total-liningTotal);
-    const payload={total_amount:total,balance_amount:Math.max(0,total-Number(o.advance_amount||0)),unit_price:qty?garmentTotal/qty:0};
-    updates.push({o,payload});
-  }
-  if(!updates.length)return;
-  const results=await Promise.allSettled(updates.map(({o,payload})=>supabaseClient.from("orders").update(payload).eq("id",o.id)));
-  results.forEach((r,i)=>{
-    if(r.status==="fulfilled" && !r.value.error){
-      Object.assign(updates[i].o,updates[i].payload);
-    }else{
-      console.error("V7.8 total repair failed",updates[i].o?.id,r.reason||r.value?.error);
-    }
-  });
-}
-
 async function loadAll(silent=false){
 if(!state.user)return;
 const tables=["customers","orders","measurements","alterations","payments","designs"];
@@ -4138,7 +4009,6 @@ result.forEach((r,i)=>{
     failed.push(r.reason?.message||(`${tables[i]} load failed`));
   }
 });
-try{await nfRepairSavedOrderTotals();}catch(err){console.error("Saved order total repair error:",err);}
 try{renderAll();}catch(err){console.error("Render error:",err);}
 if(failed.length){
   console.error("Database load errors:",failed);
@@ -4179,18 +4049,7 @@ if(d<=5)return {kind:"soon",days:d};
 return null;
 }
 function statusPill(s){const c=["Delivered","Completed"].includes(s)?"ok":s==="Cancelled"?"bad":["Pending","In Progress"].includes(s)?"warn":s==="Ready"?"ok":"";return `<span class="pill ${c}">${esc(s||"Pending")}</span>`}
-function orderTotal(o){
-  /* V7.8: Always prefer the authoritative item-wise calculation when the
-     order contains the structured blouse/design/garment markers. This keeps
-     Dashboard, Cash Collection, Customer balance and Order Details in sync
-     even for legacy rows whose saved total_amount is stale. */
-  if(typeof nfCalculatedOrderTotal==="function"){
-    const calculated=nfCalculatedOrderTotal(o);
-    if(calculated!==null)return calculated;
-  }
-  const q=Number(o.quantity||0),u=Number(o.unit_price||0);
-  return Number(o.total_amount||0)||q*u;
-}
+function orderTotal(o){const q=Number(o.quantity||0),u=Number(o.unit_price||0);return Number(o.total_amount||0)||q*u}
 function totalPieces(){return state.orders.reduce((a,o)=>a+Number(o.quantity||0),0)}
 function totalSales(){return state.orders.reduce((a,o)=>a+orderTotal(o),0)}
 function totalBalance(){return state.orders.reduce((a,o)=>a+Math.max(0,nfOrderBalance(o)),0)}
@@ -9473,22 +9332,6 @@ html{
         :await supabaseClient.from("orders").insert(payload).select("*").single();
       if(result.error)throw result.error;
       if(existing&&!result.data)throw new Error("Order update செய்யப்படவில்லை. Database UPDATE permission / RLS policy-ஐ சரிபார்க்க வேண்டும்.");
-      /* V7.8: re-read the saved row and force the same authoritative total
-         into total_amount after Design_ITEMS/slot data is persisted. */
-      const savedRow=result.data||((state.orders||[]).find(x=>String(x.id)===String(existing?.id||"")))||null;
-      if(savedRow){
-        const savedNotes=String(savedRow.notes||notes||"");
-        const savedForCalc=Object.assign({},savedRow,{notes:savedNotes});
-        const authoritative=nfCalculatedOrderTotal(savedForCalc);
-        if(authoritative!==null && Math.abs(Number(savedRow.total_amount||0)-authoritative)>0.005){
-          const lcm=savedNotes.match(/LINING_COST:(\{[^}]+\})/);
-          let lc=0;try{lc=lcm?Math.max(0,Number(JSON.parse(lcm[1]).total||0)):0}catch{}
-          const qSaved=Math.max(0,Number(savedRow.quantity||qty||0));
-          const patch={total_amount:authoritative,balance_amount:Math.max(0,authoritative-Number(savedRow.advance_amount||advance||0)),unit_price:qSaved?Math.max(0,authoritative-lc)/qSaved:0};
-          const fixed=await supabaseClient.from("orders").update(patch).eq("id",savedRow.id).select("*").maybeSingle();
-          if(fixed.error)throw fixed.error;
-        }
-      }
       box.dataset.editOrderId="";await loadAll(true);
       const title=box.querySelector(".nf-quick-edit-title"),save=box.querySelector(".nf-quick-save-btn");if(title)title.textContent="🧾 New Order";if(save)save.textContent="💾 Save Order";
       toast(existing?"Order details updated.":"இந்த customer-க்கு New Order சேமிக்கப்பட்டது.");
