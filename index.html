@@ -4516,13 +4516,24 @@ body{
 
 <div class="card dashboardCustomersCard nf-dashboard-customer-hub">
   <div class="nf-dch-head">
-    <div>
+    <div class="nf-dch-title-wrap">
+      <button type="button" class="nf-dch-menu-trigger" id="nfCustomerFilterTrigger" aria-label="Customer filter" aria-haspopup="true" aria-expanded="false" onclick="toggleCustomerFilterMenu(event)">☷</button>
       <div class="nf-dch-title">My Customers</div>
-      
     </div>
     <button class="btn primary nf-dashboard-add-customer-btn" type="button" onclick="openModal('customer')" aria-label="Add Customer" title="Add Customer">＋</button>
+    <div class="nf-customer-filter-menu" id="nfCustomerFilterMenu" role="menu" aria-label="Customer filter menu" hidden>
+      <button type="button" class="nf-customer-filter-item active" data-filter="all" role="menuitem" onclick="chooseCustomerFilter('all')">
+        <span>All Customers</span><b id="nfMenuCountAll">0</b>
+      </button>
+      <button type="button" class="nf-customer-filter-item" data-filter="new" role="menuitem" onclick="chooseCustomerFilter('new')">
+        <span>New Customers</span><b id="nfMenuCountNew">0</b>
+      </button>
+      <button type="button" class="nf-customer-filter-item" data-filter="delivered" role="menuitem" onclick="chooseCustomerFilter('delivered')">
+        <span>Delivered Customers</span><b id="nfMenuCountDelivered">0</b>
+      </button>
+    </div>
   </div>
-  <div class="nf-dch-tabs" role="tablist" aria-label="Customer categories">
+  <div class="nf-dch-tabs nf-dch-tabs-legacy" role="tablist" aria-label="Customer categories" aria-hidden="true">
     <button type="button" class="nf-dch-tab active" data-dch-tab="all" onclick="setDashboardCustomerTab('all')">ALL CUSTOMERS <span id="dchCountAll">0</span></button>
     <button type="button" class="nf-dch-tab" data-dch-tab="new" onclick="setDashboardCustomerTab('new')">NEW CUSTOMERS <span id="dchCountNew">0</span></button>
     <button type="button" class="nf-dch-tab" data-dch-tab="delivered" onclick="setDashboardCustomerTab('delivered')">DELIVERED CUSTOMERS <span id="dchCountDelivered">0</span></button>
@@ -10686,179 +10697,62 @@ body.nf-dashboard-mode #view-dashboard .nf-dch-list{
 </style>
 
 
-<script id="v98-customer-menu-filter">
-(function(){
-  "use strict";
-  function initCustomerMenu(){
-    var hub=document.querySelector('#view-dashboard .nf-dashboard-customer-hub');
-    if(!hub || hub.dataset.v98MenuReady==='1') return;
-    hub.dataset.v98MenuReady='1';
+<script id="v97-compact-filter">
+document.addEventListener("DOMContentLoaded", function () {
+  const findHub = () => {
+    const headings = [...document.querySelectorAll("h1,h2,h3,h4,div,span")];
+    return headings.find(el => (el.textContent || "").trim() === "My Customers");
+  };
 
-    /* Remove the old three visible filter tabs. Keep them hidden only as the
-       compatibility targets used by the existing data/filter renderer. */
-    var tabs=hub.querySelector('.nf-dch-tabs');
-    if(tabs){
-      tabs.setAttribute('aria-hidden','true');
-      tabs.style.display='none';
-    }
+  const title = findHub();
+  if (!title || document.getElementById("v97MyCustomersRow")) return;
 
-    var head=hub.querySelector('.nf-dch-head');
-    if(!head) return;
-    var title=head.querySelector('.nf-dch-title');
-    if(title) title.textContent='My Customers';
-    var sub=head.querySelector('.nf-dch-sub');
-    if(sub) sub.style.display='none';
+  const row = document.createElement("div");
+  row.id = "v97MyCustomersRow";
+  row.className = "v97-my-customers-row";
+  row.style.position = "relative";
+  row.innerHTML = `
+    <div class="v97-my-customers-title">My Customers</div>
+    <button class="v97-filter-btn" aria-label="Customer filter">☷</button>
+    <div class="v97-filter-menu" hidden>
+      <button data-filter="all" class="active">All Customers</button>
+      <button data-filter="new">New Customers</button>
+      <button data-filter="delivered">Delivered Customers</button>
+    </div>
+  `;
 
-    var old=head.querySelector('.v98-customer-filter-wrap');
-    if(old) old.remove();
+  const parent = title.parentElement || title;
+  parent.insertBefore(row, title);
+  title.style.display = "none";
 
-    var addBtn=head.querySelector('.nf-dashboard-add-customer-btn');
-    var wrap=document.createElement('div');
-    wrap.className='v98-customer-filter-wrap';
-    wrap.style.position='relative';
-    wrap.innerHTML=`
-      <button type="button" class="v98-filter-btn" aria-label="Customer filter" aria-expanded="false">☷</button>
-      <div class="v98-filter-menu" hidden>
-        <button type="button" data-filter="all" class="active">All Customers <span id="v98CountAll">0</span></button>
-        <button type="button" data-filter="new">New Customers <span id="v98CountNew">0</span></button>
-        <button type="button" data-filter="delivered">Delivered Customers <span id="v98CountDelivered">0</span></button>
-      </div>
-    `;
+  const filterBtn = row.querySelector(".v97-filter-btn");
+  const menu = row.querySelector(".v97-filter-menu");
 
-    /* Keep Add Customer and the filter together on the right. */
-    if(addBtn) head.appendChild(wrap); else head.appendChild(wrap);
-    if(addBtn) wrap.appendChild(addBtn);
+  filterBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    menu.hidden = !menu.hidden;
+  });
+  document.addEventListener("click", () => { menu.hidden = true; });
 
-    var filterBtn=wrap.querySelector('.v98-filter-btn');
-    var menu=wrap.querySelector('.v98-filter-menu');
-    if(addBtn){
-      /* Move filter button before the existing + button. */
-      wrap.insertBefore(filterBtn, addBtn);
-    }
-
-    function close(){ menu.hidden=true; filterBtn.setAttribute('aria-expanded','false'); }
-    filterBtn.addEventListener('click',function(e){
-      e.stopPropagation();
-      menu.hidden=!menu.hidden;
-      filterBtn.setAttribute('aria-expanded',String(!menu.hidden));
+  // Keep filter behavior connected to existing category controls if they exist.
+  row.querySelectorAll("[data-filter]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      row.querySelectorAll("[data-filter]").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      const value = btn.dataset.filter;
+      const original = [...document.querySelectorAll("button,[role='tab']")].find(
+        b => (b.textContent || "").toLowerCase().includes(
+          value === "all" ? "all customers" :
+          value === "new" ? "new customers" : "delivered customers"
+        )
+      );
+      if (original) original.click();
+      menu.hidden = true;
     });
-    menu.addEventListener('click',function(e){e.stopPropagation();});
-    document.addEventListener('click',close);
-
-    menu.querySelectorAll('[data-filter]').forEach(function(btn){
-      btn.addEventListener('click',function(){
-        var value=btn.getAttribute('data-filter');
-        menu.querySelectorAll('[data-filter]').forEach(function(b){b.classList.toggle('active',b===btn);});
-        if(typeof window.setDashboardCustomerTab==='function') window.setDashboardCustomerTab(value);
-        close();
-      });
-    });
-
-    /* Mirror the live counts from the compatibility tab controls. */
-    function syncCounts(){
-      [['all','v98CountAll'],['new','v98CountNew'],['delivered','v98CountDelivered']].forEach(function(pair){
-        var oldBtn=hub.querySelector('.nf-dch-tab[data-dch-tab="'+pair[0]+'"] span');
-        var target=document.getElementById(pair[1]);
-        if(oldBtn && target) target.textContent=oldBtn.textContent;
-      });
-    }
-    syncCounts();
-    var obs=new MutationObserver(syncCounts);
-    obs.observe(hub,{subtree:true,childList:true,characterData:true});
-  }
-  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',initCustomerMenu);
-  else initCustomerMenu();
-  window.addEventListener('load',initCustomerMenu,{once:true});
-})();
+  });
+});
 </script>
 
-
-<style id="v98-customer-menu-compact-final">
-/* V9.8 — one title + working filter menu + compact customer cards. */
-body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-head{
-  min-height:52px!important;
-  padding:7px 9px 5px!important;
-  gap:8px!important;
-}
-body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-title{
-  font-size:22px!important;
-  line-height:1!important;
-  font-weight:950!important;
-  white-space:nowrap!important;
-}
-body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-sub{display:none!important}
-body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-tabs{display:none!important}
-.v98-customer-filter-wrap{
-  display:flex!important;
-  align-items:center!important;
-  gap:6px!important;
-  margin-left:auto!important;
-}
-.v98-filter-btn{
-  width:38px!important;height:38px!important;min-width:38px!important;
-  border-radius:11px!important;border:1px solid rgba(255,255,255,.48)!important;
-  background:rgba(255,255,255,.17)!important;color:#fff!important;
-  font-size:21px!important;font-weight:950!important;line-height:1!important;
-  display:grid!important;place-items:center!important;cursor:pointer!important;
-  box-shadow:0 5px 12px rgba(30,15,70,.14)!important;
-}
-.v98-filter-btn:active{transform:scale(.96)}
-.v98-filter-menu{
-  position:absolute!important;right:0!important;top:43px!important;z-index:10000!important;
-  width:218px!important;padding:7px!important;border-radius:15px!important;
-  background:#fff!important;border:1px solid #e4dff0!important;
-  box-shadow:0 16px 34px rgba(35,20,70,.28)!important;
-}
-.v98-filter-menu button{
-  width:100%!important;min-height:40px!important;padding:8px 10px!important;margin:3px 0!important;
-  border:0!important;border-radius:10px!important;background:#f3efff!important;color:#24163b!important;
-  font-size:12px!important;font-weight:900!important;text-align:left!important;
-  display:flex!important;align-items:center!important;justify-content:space-between!important;
-}
-.v98-filter-menu button:nth-child(1){background:#eaf3ff!important;color:#1555a6!important}
-.v98-filter-menu button:nth-child(2){background:#fff3dc!important;color:#915b00!important}
-.v98-filter-menu button:nth-child(3){background:#e7f8f0!important;color:#087453!important}
-.v98-filter-menu button.active{box-shadow:inset 0 0 0 2px rgba(255,255,255,.7),0 3px 8px rgba(0,0,0,.08)!important;filter:saturate(1.08)!important}
-.v98-filter-menu button span{min-width:21px;height:21px;padding:0 5px;border-radius:999px;background:#fff;color:#32284b;display:grid;place-items:center;font-size:10px;font-weight:950}
-
-/* Five-customer-at-a-glance layout on mobile: preserve the useful details, reduce empty space. */
-body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
-  padding:0 6px 8px!important;gap:5px!important;
-}
-body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-card{
-  padding:7px 8px 6px!important;border-radius:13px!important;box-shadow:0 4px 11px rgba(35,25,70,.10)!important;
-}
-body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-card-top{
-  grid-template-columns:28px minmax(0,1fr) minmax(88px,100px) 12px!important;
-  gap:5px!important;
-}
-body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-no{
-  width:28px!important;height:28px!important;border-radius:8px!important;font-size:12px!important;
-}
-body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-name{
-  font-size:15px!important;line-height:1.08!important;font-weight:950!important;
-}
-body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-contact{
-  font-size:9.5px!important;line-height:1.18!important;margin-top:2px!important;
-}
-body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-delivery{
-  padding:4px 4px 5px!important;border-radius:9px!important;
-}
-body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-delivery-label{font-size:9.5px!important;line-height:1.05!important}
-body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-delivery-date{font-size:9.5px!important;margin-top:1px!important}
-body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-arrow{font-size:17px!important}
-body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-info{gap:4px!important;margin-top:4px!important}
-body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-box{padding:5px 6px!important;border-radius:8px!important}
-body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-box b{font-size:10.5px!important;line-height:1.05!important}
-body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-box span{font-size:8px!important;margin-top:1px!important}
-body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-meta{gap:3px!important;margin-top:4px!important}
-body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-pill{padding:3px 5px!important;font-size:8px!important;line-height:1!important}
-body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-reminder{margin-top:4px!important;padding:4px 6px!important;font-size:8.5px!important}
-@media(max-width:390px){
-  body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-card-top{grid-template-columns:26px minmax(0,1fr) minmax(82px,94px) 11px!important}
-  body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-name{font-size:14px!important}
-}
-</style>
 </body>
 </html>
 
@@ -11907,5 +11801,110 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-head >
     });
   }
   document.addEventListener('DOMContentLoaded',function(){setTimeout(normalizeCustomerActions,140)} ,{once:true});
+})();
+</script>
+
+<style id="v98-menu-only-customer-filter">
+/* V9.8 FIX — based strictly on V9.7. Replace visible category tabs with one working menu. */
+#view-dashboard .nf-dashboard-customer-hub{position:relative!important;}
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-head{position:relative!important;min-height:58px!important;padding:9px 10px 7px!important;}
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-title-wrap{display:flex!important;align-items:center!important;gap:8px!important;min-width:0!important;}
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-title{font-size:20px!important;line-height:1.05!important;white-space:nowrap!important;}
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-menu-trigger{
+  width:38px!important;height:38px!important;min-width:38px!important;padding:0!important;border-radius:12px!important;
+  display:grid!important;place-items:center!important;cursor:pointer!important;
+  background:rgba(255,255,255,.18)!important;border:1px solid rgba(255,255,255,.38)!important;
+  color:#fff!important;font-size:24px!important;font-weight:950!important;line-height:1!important;
+  box-shadow:0 5px 12px rgba(40,12,100,.14)!important;
+}
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-menu-trigger:active{transform:scale(.96)!important;}
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-tabs-legacy{display:none!important;}
+#view-dashboard .nf-dashboard-customer-hub .nf-customer-filter-menu{
+  position:absolute!important;left:10px!important;top:54px!important;width:min(250px,calc(100vw - 38px))!important;
+  padding:7px!important;border-radius:16px!important;background:rgba(255,255,255,.99)!important;
+  border:1px solid #e3dff2!important;box-shadow:0 18px 40px rgba(38,20,90,.28)!important;
+  z-index:100!important;
+}
+#view-dashboard .nf-dashboard-customer-hub .nf-customer-filter-menu[hidden]{display:none!important;}
+#view-dashboard .nf-dashboard-customer-hub .nf-customer-filter-item{
+  width:100%!important;display:flex!important;align-items:center!important;justify-content:space-between!important;gap:10px!important;
+  border:0!important;border-radius:11px!important;background:#f7f5ff!important;color:#282331!important;
+  padding:10px 11px!important;margin:3px 0!important;font-size:13px!important;font-weight:900!important;text-align:left!important;cursor:pointer!important;
+}
+#view-dashboard .nf-dashboard-customer-hub .nf-customer-filter-item[data-filter="new"]{background:#fff6dc!important;color:#694900!important;}
+#view-dashboard .nf-dashboard-customer-hub .nf-customer-filter-item[data-filter="delivered"]{background:#eaf8f4!important;color:#09624d!important;}
+#view-dashboard .nf-dashboard-customer-hub .nf-customer-filter-item.active{outline:2px solid #7046e8!important;box-shadow:0 5px 12px rgba(80,50,180,.12)!important;}
+#view-dashboard .nf-dashboard-customer-hub .nf-customer-filter-item b{
+  display:grid!important;place-items:center!important;min-width:23px!important;height:23px!important;padding:0 6px!important;border-radius:999px!important;
+  background:#eee9ff!important;color:#5d3dd0!important;font-size:11px!important;
+}
+#view-dashboard .nf-dashboard-customer-hub .nf-customer-filter-item[data-filter="new"] b{background:#ffe9a6!important;color:#785300!important;}
+#view-dashboard .nf-dashboard-customer-hub .nf-customer-filter-item[data-filter="delivered"] b{background:#c9f0e4!important;color:#09624d!important;}
+
+/* Compact enough for five customer cards while retaining the key details. */
+@media(max-width:700px){
+  body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-head{padding:7px 9px 6px!important;min-height:53px!important;}
+  body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-title{font-size:19px!important;}
+  body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-menu-trigger{width:36px!important;height:36px!important;min-width:36px!important;font-size:22px!important;}
+  body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dashboard-add-customer-btn{width:38px!important;height:38px!important;min-width:38px!important;border-radius:12px!important;font-size:24px!important;}
+  body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-customer-filter-menu{top:49px!important;left:9px!important;width:min(245px,calc(100vw - 36px))!important;}
+  body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{gap:5px!important;padding:0 7px 8px!important;}
+  body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-card{padding:7px 8px 6px!important;border-radius:12px!important;}
+  body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-card-top{grid-template-columns:27px minmax(0,1fr) minmax(88px,100px) 13px!important;gap:5px!important;}
+  body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-no{width:27px!important;height:27px!important;border-radius:8px!important;font-size:12px!important;}
+  body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-name{font-size:15px!important;line-height:1.1!important;}
+  body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-contact{font-size:9px!important;line-height:1.18!important;margin-top:1px!important;}
+  body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-delivery{padding:4px 4px 5px!important;border-radius:9px!important;}
+  body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-delivery-label{font-size:9.5px!important;line-height:1.05!important;}
+  body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-delivery-date{font-size:9px!important;margin-top:1px!important;}
+  body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-arrow{font-size:16px!important;}
+  body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-info{gap:4px!important;margin-top:4px!important;}
+  body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-box{padding:5px 6px!important;border-radius:8px!important;}
+  body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-box b{font-size:10px!important;line-height:1.05!important;}
+  body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-box span{font-size:8px!important;margin-top:1px!important;}
+  body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-meta{gap:3px!important;margin-top:3px!important;}
+  body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-pill{padding:3px 5px!important;font-size:8px!important;line-height:1!important;}
+}
+</style>
+<script id="v98-menu-only-customer-filter-js">
+(function(){
+  "use strict";
+  function $(id){return document.getElementById(id);}
+  function syncMenuCounts(){
+    var pairs=[['dchCountAll','nfMenuCountAll'],['dchCountNew','nfMenuCountNew'],['dchCountDelivered','nfMenuCountDelivered']];
+    pairs.forEach(function(p){var a=$(p[0]),b=$(p[1]);if(a&&b)b.textContent=a.textContent||'0';});
+    document.querySelectorAll('#nfCustomerFilterMenu .nf-customer-filter-item').forEach(function(btn){
+      var active=document.querySelector('#view-dashboard .nf-dch-tab.active');var current=active?active.dataset.dchTab:'all';btn.classList.toggle('active',btn.dataset.filter===current);
+    });
+  }
+  window.toggleCustomerFilterMenu=function(ev){
+    if(ev)ev.stopPropagation();
+    var menu=$('nfCustomerFilterMenu'),trigger=$('nfCustomerFilterTrigger');if(!menu)return;
+    var willOpen=menu.hasAttribute('hidden');
+    if(willOpen){menu.removeAttribute('hidden');if(trigger)trigger.setAttribute('aria-expanded','true');syncMenuCounts();}
+    else{menu.setAttribute('hidden','');if(trigger)trigger.setAttribute('aria-expanded','false');}
+  };
+  window.chooseCustomerFilter=function(tab){
+    if(['all','new','delivered'].indexOf(tab)<0)tab='all';
+    if(typeof window.setDashboardCustomerTab==='function')window.setDashboardCustomerTab(tab);
+    var menu=$('nfCustomerFilterMenu'),trigger=$('nfCustomerFilterTrigger');
+    if(menu)menu.setAttribute('hidden','');if(trigger)trigger.setAttribute('aria-expanded','false');
+    syncMenuCounts();
+  };
+  document.addEventListener('click',function(e){
+    var menu=$('nfCustomerFilterMenu'),trigger=$('nfCustomerFilterTrigger');
+    if(!menu||menu.hasAttribute('hidden'))return;
+    if(!menu.contains(e.target)&&(!trigger||!trigger.contains(e.target))){menu.setAttribute('hidden','');if(trigger)trigger.setAttribute('aria-expanded','false');}
+  });
+  document.addEventListener('keydown',function(e){
+    if(e.key!=='Escape')return;var menu=$('nfCustomerFilterMenu'),trigger=$('nfCustomerFilterTrigger');
+    if(menu&&!menu.hasAttribute('hidden')){menu.setAttribute('hidden','');if(trigger)trigger.setAttribute('aria-expanded','false');}
+  });
+  var baseRender=window.renderDashboardCustomers;
+  if(typeof baseRender==='function'&&!baseRender.__nfV98MenuWrapped){
+    window.renderDashboardCustomers=function(){baseRender.apply(this,arguments);setTimeout(syncMenuCounts,0);};
+    window.renderDashboardCustomers.__nfV98MenuWrapped=true;
+  }
+  document.addEventListener('DOMContentLoaded',function(){setTimeout(syncMenuCounts,80);},{once:true});
 })();
 </script>
