@@ -2980,6 +2980,8 @@ body{
 }
 .nf-dch-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:18px 18px 12px;color:#fff}
 .nf-dch-title{font-size:22px;font-weight:950}
+.nf-dashboard-add-customer-btn{width:48px;height:48px;min-width:48px;padding:0;border-radius:15px;font-size:30px;line-height:1;display:grid;place-items:center;box-shadow:0 8px 18px rgba(108,77,246,.18)}
+.nf-dashboard-add-customer-btn:active{transform:scale(.96)}
 .nf-dch-sub{font-size:12px;opacity:.9;margin-top:3px}
 .nf-dch-head .btn{background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.25);color:#fff}
 .nf-dch-tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;padding:0 12px 12px}
@@ -3787,7 +3789,7 @@ body{
       <div class="nf-dch-title">👥 Customers</div>
       <div class="nf-dch-sub">Customer Cards-லிருந்து நேரடியாக sync ஆகும்</div>
     </div>
-    <button class="btn secondary" type="button" onclick="goView('customers')">View All</button>
+    <button class="btn primary nf-dashboard-add-customer-btn" type="button" onclick="openModal('customer')" aria-label="Add Customer" title="Add Customer">＋</button>
   </div>
   <div class="nf-dch-tabs" role="tablist" aria-label="Customer categories">
     <button type="button" class="nf-dch-tab active" data-dch-tab="all" onclick="setDashboardCustomerTab('all')">ALL CUSTOMERS <span id="dchCountAll">0</span></button>
@@ -5547,7 +5549,23 @@ if(type==="order"){
     if(ur.error)throw ur.error;
   }
 }
-closeModal();await loadAll(true);toast(id?"Updated online":"Saved online");
+const wasNewCustomer=type==="customer" && !id;
+const savedCustomerId=type==="customer" ? String(result.data?.id||"") : "";
+closeModal();
+await loadAll(true);
+if(wasNewCustomer && savedCustomerId){
+  toast("Customer saved. New Order திறக்கப்படுகிறது…");
+  if(typeof openOrdersNewOrderForCustomer==="function"){
+    setTimeout(()=>openOrdersNewOrderForCustomer(savedCustomerId),120);
+  }else{
+    goView("orders");
+    setTimeout(()=>{
+      if(typeof openOrdersNewOrderForCustomer==="function") openOrdersNewOrderForCustomer(savedCustomerId);
+    },250);
+  }
+}else{
+  toast(id?"Updated online":"Saved online");
+}
 }catch(err){$("formMsg").textContent="Save failed: "+err.message;$("formMsg").className="msg error"}
 finally{b.disabled=false;b.textContent="Save"}
 });
