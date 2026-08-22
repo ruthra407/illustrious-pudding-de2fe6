@@ -4821,7 +4821,7 @@ function nfCustomerWorkSummaryHTML(st){
       <div class="customerRateList">${chudiRows||'<div class="mini">Chudi rate details இல்லை.</div>'}</div>
       ${chudiRows?`<div class="customerRateTotal"><span>Chudi Total</span><span>${money(chudiTotal)}</span></div>`:""}
     </div>
-    <div class="customerWorkSection"><h4>📝 Alteration Notes</h4><div class="customerNotesBox">${notes.length?notes.map(n=>`• ${esc(n)}`).join("<br>"):"குறிப்பு இல்லை."}</div></div>
+    <div class="customerWorkSection nf-summary-alteration-section"><div class="nf-alteration-notes-title"><span class="nf-alteration-notes-icon">📝</span><span>Alteration Notes</span></div><div class="nf-alteration-notes-content">${notes.length?notes.map(n=>`• ${esc(n)}`).join("<br>"):"குறிப்பு இல்லை."}</div></div>
     <div class="customerRateTotal" style="margin-top:10px;background:linear-gradient(135deg,#14aebd,#3d83ef)"><span>மொத்த Rate</span><span>${money(blouseTotal+liningTotal+chudiTotal+sareeTotal)}</span></div>
   </div>`;
 }
@@ -4849,10 +4849,10 @@ const clothPhotoActionsHtml="";
   const gx=typeof nfGarmentExtra==="function"?nfGarmentExtra(o):{chudi:0,chudiLiningQty:0,saree:0};
   const g=String(o.garment_type||"Blouse");
   const detail=g==="Chudi"?`👚 Chudi ${Number(gx.chudi||o.quantity||0)} · Lining ${Number(gx.chudiLiningQty||0)} · விலை ${money(o.unit_price)}`:g==="Saree"?`🥻 Saree ${Number(gx.saree||o.quantity||0)} · விலை ${money(o.unit_price)}`:`👗 ${blouseSplitText(o)}${Number(gx.saree||0)>0?` · 🥻 Saree ${Number(gx.saree||0)}`:""} · Rate ${money(o.unit_price)}`;
-  return `<div class="customerOrderLine" id="customer-order-${esc(o.id)}"><b>${esc(o.order_no)}</b> · ${esc(g)} · ${detail} ${rem}<br><span class="mini">துணி: ${dateText(o.cloth_received_date)} · Delivery: ${dateText(o.delivery_date)} · Advance: ${money(nfOrderPaymentInfo(o).advance)} (${nfFormatPaymentDate(nfOrderPaymentInfo(o).advanceDate)}) · Customer Paid: ${money(nfOrderPaymentInfo(o).customerPaid)} · Balance: ${money(nfOrderBalance(o))}</span>${lining}${nfPriceBreakdownHTML(o)}${cleanOrderNotes(o.notes)?`<br><span class="mini">📝 ${esc(cleanOrderNotes(o.notes))}</span>`:""}<div class="orderActions"><button class="btn success" onclick="markDelivered('${o.id}')">Delivered</button><button class="btn primary" onclick="openCustomerOrderEditor('${id}','${o.id}')">✏️ Edit Details</button></div></div>`;
+  return `<div class="customerOrderLine" id="customer-order-${esc(o.id)}"><b>${esc(o.order_no)}</b> · ${esc(g)} · ${detail} ${rem}<br><span class="mini">துணி: ${dateText(o.cloth_received_date)} · Delivery: ${dateText(o.delivery_date)} · Advance: ${money(nfOrderPaymentInfo(o).advance)} (${nfFormatPaymentDate(nfOrderPaymentInfo(o).advanceDate)}) · Customer Paid: ${money(nfOrderPaymentInfo(o).customerPaid)} · Balance: ${money(nfOrderBalance(o))}</span>${lining}${nfPriceBreakdownHTML(o)}${cleanOrderNotes(o.notes)?`<div class="nf-order-alteration-notes"><div class="nf-order-alteration-title">📝 Alteration Notes</div><div class="nf-order-alteration-content">${esc(cleanOrderNotes(o.notes))}</div></div>`:""}<div class="orderActions"><button class="btn success" onclick="markDelivered('${o.id}')">Delivered</button><button class="btn primary" onclick="openCustomerOrderEditor('${id}','${o.id}')">✏️ Edit Details</button></div></div>`;
  }).join("")||`<div class="mini">இன்னும் order இல்லை.</div>`;
  return `<article class="customerCard" id="customer-card-${id}">
- <div class="customerCardHead nf-customer-head"><div class="customerAvatar">👤</div><div class="customerIdentity"><h3>${esc(c.name||"Customer")}</h3><div class="nf-customer-contact"><div class="nf-contact-item"><span>📞 Phone</span><b>${esc(c.phone||"Phone இல்லை")}</b></div><div class="nf-contact-item"><span>📍 ஊர்</span><b>${esc(village||"ஊர் இல்லை")}</b></div><div class="nf-contact-item nf-contact-address"><span>🏠 முகவரி</span><b>${esc(address)}</b></div></div><div class="nf-customer-cloth-photo-manager" aria-label="Customer cloth photos"><div class="nf-customer-cloth-photos">${clothPhotoHtml}</div></div>${c.notes?`<p class="nf-customer-note">📝 Alteration Notes: ${esc(c.notes)}</p>`:""}</div><div class="customerActions nf-customer-top-actions"><button class="btn secondary" onclick="openModal('customer','${id}')">✏️ Edit Customer</button><button class="btn danger" onclick="deleteCustomer('${id}')">🗑 Delete</button></div></div>
+ <div class="customerCardHead nf-customer-head"><div class="customerAvatar">👤</div><div class="customerIdentity"><h3>${esc(c.name||"Customer")}</h3><div class="nf-customer-contact"><div class="nf-contact-item"><span>📞 Phone</span><b>${esc(c.phone||"Phone இல்லை")}</b></div><div class="nf-contact-item"><span>📍 ஊர்</span><b>${esc(village||"ஊர் இல்லை")}</b></div><div class="nf-contact-item nf-contact-address"><span>🏠 முகவரி</span><b>${esc(address)}</b></div></div><div class="nf-customer-cloth-photo-manager" aria-label="Customer cloth photos"><div class="nf-customer-cloth-photos">${clothPhotoHtml}</div></div>${c.notes?`<div class="nf-customer-alteration-notes"><div class="nf-alteration-notes-title"><span class="nf-alteration-notes-icon">📝</span><span>Alteration Notes</span></div><div class="nf-alteration-notes-content">${esc(c.notes)}</div></div>`:""}</div><div class="customerActions nf-customer-top-actions"><button class="btn secondary" onclick="openModal('customer','${id}')">✏️ Edit Customer</button><button class="btn danger" onclick="deleteCustomer('${id}')">🗑 Delete</button></div></div>
  <section class="nf-collection-panel nf-cash-collection"><div class="nf-collection-title"><span class="nf-collection-icon">💰</span><div><h4>Cash Collection</h4><small>Order • Paid • Advance • Balance</small></div></div><div class="customerMoneyGrid"><div class="moneyStat"><b>${money(st.total)}</b><span>மொத்த order</span></div><div class="moneyStat"><b>${money(st.paid)}</b><span>Customer paid</span></div><div class="moneyStat"><b>${money(st.advance)}</b><span>Advance வாங்கியது</span></div><div class="moneyStat clickable" onclick="goView('payments')"><b>${money(st.balance)}</b><span>இன்னும் கொடுக்க வேண்டும்</span></div></div></section>\n <section class="nf-collection-panel nf-blouse-collection"><div class="nf-collection-title"><span class="nf-collection-icon">👗</span><div><h4>Blouse Collection</h4><small>மொத்தம் • வாங்கிச் சென்றது • மீதமுள்ளது</small></div></div><div class="nfBlouseStatusGrid"><div class="moneyStat"><b>${st.givenBlouse}</b><span>மொத்த blouse</span></div><div class="moneyStat"><b>${st.handedBlouse}</b><span>வாங்கிச் சென்றது</span></div><div class="moneyStat"><b>${st.pendingBlouse}</b><span>மீதமுள்ள blouse</span></div><div class="moneyStat"><b>${st.handedNormal}/${st.normal} · ${st.handedLining}/${st.lining} · ${st.handedDesign}/${st.design}</b><span>வாங்கிச் சென்றது: Normal · Lining · Design</span></div></div><div class="nf-garment-subtitle">👚 சுடிதார் / 🥻 சேலை</div><div class="nfGarmentStatusGrid"><div class="moneyStat"><b>${st.chudi}</b><span>மொத்த சுடிதார்</span></div><div class="moneyStat"><b>${st.handedChudi}</b><span>வாங்கிச் சென்ற சுடிதார்</span></div><div class="moneyStat"><b>${st.pendingChudi}</b><span>மீதமுள்ள சுடிதார்</span></div><div class="moneyStat"><b>${st.saree}</b><span>மொத்த சேலை</span></div><div class="moneyStat"><b>${st.handedSaree}</b><span>வாங்கிச் சென்ற சேலை</span></div><div class="moneyStat"><b>${st.pendingSaree}</b><span>மீதமுள்ள சேலை</span></div></div></section>
  <div class="nfCustomerBreakdownMount">${typeof window.nfCustomerWorkSummaryHTML==="function"?window.nfCustomerWorkSummaryHTML(st):""}</div>
  <div class="customerSection"><h4>✏️ Edit Order — இந்த customer card-லேயே</h4><div class="customerActions"><button class="btn primary" onclick="openCustomerOrderEditor('${id}')">✏️ Edit Order</button><button class="btn secondary" onclick="toggleCustomerDesignPicker('${id}')">🎨 Blouse Design (3)</button><button class="btn secondary" onclick="openCustomerMeasurement('${id}')">📏 Measurement</button><button class="btn success" onclick="openCustomerPayment('${id}')">💰 Payment</button></div><div id="customer-design-picker-${id}" class="nf-design-picker hidden"><div class="nf-design-picker-title">🎨 இந்த customer-க்கு 3 blouse design தேர்வு</div><div class="nf-design-slots">${selectedDesignHtml}</div><div class="nf-design-picker-actions"><label class="btn secondary">🖼️ Gallery<input type="file" accept="image/*" style="display:none" onchange="uploadCustomerDesign('${id}',this.files[0])"></label><label class="btn secondary">📷 Camera<input type="file" accept="image/*" capture="environment" style="display:none" onchange="uploadCustomerDesign('${id}',this.files[0])"></label><button class="btn secondary" onclick="searchDesignForCustomer('${id}')">🔎 Google Images</button></div><div class="hint">மூன்று design மட்டும் தேர்வு செய்யலாம். ஒவ்வொன்றையும் ✏️ மாற்றலாம்; 🗑️ நீக்கலாம்.</div><div id="customer-design-search-${id}" class="hidden nf-design-search-wrap"><div class="toolbar"><input class="input search" id="customer-design-q-${id}" placeholder="blouse design search"><button class="btn primary" onclick="runCustomerDesignSearch('${id}')">Search</button></div><div id="customer-design-results-${id}" class="customerDesignGrid"></div></div></div></div>
@@ -10334,6 +10334,88 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-head >
 
 })();
 </script>
+
+<style id="nf-v8_1-colorful-alteration-notes">
+/* V8.1 — Colorful Alteration Notes presentation. Data/storage/sync logic is unchanged. */
+.nf-customer-alteration-notes{
+  margin:14px 0 2px;
+  padding:0;
+  border-radius:16px;
+  overflow:hidden;
+  border:1px solid rgba(112,74,246,.22);
+  background:linear-gradient(135deg,#fff7fb 0%,#f5efff 52%,#eef9ff 100%);
+  box-shadow:0 7px 18px rgba(93,65,180,.10);
+}
+.nf-alteration-notes-title{
+  display:flex;
+  align-items:center;
+  gap:9px;
+  padding:10px 13px;
+  color:#fff;
+  font-size:15px;
+  font-weight:950;
+  letter-spacing:.1px;
+  background:linear-gradient(100deg,#6d3df5 0%,#a43be7 48%,#ec4f8c 100%);
+}
+.nf-alteration-notes-icon{
+  width:28px;
+  height:28px;
+  display:grid;
+  place-items:center;
+  border-radius:9px;
+  background:rgba(255,255,255,.22);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.28);
+  flex:none;
+}
+.nf-alteration-notes-content{
+  padding:12px 14px 13px;
+  color:#433b52;
+  font-size:14px;
+  font-weight:700;
+  line-height:1.55;
+  white-space:pre-wrap;
+  overflow-wrap:anywhere;
+  background:rgba(255,255,255,.72);
+}
+.nf-order-alteration-notes{
+  margin:9px 0 8px;
+  border:1px solid rgba(236,79,140,.22);
+  border-radius:12px;
+  overflow:hidden;
+  background:#fff9fc;
+}
+.nf-order-alteration-title{
+  padding:7px 10px;
+  color:#fff;
+  font-size:12px;
+  font-weight:900;
+  background:linear-gradient(100deg,#7540f4,#d844a7);
+}
+.nf-order-alteration-content{
+  padding:8px 10px;
+  color:#51475d;
+  font-size:12px;
+  line-height:1.5;
+  font-weight:650;
+  white-space:pre-wrap;
+  overflow-wrap:anywhere;
+}
+.nf-summary-alteration-section{
+  margin-top:14px;
+  padding-top:0;
+  border-top:0;
+  border-radius:16px;
+  overflow:hidden;
+  border:1px solid rgba(112,74,246,.18);
+  background:linear-gradient(135deg,#fff8fb,#f6f0ff,#effaff);
+}
+.nf-summary-alteration-section .nf-alteration-notes-content{background:rgba(255,255,255,.78)}
+@media(max-width:700px){
+  .nf-customer-alteration-notes{margin-top:12px}
+  .nf-alteration-notes-title{font-size:14px;padding:9px 11px}
+  .nf-alteration-notes-content{font-size:13px;padding:10px 12px}
+}
+</style>
 
 <!-- V7.10 FINAL: Alteration Notes is the single customer/order note field. -->
 <script id="nf-v710-alteration-notes-final">
