@@ -1,10 +1,10 @@
 <!doctype html>
-<html nf-build="V8.3-row-clarity-derived-from-v8.3" lang="ta">
+<html nf-build="V9.4-home-clear-colorful-customer-hub" lang="ta">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="nf-build" content="V8.3-row-clarity-derived-from-v8.3">
-<title>New Fashion Tailoring – Online Management | Phase 4.3 • V7.6</title>
+<meta name="nf-build" content="V9.4-home-clear-colorful-customer-hub">
+<title>New Fashion Tailoring – Online Management | V9.4 • Clear Colorful Home</title>
 <link rel="manifest" href="manifest.json">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -3873,6 +3873,405 @@ body{
   .nf-blouse-collection .nf-garment-subtitle{margin-left:12px!important;margin-right:12px!important}
   .nf-summary-alteration-section .nf-alteration-notes-content,
   .nf-customer-alteration-notes .nf-alteration-notes-content{font-size:14px!important}
+}
+</style>
+
+
+<style id="nf-v94-home-clear-colorful-final">
+/*
+  V9.4 — HOME PAGE FINAL VISUAL PASS
+  Visual/CSS only. Existing data, Supabase, navigation and calculations are preserved.
+*/
+
+/* Strong, crisp typography for the Home page */
+#view-dashboard,
+#view-dashboard *{
+  font-family:system-ui,-apple-system,"Noto Sans Tamil","Noto Sans",Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;
+  text-rendering:geometricPrecision;
+}
+#view-dashboard{
+  color:#171923!important;
+}
+
+/* Distinct Home heading area */
+#view-dashboard .pagehead{
+  margin:0 0 12px!important;
+  padding:10px 12px 11px!important;
+  border-radius:18px!important;
+  background:linear-gradient(135deg,#ffffff 0%,#f7f3ff 55%,#fff2f7 100%)!important;
+  border:1px solid #ddd6f4!important;
+  box-shadow:0 8px 22px rgba(55,39,105,.08)!important;
+}
+#view-dashboard .pagehead h2{
+  font-size:28px!important;
+  line-height:1.1!important;
+  font-weight:950!important;
+  letter-spacing:-.55px!important;
+  color:#2d2350!important;
+}
+#view-dashboard .pagehead p{
+  margin-top:4px!important;
+  color:#5f5a6e!important;
+  font-size:13px!important;
+  font-weight:650!important;
+}
+
+/* Customer Hub — clearly separated from the rest of the page */
+#view-dashboard .nf-dashboard-customer-hub{
+  border-radius:24px!important;
+  background:
+    radial-gradient(circle at 0% 0%,rgba(255,255,255,.20),transparent 18rem),
+    linear-gradient(135deg,#5429dc 0%,#7540e8 48%,#c83291 100%)!important;
+  box-shadow:0 16px 38px rgba(78,40,150,.20)!important;
+}
+
+/* Header/title card */
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-head{
+  padding:15px 14px 11px!important;
+  gap:10px!important;
+}
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-title{
+  display:flex!important;
+  align-items:center!important;
+  gap:8px!important;
+  font-size:24px!important;
+  line-height:1.08!important;
+  font-weight:950!important;
+  color:#fff!important;
+  letter-spacing:-.3px!important;
+}
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-title::before{
+  content:"👥";
+  display:grid;
+  place-items:center;
+  width:36px;
+  height:36px;
+  flex:0 0 36px;
+  border-radius:11px;
+  background:rgba(255,255,255,.17);
+  border:1px solid rgba(255,255,255,.25);
+  font-size:20px;
+}
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-sub{
+  margin-top:4px!important;
+  color:rgba(255,255,255,.92)!important;
+  font-size:12px!important;
+  line-height:1.35!important;
+  font-weight:650!important;
+}
+
+/* Add button is a separate bright action */
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-head .btn{
+  min-width:44px!important;
+  min-height:44px!important;
+  padding:7px 12px!important;
+  border-radius:14px!important;
+  background:rgba(255,255,255,.18)!important;
+  border:1px solid rgba(255,255,255,.36)!important;
+  color:#fff!important;
+  font-size:25px!important;
+  font-weight:950!important;
+}
+
+/* Three categories stay side-by-side on mobile */
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-tabs{
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  gap:7px!important;
+  padding:0 10px 9px!important;
+}
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-tab{
+  min-height:48px!important;
+  padding:7px 5px!important;
+  border-radius:13px!important;
+  font-size:11px!important;
+  line-height:1.1!important;
+  font-weight:900!important;
+  color:#fff!important;
+  background:rgba(255,255,255,.13)!important;
+  border:1px solid rgba(255,255,255,.25)!important;
+  text-align:center!important;
+}
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-tab.active{
+  background:#fff!important;
+  color:#5132c8!important;
+  box-shadow:0 7px 18px rgba(30,15,80,.20)!important;
+}
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-tab span{
+  min-width:20px!important;
+  height:20px!important;
+  margin-left:4px!important;
+  padding:0 5px!important;
+  background:#f0eaff!important;
+  color:#5132c8!important;
+  font-size:11px!important;
+  font-weight:950!important;
+}
+
+/* Customer list — clean spacing, readable cards */
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
+  padding:0 9px 12px!important;
+  gap:8px!important;
+}
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-card{
+  padding:11px 10px 10px!important;
+  border-radius:16px!important;
+  background:#fff!important;
+  border:1px solid #e5e3ee!important;
+  box-shadow:0 6px 18px rgba(31,27,58,.10)!important;
+}
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-card:nth-child(4n+1){
+  border-left:4px solid #6c4df6!important;
+}
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-card:nth-child(4n+2){
+  border-left:4px solid #ef4f8a!important;
+}
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-card:nth-child(4n+3){
+  border-left:4px solid #ff8a3d!important;
+}
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-card:nth-child(4n){
+  border-left:4px solid #16a9b9!important;
+}
+
+/* Top row: number + customer + delivery + arrow */
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-card-top{
+  grid-template-columns:32px minmax(0,1fr) minmax(112px,124px) 16px!important;
+  gap:7px!important;
+  align-items:start!important;
+}
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-no{
+  width:32px!important;
+  height:32px!important;
+  border-radius:10px!important;
+  background:#eeeaff!important;
+  color:#5132c8!important;
+  font-size:14px!important;
+  font-weight:950!important;
+}
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-name{
+  font-size:19px!important;
+  line-height:1.15!important;
+  font-weight:950!important;
+  color:#151620!important;
+  letter-spacing:-.2px!important;
+}
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-contact{
+  margin-top:3px!important;
+  font-size:11.5px!important;
+  line-height:1.32!important;
+  color:#4f4d59!important;
+  font-weight:600!important;
+}
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-arrow{
+  padding-top:5px!important;
+  color:#655a73!important;
+  font-size:22px!important;
+  font-weight:900!important;
+}
+
+/* Delivery is always its own strong visual block */
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-delivery{
+  min-width:0!important;
+  padding:7px 6px 8px!important;
+  border-radius:13px!important;
+  text-align:center!important;
+  box-shadow:0 5px 13px rgba(55,38,75,.10)!important;
+}
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-delivery-label{
+  font-size:13px!important;
+  line-height:1.15!important;
+  font-weight:950!important;
+  color:#6e4d00!important;
+}
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-delivery-date{
+  margin-top:3px!important;
+  font-size:12px!important;
+  line-height:1.15!important;
+  font-weight:950!important;
+  color:#3f3000!important;
+}
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-delivery.soon{
+  background:linear-gradient(135deg,#e7f4ff,#cce7ff)!important;
+  border:1px solid #9bcdf5!important;
+}
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-delivery.soon .nf-dch-delivery-label,
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-delivery.soon .nf-dch-delivery-date{
+  color:#174f78!important;
+}
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-delivery.today{
+  background:linear-gradient(135deg,#fff1aa,#ffd65b)!important;
+  border:1px solid #e7bf3b!important;
+}
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-delivery.today .nf-dch-delivery-label,
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-delivery.today .nf-dch-delivery-date{
+  color:#694b00!important;
+}
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-delivery.late{
+  background:linear-gradient(135deg,#ffe5ea,#ffc9d2)!important;
+  border:1px solid #ef9eaa!important;
+}
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-delivery.late .nf-dch-delivery-label,
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-delivery.late .nf-dch-delivery-date{
+  color:#9b2638!important;
+}
+
+/* Order + garment details: dark text on colored boxes */
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-info{
+  grid-template-columns:minmax(0,1fr) minmax(0,1.15fr)!important;
+  gap:7px!important;
+  margin-top:8px!important;
+}
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-box{
+  min-height:48px!important;
+  padding:8px 9px!important;
+  border-radius:12px!important;
+  border:1px solid transparent!important;
+}
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-box:nth-child(1){
+  background:#f0edff!important;
+  border-color:#d9d0ff!important;
+}
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-box:nth-child(2){
+  background:#fff0f6!important;
+  border-color:#f4c9dc!important;
+}
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-box b{
+  display:block!important;
+  font-size:12.5px!important;
+  line-height:1.2!important;
+  font-weight:950!important;
+  color:#171923!important;
+  white-space:normal!important;
+  overflow-wrap:anywhere!important;
+}
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-box span{
+  display:block!important;
+  margin-top:3px!important;
+  font-size:10.5px!important;
+  line-height:1.15!important;
+  color:#565263!important;
+  font-weight:750!important;
+}
+
+/* Status/date pills are readable but compact */
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-meta{
+  gap:5px!important;
+  margin-top:7px!important;
+}
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-pill{
+  padding:5px 7px!important;
+  border-radius:999px!important;
+  background:#f2f1f6!important;
+  color:#393744!important;
+  font-size:10.5px!important;
+  line-height:1.1!important;
+  font-weight:850!important;
+}
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-pill.new{
+  background:#fff0bd!important;
+  color:#795400!important;
+}
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-pill.delivered{
+  background:#dff8ed!important;
+  color:#126e4f!important;
+}
+
+/* Keep many customer names visible on phone without making text tiny */
+@media(max-width:700px){
+  #view-dashboard .pagehead{
+    padding:9px 10px 10px!important;
+  }
+  #view-dashboard .pagehead h2{
+    font-size:24px!important;
+  }
+  #view-dashboard .nf-dashboard-customer-hub .nf-dch-title{
+    font-size:21px!important;
+  }
+  #view-dashboard .nf-dashboard-customer-hub .nf-dch-title::before{
+    width:32px;height:32px;flex-basis:32px;font-size:18px;
+  }
+  #view-dashboard .nf-dashboard-customer-hub .nf-dch-tabs{
+    grid-template-columns:repeat(3,minmax(0,1fr))!important;
+    gap:5px!important;
+    padding:0 8px 8px!important;
+  }
+  #view-dashboard .nf-dashboard-customer-hub .nf-dch-tab{
+    min-height:43px!important;
+    padding:6px 3px!important;
+    font-size:10.5px!important;
+  }
+  #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
+    padding:0 7px 10px!important;
+    gap:7px!important;
+  }
+  #view-dashboard .nf-dashboard-customer-hub .nf-dch-card{
+    padding:10px 9px 9px!important;
+  }
+  #view-dashboard .nf-dashboard-customer-hub .nf-dch-card-top{
+    grid-template-columns:30px minmax(0,1fr) minmax(106px,116px) 15px!important;
+    gap:6px!important;
+  }
+  #view-dashboard .nf-dashboard-customer-hub .nf-dch-no{
+    width:30px!important;height:30px!important;
+  }
+  #view-dashboard .nf-dashboard-customer-hub .nf-dch-name{
+    font-size:18px!important;
+    line-height:1.14!important;
+  }
+  #view-dashboard .nf-dashboard-customer-hub .nf-dch-contact{
+    font-size:11px!important;
+    line-height:1.28!important;
+  }
+  #view-dashboard .nf-dashboard-customer-hub .nf-dch-delivery{
+    padding:6px 5px 7px!important;
+    border-radius:12px!important;
+  }
+  #view-dashboard .nf-dashboard-customer-hub .nf-dch-delivery-label{
+    font-size:12px!important;
+  }
+  #view-dashboard .nf-dashboard-customer-hub .nf-dch-delivery-date{
+    font-size:11px!important;
+  }
+  #view-dashboard .nf-dashboard-customer-hub .nf-dch-info{
+    gap:6px!important;
+    margin-top:7px!important;
+  }
+  #view-dashboard .nf-dashboard-customer-hub .nf-dch-box{
+    min-height:45px!important;
+    padding:7px 8px!important;
+  }
+  #view-dashboard .nf-dashboard-customer-hub .nf-dch-box b{
+    font-size:12px!important;
+  }
+  #view-dashboard .nf-dashboard-customer-hub .nf-dch-box span{
+    font-size:10px!important;
+  }
+  #view-dashboard .nf-dashboard-customer-hub .nf-dch-meta{
+    gap:4px!important;
+    margin-top:6px!important;
+  }
+  #view-dashboard .nf-dashboard-customer-hub .nf-dch-pill{
+    padding:4px 6px!important;
+    font-size:10px!important;
+  }
+}
+
+@media(max-width:390px){
+  #view-dashboard .nf-dashboard-customer-hub .nf-dch-card-top{
+    grid-template-columns:28px minmax(0,1fr) minmax(96px,104px) 14px!important;
+  }
+  #view-dashboard .nf-dashboard-customer-hub .nf-dch-name{
+    font-size:16.5px!important;
+  }
+  #view-dashboard .nf-dashboard-customer-hub .nf-dch-contact{
+    font-size:10.5px!important;
+  }
+  #view-dashboard .nf-dashboard-customer-hub .nf-dch-delivery-label{
+    font-size:10.5px!important;
+  }
+  #view-dashboard .nf-dashboard-customer-hub .nf-dch-delivery-date{
+    font-size:10px!important;
+  }
 }
 </style>
 
@@ -10127,149 +10526,6 @@ body.nf-dashboard-mode #view-dashboard .nf-dch-list{
 }
 </style>
 
-
-<style id="nf-v94-dashboard-customer-clean">
-/* V9.4 — Home Customer Hub: compact customer-name selector + clean selected details */
-#view-dashboard .nf-dashboard-customer-hub{
-  background:linear-gradient(135deg,#5b2be0 0%,#7a35e8 42%,#d63b93 100%) !important;
-  border-radius:24px !important;
-  box-shadow:0 18px 42px rgba(75,35,150,.22) !important;
-}
-#view-dashboard .nf-v94-name-panel{
-  margin:0 10px 10px;
-  padding:10px;
-  border-radius:18px;
-  background:rgba(255,255,255,.14);
-  border:1px solid rgba(255,255,255,.25);
-}
-#view-dashboard .nf-v94-name-title{
-  color:#fff;font-weight:950;font-size:13px;margin:0 2px 8px;letter-spacing:.1px;
-}
-#view-dashboard .nf-v94-name-list{
-  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;
-  max-height:176px;overflow-y:auto;overscroll-behavior:contain;
-  -webkit-overflow-scrolling:touch;padding-right:2px;
-}
-#view-dashboard .nf-v94-name-btn{
-  min-width:0;border:1px solid rgba(255,255,255,.25);border-radius:12px;
-  padding:9px 10px;background:rgba(255,255,255,.96);color:#27203a;
-  font-size:13px;font-weight:900;text-align:left;line-height:1.2;
-  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;
-  box-shadow:0 4px 10px rgba(38,17,80,.08);
-}
-#view-dashboard .nf-v94-name-btn.active{
-  color:#fff;background:linear-gradient(135deg,#ff4d9d,#7b3ff2);
-  border-color:rgba(255,255,255,.65);box-shadow:0 6px 14px rgba(42,18,90,.2);
-}
-#view-dashboard .nf-v94-selected{
-  margin:0 10px 12px;padding:0;background:#fff;border-radius:20px;overflow:hidden;
-  box-shadow:0 10px 24px rgba(38,25,76,.14);
-}
-#view-dashboard .nf-v94-selected-head{
-  display:flex;align-items:center;gap:10px;padding:13px 14px;
-  background:linear-gradient(135deg,#eef0ff,#fff0f7);border-bottom:1px solid #e8e1ef;
-}
-#view-dashboard .nf-v94-avatar{
-  width:42px;height:42px;border-radius:13px;display:grid;place-items:center;
-  background:linear-gradient(135deg,#5f35e8,#df3f99);color:#fff;font-size:20px;flex:none;
-}
-#view-dashboard .nf-v94-selected-name{font-size:18px;font-weight:950;color:#171522;overflow-wrap:anywhere}
-#view-dashboard .nf-v94-selected-sub{font-size:11px;color:#6c6576;margin-top:2px}
-#view-dashboard .nf-v94-open{margin-left:auto;border:0;border-radius:11px;padding:9px 10px;background:#f0eaff;color:#5733c9;font-weight:900;white-space:nowrap;cursor:pointer}
-#view-dashboard .nf-v94-detail-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:11px}
-#view-dashboard .nf-v94-detail{
-  border:1px solid #e6e1eb;border-radius:13px;padding:10px;background:#fff;min-width:0;
-}
-#view-dashboard .nf-v94-detail:nth-child(1){background:#f0edff;border-color:#d9d0ff}
-#view-dashboard .nf-v94-detail:nth-child(2){background:#fff0f6;border-color:#f3cfe0}
-#view-dashboard .nf-v94-detail:nth-child(3){background:#eaf9f5;border-color:#c9eadf}
-#view-dashboard .nf-v94-detail:nth-child(4){background:#fff8e5;border-color:#f2dfad}
-#view-dashboard .nf-v94-detail:nth-child(5){background:#eef8ff;border-color:#cce3f6}
-#view-dashboard .nf-v94-detail:nth-child(6){background:#fff0ee;border-color:#f2d0ca}
-#view-dashboard .nf-v94-detail b{display:block;color:#171522;font-size:14px;font-weight:950;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#view-dashboard .nf-v94-detail span{display:block;color:#5e5867;font-size:10px;font-weight:750;margin-top:3px;line-height:1.35}
-#view-dashboard .nf-v94-reminder{margin:0 11px 11px;padding:10px 12px;border-radius:13px;background:#fff7d9;color:#6f5200;font-weight:900;font-size:12px}
-#view-dashboard .nf-v94-reminder.late{background:#ffe9ec;color:#a51e38}
-#view-dashboard .nf-v94-reminder.ok{background:#e6f8ef;color:#126d4c}
-#view-dashboard .nf-v94-empty{padding:18px;text-align:center;color:#6c6576;background:#fff;border-radius:16px}
-@media(max-width:560px){
-  #view-dashboard .nf-v94-name-list{grid-template-columns:repeat(2,minmax(0,1fr));max-height:190px}
-  #view-dashboard .nf-v94-name-btn{font-size:12px;padding:9px 8px}
-  #view-dashboard .nf-v94-selected-name{font-size:17px}
-  #view-dashboard .nf-v94-detail-grid{gap:7px;padding:10px}
-  #view-dashboard .nf-v94-detail{padding:9px}
-  #view-dashboard .nf-v94-detail b{font-size:13px}
-  #view-dashboard .nf-v94-open{font-size:11px;padding:8px 9px}
-}
-</style>
-<script id="nf-v94-dashboard-customer-clean-js">
-(function(){
-  'use strict';
-  var v94SelectedId='';
-  function escV94(x){return typeof esc==='function'?esc(String(x??'')):String(x??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
-  function moneyV94(x){return typeof money==='function'?money(x):'₹'+Number(x||0).toFixed(2);}
-  function dateV94(x){return typeof dateText==='function'?dateText(x):(x||'—');}
-  function latestOrderV94(id){
-    var os=typeof customerOrders==='function'?customerOrders(id):((state.orders||[]).filter(o=>String(o.customer_id)===String(id)));
-    return os.slice().sort(function(a,b){return String(b.created_at||b.order_date||'').localeCompare(String(a.created_at||a.order_date||''));})[0]||null;
-  }
-  function customerCategoryV94(c){return typeof dashboardCustomerCategory==='function'?dashboardCustomerCategory(c):'new';}
-  function buildSelectedV94(c){
-    if(!c)return '<div class="nf-v94-selected"><div class="nf-v94-empty">Customer-ஐ தேர்வு செய்யவும்.</div></div>';
-    var st=typeof customerStats==='function'?customerStats(c.id):{balance:0,os:[]};
-    var o=latestOrderV94(c.id), due=o&&typeof dueInfo==='function'?dueInfo(o):null;
-    var status=o?.status||'Pending';
-    var garment=o?String(o.garment_type||'Blouse'):'Order இல்லை';
-    var qty=o?(typeof blouseSplitText==='function'?blouseSplitText(o):String(o.quantity||0)):'0';
-    var balance=o?(typeof nfOrderBalance==='function'?nfOrderBalance(o):Number(o.total_amount||0)-Number(o.advance_amount||0)):Number(st.balance||0);
-    var delivery=o?dateV94(o.delivery_date):'—';
-    var reminder='';
-    if(due){
-      if(due.kind==='late') reminder='<div class="nf-v94-reminder late">🚨 '+escV94(due.days)+' நாள் late · Delivery '+escV94(delivery)+'</div>';
-      else if(due.kind==='today') reminder='<div class="nf-v94-reminder">🔔 இன்று delivery · '+escV94(delivery)+'</div>';
-      else reminder='<div class="nf-v94-reminder ok">⏰ '+escV94(due.days)+' நாள் உள்ளது · Delivery '+escV94(delivery)+'</div>';
-    }
-    return '<div class="nf-v94-selected">'+
-      '<div class="nf-v94-selected-head"><div class="nf-v94-avatar">👤</div><div style="min-width:0"><div class="nf-v94-selected-name">'+escV94(c.name||'Unknown Customer')+'</div><div class="nf-v94-selected-sub">📞 '+escV94(c.phone||'Phone இல்லை')+' · 📍 '+escV94(c.village||'ஊர் இல்லை')+'</div></div><button class="nf-v94-open" type="button" onclick="goToCustomer(\''+escV94(c.id)+'\')">View Details ›</button></div>'+
-      '<div class="nf-v94-detail-grid">'+
-      '<div class="nf-v94-detail"><b>'+escV94(o?.order_no||'—')+'</b><span>Order No</span></div>'+ 
-      '<div class="nf-v94-detail"><b>'+escV94(garment)+' · '+escV94(qty)+'</b><span>Current Order</span></div>'+ 
-      '<div class="nf-v94-detail"><b>'+moneyV94(o?o.total_amount:0)+'</b><span>Order Amount</span></div>'+ 
-      '<div class="nf-v94-detail"><b>'+moneyV94(o?o.advance_amount:0)+'</b><span>Advance / Paid</span></div>'+ 
-      '<div class="nf-v94-detail"><b>'+moneyV94(balance)+'</b><span>Balance</span></div>'+ 
-      '<div class="nf-v94-detail"><b>'+escV94(status)+'</b><span>Status · Delivery '+escV94(delivery)+'</span></div>'+ 
-      '</div>'+reminder+'</div>';
-  }
-  function renderV94(){
-    var box=document.getElementById('dashboardCustomersList'); if(!box||typeof state==='undefined')return;
-    var customers=Array.isArray(state.customers)?state.customers.slice():[];
-    var all=customers.slice().sort(typeof dashboardCustomerSort==='function'?dashboardCustomerSort:function(a,b){return String(a.name||'').localeCompare(String(b.name||''));});
-    var fresh=all.filter(function(c){return customerCategoryV94(c)==='new'});
-    var delivered=all.filter(function(c){return customerCategoryV94(c)==='delivered'});
-    var source=dashboardCustomerTab==='new'?fresh:dashboardCustomerTab==='delivered'?delivered:all;
-    if(!source.length){box.innerHTML='<div class="nf-v94-empty">Customers இன்னும் சேர்க்கப்படவில்லை.</div>';return;}
-    if(!v94SelectedId||!source.some(function(c){return String(c.id)===String(v94SelectedId)}))v94SelectedId=String(source[0].id);
-    var names=source.map(function(c){var active=String(c.id)===String(v94SelectedId)?' active':'';return '<button type="button" class="nf-v94-name-btn'+active+'" onclick="nfV94SelectCustomer(\''+escV94(c.id)+'\')">'+escV94(c.name||'Unknown Customer')+'</button>';}).join('');
-    var selected=source.find(function(c){return String(c.id)===String(v94SelectedId)})||source[0];
-    box.innerHTML='<div class="nf-v94-name-panel"><div class="nf-v94-name-title">👥 Customer Names · '+source.length+'</div><div class="nf-v94-name-list">'+names+'</div></div>'+buildSelectedV94(selected);
-  }
-  window.nfV94SelectCustomer=function(id){v94SelectedId=String(id||'');renderV94();};
-  var oldRender=window.renderDashboardCustomers;
-  if(typeof oldRender==='function'&&!oldRender.__nfV94){
-    window.renderDashboardCustomers=function(){renderV94();};
-    window.renderDashboardCustomers.__nfV94=true;
-  }
-  var oldRenderDashboard=window.renderDashboard;
-  if(typeof oldRenderDashboard==='function'&&!oldRenderDashboard.__nfV94){
-    window.renderDashboard=function(){oldRenderDashboard.apply(this,arguments);renderV94();};
-    window.renderDashboard.__nfV94=true;
-  }
-  document.addEventListener('click',function(e){
-    var b=e.target.closest('.nf-dch-tab'); if(b)setTimeout(renderV94,0);
-  });
-  setTimeout(renderV94,120);
-})();
-</script>
 </body>
 </html>
 
