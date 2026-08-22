@@ -10665,9 +10665,9 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-head >
 </script>
 
 
-<!-- V9.1 FINAL VISUAL PATCH: colorful section cards + Edit Order beside Edit Customer.
+<!-- V9.2 FINAL VISUAL PATCH: colorful section cards + Edit Order beside Edit Customer.
      Data, calculations, sync, photo/gallery/camera handlers and existing fields are unchanged. -->
-<style id="v90-colorful-sections-final">
+<style id="v92-colorful-sections-final">
 /* Strong but readable section colors. Keep the existing typography/row layout intact. */
 .customerCard{
   background:linear-gradient(145deg,#ffffff 0%,#faf8ff 100%) !important;
@@ -10824,7 +10824,7 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-head >
 }
 </style>
 
-<script id="v90-edit-order-move-final">
+<script id="v92-edit-order-move-final">
 (function(){
   /* Move the existing Edit Order button from the customer-name row to sit
      beside Edit Customer. The same click handler is retained. */
@@ -10854,8 +10854,212 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-head >
 
   document.addEventListener('DOMContentLoaded',function(){
     setTimeout(function(){
-      try{ if(typeof renderAll==='function') renderAll(); }catch(e){ console.error('V9.1 visual patch render',e); }
+      try{ if(typeof renderAll==='function') renderAll(); }catch(e){ console.error('V9.2 visual patch render',e); }
     },120);
   },{once:true});
+})();
+</script>
+
+
+<!-- V9.2 COLOR SYSTEM: every customer-card section gets a distinct, readable visual identity.
+     Layout, calculations, sync, photos, gallery/camera handlers and data are untouched. -->
+<style id="v92-customer-card-color-system">
+/* ===== CUSTOMER CARD: distinct section identities ===== */
+.customerCard .nf-customer-head{
+  background:linear-gradient(135deg,#eef4ff 0%,#f7f0ff 52%,#fff0f7 100%) !important;
+  border:2px solid #c8b8f2 !important;
+}
+.customerCard .nf-contact-item{
+  background:linear-gradient(135deg,#ffffff 0%,#f1f7ff 100%) !important;
+  border:1px solid #bcd4f4 !important;
+}
+
+/* Photos / design — cyan identity */
+.customerCard .nf-customer-cloth-photo-manager{
+  background:linear-gradient(145deg,#e8fbff 0%,#eef7ff 100%) !important;
+  border:2px solid #8bd8e8 !important;
+  box-shadow:0 8px 20px rgba(28,157,183,.14) !important;
+}
+.customerCard .nf-cloth-slot{
+  background:linear-gradient(145deg,#ffffff,#eafaff) !important;
+  border:2px solid #9ddfeb !important;
+}
+.customerCard .nf-cloth-slot-actions .nf-gallery-outside{
+  background:linear-gradient(135deg,#fff2b8,#ffd66b) !important;
+  border-color:#efc84d !important;
+  color:#5e4700 !important;
+}
+.customerCard .nf-cloth-slot-actions .nf-camera-outside{
+  background:linear-gradient(135deg,#ffd9ed,#ffb8dc) !important;
+  border-color:#e98dbd !important;
+  color:#8b245f !important;
+}
+
+/* Alteration Notes — pink/purple identity */
+.customerCard .nf-summary-alteration-section,
+.customerCard .nf-customer-alteration-notes{
+  background:linear-gradient(145deg,#fff0fa 0%,#f3eaff 52%,#e9f7ff 100%) !important;
+  border:2px solid #d2a8ef !important;
+  box-shadow:0 9px 24px rgba(139,61,190,.14) !important;
+}
+.customerCard .nf-alteration-notes-title{
+  background:linear-gradient(100deg,#6b39ee 0%,#a63de1 48%,#ef4d91 100%) !important;
+}
+
+/* Collection panels */
+.customerCard .nf-cash-collection{
+  background:linear-gradient(145deg,#fff8d8,#fff0bd) !important;
+  border:2px solid #f2cd61 !important;
+}
+.customerCard .nf-cash-collection .nf-collection-title{
+  background:linear-gradient(100deg,#ffd447,#ff9f3f) !important;
+  color:#5b3a00 !important;
+}
+.customerCard .nf-cash-collection .moneyStat{
+  background:#fffdf6 !important;
+  border-color:#efd88e !important;
+}
+
+.customerCard .nf-blouse-collection{
+  background:linear-gradient(145deg,#f0e9ff,#ffeaf7) !important;
+  border:2px solid #c5a7f0 !important;
+}
+.customerCard .nf-blouse-collection .nf-collection-title{
+  background:linear-gradient(100deg,#6940ed,#d947a7) !important;
+  color:#fff !important;
+}
+.customerCard .nf-blouse-collection .moneyStat{
+  background:#fffaff !important;
+  border-color:#d9c6f1 !important;
+}
+.customerCard .nf-blouse-collection .nf-garment-subtitle{
+  background:linear-gradient(100deg,#d8c4ff,#ffcce9) !important;
+  color:#542477 !important;
+}
+
+/* Blouse / Chudi calculation sections — clearly different */
+.customerCard .nfCustomerBreakdownMount .customerWorkSection:first-child{
+  background:linear-gradient(145deg,#edf1ff,#f7eaff) !important;
+  border:2px solid #aebff0 !important;
+}
+.customerCard .nfCustomerBreakdownMount .customerWorkSection:first-child h4{
+  color:#3d3aa0 !important;
+}
+.customerCard .nfCustomerBreakdownMount .customerWorkSection:nth-child(2){
+  background:linear-gradient(145deg,#e8fbf6,#e7f4ff) !important;
+  border:2px solid #91d9ce !important;
+}
+.customerCard .nfCustomerBreakdownMount .customerWorkSection:nth-child(2) h4{
+  color:#08796f !important;
+}
+.customerCard .customerWorkItem:nth-child(1){background:#f1edff !important;border-color:#cfc0fa !important}
+.customerCard .customerWorkItem:nth-child(2){background:#fff0f7 !important;border-color:#f4bfd9 !important}
+.customerCard .customerWorkItem:nth-child(3){background:#fff6dc !important;border-color:#efd28b !important}
+.customerCard .customerWorkItem:nth-child(4){background:#e9faf6 !important;border-color:#b7e6da !important}
+.customerCard .customerRateRow{
+  background:rgba(255,255,255,.94) !important;
+  border-color:#d8d1e7 !important;
+}
+
+/* Overall rate — strong blue/cyan identity */
+.customerCard .customerWorkSummary > .customerRateTotal:last-child{
+  background:linear-gradient(100deg,#168fbe,#386fe8) !important;
+  box-shadow:0 9px 20px rgba(42,111,199,.20) !important;
+}
+.customerCard .customerWorkSection .customerRateTotal{
+  background:linear-gradient(100deg,#6840e9,#db48a2) !important;
+}
+
+/* Edit area — green/indigo identity */
+.customerCard > .customerSection{
+  background:linear-gradient(145deg,#f0ecff 0%,#eefaff 100%) !important;
+  border:2px solid #b9acef !important;
+}
+.customerCard > .customerSection h4{
+  color:#4b2a9a !important;
+}
+.customerCard > .customerSection .customerActions{
+  gap:8px !important;
+}
+
+/* Action buttons: Edit Customer + Edit Order on top, Delete below */
+.customerCard > .customerCardHead .nf-customer-top-actions{
+  display:flex !important;
+  flex-direction:column !important;
+  align-items:stretch !important;
+  gap:8px !important;
+}
+.customerCard > .customerCardHead .nf-customer-top-actions .btn{
+  width:100% !important;
+}
+.customerCard > .customerCardHead .nf-customer-top-actions .btn.danger{
+  order:3 !important;
+}
+
+/* Order composition / order lines */
+.customerCard .customerOrderLine{
+  background:linear-gradient(145deg,#f3f0ff,#fff2f7) !important;
+  border:2px solid #d2c5f0 !important;
+  box-shadow:0 7px 16px rgba(77,54,126,.08) !important;
+}
+.customerCard .nf-order-alteration-notes{
+  background:linear-gradient(145deg,#fff0f7,#f4edff) !important;
+  border-color:#e4afd0 !important;
+}
+
+/* Generic customer tools / reminder cards */
+.customerCard .customerSection:nth-of-type(2n){
+  border-color:#a9d9ee !important;
+}
+.customerCard .customerSection:nth-of-type(2n) h4{color:#126b88 !important}
+.customerCard .customerNotesBox{
+  background:linear-gradient(135deg,#fffdf2,#fff7df) !important;
+  border:1px solid #e9cf78 !important;
+}
+
+/* Keep text crisp across all colored boxes */
+.customerCard .nf-collection-title h4,
+.customerCard .customerWorkSection h4,
+.customerCard .customerSection h4,
+.customerCard .nf-alteration-notes-title,
+.customerCard .customerRateTotal,
+.customerCard .nf-garment-subtitle{
+  font-weight:950 !important;
+  letter-spacing:.1px !important;
+}
+.customerCard .moneyStat b,
+.customerCard .customerWorkItem b,
+.customerCard .customerRateRow .rateMath b{
+  font-weight:950 !important;
+}
+
+@media(max-width:700px){
+  .customerCard .nf-customer-head{border-radius:18px !important}
+  .customerCard .nf-customer-cloth-photo-manager,
+  .customerCard .nf-summary-alteration-section,
+  .customerCard .nf-cash-collection,
+  .customerCard .nf-blouse-collection,
+  .customerCard .customerWorkSection,
+  .customerCard > .customerSection{border-width:2px !important}
+}
+</style>
+
+<script id="v92-action-order-final">
+(function(){
+  /* V9.2 keeps the action order explicit: Edit Customer, Edit Order, Delete.
+     No handlers or stored data are changed. */
+  function normalizeCustomerActions(){
+    document.querySelectorAll('.customerCard').forEach(function(card){
+      var actions=card.querySelector('.nf-customer-top-actions');
+      if(!actions)return;
+      var editCustomer=Array.from(actions.querySelectorAll('button')).find(function(b){return /Edit Customer/i.test(b.textContent||'')});
+      var editOrder=Array.from(actions.querySelectorAll('button')).find(function(b){return /Edit Order/i.test(b.textContent||'')});
+      var del=actions.querySelector('.btn.danger');
+      if(editCustomer)actions.appendChild(editCustomer);
+      if(editOrder)actions.appendChild(editOrder);
+      if(del)actions.appendChild(del);
+    });
+  }
+  document.addEventListener('DOMContentLoaded',function(){setTimeout(normalizeCustomerActions,140)} ,{once:true});
 })();
 </script>
