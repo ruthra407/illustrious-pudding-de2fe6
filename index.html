@@ -10203,6 +10203,117 @@ body.nf-dashboard-mode #view-dashboard .nf-dch-list{
 })();
 </script>
 
+
+<style id="nf-v91-reference-layout">
+/* V9.1 — Reference layout: customer names left, compact customer dashboard right. */
+#view-customers .nf-v9-reference-shell{display:grid;grid-template-columns:310px minmax(0,1fr);gap:14px;align-items:start}
+#view-customers .nf-v9-reference-names{position:sticky;top:86px;max-height:calc(100vh - 108px);overflow:auto;background:#fff;border:1px solid #e7e4ef;border-radius:18px;box-shadow:0 8px 24px rgba(45,30,75,.08);padding:8px}
+#view-customers .nf-v9-reference-name{display:flex;align-items:center;justify-content:space-between;width:100%;border:0;border-bottom:1px solid #ece9f1;background:#fff;color:#18151d;text-align:left;padding:15px 14px;font-size:17px;font-weight:850;cursor:pointer}
+#view-customers .nf-v9-reference-name:first-child{border-radius:12px 12px 0 0}
+#view-customers .nf-v9-reference-name:last-child{border-bottom:0;border-radius:0 0 12px 12px}
+#view-customers .nf-v9-reference-name.active{background:linear-gradient(135deg,#6b2ee8,#b62f93);color:#fff}
+#view-customers .nf-v9-reference-name .count{font-size:12px;min-width:24px;height:24px;border-radius:999px;display:grid;place-items:center;background:#eee9fb;color:#6740c8}
+#view-customers .nf-v9-reference-name.active .count{background:rgba(255,255,255,.2);color:#fff}
+#view-customers .nf-v91-detail{min-width:0;background:#fff;border:1px solid #e8e5ee;border-radius:20px;padding:14px;box-shadow:0 10px 28px rgba(45,30,75,.08)}
+#view-customers .nf-v91-head{display:grid;grid-template-columns:minmax(0,1fr) 180px;gap:12px;align-items:center;padding:4px 2px 12px}
+#view-customers .nf-v91-identity{display:flex;gap:14px;align-items:center;min-width:0}
+#view-customers .nf-v91-avatar{width:92px;height:92px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(135deg,#eef1ff,#f7edff);font-size:48px;flex:none}
+#view-customers .nf-v91-name{font-size:29px;font-weight:950;line-height:1.08;margin:0 0 8px;color:#16131b}
+#view-customers .nf-v91-contact{display:flex;flex-wrap:wrap;gap:8px 18px;font-size:14px;font-weight:750;color:#3c3744}
+#view-customers .nf-v91-contact span{margin-right:4px}
+#view-customers .nf-v91-address{margin-top:6px;font-size:14px;color:#514b59;font-weight:700}
+#view-customers .nf-v91-head-actions{display:flex;flex-direction:column;gap:8px}
+#view-customers .nf-v91-head-actions .btn{width:100%;font-weight:900}
+#view-customers .nf-v91-edit{background:linear-gradient(135deg,#6b2ee8,#d5328d)!important;color:#fff!important;border:0!important}
+#view-customers .nf-v91-today{border:1px solid #c9e8f3;background:#eefaff;border-radius:14px;padding:10px;text-align:center;font-weight:850;color:#183d62}
+#view-customers .nf-v91-kpis{display:grid;grid-template-columns:1.45fr 1fr 1fr 1fr 1fr;gap:10px;margin:2px 0 12px}
+#view-customers .nf-v91-kpi{border:1px solid #e7e3ed;border-radius:14px;background:#fff;padding:13px 14px;min-width:0}
+#view-customers .nf-v91-kpi.primary{background:linear-gradient(135deg,#7130ea,#d22d91);color:#fff;border:0}
+#view-customers .nf-v91-kpi .label{font-size:12px;font-weight:850;opacity:.82}
+#view-customers .nf-v91-kpi .value{font-size:20px;font-weight:950;margin-top:5px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#view-customers .nf-v91-grid{display:grid;grid-template-columns:1fr 1.2fr 1fr;gap:10px}
+#view-customers .nf-v91-panel{border:1px solid #e7e3ed;border-radius:15px;background:#fff;overflow:hidden;min-width:0}
+#view-customers .nf-v91-panel h4{margin:0;padding:10px 12px;color:#5b2abf;font-size:15px;font-weight:950;border-bottom:1px solid #eeeaf2}
+#view-customers .nf-v91-rows{padding:4px 12px 9px}
+#view-customers .nf-v91-row{display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid #eeeaf2;font-size:13px;font-weight:750}
+#view-customers .nf-v91-row:last-child{border-bottom:0}
+#view-customers .nf-v91-row b{font-weight:950;text-align:right}
+#view-customers .nf-v91-green{color:#21864b}.nf-v91-red{color:#c42835}.nf-v91-pink{color:#c52d78}
+#view-customers .nf-v91-triplet{display:grid;grid-template-columns:repeat(3,1fr);margin:0 10px 10px;border:1px solid #ece8f1;border-radius:11px;overflow:hidden}
+#view-customers .nf-v91-triplet>div{padding:9px 5px;text-align:center;border-right:1px solid #ece8f1;font-size:12px;font-weight:800}
+#view-customers .nf-v91-triplet>div:last-child{border-right:0}
+#view-customers .nf-v91-triplet b{display:block;font-size:16px;margin-top:3px}
+#view-customers .nf-v91-notes{margin-top:10px;border:1px solid #e8dce9;border-radius:15px;overflow:hidden;background:#fff}
+#view-customers .nf-v91-notes h4{margin:0;padding:10px 12px;color:#fff;background:linear-gradient(100deg,#6e2ee8,#e3318c);font-size:15px}
+#view-customers .nf-v91-notes .body{padding:12px;font-size:14px;line-height:1.55;font-weight:700;white-space:pre-wrap}
+#view-customers .nf-v91-media{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+#view-customers .nf-v91-photos{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;padding:10px}
+#view-customers .nf-v91-photo{aspect-ratio:1/1;border-radius:10px;overflow:hidden;background:#f5f2f8;display:grid;place-items:center;font-size:12px;font-weight:800;color:#766d7e}
+#view-customers .nf-v91-photo img{width:100%;height:100%;object-fit:cover;display:block}
+#view-customers .nf-v91-photo-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px;padding:0 10px 10px}
+#view-customers .nf-v91-photo-actions .btn{font-weight:850;font-size:12px}
+#view-customers .nf-v91-orders{padding:8px 10px}
+#view-customers .nf-v91-order{border:1px solid #e8e4ee;border-radius:11px;padding:10px;margin-bottom:7px;display:grid;grid-template-columns:1fr auto;gap:5px 10px;font-size:12px;font-weight:750}
+#view-customers .nf-v91-order:last-child{margin-bottom:0}
+#view-customers .nf-v91-order .no{font-weight:950}.nf-v91-order .amt{font-size:14px;font-weight:950}
+#view-customers .nf-v91-order .meta{grid-column:1/-1;color:#5e5667}
+#view-customers .nf-v91-measure{margin-top:10px;border:1px solid #e7e3ed;border-radius:15px;overflow:hidden}
+#view-customers .nf-v91-measure-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:7px;padding:10px}
+#view-customers .nf-v91-measure-item{border:1px solid #e8e4ee;border-radius:10px;padding:8px;text-align:center;font-size:11px;font-weight:800}.nf-v91-measure-item b{display:block;font-size:14px;margin-top:3px}
+#view-customers .nf-v91-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.nf-v91-actions .btn{font-weight:850}
+@media(max-width:1100px){#view-customers .nf-v9-reference-shell{grid-template-columns:250px minmax(0,1fr)}#view-customers .nf-v91-kpis{grid-template-columns:repeat(3,1fr)}#view-customers .nf-v91-kpi.primary{grid-column:1/-1}#view-customers .nf-v91-grid{grid-template-columns:1fr 1fr}#view-customers .nf-v91-media{grid-template-columns:1fr 1fr}}
+@media(max-width:800px){#view-customers .nf-v9-reference-shell{grid-template-columns:1fr}#view-customers .nf-v9-reference-names{position:relative;top:auto;max-height:none;display:flex;overflow-x:auto;padding:6px}#view-customers .nf-v9-reference-name{min-width:max-content;width:auto;border:0;border-radius:11px!important;white-space:nowrap;padding:11px 14px}#view-customers .nf91-detail{padding:10px}#view-customers .nf-v91-head{grid-template-columns:1fr}#view-customers .nf-v91-head-actions{flex-direction:row;flex-wrap:wrap}#view-customers .nf-v91-head-actions .btn{width:auto;flex:1}#view-customers .nf-v91-kpis{grid-template-columns:1fr 1fr}#view-customers .nf-v91-kpi.primary{grid-column:1/-1}#view-customers .nf-v91-grid{grid-template-columns:1fr}#view-customers .nf-v91-media{grid-template-columns:1fr}#view-customers .nf-v91-measure-grid{grid-template-columns:repeat(2,1fr)}}
+</style>
+<script id="nf-v91-reference-layout-js">
+(function(){
+  function escv(v){return typeof window.esc==='function'?window.esc(v):String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));}
+  function moneyv(v){return typeof window.money==='function'?window.money(v):'₹'+Number(v||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});}
+  function datev(v){return typeof window.dateText==='function'?window.dateText(v):(v||'—');}
+  function photoList(id){try{return JSON.parse(localStorage.getItem('nf_customer_cloth_photos_'+id)||'[]')}catch(e){return[]}}
+  function designs(id){try{return JSON.parse(localStorage.getItem('nf_customer_selected_designs_'+id)||'[]')}catch(e){return[]}}
+  function latestMeasurement(id){var a=(state.measurements||[]).filter(x=>String(x.customer_id)===String(id));return a.sort((x,y)=>String(y.created_at||'').localeCompare(String(x.created_at||'')))[0]||null}
+  function detail(id){
+    var c=(state.customers||[]).find(x=>String(x.id)===String(id)); if(!c)return '<div class="nf-v9-detail-empty">Customer கிடைக்கவில்லை.</div>';
+    var st=typeof customerStats==='function'?customerStats(id):{};
+    var orders=typeof customerOrders==='function'?customerOrders(id):(state.orders||[]).filter(o=>String(o.customer_id)===String(id));
+    var photos=photoList(id), ds=designs(id), m=latestMeasurement(id);
+    var village=c.village||localStorage.getItem('nf_village_'+id)||'ஊர் இல்லை';
+    var address=c.address||'முகவரி இல்லை';
+    var totalOrders=orders.length, latest=orders.slice().sort((a,b)=>String(b.created_at||'').localeCompare(String(a.created_at||'')))[0];
+    var currentText=latest?((latest.garment_type||'Blouse')+' '+Number(latest.quantity||0)): '—';
+    var delivery=latest?datev(latest.delivery_date):'—';
+    var photoCells=Array.from({length:3},(_,i)=>photos[i]?.src?'<div class="nf-v91-photo"><img src="'+escv(photos[i].src)+'" onclick="previewCustomerClothPhoto(\''+String(id).replace(/'/g,"\\'")+'\','+i+')"></div>':'<div class="nf-v91-photo">👕 Photo '+(i+1)+'</div>').join('');
+    var orderHtml=orders.slice().sort((a,b)=>String(b.created_at||'').localeCompare(String(a.created_at||''))).slice(0,4).map(o=>'<div class="nf-v91-order"><span class="no">'+escv(o.order_no||'Order')+'</span><span class="amt">'+moneyv(typeof orderTotal==='function'?orderTotal(o):o.unit_price)+'</span><span class="meta">'+escv(o.garment_type||'Blouse')+' · '+Number(o.quantity||0)+' · '+datev(o.created_at?String(o.created_at).slice(0,10):'')+' · '+escv(o.status||'Pending')+'</span></div>').join('')||'<div class="mini">இன்னும் order இல்லை.</div>';
+    var mItems=[['Shoulder',m?.shoulder],['Chest',m?.chest],['Waist',m?.waist],['Hip',m?.hip],['Arm Hole',m?.arm_hole],['Sleeve Length',m?.sleeve_length],['Blouse Length',m?.shirt_length||m?.blouse_length]];
+    var mHtml=m?mItems.map(x=>'<div class="nf-v91-measure-item">'+escv(x[0])+'<b>'+escv(x[1]??'—')+'</b></div>').join(''):'<div class="mini">Measurement இல்லை.</div>';
+    return '<div class="nf-v91-head"><div class="nf-v91-identity"><div class="nf-v91-avatar">👤</div><div><h2 class="nf-v91-name">'+escv(c.name||'Customer')+'</h2><div class="nf-v91-contact"><span>📞 '+escv(c.phone||'Phone இல்லை')+'</span><span>📍 '+escv(village)+'</span></div><div class="nf-v91-address">🏠 '+escv(address)+'</div></div></div><div class="nf-v91-head-actions"><button class="btn nf-v91-edit" onclick="openCustomerOrderEditor(\''+String(id).replace(/'/g,"\\'")+ '\')">✏️ Edit Order</button><div class="nf-v91-today">📅<br><b>இன்று</b><br>'+datev(typeof localDate==='function'?localDate():'')+'</div></div></div>'+
+    '<div class="nf-v91-kpis"><div class="nf-v91-kpi primary"><div class="label">Edit Order</div><div class="value">✎ Continue customer work</div></div><div class="nf-v91-kpi"><div class="label">Current Order</div><div class="value">'+escv(currentText)+'</div></div><div class="nf-v91-kpi"><div class="label">Total Orders</div><div class="value">'+totalOrders+'</div></div><div class="nf-v91-kpi"><div class="label">Delivery Date</div><div class="value">'+delivery+'</div></div><div class="nf-v91-kpi"><div class="label">Balance</div><div class="value nf-v91-pink">'+moneyv(st.balance)+'</div></div></div>'+
+    '<div class="nf-v91-grid"><section class="nf-v91-panel"><h4>💰 Cash Collection</h4><div class="nf-v91-rows"><div class="nf-v91-row"><span>மொத்த Order</span><b>'+moneyv(st.total)+'</b></div><div class="nf-v91-row"><span>Advance / Paid</span><b class="nf-v91-green">'+moneyv(st.paid)+'</b></div><div class="nf-v91-row"><span>Balance</span><b class="nf-v91-red">'+moneyv(st.balance)+'</b></div></div></section>'+
+    '<section class="nf-v91-panel"><h4>👗 Blouse Collection</h4><div class="nf-v91-rows"><div class="nf-v91-row"><span>மொத்த Blouse</span><b>'+Number(st.givenBlouse||0)+'</b></div><div class="nf-v91-row"><span>வாங்கிச் சென்றது</span><b class="nf-v91-green">'+Number(st.handedBlouse||0)+'</b></div><div class="nf-v91-row"><span>மீதமுள்ள Blouse</span><b class="nf-v91-red">'+Number(st.pendingBlouse||0)+'</b></div></div><div class="nf-v91-triplet"><div>Normal<b>'+Number(st.normal||0)+'</b></div><div>Lining<b>'+Number(st.lining||0)+'</b></div><div>Design<b>'+Number(st.design||0)+'</b></div></div></section>'+
+    '<section class="nf-v91-panel"><h4>👚 Chudi Collection</h4><div class="nf-v91-rows"><div class="nf-v91-row"><span>மொத்த Chudi</span><b>'+Number(st.chudi||0)+'</b></div><div class="nf-v91-row"><span>வாங்கிச் சென்றது</span><b class="nf-v91-green">'+Number(st.handedChudi||0)+'</b></div><div class="nf-v91-row"><span>மீதமுள்ள Chudi</span><b class="nf-v91-red">'+Number(st.pendingChudi||0)+'</b></div></div></section></div>'+
+    '<div class="nf-v91-media"><section class="nf-v91-panel"><h4>📷 Photos / Design</h4><div class="nf-v91-photos">'+photoCells+'</div><div class="nf-v91-photo-actions"><label class="btn secondary">📷 Camera<input type="file" accept="image/*" capture="environment" style="display:none" onchange="saveCustomerClothPhoto(\''+String(id).replace(/'/g,"\\'")+ '\',0,this.files[0])"></label><label class="btn secondary">🖼️ Gallery<input type="file" accept="image/*" style="display:none" onchange="saveCustomerClothPhoto(\''+String(id).replace(/'/g,"\\'")+ '\',0,this.files[0])"></label></div></section>'+
+    '<section class="nf-v91-panel"><h4>📋 Order Details</h4><div class="nf-v91-orders">'+orderHtml+'</div></section></div>'+
+    '<section class="nf-v91-notes"><h4>🛠️ Alteration Notes</h4><div class="body">'+escv(c.notes||'குறிப்பு இல்லை.')+'</div></section>'+
+    '<section class="nf-v91-measure"><h4 style="margin:0;padding:10px 12px;color:#5b2abf;font-size:15px">📏 Measurement (Latest)</h4><div class="nf-v91-measure-grid">'+mHtml+'</div></section>'+
+    '<div class="nf-v91-actions"><button class="btn primary" onclick="openModal(\'customer\',\''+String(id).replace(/'/g,"\\'")+'\')">✏️ Edit Customer</button><button class="btn secondary" onclick="openCustomerMeasurement(\''+String(id).replace(/'/g,"\\'")+'\')">📏 Measurement</button><button class="btn success" onclick="openCustomerPayment(\''+String(id).replace(/'/g,"\\'")+'\')">💰 Payment</button><button class="btn secondary" onclick="toggleCustomerDesignPicker(\''+String(id).replace(/'/g,"\\'")+'\')">🎨 Blouse Design</button></div>';
+  }
+  function render(){
+    var mount=document.getElementById('customersTable'); if(!mount)return;
+    var q=String(document.getElementById('customerSearch')?.value||'').trim().toLowerCase();
+    var list=(state.customers||[]).filter(c=>!q||[c.name,c.phone,c.address,c.village].join(' ').toLowerCase().includes(q));
+    if(!list.length){mount.innerHTML='<div class="nf-v9-detail-empty">Customer கிடைக்கவில்லை.</div>';return;}
+    var selected=window.__nfV91SelectedId; if(!selected||!list.some(c=>String(c.id)===String(selected))) selected=list[0].id; window.__nfV91SelectedId=selected;
+    var names=list.map((c,i)=>'<button type="button" class="nf-v9-reference-name '+(String(c.id)===String(selected)?'active':'')+'" onclick="window.nfV91Select(\''+String(c.id).replace(/'/g,"\\'")+'\')"><span>'+escv(c.name||'Customer')+'</span><span class="count">'+(i+1)+'</span></button>').join('');
+    mount.innerHTML='<div class="nf-v9-reference-shell"><aside class="nf-v9-reference-names"><div style="padding:8px 12px;font-size:16px;font-weight:950">Customers</div>'+names+'</aside><section class="nf-v91-detail">'+detail(selected)+'</section></div>';
+  }
+  window.nfV91Select=function(id){window.__nfV91SelectedId=id;render();setTimeout(()=>document.querySelector('#view-customers .nf-v91-detail')?.scrollIntoView({behavior:'smooth',block:'start'}),30)};
+  var r0=window.renderCustomers;
+  if(typeof r0==='function'&&!r0.__nfV91){var r=function(){render()};r.__nfV91=true;r.__nfV91Original=r0;window.renderCustomers=r;}
+  var old=window.nfV9SelectCustomer; window.nfV9SelectCustomer=function(id){window.__nfV91SelectedId=id;render()};
+  function bind(){var x=document.getElementById('customerSearch');if(x&&!x.__nfV91){x.__nfV91=true;x.addEventListener('input',function(){window.__nfV91SelectedId=null;render()})}render()}
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bind,{once:true});else setTimeout(bind,0);
+})();
+</script>
 </body>
 </html>
 
