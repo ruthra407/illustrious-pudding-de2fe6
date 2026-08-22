@@ -8440,6 +8440,44 @@ html{
   .nf-customer-order-actions .btn{flex:1;min-width:120px}
 }
 </style>
+<style id="nf-v76-design-blouse-calc-slot">
+/* V7.6 — Design blouse gets a dedicated calculation slot inside Blouse Section. */
+.nf-design-calc-slot{
+  margin:8px 0;
+  padding:10px;
+  border:1px solid #ded6ff;
+  border-radius:13px;
+  background:linear-gradient(135deg,#f7f4ff,#fff3f8);
+}
+.nf-design-calc-slot-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  padding:8px 9px;
+  border-radius:10px;
+  background:linear-gradient(135deg,#eee8ff,#ffe8f2);
+  color:#4b347d;
+  font-weight:900;
+}
+.nf-design-calc-slot-head b{white-space:nowrap}
+.nf-design-calc-slot-rows{margin-top:8px!important}
+.nf-design-calc-slot-total{
+  margin-top:8px;
+  padding:9px 10px;
+  border-radius:10px;
+  display:flex;
+  justify-content:space-between;
+  gap:8px;
+  background:linear-gradient(135deg,#6c4df6,#ef4f8a);
+  color:#fff;
+  font-weight:900;
+}
+@media(max-width:700px){
+  .nf-design-calc-slot-head,.nf-design-calc-slot-total{align-items:flex-start}
+  .nf-design-calc-slot-head b,.nf-design-calc-slot-total b{white-space:nowrap}
+}
+</style>
 <script id="nf-final-order-customer-sync-js">
 (function(){
   "use strict";
@@ -8616,44 +8654,7 @@ html{
   }
 
   
-<style id="nf-v76-design-blouse-calc-slot">
-/* V7.6 — Design blouse gets a dedicated calculation slot inside Blouse Section. */
-.nf-design-calc-slot{
-  margin:8px 0;
-  padding:10px;
-  border:1px solid #ded6ff;
-  border-radius:13px;
-  background:linear-gradient(135deg,#f7f4ff,#fff3f8);
-}
-.nf-design-calc-slot-head{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:8px;
-  padding:8px 9px;
-  border-radius:10px;
-  background:linear-gradient(135deg,#eee8ff,#ffe8f2);
-  color:#4b347d;
-  font-weight:900;
-}
-.nf-design-calc-slot-head b{white-space:nowrap}
-.nf-design-calc-slot-rows{margin-top:8px!important}
-.nf-design-calc-slot-total{
-  margin-top:8px;
-  padding:9px 10px;
-  border-radius:10px;
-  display:flex;
-  justify-content:space-between;
-  gap:8px;
-  background:linear-gradient(135deg,#6c4df6,#ef4f8a);
-  color:#fff;
-  font-weight:900;
-}
-@media(max-width:700px){
-  .nf-design-calc-slot-head,.nf-design-calc-slot-total{align-items:flex-start}
-  .nf-design-calc-slot-head b,.nf-design-calc-slot-total b{white-space:nowrap}
-}
-</style>
+
 
 /* ---------------------------------------------------------
      Customer summary: one calculation source, no duplicate Saree total.
@@ -9391,26 +9392,99 @@ html{
 
   /* ---------- Customer calculation: combined orders are split by component ---------- */
   window.nfCustomerWorkSummaryHTML=function(st){
-    st=st||{};const os=st.os||[];let normal=0,lining=0,design=0,chudi=0,chudiLining=0,normalTotal=0,liningTotal=0,designTotal=0,sareeTotal=0,chudiTotal=0,liningCustomer=0,liningShop=0,liningShopTotal=0;
-    os.forEach(o=>{
+    st=st||{};const os=st.os||[];
+    let normal=0,lining=0,design=0,chudi=0,chudiLining=0;
+    let normalTotal=0,liningTotal=0,designTotal=0,sareeTotal=0,chudiTotal=0;
+    let liningCustomer=0,liningShop=0,liningShopTotal=0;
+
+    const designItemsForOrder=function(o){
+      try{
+        if(typeof designItemsFromOrder==='function')return designItemsFromOrder(o)||[];
+        if(typeof window.nfDesignItems==='function')return window.nfDesignItems(o)||[];
+      }catch(e){}
+      return [];
+    };
+
+    os.forEach(function(o){
       const b=blouseOf(o),x=extraOf(o),r=ratesOf(o);
       const bn=N(b.normal),bl=N(b.lining),bd=N(b.design),cq=N(x.chudi),cl=N(x.chudiLiningQty);
-      normal+=bn;lining+=bl;design+=bd;chudi+=cq;chudiLining+=cl;
+      normal+=bn; lining+=bl; design+=bd; chudi+=cq; chudiLining+=cl;
       normalTotal+=bn*N(r.normal);
       liningTotal+=bl*N(r.lining);
-      designTotal+=bd*N(r.design);
+      const items=designItemsForOrder(o);
+      if(items.length){
+        designTotal+=items.slice(0,3).reduce((sum,it)=>sum+Math.max(0,N(it.qty))*Math.max(0,N(it.rate)),0);
+      }else{
+        designTotal+=bd*N(r.design);
+      }
       sareeTotal+=N(x.saree)*N(r.saree);
       chudiTotal+=cq*N(r.chudi);
-      const src=String(o.lining_cloth_source||"").toLowerCase(),lq=N(o.lining_cloth_qty),lc=typeof window.nfLiningCost==="function"?window.nfLiningCost(o):{};
-      if(src==="customer")liningCustomer+=lq;if(src==="shop"||src==="tailor"){liningShop+=lq;liningShopTotal+=N(lc.total)}
+      const src=String(o.lining_cloth_source||'').toLowerCase(),lq=N(o.lining_cloth_qty);
+      const lc=typeof window.nfLiningCost==='function'?window.nfLiningCost(o):{};
+      if(src==='customer')liningCustomer+=lq;
+      if(src==='shop'||src==='tailor'){liningShop+=lq;liningShopTotal+=N(lc.total)}
     });
+
     const saree=os.reduce((a,o)=>a+N(extraOf(o).saree),0);
     const row=(label,qty,rate,total)=>qty>0?`<div class="customerRateRow"><span class="rateLabel">${label} ${qty}</span><span class="rateMath">${qty} × ${money(rate)} = <b>${money(total)}</b></span></div>`:"";
-    const notes=[...new Set(os.map(o=>typeof cleanOrderNotes==="function"?cleanOrderNotes(o.notes):"").filter(Boolean))];
+
+    /* Dedicated Design blouse calculation slot: every saved design is shown
+       separately as Design 1 / Design 2 / Design 3 with its own qty and rate. */
+    let designRows="", designSlotTotal=0;
+    os.forEach(function(o){
+      const items=designItemsForOrder(o);
+      if(items.length){
+        items.slice(0,3).forEach(function(it,i){
+          const q=Math.max(0,N(it.qty)), r=Math.max(0,N(it.rate));
+          if(q<=0)return;
+          designSlotTotal+=q*r;
+          const nm=String(it.name||'').trim();
+          designRows+=`<div class="customerRateRow nf-customer-design-rate-row"><span class="rateLabel">🎨 Design ${i+1}${nm?' — '+esc(nm):''} · ${q}</span><span class="rateMath">${q} × ${money(r)} = <b>${money(q*r)}</b></span></div>`;
+        });
+      }
+    });
+
+    /* Legacy Design blouse orders without slot data still get a calculation row. */
+    if(!designRows && design>0){
+      const avgRate=design?designTotal/design:0;
+      designSlotTotal=designTotal;
+      designRows=row('Design blouse',design,avgRate,designTotal);
+    }
+
+    const designSlot=designRows?`<div class="nf-design-calc-slot">
+      <div class="nf-design-calc-slot-head"><span>🎨 Design blouse — தனி Calculation</span><b>${money(designSlotTotal)}</b></div>
+      <div class="customerRateList nf-design-calc-slot-rows">${designRows}</div>
+      <div class="nf-design-calc-slot-total"><span>Design blouse Total</span><b>${money(designSlotTotal)}</b></div>
+    </div>`:"";
+
     return `<div class="customerWorkSummary">
-      <div class="customerWorkSection"><h4>👗 Blouse Section</h4><div class="customerWorkGrid"><div class="customerWorkItem"><b>${normal}</b><span>Normal blouse</span></div><div class="customerWorkItem"><b>${lining}</b><span>Lining blouse</span></div><div class="customerWorkItem"><b>${design}</b><span>Design blouse</span></div><div class="customerWorkItem"><b>${saree}</b><span>Saree</span></div></div><div class="customerRateList">${row("Normal blouse",normal,normal?normalTotal/(normal||1):0,normalTotal)}${row("Lining blouse",lining,lining?liningTotal/(lining||1):0,liningTotal)}${row("Design blouse",design,design?designTotal/(design||1):0,designTotal)}${saree?row("Saree",saree,saree?sareeTotal/saree:0,sareeTotal):""}${liningCustomer?`<div class="customerLiningNote">🧵 Lining cloth: Customer கொடுத்தது — ${liningCustomer}</div>`:""}${liningShop?row("Lining cloth",liningShop,liningShop?liningShopTotal/liningShop:0,liningShopTotal):""}</div><div class="customerRateTotal"><span>Blouse Section Total</span><span>${money(normalTotal+liningTotal+designTotal+sareeTotal+liningShopTotal)}</span></div></div>
-      <div class="customerWorkSection"><h4>👚 Chudi Section</h4><div class="customerWorkGrid"><div class="customerWorkItem"><b>${chudi}</b><span>Chudi / சுடிதார்</span></div><div class="customerWorkItem"><b>${chudiLining}</b><span>Chudi lining</span></div><div class="customerWorkItem"><b>${money(chudiTotal)}</b><span>Chudi Total</span></div></div><div class="customerRateList">${row("Chudi",chudi,chudi?chudiTotal/chudi:0,chudiTotal)}</div><div class="customerRateTotal"><span>Chudi Section Total</span><span>${money(chudiTotal)}</span></div></div>
-      <div class="customerWorkSection"><h4>🧾 Order Composition</h4><div class="customerNotesBox">${os.length?os.map(o=>`• <b>${esc(o.order_no||"Order")}</b> — ${esc(combinedLabel(o))}`).join("<br>"):"குறிப்பு இல்லை."}</div></div>
+      <div class="customerWorkSection"><h4>👗 Blouse Section</h4>
+        <div class="customerWorkGrid">
+          <div class="customerWorkItem"><b>${normal}</b><span>Normal blouse</span></div>
+          <div class="customerWorkItem"><b>${lining}</b><span>Lining blouse</span></div>
+          <div class="customerWorkItem"><b>${design}</b><span>Design blouse</span></div>
+          <div class="customerWorkItem"><b>${saree}</b><span>Saree</span></div>
+        </div>
+        <div class="customerRateList">
+          ${row('Normal blouse',normal,normal?normalTotal/normal:0,normalTotal)}
+          ${row('Lining blouse',lining,lining?liningTotal/lining:0,liningTotal)}
+          ${designSlot}
+          ${row('Saree',saree,saree?sareeTotal/saree:0,sareeTotal)}
+          ${liningCustomer?`<div class="customerLiningNote">🧵 Lining cloth: Customer கொடுத்தது — ${liningCustomer} (Rate தேவையில்லை)</div>`:''}
+          ${liningShop?row('Lining cloth',liningShop,liningShop?liningShopTotal/liningShop:0,liningShopTotal):''}
+        </div>
+        <div class="customerRateTotal"><span>Blouse Section Total</span><span>${money(normalTotal+liningTotal+designTotal+sareeTotal+liningShopTotal)}</span></div>
+      </div>
+      <div class="customerWorkSection"><h4>👚 Chudi Section</h4>
+        <div class="customerWorkGrid">
+          <div class="customerWorkItem"><b>${chudi}</b><span>Chudi / சுடிதார்</span></div>
+          <div class="customerWorkItem"><b>${chudiLining}</b><span>Chudi lining</span></div>
+          <div class="customerWorkItem"><b>${money(chudiTotal)}</b><span>Chudi Total</span></div>
+        </div>
+        <div class="customerRateList">${row('Chudi',chudi,chudi?chudiTotal/chudi:0,chudiTotal)}</div>
+        <div class="customerRateTotal"><span>Chudi Section Total</span><span>${money(chudiTotal)}</span></div>
+      </div>
+      <div class="customerWorkSection"><h4>🧾 Order Composition</h4><div class="customerNotesBox">${os.length?os.map(o=>`• <b>${esc(o.order_no||'Order')}</b> — ${esc(combinedLabel(o))}`).join('<br>'):'குறிப்பு இல்லை.'}</div></div>
       <div class="customerRateTotal" style="margin-top:10px;background:linear-gradient(135deg,#14aebd,#3d83ef)"><span>மொத்த Rate</span><span>${money(normalTotal+liningTotal+designTotal+sareeTotal+liningShopTotal+chudiTotal)}</span></div>
     </div>`;
   };
