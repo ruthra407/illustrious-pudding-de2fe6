@@ -10663,3 +10663,199 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-head >
   document.querySelectorAll(".nf-quick-notes-label").forEach(el=>el.textContent="Alteration Notes");
 })();
 </script>
+
+
+<!-- V9.1 FINAL VISUAL PATCH: colorful section cards + Edit Order beside Edit Customer.
+     Data, calculations, sync, photo/gallery/camera handlers and existing fields are unchanged. -->
+<style id="v90-colorful-sections-final">
+/* Strong but readable section colors. Keep the existing typography/row layout intact. */
+.customerCard{
+  background:linear-gradient(145deg,#ffffff 0%,#faf8ff 100%) !important;
+  border:1px solid rgba(102,66,210,.18) !important;
+  box-shadow:0 12px 30px rgba(62,38,110,.10) !important;
+}
+.nf-customer-head{
+  background:linear-gradient(135deg,#f7f2ff 0%,#ffffff 58%,#fff3fa 100%) !important;
+  border-radius:20px !important;
+  padding:14px !important;
+  border:1px solid rgba(112,74,246,.14) !important;
+}
+.nf-contact-item{
+  background:linear-gradient(135deg,#ffffff,#f7f4ff) !important;
+  border:1px solid rgba(101,79,180,.16) !important;
+  box-shadow:0 5px 14px rgba(69,45,110,.06) !important;
+}
+.nf-customer-top-actions{
+  display:flex !important;
+  flex-wrap:wrap !important;
+  align-items:center !important;
+  gap:8px !important;
+}
+.nf-customer-top-actions .btn{
+  min-height:46px !important;
+  font-weight:950 !important;
+  border-radius:14px !important;
+  box-shadow:0 6px 15px rgba(75,45,130,.12) !important;
+}
+.nf-customer-top-actions .nf-customer-inline-edit-order{
+  background:linear-gradient(135deg,#6d3df5,#e44d9b) !important;
+  color:#fff !important;
+  border:0 !important;
+}
+
+/* Cash */
+.nf-cash-collection{
+  background:linear-gradient(145deg,#fff8dc 0%,#fff0c2 100%) !important;
+  border:2px solid #f1d47a !important;
+  box-shadow:0 10px 24px rgba(193,137,22,.14) !important;
+}
+.nf-cash-collection .nf-collection-title{
+  background:linear-gradient(100deg,#ffd45b,#ff9f43) !important;
+  color:#5d3b00 !important;
+}
+.nf-cash-collection .moneyStat{
+  background:rgba(255,255,255,.90) !important;
+  border-color:#efd89a !important;
+}
+
+/* Blouse */
+.nf-blouse-collection{
+  background:linear-gradient(145deg,#eee7ff 0%,#f9e9ff 100%) !important;
+  border:2px solid #cbb4f4 !important;
+  box-shadow:0 10px 24px rgba(116,63,190,.13) !important;
+}
+.nf-blouse-collection .nf-collection-title{
+  background:linear-gradient(100deg,#7b4df4,#e14caa) !important;
+  color:#fff !important;
+}
+.nf-blouse-collection .moneyStat{
+  background:rgba(255,255,255,.92) !important;
+  border-color:#d7c6f1 !important;
+}
+.nf-blouse-collection .nf-garment-subtitle{
+  background:linear-gradient(100deg,#d9c8ff,#ffd6ed) !important;
+  color:#5a2b7c !important;
+}
+
+/* Customer work / calculation sections */
+.nfCustomerBreakdownMount .customerWorkSummary,
+.customerWorkSummary{
+  background:linear-gradient(145deg,#e8f8ff,#f2edff) !important;
+  border:2px solid #b8dff1 !important;
+  border-radius:18px !important;
+  box-shadow:0 9px 22px rgba(56,110,150,.10) !important;
+}
+.customerWorkSection{
+  background:linear-gradient(145deg,#ffffff,#f8f4ff) !important;
+  border:1px solid rgba(111,75,203,.18) !important;
+  box-shadow:0 7px 18px rgba(74,45,125,.08) !important;
+}
+.customerWorkSection h4{
+  color:#4f2688 !important;
+}
+.customerRateRow,
+.customerRateTotal{
+  border-radius:12px !important;
+}
+
+/* Alteration */
+.nf-summary-alteration-section,
+.nf-customer-alteration-notes{
+  background:linear-gradient(145deg,#fff0fa,#f0eaff,#e8f8ff) !important;
+  border:2px solid #d6b8ef !important;
+  box-shadow:0 9px 22px rgba(117,63,174,.12) !important;
+}
+.nf-alteration-notes-title{
+  background:linear-gradient(100deg,#6d3df5,#b83de0,#ed4d8c) !important;
+}
+
+/* Photos / Design */
+.nf-customer-cloth-photo-manager{
+  background:linear-gradient(145deg,#eaf8ff,#f7edff) !important;
+  border:2px solid #b9dff0 !important;
+  border-radius:18px !important;
+  padding:10px !important;
+}
+.nf-cloth-slot{
+  background:linear-gradient(145deg,#ffffff,#f2efff) !important;
+  border-color:#cdbdf0 !important;
+  box-shadow:0 6px 15px rgba(81,54,140,.10) !important;
+}
+.nf-cloth-slot-actions .nf-gallery-outside{
+  background:linear-gradient(135deg,#fff0c9,#ffe2a0) !important;
+  border-color:#efcf79 !important;
+}
+.nf-cloth-slot-actions .nf-camera-outside{
+  background:linear-gradient(135deg,#ffe0f0,#ffd1e5) !important;
+  border-color:#e7a6c2 !important;
+}
+.nf-design-picker{
+  background:linear-gradient(145deg,#f1eaff,#fff0f7) !important;
+  border-color:#cdb7f1 !important;
+}
+
+/* Order lines / reminder / tools */
+.customerOrderLine{
+  background:linear-gradient(135deg,#ffffff,#f7f3ff) !important;
+  border:1px solid rgba(107,76,194,.15) !important;
+  border-radius:13px !important;
+  padding:10px !important;
+  margin:7px 0 !important;
+}
+.customerSection{
+  background:linear-gradient(145deg,#f7f2ff,#fff4f9) !important;
+  border:1px solid rgba(111,74,203,.16) !important;
+  border-radius:17px !important;
+  padding:12px !important;
+  border-top:1px solid rgba(111,74,203,.16) !important;
+  box-shadow:0 7px 18px rgba(76,45,128,.07) !important;
+}
+.customerSection h4{
+  color:#4f2688 !important;
+}
+
+@media(max-width:700px){
+  .nf-customer-top-actions{display:grid !important;grid-template-columns:1fr 1fr !important}
+  .nf-customer-top-actions .btn{width:100% !important}
+  .nf-customer-head{padding:11px !important}
+}
+@media(max-width:430px){
+  .nf-customer-top-actions{grid-template-columns:1fr !important}
+}
+</style>
+
+<script id="v90-edit-order-move-final">
+(function(){
+  /* Move the existing Edit Order button from the customer-name row to sit
+     beside Edit Customer. The same click handler is retained. */
+  var baseCustomerCard90=window.customerCard;
+  if(typeof baseCustomerCard90!=="function" || baseCustomerCard90.__nfV90MoveEditOrder) return;
+
+  window.customerCard=function(id){
+    var html=baseCustomerCard90.apply(this,arguments);
+    var marker='__NF_V90_EDIT_ORDER__';
+
+    /* Extract the existing inline Edit Order button generated by V7.5. */
+    var re=/<button[^>]*class="[^"]*nf-customer-inline-edit-order[^"]*"[^>]*>[\s\S]*?<\/button>/i;
+    var m=html.match(re);
+    if(!m) return html;
+
+    var button=m[0].replace(/\s+/g,' ').trim();
+    html=html.replace(m[0],'');
+
+    /* Place it immediately after Edit Customer, before Delete. */
+    var editCustomerRe=/(<button[^>]*onclick="openModal\('customer','[^']+'\)"[^>]*>[\s\S]*?Edit Customer<\/button>)/i;
+    if(editCustomerRe.test(html)){
+      html=html.replace(editCustomerRe,'$1'+button);
+    }
+    return html;
+  };
+  window.customerCard.__nfV90MoveEditOrder=true;
+
+  document.addEventListener('DOMContentLoaded',function(){
+    setTimeout(function(){
+      try{ if(typeof renderAll==='function') renderAll(); }catch(e){ console.error('V9.1 visual patch render',e); }
+    },120);
+  },{once:true});
+})();
+</script>
