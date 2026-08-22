@@ -1,9 +1,9 @@
 <!doctype html>
-<html nf-build="verified-2026-08-22-v7.6-design-blouse-section-fix" lang="ta">
+<html nf-build="verified-2026-08-22-v7.6-design-blouse-slot-fix" lang="ta">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="nf-build" content="verified-2026-08-22-v7.6-design-blouse-section-fix">
+<meta name="nf-build" content="verified-2026-08-22-v7.6-design-blouse-slot-fix">
 <title>New Fashion Tailoring – Online Management | Phase 4.3 • V7.6</title>
 <link rel="manifest" href="manifest.json">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -3700,6 +3700,7 @@ body{
 </style>
 
 <!-- V7.4: Order edit/update reliability fix. -->
+<!-- V7.6: Customer Card Design-blouse slot calculation is isolated below; all existing Customer Card logic is preserved. -->
 </head>
 <body>
 
@@ -8614,7 +8615,47 @@ html{
     window.saveQuickOrder.__nfFinalOrderSync=true;
   }
 
-  /* ---------------------------------------------------------
+  
+<style id="nf-v76-design-blouse-calc-slot">
+/* V7.6 — Design blouse gets a dedicated calculation slot inside Blouse Section. */
+.nf-design-calc-slot{
+  margin:8px 0;
+  padding:10px;
+  border:1px solid #ded6ff;
+  border-radius:13px;
+  background:linear-gradient(135deg,#f7f4ff,#fff3f8);
+}
+.nf-design-calc-slot-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  padding:8px 9px;
+  border-radius:10px;
+  background:linear-gradient(135deg,#eee8ff,#ffe8f2);
+  color:#4b347d;
+  font-weight:900;
+}
+.nf-design-calc-slot-head b{white-space:nowrap}
+.nf-design-calc-slot-rows{margin-top:8px!important}
+.nf-design-calc-slot-total{
+  margin-top:8px;
+  padding:9px 10px;
+  border-radius:10px;
+  display:flex;
+  justify-content:space-between;
+  gap:8px;
+  background:linear-gradient(135deg,#6c4df6,#ef4f8a);
+  color:#fff;
+  font-weight:900;
+}
+@media(max-width:700px){
+  .nf-design-calc-slot-head,.nf-design-calc-slot-total{align-items:flex-start}
+  .nf-design-calc-slot-head b,.nf-design-calc-slot-total b{white-space:nowrap}
+}
+</style>
+
+/* ---------------------------------------------------------
      Customer summary: one calculation source, no duplicate Saree total.
      The displayed grand total is the exact sum of saved order totals, i.e.
      the same source used by Orders cards and Order Full Details.
@@ -8701,6 +8742,7 @@ html{
        No order data, save logic, sync logic, or New/Edit Order fields
        are changed here. */
     var designRows="";
+    var designGrandTotal=0;
     blouseOrders.forEach(function(o){
       /* V3.6 display hardening:
          - only the supported 3 saved design slots are rendered
@@ -8719,6 +8761,7 @@ html{
         items.forEach(function(it,i){
           var q=Number(it.qty||0), r=Number(it.rate||0);
           if(q<=0)return;
+          designGrandTotal+=q*r;
           var label='🎨 Design '+(i+1);
           if(String(it.name||"").trim())label+=' — '+String(it.name).trim();
           designRows+='<div class="customerRateRow nf-customer-design-rate-row"><span class="rateLabel">'+label+'</span><span class="rateMath">'+q+' × '+money(r)+' = <b>'+money(q*r)+'</b></span></div>';
@@ -8728,6 +8771,7 @@ html{
            continue using their saved aggregate Design blouse rate. */
         var s=splitFor(o),r=ratesFor(o),q=Number(s.design||0);
         if(q>0){
+          designGrandTotal+=q*Number(r.design||0);
           designRows+='<div class="customerRateRow nf-customer-design-rate-row"><span class="rateLabel">🎨 Design blouse</span><span class="rateMath">'+q+' × '+money(r.design)+' = <b>'+money(q*r.design)+'</b></span></div>';
         }
       }
@@ -8744,7 +8788,7 @@ html{
         '<div class="customerRateList">'+
           rateRow('Normal blouse',normalQty,normalTotal)+
           rateRow('Lining blouse',liningQty,liningTotal)+
-          designRows+
+          (designRows?'<div class="nf-design-calc-slot"><div class="nf-design-calc-slot-head"><span>🎨 Design blouse — தனி Calculation</span><b>'+money(designGrandTotal)+'</b></div><div class="customerRateList nf-design-calc-slot-rows">'+designRows+'</div><div class="nf-design-calc-slot-total"><span>Design blouse Total</span><b>'+money(designGrandTotal)+'</b></div></div>':"")+
           rateRow('Saree',blouseSareeQty,blouseSareeTotal)+
           (st.liningCustomer>0?'<div class="customerLiningNote">🧵 Lining cloth: Customer கொடுத்தது — '+st.liningCustomer+' (Rate தேவையில்லை)</div>':"")+ 
           (blouseLiningShopQty>0?'<div class="customerRateRow"><span class="rateLabel">Lining cloth '+blouseLiningShopQty+'</span><span class="rateMath">Shop cost = <b>'+money(blouseLiningShopTotal)+'</b></span></div>':"")+ 
@@ -9347,158 +9391,31 @@ html{
 
   /* ---------- Customer calculation: combined orders are split by component ---------- */
   window.nfCustomerWorkSummaryHTML=function(st){
-    var os=st.os||[];
-    var isGarment=function(o,g){return String(o.garment_type||"").toLowerCase()===g;};
-    var blouseOrders=os.filter(function(o){var g=String(o.garment_type||"Blouse").toLowerCase();return g==="blouse"||!o.garment_type;});
-    var chudiOrders=os.filter(function(o){return isGarment(o,"chudi");});
-    var sareeOrders=os.filter(function(o){return isGarment(o,"saree");});
-
-    /* The saved order total is authoritative. For Design blouse, however,
-       the item-wise slot rates must also be reflected here so the customer
-       card never shows a different Design calculation from the order editor. */
-    var designItemsFor=function(o){
-      try{
-        if(typeof window.nfDesignItems==="function")return window.nfDesignItems(o)||[];
-      }catch(e){}
-      return [];
-    };
-    var splitFor=function(o){return blouseSplit(o)||{normal:0,lining:0,design:0};};
-    var ratesFor=function(o){return nfOrderRates(o)||{};};
-
-    var normalQty=blouseOrders.reduce(function(a,o){return a+Number(splitFor(o).normal||0);},0);
-    var liningQty=blouseOrders.reduce(function(a,o){return a+Number(splitFor(o).lining||0);},0);
-    var designQty=blouseOrders.reduce(function(a,o){
-      var s=splitFor(o),items=designItemsFor(o),slotQty=items.reduce(function(x,it){return x+Number(it.qty||0);},0);
-      return a+(slotQty>0?slotQty:Number(s.design||0));
-    },0);
-
-    var normalTotal=blouseOrders.reduce(function(a,o){var s=splitFor(o),r=ratesFor(o);return a+Number(s.normal||0)*Number(r.normal||0);},0);
-    var liningTotal=blouseOrders.reduce(function(a,o){var s=splitFor(o),r=ratesFor(o);return a+Number(s.lining||0)*Number(r.lining||0);},0);
-    var designTotal=blouseOrders.reduce(function(a,o){
-      var s=splitFor(o),items=designItemsFor(o),r=ratesFor(o);
-      if(items.length)return a+items.reduce(function(x,it){return x+Number(it.qty||0)*Number(it.rate||0);},0);
-      return a+Number(s.design||0)*Number(r.design||0);
-    },0);
-
-    var blouseSareeQty=blouseOrders.reduce(function(a,o){return a+Number((nfGarmentExtra(o)||{}).saree||0);},0);
-    var blouseSareeTotal=blouseOrders.reduce(function(a,o){var x=nfGarmentExtra(o)||{},r=ratesFor(o);return a+Number(x.saree||0)*Number(r.saree||0);},0);
-
-    var blouseLiningShopQty=0,blouseLiningShopTotal=0;
-    blouseOrders.forEach(function(o){
-      var src=String(o.lining_cloth_source||"").toLowerCase();
-      if(src==="shop"||src==="tailor"){
-        blouseLiningShopQty+=Number(o.lining_cloth_qty||nfLiningCost(o).qty||0);
-        blouseLiningShopTotal+=Number(nfLiningCost(o).total||0);
-      }
+    st=st||{};const os=st.os||[];let normal=0,lining=0,design=0,chudi=0,chudiLining=0,normalTotal=0,liningTotal=0,designTotal=0,sareeTotal=0,chudiTotal=0,liningCustomer=0,liningShop=0,liningShopTotal=0;
+    os.forEach(o=>{
+      const b=blouseOf(o),x=extraOf(o),r=ratesOf(o);
+      const bn=N(b.normal),bl=N(b.lining),bd=N(b.design),cq=N(x.chudi),cl=N(x.chudiLiningQty);
+      normal+=bn;lining+=bl;design+=bd;chudi+=cq;chudiLining+=cl;
+      normalTotal+=bn*N(r.normal);
+      liningTotal+=bl*N(r.lining);
+      designTotal+=bd*N(r.design);
+      sareeTotal+=N(x.saree)*N(r.saree);
+      chudiTotal+=cq*N(r.chudi);
+      const src=String(o.lining_cloth_source||"").toLowerCase(),lq=N(o.lining_cloth_qty),lc=typeof window.nfLiningCost==="function"?window.nfLiningCost(o):{};
+      if(src==="customer")liningCustomer+=lq;if(src==="shop"||src==="tailor"){liningShop+=lq;liningShopTotal+=N(lc.total)}
     });
+    const saree=os.reduce((a,o)=>a+N(extraOf(o).saree),0);
+    const row=(label,qty,rate,total)=>qty>0?`<div class="customerRateRow"><span class="rateLabel">${label} ${qty}</span><span class="rateMath">${qty} × ${money(rate)} = <b>${money(total)}</b></span></div>`:"";
+    const notes=[...new Set(os.map(o=>typeof cleanOrderNotes==="function"?cleanOrderNotes(o.notes):"").filter(Boolean))];
+    return `<div class="customerWorkSummary">
+      <div class="customerWorkSection"><h4>👗 Blouse Section</h4><div class="customerWorkGrid"><div class="customerWorkItem"><b>${normal}</b><span>Normal blouse</span></div><div class="customerWorkItem"><b>${lining}</b><span>Lining blouse</span></div><div class="customerWorkItem"><b>${design}</b><span>Design blouse</span></div><div class="customerWorkItem"><b>${saree}</b><span>Saree</span></div></div><div class="customerRateList">${row("Normal blouse",normal,normal?normalTotal/(normal||1):0,normalTotal)}${row("Lining blouse",lining,lining?liningTotal/(lining||1):0,liningTotal)}${row("Design blouse",design,design?designTotal/(design||1):0,designTotal)}${saree?row("Saree",saree,saree?sareeTotal/saree:0,sareeTotal):""}${liningCustomer?`<div class="customerLiningNote">🧵 Lining cloth: Customer கொடுத்தது — ${liningCustomer}</div>`:""}${liningShop?row("Lining cloth",liningShop,liningShop?liningShopTotal/liningShop:0,liningShopTotal):""}</div><div class="customerRateTotal"><span>Blouse Section Total</span><span>${money(normalTotal+liningTotal+designTotal+sareeTotal+liningShopTotal)}</span></div></div>
+      <div class="customerWorkSection"><h4>👚 Chudi Section</h4><div class="customerWorkGrid"><div class="customerWorkItem"><b>${chudi}</b><span>Chudi / சுடிதார்</span></div><div class="customerWorkItem"><b>${chudiLining}</b><span>Chudi lining</span></div><div class="customerWorkItem"><b>${money(chudiTotal)}</b><span>Chudi Total</span></div></div><div class="customerRateList">${row("Chudi",chudi,chudi?chudiTotal/chudi:0,chudiTotal)}</div><div class="customerRateTotal"><span>Chudi Section Total</span><span>${money(chudiTotal)}</span></div></div>
+      <div class="customerWorkSection"><h4>🧾 Order Composition</h4><div class="customerNotesBox">${os.length?os.map(o=>`• <b>${esc(o.order_no||"Order")}</b> — ${esc(combinedLabel(o))}`).join("<br>"):"குறிப்பு இல்லை."}</div></div>
+      <div class="customerRateTotal" style="margin-top:10px;background:linear-gradient(135deg,#14aebd,#3d83ef)"><span>மொத்த Rate</span><span>${money(normalTotal+liningTotal+designTotal+sareeTotal+liningShopTotal+chudiTotal)}</span></div>
+    </div>`;
+  };
 
-    var chudiQty=chudiOrders.reduce(function(a,o){return a+Number((nfGarmentExtra(o)||{}).chudi||o.quantity||0);},0);
-    var chudiLiningQty=chudiOrders.reduce(function(a,o){var x=nfGarmentExtra(o)||{};return a+Number(x.chudiLiningQty||o.lining_cloth_qty||0);},0);
-    var chudiTotal=chudiOrders.reduce(function(a,o){var x=nfGarmentExtra(o)||{},r=ratesFor(o);return a+Number(x.chudi||o.quantity||0)*Number(r.chudi||0);},0);
-    var chudiLiningShopQty=0,chudiLiningShopTotal=0;
-    chudiOrders.forEach(function(o){
-      var src=String(o.lining_cloth_source||"").toLowerCase();
-      if(src==="shop"||src==="tailor"){
-        chudiLiningShopQty+=Number(o.lining_cloth_qty||nfLiningCost(o).qty||0);
-        chudiLiningShopTotal+=Number(nfLiningCost(o).total||0);
-      }
-    });
-
-    var sareeQty=sareeOrders.reduce(function(a,o){var x=nfGarmentExtra(o)||{};return a+Number(x.saree||o.quantity||0);},0);
-    var sareeTotal=sareeOrders.reduce(function(a,o){var x=nfGarmentExtra(o)||{},r=ratesFor(o);return a+Number(x.saree||o.quantity||0)*Number(r.saree||0);},0);
-    var sareeLiningShopQty=0,sareeLiningShopTotal=0;
-    sareeOrders.forEach(function(o){
-      var src=String(o.lining_cloth_source||"").toLowerCase();
-      if(src==="shop"||src==="tailor"){
-        sareeLiningShopQty+=Number(o.lining_cloth_qty||nfLiningCost(o).qty||0);
-        sareeLiningShopTotal+=Number(nfLiningCost(o).total||0);
-      }
-    });
-
-    var notes=[...new Set(os.map(function(o){return cleanOrderNotes(o.notes);}).filter(Boolean))];
-    var exactSavedOrderTotal=os.reduce(function(a,o){return a+orderTotal(o);},0);
-    var breakdownTotal=normalTotal+liningTotal+designTotal+blouseSareeTotal+blouseLiningShopTotal+chudiTotal+chudiLiningShopTotal+sareeTotal+sareeLiningShopTotal;
-
-    var rateRow=function(label,qty,total){
-      return qty>0?'<div class="customerRateRow"><span class="rateLabel">'+label+' '+qty+'</span><span class="rateMath">'+qty+' × '+money(qty?total/qty:0)+' = <b>'+money(total)+'</b></span></div>':"";
-    };
-
-    /* V3.5 — Customer Card: show each saved Design blouse slot as its
-       own calculation row. Each slot keeps its own quantity + rate.
-       No order data, save logic, sync logic, or New/Edit Order fields
-       are changed here. */
-    var designRows="";
-    blouseOrders.forEach(function(o){
-      /* V3.6 display hardening:
-         - only the supported 3 saved design slots are rendered
-         - quantity/rate are numeric and never produce NaN
-         - zero/negative quantities are ignored
-         - saved order data is not mutated */
-      var rawDesignItems=designItemsFor(o);
-      var items=(Array.isArray(rawDesignItems)?rawDesignItems:[]).slice(0,3).map(function(it){
-        return {
-          name:String(it && it.name || "").trim(),
-          qty:Math.max(0,Number(it && it.qty || 0)),
-          rate:Math.max(0,Number(it && it.rate || 0))
-        };
-      });
-      if(items.length){
-        items.forEach(function(it,i){
-          var q=Number(it.qty||0), r=Number(it.rate||0);
-          if(q<=0)return;
-          var label='🎨 Design '+(i+1);
-          if(String(it.name||"").trim())label+=' — '+String(it.name).trim();
-          designRows+='<div class="customerRateRow nf-customer-design-rate-row"><span class="rateLabel">'+label+'</span><span class="rateMath">'+q+' × '+money(r)+' = <b>'+money(q*r)+'</b></span></div>';
-        });
-      }else{
-        /* Legacy orders without saved 3-slot data remain visible and
-           continue using their saved aggregate Design blouse rate. */
-        var s=splitFor(o),r=ratesFor(o),q=Number(s.design||0);
-        if(q>0){
-          designRows+='<div class="customerRateRow nf-customer-design-rate-row"><span class="rateLabel">🎨 Design blouse</span><span class="rateMath">'+q+' × '+money(r.design)+' = <b>'+money(q*r.design)+'</b></span></div>';
-        }
-      }
-    });
-
-    return '<div class="customerWorkSummary">'+
-      '<div class="customerWorkSection"><h4>👗 Blouse Section</h4>'+ 
-        '<div class="customerWorkGrid">'+
-          '<div class="customerWorkItem"><b>'+normalQty+'</b><span>Normal blouse</span></div>'+ 
-          '<div class="customerWorkItem"><b>'+liningQty+'</b><span>Lining blouse</span></div>'+ 
-          '<div class="customerWorkItem"><b>'+designQty+'</b><span>Design blouse</span></div>'+ 
-          '<div class="customerWorkItem"><b>'+blouseSareeQty+'</b><span>Saree</span></div>'+ 
-        '</div>'+ 
-        '<div class="customerRateList">'+
-          rateRow('Normal blouse',normalQty,normalTotal)+
-          rateRow('Lining blouse',liningQty,liningTotal)+
-          designRows+
-          rateRow('Saree',blouseSareeQty,blouseSareeTotal)+
-          (st.liningCustomer>0?'<div class="customerLiningNote">🧵 Lining cloth: Customer கொடுத்தது — '+st.liningCustomer+' (Rate தேவையில்லை)</div>':"")+ 
-          (blouseLiningShopQty>0?'<div class="customerRateRow"><span class="rateLabel">Lining cloth '+blouseLiningShopQty+'</span><span class="rateMath">Shop cost = <b>'+money(blouseLiningShopTotal)+'</b></span></div>':"")+ 
-        '</div>'+ 
-        '<div class="customerRateTotal"><span>Blouse Section Total</span><span>'+money(normalTotal+liningTotal+designTotal+blouseSareeTotal+blouseLiningShopTotal)+'</span></div>'+ 
-      '</div>'+ 
-      '<div class="customerWorkSection"><h4>👚 Chudi Section</h4>'+ 
-        '<div class="customerWorkGrid">'+
-          '<div class="customerWorkItem"><b>'+chudiQty+'</b><span>Chudi / சுடிதார்</span></div>'+ 
-          '<div class="customerWorkItem"><b>'+chudiLiningQty+'</b><span>Chudi lining</span></div>'+ 
-          '<div class="customerWorkItem"><b>'+money(chudiTotal)+'</b><span>Chudi Total</span></div>'+ 
-        '</div>'+ 
-        '<div class="customerRateList">'+rateRow('Chudi',chudiQty,chudiTotal)+
-          (chudiLiningShopQty>0?'<div class="customerRateRow"><span class="rateLabel">Chudi lining '+chudiLiningShopQty+'</span><span class="rateMath">Shop cost = <b>'+money(chudiLiningShopTotal)+'</b></span></div>':"")+ 
-        '</div>'+ 
-        ((chudiQty>0||chudiLiningShopTotal>0)?'<div class="customerRateTotal"><span>Chudi Section Total</span><span>'+money(chudiTotal+chudiLiningShopTotal)+'</span></div>':"")+ 
-      '</div>'+ 
-      (sareeOrders.length?'<div class="customerWorkSection"><h4>🥻 Saree Section</h4>'+ 
-        '<div class="customerWorkGrid"><div class="customerWorkItem"><b>'+sareeQty+'</b><span>Saree</span></div></div>'+ 
-        '<div class="customerRateList">'+rateRow('Saree',sareeQty,sareeTotal)+
-          (sareeLiningShopQty>0?'<div class="customerRateRow"><span class="rateLabel">Lining cloth '+sareeLiningShopQty+'</span><span class="rateMath">Shop cost = <b>'+money(sareeLiningShopTotal)+'</b></span></div>':"")+ 
-        '</div><div class="customerRateTotal"><span>Saree Section Total</span><span>'+money(sareeTotal+sareeLiningShopTotal)+'</span></div></div>':'')+
-      '<div class="customerRateTotal" style="margin-top:10px;background:linear-gradient(135deg,#14aebd,#3d83ef)"><span>மொத்த Rate</span><span>'+money(exactSavedOrderTotal)+'</span></div>'+ 
-      (Math.abs(exactSavedOrderTotal-breakdownTotal)>0.009?'<div class="mini" style="margin-top:8px;color:#8a6200">ℹ️ Saved Order Total: '+money(exactSavedOrderTotal)+' · Item-wise breakdown: '+money(breakdownTotal)+'</div>':"")+ 
-      '<div class="customerWorkSection"><h4>📝 Alteration notes</h4><div class="customerNotesBox">'+(notes.length?notes.map(function(n){return "• "+escSafe(n);}).join("<br>"):"குறிப்பு இல்லை.")+'</div></div>'+ 
-    '</div>';
-  };  /* ---------- Order Full Details ---------- */
+  /* ---------- Order Full Details ---------- */
   window.openOrderFullDetails=function(orderId){
     const o=(state.orders||[]).find(x=>String(x.id)===String(orderId));if(!o){toast("Order details கிடைக்கவில்லை.",true);return;}
     const box=$("nfOrderFullDetails"),content=$("nfOrderFullDetailsContent");if(!box||!content)return;
@@ -10278,12 +10195,6 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-head >
     window.renderOrders.__nfV75=true;
   }
 
-  /* =========================================================
-     V7.6 — CUSTOMER BLOUSE SECTION DESIGN-SLOT CALCULATION FIX
-     Design 1 / 2 / 3 are rendered as separate calculation rows in
-     Customer > Blouse Section. Their saved slot qty × rate totals are
-     included in Blouse Total. Cash Collection logic is untouched.
-     ========================================================= */
   /* Re-render current view once so the patch is visible immediately. */
   document.addEventListener("DOMContentLoaded",function(){
     setTimeout(function(){
