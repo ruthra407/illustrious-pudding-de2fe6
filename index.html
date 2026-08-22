@@ -4050,6 +4050,9 @@ return null;
 }
 function statusPill(s){const c=["Delivered","Completed"].includes(s)?"ok":s==="Cancelled"?"bad":["Pending","In Progress"].includes(s)?"warn":s==="Ready"?"ok":"";return `<span class="pill ${c}">${esc(s||"Pending")}</span>`}
 /*
+ * V7.7 CASH-COLLECTION / TOTAL SYNC FIX
+ * Main Edit Order save path now preserves and includes shop/tailor lining cost.
+ *
  * V7.5 CASH-COLLECTION / TOTAL SYNC FIX
  * If saved component markers exist, calculate the authoritative order total
  * from saved quantities + saved rates. Legacy orders without markers keep
@@ -4112,6 +4115,9 @@ function nfCalculatedOrderTotal(o){
     }
 
     const stored=Math.max(0,Number(o.total_amount||0));
+    /* V7.7: a shop/tailor lining amount is part of the customer amount.
+       Prefer the explicit saved LINING_COST marker; older rows may only
+       have lining_cloth_source/qty, in which case we cannot invent a rate. */
     if(total>0 || pieces>0)return Math.round(total*100)/100;
     return stored>0 ? stored : Math.max(0,Number(o.quantity||0))*Math.max(0,Number(o.unit_price||0));
   }catch(e){
@@ -5497,28 +5503,35 @@ if(type==="order"){
  const rates=getRates();
  const cq=Math.max(0,Number(fd.get("chudi_qty")||0)),ch=Math.min(cq,Math.max(0,Number(fd.get("chudi_handover")||0))),cl=fd.get("chudi_lining")==="yes"?"yes":"no",clq=Math.max(0,Number(fd.get("chudi_lining_qty")||0)),cr=Math.max(0,Number(fd.get("chudi_rate")||rates.chudi||0));
  const sq=Math.max(0,Number(fd.get("saree_qty")||fd.get("nf_saree_qty")||0)),sh=Math.min(sq,Math.max(0,Number(fd.get("saree_handover")||0))),sr=Math.max(0,Number(fd.get("saree_rate")||fd.get("nf_saree_rate")||rates.saree||0));
+ const existingOrder=(state.orders||[]).find(x=>String(x.id)===String(id))||null;
+ const existingLining=typeof nfLiningCost==="function"?nfLiningCost(existingOrder||{}):{source:"",qty:0,rate:0,total:0};
+ const liningSource=String(fd.get("lining_cloth_source")||existingLining.source||"").toLowerCase();
+ const liningQty=Math.max(0,Number(fd.get("lining_cloth_qty")||existingLining.qty||0));
+ const liningRate=Math.max(0,Number(existingLining.rate||0));
+ const liningTotal=(liningSource==="shop"||liningSource==="tailor")?liningQty*liningRate:0;
  if(combined){
    payload.garment_type="Blouse";
    payload.quantity=split.normal+split.lining+split.design+cq+sq;
-   payload.total_amount=split.normal*rates.normal+split.lining*rates.lining+split.design*rates.design+cq*cr+sq*sr;
+   payload.total_amount=split.normal*rates.normal+split.lining*rates.lining+split.design*rates.design+cq*cr+sq*sr+liningTotal;
    payload.unit_price=payload.quantity?payload.total_amount/payload.quantity:0;
    const active=["normal","lining","design"].filter(k=>split[k]>0);
    payload.rate_type=active[0]||"normal";
    payload.notes=makeBlouseSplitNote(split,rates,payload.notes||"");
+   if(liningTotal>0)payload.notes+=" | LINING_COST:"+JSON.stringify({source:liningSource,qty:liningQty,rate:liningRate,total:liningTotal});
    payload.notes+=" | BLOUSE_HANDOVER:"+JSON.stringify(handover);
    payload.notes=String(payload.notes||"").replace(/\s*\|\s*GARMENT_SPLIT:\{[^}]+\}/g,"").replace(/\s*\|\s*(?:CHUDI_RATE|SAREE_RATE):[0-9.]+/g,"").trim();
    payload.notes+=(payload.notes?" | ":"")+"GARMENT_SPLIT:"+JSON.stringify({chudi:cq,chudiLining:cl,chudiLiningQty:clq,saree:sq});payload.notes+=" | GARMENT_HANDOVER:"+JSON.stringify({chudi:ch,saree:sh});
    if(cq>0)payload.notes+=" | CHUDI_RATE:"+cr;
    if(sq>0)payload.notes+=" | SAREE_RATE:"+sr;
  }else if(garment==="chudi"){
-   payload.quantity=cq;payload.total_amount=cq*cr;payload.unit_price=cr;payload.rate_type="normal";
+   payload.quantity=cq;payload.total_amount=cq*cr+liningTotal;payload.unit_price=cr;payload.rate_type="normal";
    payload.notes="GARMENT_SPLIT:"+JSON.stringify({chudi:cq,chudiLining:cl,chudiLiningQty:clq,saree:0})+" | GARMENT_HANDOVER:"+JSON.stringify({chudi:ch,saree:0})+" | CHUDI_RATE:"+cr;
  }else if(garment==="saree"){
-   payload.quantity=sq;payload.total_amount=sq*sr;payload.unit_price=sr;payload.rate_type="normal";
+   payload.quantity=sq;payload.total_amount=sq*sr+liningTotal;payload.unit_price=sr;payload.rate_type="normal";
    payload.notes="GARMENT_SPLIT:"+JSON.stringify({chudi:0,chudiLining:"no",chudiLiningQty:0,saree:sq})+" | GARMENT_HANDOVER:"+JSON.stringify({chudi:0,saree:sh})+" | SAREE_RATE:"+sr;
  }else{
    payload.quantity=split.normal+split.lining+split.design+sq;
-   payload.total_amount=split.normal*rates.normal+split.lining*rates.lining+split.design*rates.design+sq*sr;
+   payload.total_amount=split.normal*rates.normal+split.lining*rates.lining+split.design*rates.design+sq*sr+liningTotal;
    payload.unit_price=payload.quantity?payload.total_amount/payload.quantity:0;
    const active=["normal","lining","design"].filter(k=>split[k]>0);
    payload.rate_type=active[0]||"normal";
@@ -5527,6 +5540,7 @@ if(type==="order"){
    payload.notes=String(payload.notes||"").replace(/\s*\|\s*GARMENT_SPLIT:\{[^}]+\}/g,"").replace(/\s*\|\s*SAREE_RATE:[0-9.]+/g,"").trim();
    payload.notes+=" | GARMENT_SPLIT:"+JSON.stringify({chudi:0,chudiLining:"no",chudiLiningQty:0,saree:sq})+" | GARMENT_HANDOVER:"+JSON.stringify({chudi:0,saree:sh})+" | SAREE_RATE:"+sr;
  }
+ if(liningTotal>0 && !String(payload.notes||"").includes("LINING_COST:"))payload.notes=String(payload.notes||"")+" | LINING_COST:"+JSON.stringify({source:liningSource,qty:liningQty,rate:liningRate,total:liningTotal});
  const nfAdvanceDate=$("nfAdvanceDate")?.value || payload.order_date || localDate();
   const nfCleanNotes=cleanOrderNotes(payload.notes||"");
   payload.notes=[nfCleanNotes.replace(/ADVANCE_DATE:[0-9]{4}-[0-9]{2}-[0-9]{2}\s*\|?\s*/g,"").trim(),`ADVANCE_DATE:${nfAdvanceDate}`].filter(Boolean).join(" | ");
