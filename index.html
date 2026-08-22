@@ -3709,6 +3709,52 @@ body{
 [class*="calculation-row"] .calculation-value, .calculation-row .calculation-value { flex:1 1 45%; min-width:0; text-align:right; white-space:normal; overflow-wrap:anywhere; }
 @media (max-width:520px){ [class*="calculation-row"], .calculation-row{gap:5px;padding-left:10px !important;padding-right:10px !important;} [class*="calculation-row"] .calculation-label, [class*="calculation-row"] .calculation-value, .calculation-row .calculation-label, .calculation-row .calculation-value{flex:1 1 100%;width:100%;} [class*="calculation-row"] .calculation-value, .calculation-row .calculation-value{text-align:right;font-size:.95em;} }
 </style>
+
+<style id="v77-real-calculation-overlap-fix">
+/* V7.7: fix the ACTUAL customer-summary calculation rows (.nfV2Row).
+   Keep the values/logic untouched; only constrain the layout. */
+.nfV2Rows{width:100%;max-width:100%;min-width:0;overflow:hidden;}
+.nfV2Row{
+  display:grid !important;
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr) !important;
+  align-items:center;
+  width:100%;
+  max-width:100%;
+  min-width:0;
+  box-sizing:border-box;
+  gap:10px;
+  overflow:hidden;
+}
+.nfV2Name,.nfV2Math{
+  min-width:0 !important;
+  max-width:100% !important;
+  box-sizing:border-box;
+  overflow-wrap:anywhere;
+  word-break:break-word;
+}
+.nfV2Math{
+  white-space:normal !important;
+  text-align:right !important;
+  overflow-wrap:anywhere;
+  word-break:break-word;
+}
+@media (max-width:700px){
+  .nfV2Row{
+    grid-template-columns:minmax(0,1fr) !important;
+    gap:4px;
+  }
+  .nfV2Math{
+    text-align:left !important;
+    width:100%;
+  }
+}
+@media (max-width:420px){
+  .nfV2Row{padding:9px 10px !important;}
+  .nfV2Name{font-size:15px;}
+  .nfV2Math{font-size:14px;}
+}
+</style>
+
 </head>
 <body>
 
