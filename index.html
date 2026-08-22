@@ -3700,6 +3700,15 @@ body{
 </style>
 
 <!-- V7.4: Order edit/update reliability fix. -->
+
+<style id="v76-calculation-responsive-fix">
+/* V7.6: calculation rows stay inside their cards on mobile */
+[class*="calculation-row"], .calculation-row { box-sizing:border-box; width:100%; max-width:100%; min-width:0; overflow:hidden; display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+[class*="calculation-row"] > *, .calculation-row > * { min-width:0; max-width:100%; box-sizing:border-box; overflow-wrap:anywhere; }
+[class*="calculation-row"] .calculation-label, .calculation-row .calculation-label { flex:1 1 45%; min-width:0; }
+[class*="calculation-row"] .calculation-value, .calculation-row .calculation-value { flex:1 1 45%; min-width:0; text-align:right; white-space:normal; overflow-wrap:anywhere; }
+@media (max-width:520px){ [class*="calculation-row"], .calculation-row{gap:5px;padding-left:10px !important;padding-right:10px !important;} [class*="calculation-row"] .calculation-label, [class*="calculation-row"] .calculation-value, .calculation-row .calculation-label, .calculation-row .calculation-value{flex:1 1 100%;width:100%;} [class*="calculation-row"] .calculation-value, .calculation-row .calculation-value{text-align:right;font-size:.95em;} }
+</style>
 </head>
 <body>
 
