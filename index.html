@@ -1,10 +1,10 @@
 <!doctype html>
-<html nf-build="verified-2026-08-21-v7.4-order-update-fix" lang="ta">
+<html nf-build="verified-2026-08-22-v7.6-design-blouse-section-fix" lang="ta">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="nf-build" content="verified-2026-08-21-v7.4-order-update-fix">
-<title>New Fashion Tailoring – Online Management | Phase 4.3 • V7.4</title>
+<meta name="nf-build" content="verified-2026-08-22-v7.6-design-blouse-section-fix">
+<title>New Fashion Tailoring – Online Management | Phase 4.3 • V7.6</title>
 <link rel="manifest" href="manifest.json">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -4009,7 +4009,6 @@ result.forEach((r,i)=>{
     failed.push(r.reason?.message||(`${tables[i]} load failed`));
   }
 });
-try{await nfRepairSavedOrderTotals();}catch(err){console.error("Saved order total repair error:",err);}
 try{renderAll();}catch(err){console.error("Render error:",err);}
 if(failed.length){
   console.error("Database load errors:",failed);
@@ -4050,107 +4049,7 @@ if(d<=5)return {kind:"soon",days:d};
 return null;
 }
 function statusPill(s){const c=["Delivered","Completed"].includes(s)?"ok":s==="Cancelled"?"bad":["Pending","In Progress"].includes(s)?"warn":s==="Ready"?"ok":"";return `<span class="pill ${c}">${esc(s||"Pending")}</span>`}
-/*
- * V7.7 CASH-COLLECTION / TOTAL SYNC FIX
- * Main Edit Order save path now preserves and includes shop/tailor lining cost.
- *
- * V7.5 CASH-COLLECTION / TOTAL SYNC FIX
- * If saved component markers exist, calculate the authoritative order total
- * from saved quantities + saved rates. Legacy orders without markers keep
- * their stored total_amount.
- */
-function nfCalculatedOrderTotal(o){
-  /* V7.8: ONE authoritative calculation for every saved order.
-     Uses the exact saved quantity/rate markers used by the order editor.
-     This is intentionally independent of the stale database total_amount. */
-  if(!o)return null;
-  const notes=String(o.notes||"");
-  const hasMarker=/(BLOUSE_SPLIT|BLOUSE_RATES|DESIGN_ITEMS|DESIGN_RATES|GARMENT_SPLIT|CHUDI_RATE|SAREE_RATE|LINING_COST):/.test(notes);
-  if(!hasMarker)return null;
-  const num=v=>{const n=Number(v);return Number.isFinite(n)?Math.max(0,n):0};
-  const json=(re,fb)=>{const m=notes.match(re);if(!m)return fb;try{return JSON.parse(m[1])||fb}catch{return fb}};
-  const defaults=typeof getRates==="function"?getRates():{normal:300,lining:450,design:600,chudi:500,saree:0};
-  const split=json(/BLOUSE_SPLIT:(\{[^}]+\})/,{});
-  const savedRates=json(/BLOUSE_RATES:(\{[^}]+\})/,{});
-  const garment=json(/GARMENT_SPLIT:(\{[^}]+\})/,{});
-  const liningCost=json(/LINING_COST:(\{[^}]+\})/,{});
-  const normal=num(split.normal), liningQty=num(split.lining), designQty=num(split.design);
-  const normalRate=num(savedRates.normal ?? defaults.normal);
-  const liningRate=num(savedRates.lining ?? defaults.lining);
-
-  let designTotal=0, designSeen=false;
-  const dm=notes.match(/DESIGN_ITEMS:(\[[^\]]*\])/);
-  if(dm){
-    try{
-      const items=JSON.parse(dm[1]);
-      if(Array.isArray(items)){
-        designTotal=items.slice(0,3).reduce((sum,x)=>sum+num(x?.qty)*num(x?.rate),0);
-        designSeen=true;
-      }
-    }catch{}
-  }
-  if(!designSeen){
-    const rm=notes.match(/DESIGN_RATES:(\[[^\]]*\])/);
-    if(rm){
-      try{
-        const arr=JSON.parse(rm[1]);
-        if(Array.isArray(arr)){
-          designTotal=arr.slice(0,designQty).reduce((sum,r)=>sum+num(r),0);
-          designSeen=true;
-        }
-      }catch{}
-    }
-  }
-  if(!designSeen)designTotal=designQty*num(savedRates.design ?? defaults.design);
-
-  const chudi=num(garment.chudi), saree=num(garment.saree);
-  const chudiRate=num((notes.match(/CHUDI_RATE:([0-9.]+)/)||[])[1] ?? savedRates.chudi ?? defaults.chudi);
-  const sareeRate=num((notes.match(/SAREE_RATE:([0-9.]+)/)||[])[1] ?? savedRates.saree ?? defaults.saree);
-  const liningTotal=num(liningCost.total);
-
-  return normal*normalRate + liningQty*liningRate + designTotal + chudi*chudiRate + saree*sareeRate + liningTotal;
-}
-
-/* Repair stale database totals once after loading. The UI must not display
-   one total while Cash Collection uses another. */
-async function nfRepairSavedOrderTotals(){
-  if(!state.user || !Array.isArray(state.orders) || !state.orders.length)return;
-  const updates=[];
-  for(const o of state.orders){
-    const total=nfCalculatedOrderTotal(o);
-    if(total===null)continue;
-    const oldTotal=Number(o.total_amount||0);
-    if(Math.abs(oldTotal-total)<0.005)continue;
-    const qty=Math.max(0,Number(o.quantity||0));
-    const lc=nfLiningCost(o)||{};
-    const liningTotal=Math.max(0,Number(lc.total||0));
-    const garmentTotal=Math.max(0,total-liningTotal);
-    const payload={
-      total_amount:total,
-      balance_amount:Math.max(0,total-Number(o.advance_amount||0)),
-      unit_price:qty?garmentTotal/qty:0
-    };
-    updates.push({o,payload});
-  }
-  if(!updates.length)return;
-  const results=await Promise.allSettled(
-    updates.map(({o,payload})=>supabaseClient.from("orders").update(payload).eq("id",o.id))
-  );
-  results.forEach((r,i)=>{
-    if(r.status==="fulfilled" && !r.value.error){
-      Object.assign(updates[i].o,updates[i].payload);
-    }else{
-      console.error("V7.8 total repair failed",updates[i].o?.id,r.reason||r.value?.error);
-    }
-  });
-}
-
-function orderTotal(o){
-  const calculated=nfCalculatedOrderTotal(o);
-  if(calculated!==null && Number.isFinite(calculated))return Math.round(calculated*100)/100;
-  const q=Number(o?.quantity||0),u=Number(o?.unit_price||0);
-  return Number(o?.total_amount||0)||q*u;
-}
+function orderTotal(o){const q=Number(o.quantity||0),u=Number(o.unit_price||0);return Number(o.total_amount||0)||q*u}
 function totalPieces(){return state.orders.reduce((a,o)=>a+Number(o.quantity||0),0)}
 function totalSales(){return state.orders.reduce((a,o)=>a+orderTotal(o),0)}
 function totalBalance(){return state.orders.reduce((a,o)=>a+Math.max(0,nfOrderBalance(o)),0)}
@@ -4365,9 +4264,9 @@ function nfLiningCost(o){
  if(!m)return base;
  try{const x=JSON.parse(m[1]);return {source:String(x.source||""),qty:Math.max(0,Number(x.qty||0)),rate:Math.max(0,Number(x.rate||0)),total:Math.max(0,Number(x.total||0))}}catch{return base}
 }
-function nfGarmentAmount(o){return Math.max(0,Number(orderTotal(o)||0)-Number(nfLiningCost(o).total||0))}
+function nfGarmentAmount(o){return Math.max(0,Number(o?.total_amount||0)-nfLiningCost(o).total)}
 function nfPriceBreakdownHTML(o){
- const lc=nfLiningCost(o),garment=nfGarmentAmount(o),total=Number(orderTotal(o)||0);
+ const lc=nfLiningCost(o),garment=nfGarmentAmount(o),total=Number(o?.total_amount||0)||orderTotal(o);
  if(!lc.total)return "";
  return `<div class="nf-price-breakdown"><div><span>👗 Garment / Blouse / Chudi</span><b>${money(garment)}</b></div><div><span>🧵 Lining — ${lc.qty} × ${money(lc.rate)}</span><b>${money(lc.total)}</b></div><div class="total"><span>மொத்த Customer Amount</span><b>${money(total)}</b></div></div>`;
 }
@@ -5522,35 +5421,28 @@ if(type==="order"){
  const rates=getRates();
  const cq=Math.max(0,Number(fd.get("chudi_qty")||0)),ch=Math.min(cq,Math.max(0,Number(fd.get("chudi_handover")||0))),cl=fd.get("chudi_lining")==="yes"?"yes":"no",clq=Math.max(0,Number(fd.get("chudi_lining_qty")||0)),cr=Math.max(0,Number(fd.get("chudi_rate")||rates.chudi||0));
  const sq=Math.max(0,Number(fd.get("saree_qty")||fd.get("nf_saree_qty")||0)),sh=Math.min(sq,Math.max(0,Number(fd.get("saree_handover")||0))),sr=Math.max(0,Number(fd.get("saree_rate")||fd.get("nf_saree_rate")||rates.saree||0));
- const existingOrder=(state.orders||[]).find(x=>String(x.id)===String(id))||null;
- const existingLining=typeof nfLiningCost==="function"?nfLiningCost(existingOrder||{}):{source:"",qty:0,rate:0,total:0};
- const liningSource=String(fd.get("lining_cloth_source")||existingLining.source||"").toLowerCase();
- const liningQty=Math.max(0,Number(fd.get("lining_cloth_qty")||existingLining.qty||0));
- const liningRate=Math.max(0,Number(existingLining.rate||0));
- const liningTotal=(liningSource==="shop"||liningSource==="tailor")?liningQty*liningRate:0;
  if(combined){
    payload.garment_type="Blouse";
    payload.quantity=split.normal+split.lining+split.design+cq+sq;
-   payload.total_amount=split.normal*rates.normal+split.lining*rates.lining+split.design*rates.design+cq*cr+sq*sr+liningTotal;
+   payload.total_amount=split.normal*rates.normal+split.lining*rates.lining+split.design*rates.design+cq*cr+sq*sr;
    payload.unit_price=payload.quantity?payload.total_amount/payload.quantity:0;
    const active=["normal","lining","design"].filter(k=>split[k]>0);
    payload.rate_type=active[0]||"normal";
    payload.notes=makeBlouseSplitNote(split,rates,payload.notes||"");
-   if(liningTotal>0)payload.notes+=" | LINING_COST:"+JSON.stringify({source:liningSource,qty:liningQty,rate:liningRate,total:liningTotal});
    payload.notes+=" | BLOUSE_HANDOVER:"+JSON.stringify(handover);
    payload.notes=String(payload.notes||"").replace(/\s*\|\s*GARMENT_SPLIT:\{[^}]+\}/g,"").replace(/\s*\|\s*(?:CHUDI_RATE|SAREE_RATE):[0-9.]+/g,"").trim();
    payload.notes+=(payload.notes?" | ":"")+"GARMENT_SPLIT:"+JSON.stringify({chudi:cq,chudiLining:cl,chudiLiningQty:clq,saree:sq});payload.notes+=" | GARMENT_HANDOVER:"+JSON.stringify({chudi:ch,saree:sh});
    if(cq>0)payload.notes+=" | CHUDI_RATE:"+cr;
    if(sq>0)payload.notes+=" | SAREE_RATE:"+sr;
  }else if(garment==="chudi"){
-   payload.quantity=cq;payload.total_amount=cq*cr+liningTotal;payload.unit_price=cr;payload.rate_type="normal";
+   payload.quantity=cq;payload.total_amount=cq*cr;payload.unit_price=cr;payload.rate_type="normal";
    payload.notes="GARMENT_SPLIT:"+JSON.stringify({chudi:cq,chudiLining:cl,chudiLiningQty:clq,saree:0})+" | GARMENT_HANDOVER:"+JSON.stringify({chudi:ch,saree:0})+" | CHUDI_RATE:"+cr;
  }else if(garment==="saree"){
-   payload.quantity=sq;payload.total_amount=sq*sr+liningTotal;payload.unit_price=sr;payload.rate_type="normal";
+   payload.quantity=sq;payload.total_amount=sq*sr;payload.unit_price=sr;payload.rate_type="normal";
    payload.notes="GARMENT_SPLIT:"+JSON.stringify({chudi:0,chudiLining:"no",chudiLiningQty:0,saree:sq})+" | GARMENT_HANDOVER:"+JSON.stringify({chudi:0,saree:sh})+" | SAREE_RATE:"+sr;
  }else{
    payload.quantity=split.normal+split.lining+split.design+sq;
-   payload.total_amount=split.normal*rates.normal+split.lining*rates.lining+split.design*rates.design+sq*sr+liningTotal;
+   payload.total_amount=split.normal*rates.normal+split.lining*rates.lining+split.design*rates.design+sq*sr;
    payload.unit_price=payload.quantity?payload.total_amount/payload.quantity:0;
    const active=["normal","lining","design"].filter(k=>split[k]>0);
    payload.rate_type=active[0]||"normal";
@@ -5559,7 +5451,6 @@ if(type==="order"){
    payload.notes=String(payload.notes||"").replace(/\s*\|\s*GARMENT_SPLIT:\{[^}]+\}/g,"").replace(/\s*\|\s*SAREE_RATE:[0-9.]+/g,"").trim();
    payload.notes+=" | GARMENT_SPLIT:"+JSON.stringify({chudi:0,chudiLining:"no",chudiLiningQty:0,saree:sq})+" | GARMENT_HANDOVER:"+JSON.stringify({chudi:0,saree:sh})+" | SAREE_RATE:"+sr;
  }
- if(liningTotal>0 && !String(payload.notes||"").includes("LINING_COST:"))payload.notes=String(payload.notes||"")+" | LINING_COST:"+JSON.stringify({source:liningSource,qty:liningQty,rate:liningRate,total:liningTotal});
  const nfAdvanceDate=$("nfAdvanceDate")?.value || payload.order_date || localDate();
   const nfCleanNotes=cleanOrderNotes(payload.notes||"");
   payload.notes=[nfCleanNotes.replace(/ADVANCE_DATE:[0-9]{4}-[0-9]{2}-[0-9]{2}\s*\|?\s*/g,"").trim(),`ADVANCE_DATE:${nfAdvanceDate}`].filter(Boolean).join(" | ");
@@ -9456,31 +9347,158 @@ html{
 
   /* ---------- Customer calculation: combined orders are split by component ---------- */
   window.nfCustomerWorkSummaryHTML=function(st){
-    st=st||{};const os=st.os||[];let normal=0,lining=0,design=0,chudi=0,chudiLining=0,normalTotal=0,liningTotal=0,designTotal=0,sareeTotal=0,chudiTotal=0,liningCustomer=0,liningShop=0,liningShopTotal=0;
-    os.forEach(o=>{
-      const b=blouseOf(o),x=extraOf(o),r=ratesOf(o);
-      const bn=N(b.normal),bl=N(b.lining),bd=N(b.design),cq=N(x.chudi),cl=N(x.chudiLiningQty);
-      normal+=bn;lining+=bl;design+=bd;chudi+=cq;chudiLining+=cl;
-      normalTotal+=bn*N(r.normal);
-      liningTotal+=bl*N(r.lining);
-      designTotal+=bd*N(r.design);
-      sareeTotal+=N(x.saree)*N(r.saree);
-      chudiTotal+=cq*N(r.chudi);
-      const src=String(o.lining_cloth_source||"").toLowerCase(),lq=N(o.lining_cloth_qty),lc=typeof window.nfLiningCost==="function"?window.nfLiningCost(o):{};
-      if(src==="customer")liningCustomer+=lq;if(src==="shop"||src==="tailor"){liningShop+=lq;liningShopTotal+=N(lc.total)}
-    });
-    const saree=os.reduce((a,o)=>a+N(extraOf(o).saree),0);
-    const row=(label,qty,rate,total)=>qty>0?`<div class="customerRateRow"><span class="rateLabel">${label} ${qty}</span><span class="rateMath">${qty} × ${money(rate)} = <b>${money(total)}</b></span></div>`:"";
-    const notes=[...new Set(os.map(o=>typeof cleanOrderNotes==="function"?cleanOrderNotes(o.notes):"").filter(Boolean))];
-    return `<div class="customerWorkSummary">
-      <div class="customerWorkSection"><h4>👗 Blouse Section</h4><div class="customerWorkGrid"><div class="customerWorkItem"><b>${normal}</b><span>Normal blouse</span></div><div class="customerWorkItem"><b>${lining}</b><span>Lining blouse</span></div><div class="customerWorkItem"><b>${design}</b><span>Design blouse</span></div><div class="customerWorkItem"><b>${saree}</b><span>Saree</span></div></div><div class="customerRateList">${row("Normal blouse",normal,normal?normalTotal/(normal||1):0,normalTotal)}${row("Lining blouse",lining,lining?liningTotal/(lining||1):0,liningTotal)}${row("Design blouse",design,design?designTotal/(design||1):0,designTotal)}${saree?row("Saree",saree,saree?sareeTotal/saree:0,sareeTotal):""}${liningCustomer?`<div class="customerLiningNote">🧵 Lining cloth: Customer கொடுத்தது — ${liningCustomer}</div>`:""}${liningShop?row("Lining cloth",liningShop,liningShop?liningShopTotal/liningShop:0,liningShopTotal):""}</div><div class="customerRateTotal"><span>Blouse Section Total</span><span>${money(normalTotal+liningTotal+designTotal+sareeTotal+liningShopTotal)}</span></div></div>
-      <div class="customerWorkSection"><h4>👚 Chudi Section</h4><div class="customerWorkGrid"><div class="customerWorkItem"><b>${chudi}</b><span>Chudi / சுடிதார்</span></div><div class="customerWorkItem"><b>${chudiLining}</b><span>Chudi lining</span></div><div class="customerWorkItem"><b>${money(chudiTotal)}</b><span>Chudi Total</span></div></div><div class="customerRateList">${row("Chudi",chudi,chudi?chudiTotal/chudi:0,chudiTotal)}</div><div class="customerRateTotal"><span>Chudi Section Total</span><span>${money(chudiTotal)}</span></div></div>
-      <div class="customerWorkSection"><h4>🧾 Order Composition</h4><div class="customerNotesBox">${os.length?os.map(o=>`• <b>${esc(o.order_no||"Order")}</b> — ${esc(combinedLabel(o))}`).join("<br>"):"குறிப்பு இல்லை."}</div></div>
-      <div class="customerRateTotal" style="margin-top:10px;background:linear-gradient(135deg,#14aebd,#3d83ef)"><span>மொத்த Rate</span><span>${money(normalTotal+liningTotal+designTotal+sareeTotal+liningShopTotal+chudiTotal)}</span></div>
-    </div>`;
-  };
+    var os=st.os||[];
+    var isGarment=function(o,g){return String(o.garment_type||"").toLowerCase()===g;};
+    var blouseOrders=os.filter(function(o){var g=String(o.garment_type||"Blouse").toLowerCase();return g==="blouse"||!o.garment_type;});
+    var chudiOrders=os.filter(function(o){return isGarment(o,"chudi");});
+    var sareeOrders=os.filter(function(o){return isGarment(o,"saree");});
 
-  /* ---------- Order Full Details ---------- */
+    /* The saved order total is authoritative. For Design blouse, however,
+       the item-wise slot rates must also be reflected here so the customer
+       card never shows a different Design calculation from the order editor. */
+    var designItemsFor=function(o){
+      try{
+        if(typeof window.nfDesignItems==="function")return window.nfDesignItems(o)||[];
+      }catch(e){}
+      return [];
+    };
+    var splitFor=function(o){return blouseSplit(o)||{normal:0,lining:0,design:0};};
+    var ratesFor=function(o){return nfOrderRates(o)||{};};
+
+    var normalQty=blouseOrders.reduce(function(a,o){return a+Number(splitFor(o).normal||0);},0);
+    var liningQty=blouseOrders.reduce(function(a,o){return a+Number(splitFor(o).lining||0);},0);
+    var designQty=blouseOrders.reduce(function(a,o){
+      var s=splitFor(o),items=designItemsFor(o),slotQty=items.reduce(function(x,it){return x+Number(it.qty||0);},0);
+      return a+(slotQty>0?slotQty:Number(s.design||0));
+    },0);
+
+    var normalTotal=blouseOrders.reduce(function(a,o){var s=splitFor(o),r=ratesFor(o);return a+Number(s.normal||0)*Number(r.normal||0);},0);
+    var liningTotal=blouseOrders.reduce(function(a,o){var s=splitFor(o),r=ratesFor(o);return a+Number(s.lining||0)*Number(r.lining||0);},0);
+    var designTotal=blouseOrders.reduce(function(a,o){
+      var s=splitFor(o),items=designItemsFor(o),r=ratesFor(o);
+      if(items.length)return a+items.reduce(function(x,it){return x+Number(it.qty||0)*Number(it.rate||0);},0);
+      return a+Number(s.design||0)*Number(r.design||0);
+    },0);
+
+    var blouseSareeQty=blouseOrders.reduce(function(a,o){return a+Number((nfGarmentExtra(o)||{}).saree||0);},0);
+    var blouseSareeTotal=blouseOrders.reduce(function(a,o){var x=nfGarmentExtra(o)||{},r=ratesFor(o);return a+Number(x.saree||0)*Number(r.saree||0);},0);
+
+    var blouseLiningShopQty=0,blouseLiningShopTotal=0;
+    blouseOrders.forEach(function(o){
+      var src=String(o.lining_cloth_source||"").toLowerCase();
+      if(src==="shop"||src==="tailor"){
+        blouseLiningShopQty+=Number(o.lining_cloth_qty||nfLiningCost(o).qty||0);
+        blouseLiningShopTotal+=Number(nfLiningCost(o).total||0);
+      }
+    });
+
+    var chudiQty=chudiOrders.reduce(function(a,o){return a+Number((nfGarmentExtra(o)||{}).chudi||o.quantity||0);},0);
+    var chudiLiningQty=chudiOrders.reduce(function(a,o){var x=nfGarmentExtra(o)||{};return a+Number(x.chudiLiningQty||o.lining_cloth_qty||0);},0);
+    var chudiTotal=chudiOrders.reduce(function(a,o){var x=nfGarmentExtra(o)||{},r=ratesFor(o);return a+Number(x.chudi||o.quantity||0)*Number(r.chudi||0);},0);
+    var chudiLiningShopQty=0,chudiLiningShopTotal=0;
+    chudiOrders.forEach(function(o){
+      var src=String(o.lining_cloth_source||"").toLowerCase();
+      if(src==="shop"||src==="tailor"){
+        chudiLiningShopQty+=Number(o.lining_cloth_qty||nfLiningCost(o).qty||0);
+        chudiLiningShopTotal+=Number(nfLiningCost(o).total||0);
+      }
+    });
+
+    var sareeQty=sareeOrders.reduce(function(a,o){var x=nfGarmentExtra(o)||{};return a+Number(x.saree||o.quantity||0);},0);
+    var sareeTotal=sareeOrders.reduce(function(a,o){var x=nfGarmentExtra(o)||{},r=ratesFor(o);return a+Number(x.saree||o.quantity||0)*Number(r.saree||0);},0);
+    var sareeLiningShopQty=0,sareeLiningShopTotal=0;
+    sareeOrders.forEach(function(o){
+      var src=String(o.lining_cloth_source||"").toLowerCase();
+      if(src==="shop"||src==="tailor"){
+        sareeLiningShopQty+=Number(o.lining_cloth_qty||nfLiningCost(o).qty||0);
+        sareeLiningShopTotal+=Number(nfLiningCost(o).total||0);
+      }
+    });
+
+    var notes=[...new Set(os.map(function(o){return cleanOrderNotes(o.notes);}).filter(Boolean))];
+    var exactSavedOrderTotal=os.reduce(function(a,o){return a+orderTotal(o);},0);
+    var breakdownTotal=normalTotal+liningTotal+designTotal+blouseSareeTotal+blouseLiningShopTotal+chudiTotal+chudiLiningShopTotal+sareeTotal+sareeLiningShopTotal;
+
+    var rateRow=function(label,qty,total){
+      return qty>0?'<div class="customerRateRow"><span class="rateLabel">'+label+' '+qty+'</span><span class="rateMath">'+qty+' × '+money(qty?total/qty:0)+' = <b>'+money(total)+'</b></span></div>':"";
+    };
+
+    /* V3.5 — Customer Card: show each saved Design blouse slot as its
+       own calculation row. Each slot keeps its own quantity + rate.
+       No order data, save logic, sync logic, or New/Edit Order fields
+       are changed here. */
+    var designRows="";
+    blouseOrders.forEach(function(o){
+      /* V3.6 display hardening:
+         - only the supported 3 saved design slots are rendered
+         - quantity/rate are numeric and never produce NaN
+         - zero/negative quantities are ignored
+         - saved order data is not mutated */
+      var rawDesignItems=designItemsFor(o);
+      var items=(Array.isArray(rawDesignItems)?rawDesignItems:[]).slice(0,3).map(function(it){
+        return {
+          name:String(it && it.name || "").trim(),
+          qty:Math.max(0,Number(it && it.qty || 0)),
+          rate:Math.max(0,Number(it && it.rate || 0))
+        };
+      });
+      if(items.length){
+        items.forEach(function(it,i){
+          var q=Number(it.qty||0), r=Number(it.rate||0);
+          if(q<=0)return;
+          var label='🎨 Design '+(i+1);
+          if(String(it.name||"").trim())label+=' — '+String(it.name).trim();
+          designRows+='<div class="customerRateRow nf-customer-design-rate-row"><span class="rateLabel">'+label+'</span><span class="rateMath">'+q+' × '+money(r)+' = <b>'+money(q*r)+'</b></span></div>';
+        });
+      }else{
+        /* Legacy orders without saved 3-slot data remain visible and
+           continue using their saved aggregate Design blouse rate. */
+        var s=splitFor(o),r=ratesFor(o),q=Number(s.design||0);
+        if(q>0){
+          designRows+='<div class="customerRateRow nf-customer-design-rate-row"><span class="rateLabel">🎨 Design blouse</span><span class="rateMath">'+q+' × '+money(r.design)+' = <b>'+money(q*r.design)+'</b></span></div>';
+        }
+      }
+    });
+
+    return '<div class="customerWorkSummary">'+
+      '<div class="customerWorkSection"><h4>👗 Blouse Section</h4>'+ 
+        '<div class="customerWorkGrid">'+
+          '<div class="customerWorkItem"><b>'+normalQty+'</b><span>Normal blouse</span></div>'+ 
+          '<div class="customerWorkItem"><b>'+liningQty+'</b><span>Lining blouse</span></div>'+ 
+          '<div class="customerWorkItem"><b>'+designQty+'</b><span>Design blouse</span></div>'+ 
+          '<div class="customerWorkItem"><b>'+blouseSareeQty+'</b><span>Saree</span></div>'+ 
+        '</div>'+ 
+        '<div class="customerRateList">'+
+          rateRow('Normal blouse',normalQty,normalTotal)+
+          rateRow('Lining blouse',liningQty,liningTotal)+
+          designRows+
+          rateRow('Saree',blouseSareeQty,blouseSareeTotal)+
+          (st.liningCustomer>0?'<div class="customerLiningNote">🧵 Lining cloth: Customer கொடுத்தது — '+st.liningCustomer+' (Rate தேவையில்லை)</div>':"")+ 
+          (blouseLiningShopQty>0?'<div class="customerRateRow"><span class="rateLabel">Lining cloth '+blouseLiningShopQty+'</span><span class="rateMath">Shop cost = <b>'+money(blouseLiningShopTotal)+'</b></span></div>':"")+ 
+        '</div>'+ 
+        '<div class="customerRateTotal"><span>Blouse Section Total</span><span>'+money(normalTotal+liningTotal+designTotal+blouseSareeTotal+blouseLiningShopTotal)+'</span></div>'+ 
+      '</div>'+ 
+      '<div class="customerWorkSection"><h4>👚 Chudi Section</h4>'+ 
+        '<div class="customerWorkGrid">'+
+          '<div class="customerWorkItem"><b>'+chudiQty+'</b><span>Chudi / சுடிதார்</span></div>'+ 
+          '<div class="customerWorkItem"><b>'+chudiLiningQty+'</b><span>Chudi lining</span></div>'+ 
+          '<div class="customerWorkItem"><b>'+money(chudiTotal)+'</b><span>Chudi Total</span></div>'+ 
+        '</div>'+ 
+        '<div class="customerRateList">'+rateRow('Chudi',chudiQty,chudiTotal)+
+          (chudiLiningShopQty>0?'<div class="customerRateRow"><span class="rateLabel">Chudi lining '+chudiLiningShopQty+'</span><span class="rateMath">Shop cost = <b>'+money(chudiLiningShopTotal)+'</b></span></div>':"")+ 
+        '</div>'+ 
+        ((chudiQty>0||chudiLiningShopTotal>0)?'<div class="customerRateTotal"><span>Chudi Section Total</span><span>'+money(chudiTotal+chudiLiningShopTotal)+'</span></div>':"")+ 
+      '</div>'+ 
+      (sareeOrders.length?'<div class="customerWorkSection"><h4>🥻 Saree Section</h4>'+ 
+        '<div class="customerWorkGrid"><div class="customerWorkItem"><b>'+sareeQty+'</b><span>Saree</span></div></div>'+ 
+        '<div class="customerRateList">'+rateRow('Saree',sareeQty,sareeTotal)+
+          (sareeLiningShopQty>0?'<div class="customerRateRow"><span class="rateLabel">Lining cloth '+sareeLiningShopQty+'</span><span class="rateMath">Shop cost = <b>'+money(sareeLiningShopTotal)+'</b></span></div>':"")+ 
+        '</div><div class="customerRateTotal"><span>Saree Section Total</span><span>'+money(sareeTotal+sareeLiningShopTotal)+'</span></div></div>':'')+
+      '<div class="customerRateTotal" style="margin-top:10px;background:linear-gradient(135deg,#14aebd,#3d83ef)"><span>மொத்த Rate</span><span>'+money(exactSavedOrderTotal)+'</span></div>'+ 
+      (Math.abs(exactSavedOrderTotal-breakdownTotal)>0.009?'<div class="mini" style="margin-top:8px;color:#8a6200">ℹ️ Saved Order Total: '+money(exactSavedOrderTotal)+' · Item-wise breakdown: '+money(breakdownTotal)+'</div>':"")+ 
+      '<div class="customerWorkSection"><h4>📝 Alteration notes</h4><div class="customerNotesBox">'+(notes.length?notes.map(function(n){return "• "+escSafe(n);}).join("<br>"):"குறிப்பு இல்லை.")+'</div></div>'+ 
+    '</div>';
+  };  /* ---------- Order Full Details ---------- */
   window.openOrderFullDetails=function(orderId){
     const o=(state.orders||[]).find(x=>String(x.id)===String(orderId));if(!o){toast("Order details கிடைக்கவில்லை.",true);return;}
     const box=$("nfOrderFullDetails"),content=$("nfOrderFullDetailsContent");if(!box||!content)return;
@@ -10260,6 +10278,12 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-head >
     window.renderOrders.__nfV75=true;
   }
 
+  /* =========================================================
+     V7.6 — CUSTOMER BLOUSE SECTION DESIGN-SLOT CALCULATION FIX
+     Design 1 / 2 / 3 are rendered as separate calculation rows in
+     Customer > Blouse Section. Their saved slot qty × rate totals are
+     included in Blouse Total. Cash Collection logic is untouched.
+     ========================================================= */
   /* Re-render current view once so the patch is visible immediately. */
   document.addEventListener("DOMContentLoaded",function(){
     setTimeout(function(){
