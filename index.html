@@ -4049,7 +4049,83 @@ if(d<=5)return {kind:"soon",days:d};
 return null;
 }
 function statusPill(s){const c=["Delivered","Completed"].includes(s)?"ok":s==="Cancelled"?"bad":["Pending","In Progress"].includes(s)?"warn":s==="Ready"?"ok":"";return `<span class="pill ${c}">${esc(s||"Pending")}</span>`}
-function orderTotal(o){const q=Number(o.quantity||0),u=Number(o.unit_price||0);return Number(o.total_amount||0)||q*u}
+/*
+ * V7.5 CASH-COLLECTION / TOTAL SYNC FIX
+ * If saved component markers exist, calculate the authoritative order total
+ * from saved quantities + saved rates. Legacy orders without markers keep
+ * their stored total_amount.
+ */
+function nfCalculatedOrderTotal(o){
+  o=o||{};
+  const notes=String(o.notes||"");
+  const garment=String(o.garment_type||"").trim().toLowerCase();
+  const hasBreakdown =
+    /BLOUSE_SPLIT:|GARMENT_SPLIT:|DESIGN_RATES:|DESIGN_ITEMS:|CHUDI_RATE:|SAREE_RATE:|LINING_COST:/.test(notes) ||
+    garment==="chudi" || garment==="saree";
+  if(!hasBreakdown)return null;
+
+  let total=0, pieces=0;
+  try{
+    const b=typeof blouseSplit==="function" ? blouseSplit(o) : {normal:0,lining:0,design:0};
+    const r=typeof nfOrderRates==="function" ? nfOrderRates(o) :
+      (typeof getRates==="function" ? getRates() : {normal:0,lining:0,design:0,chudi:0,saree:0});
+    const normal=Math.max(0,Number(b.normal||0));
+    const lining=Math.max(0,Number(b.lining||0));
+    const design=Math.max(0,Number(b.design||0));
+
+    if(garment==="blouse" || !garment){
+      total += normal*Number(r.normal||0);
+      total += lining*Number(r.lining||0);
+
+      let designTotal=0;
+      if(typeof nfDesignRates==="function"){
+        const dr=nfDesignRates(o)||[];
+        designTotal=dr.slice(0,design).reduce((sum,v)=>sum+Math.max(0,Number(v||0)),0);
+        if(dr.length<design)designTotal += (design-dr.length)*Number(r.design||0);
+      }else{
+        designTotal=design*Number(r.design||0);
+      }
+      total += designTotal;
+      pieces += normal+lining+design;
+    }
+
+    const x=typeof nfGarmentExtra==="function" ? nfGarmentExtra(o) : {};
+    const chudi=Math.max(0,Number(x?.chudi||0));
+    const saree=Math.max(0,Number(x?.saree||0));
+
+    if(garment==="chudi" || garment==="blouse" || !garment){
+      total += chudi*Number(r.chudi||0);
+      pieces += chudi;
+    }
+    if(garment==="saree" || garment==="blouse" || !garment){
+      total += saree*Number(r.saree||0);
+      pieces += saree;
+    }
+
+    /* Shop/tailor lining is chargeable; customer-supplied lining is ₹0. */
+    if(typeof nfLiningCost==="function"){
+      const lc=nfLiningCost(o)||{};
+      const source=String(lc.source||o.lining_cloth_source||"").toLowerCase();
+      if((source==="shop" || source==="tailor") && Number(lc.total||0)>0){
+        total += Number(lc.total||0);
+      }
+    }
+
+    const stored=Math.max(0,Number(o.total_amount||0));
+    if(total>0 || pieces>0)return Math.round(total*100)/100;
+    return stored>0 ? stored : Math.max(0,Number(o.quantity||0))*Math.max(0,Number(o.unit_price||0));
+  }catch(e){
+    console.warn("nfCalculatedOrderTotal fallback:",e);
+    return null;
+  }
+}
+
+function orderTotal(o){
+  const calculated=nfCalculatedOrderTotal(o);
+  if(calculated!==null && Number.isFinite(calculated))return calculated;
+  const q=Number(o?.quantity||0),u=Number(o?.unit_price||0);
+  return Number(o?.total_amount||0)||q*u;
+}
 function totalPieces(){return state.orders.reduce((a,o)=>a+Number(o.quantity||0),0)}
 function totalSales(){return state.orders.reduce((a,o)=>a+orderTotal(o),0)}
 function totalBalance(){return state.orders.reduce((a,o)=>a+Math.max(0,nfOrderBalance(o)),0)}
@@ -4264,9 +4340,9 @@ function nfLiningCost(o){
  if(!m)return base;
  try{const x=JSON.parse(m[1]);return {source:String(x.source||""),qty:Math.max(0,Number(x.qty||0)),rate:Math.max(0,Number(x.rate||0)),total:Math.max(0,Number(x.total||0))}}catch{return base}
 }
-function nfGarmentAmount(o){return Math.max(0,Number(o?.total_amount||0)-nfLiningCost(o).total)}
+function nfGarmentAmount(o){return Math.max(0,Number(orderTotal(o)||0)-Number(nfLiningCost(o).total||0))}
 function nfPriceBreakdownHTML(o){
- const lc=nfLiningCost(o),garment=nfGarmentAmount(o),total=Number(o?.total_amount||0)||orderTotal(o);
+ const lc=nfLiningCost(o),garment=nfGarmentAmount(o),total=Number(orderTotal(o)||0);
  if(!lc.total)return "";
  return `<div class="nf-price-breakdown"><div><span>👗 Garment / Blouse / Chudi</span><b>${money(garment)}</b></div><div><span>🧵 Lining — ${lc.qty} × ${money(lc.rate)}</span><b>${money(lc.total)}</b></div><div class="total"><span>மொத்த Customer Amount</span><b>${money(total)}</b></div></div>`;
 }
