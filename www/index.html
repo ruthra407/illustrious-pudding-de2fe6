@@ -1,10 +1,10 @@
 <!doctype html>
-<html nf-build="V9.4-home-clear-colorful-customer-hub" lang="ta">
+<html nf-build="V9.5-home-clear-colorful-customer-hub" lang="ta">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="nf-build" content="V9.4-home-clear-colorful-customer-hub">
-<title>New Fashion Tailoring – Online Management | V9.4 • Clear Colorful Home</title>
+<meta name="nf-build" content="V9.5-home-clear-colorful-customer-hub">
+<title>New Fashion Tailoring – Online Management | V9.5 • Clear Colorful Home</title>
 <link rel="manifest" href="manifest.json">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -3879,7 +3879,7 @@ body{
 
 <style id="nf-v94-home-clear-colorful-final">
 /*
-  V9.4 — HOME PAGE FINAL VISUAL PASS
+  V9.5 — HOME PAGE FINAL VISUAL PASS
   Visual/CSS only. Existing data, Supabase, navigation and calculations are preserved.
 */
 
@@ -4275,6 +4275,58 @@ body{
 }
 </style>
 
+
+<style id="v95-my-customers-ui">
+/* V9.5: compact single title + three clearly different category colors */
+.customer-hub, .customers-section, .customer-header {
+  padding-top: 10px !important;
+  padding-bottom: 8px !important;
+}
+.customer-hub h1, .customers-section h1, .customer-header h1 {
+  margin: 0 !important;
+  line-height: 1.05 !important;
+}
+.customer-tabs, .customer-filters, .customer-category-tabs {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 8px !important;
+  margin-top: 8px !important;
+}
+.customer-tabs > *, .customer-filters > *, .customer-category-tabs > * {
+  min-height: 48px !important;
+  padding: 7px 6px !important;
+  border-radius: 16px !important;
+  font-weight: 800 !important;
+  line-height: 1.05 !important;
+}
+/* Distinct colors: blue / orange / green */
+.customer-tabs > *:nth-child(1),
+.customer-filters > *:nth-child(1),
+.customer-category-tabs > *:nth-child(1) {
+  background: linear-gradient(135deg,#2563eb,#60a5fa) !important;
+  color:#fff !important;
+  border-color:#1d4ed8 !important;
+}
+.customer-tabs > *:nth-child(2),
+.customer-filters > *:nth-child(2),
+.customer-category-tabs > *:nth-child(2) {
+  background: linear-gradient(135deg,#f59e0b,#fbbf24) !important;
+  color:#4a2a00 !important;
+  border-color:#d97706 !important;
+}
+.customer-tabs > *:nth-child(3),
+.customer-filters > *:nth-child(3),
+.customer-category-tabs > *:nth-child(3) {
+  background: linear-gradient(135deg,#059669,#34d399) !important;
+  color:#063b2b !important;
+  border-color:#047857 !important;
+}
+.customer-tabs .active, .customer-filters .active, .customer-category-tabs .active {
+  box-shadow: 0 5px 14px rgba(0,0,0,.16) !important;
+  transform: translateY(-1px);
+}
+</style>
+
 </head>
 <body>
 
@@ -4347,7 +4399,7 @@ body{
 </div>
 
 <div class="stats nf-dashboard-hidden-stats" aria-hidden="true">
-<div class="stat"><div class="label">Customers</div><div id="statCustomers" class="num">0</div></div>
+<div class="stat"><div class="label">My Customers</div><div id="statCustomers" class="num">0</div></div>
 <div class="stat"><div class="label">Orders</div><div id="statOrders" class="num">0</div></div>
 <div class="stat"><div class="label">Today Collection</div><div id="statTodayCollection" class="num">₹0</div></div>
 <div class="stat"><div class="label">Pending Balance</div><div id="statBalance" class="num">₹0</div></div>
