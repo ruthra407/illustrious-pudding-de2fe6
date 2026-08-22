@@ -9840,6 +9840,369 @@ body.nf-dashboard-mode #view-dashboard .nf-dch-list{
 #app{padding-top:var(--nf-header-height)!important}
 @media(max-width:700px){#app{padding-top:var(--nf-header-height)!important}}
 </style>
+
+<!-- =========================================================
+     V9.0 — CUSTOMER NAME SELECTOR / DETAIL VIEW
+     Base: V8.3-AddCustomer-AutoNewOrder-2.html
+     IMPORTANT:
+     - Existing customerCard() is reused unchanged.
+     - Existing calculations, data, Edit Order, Alteration Notes,
+       design slots, Gallery/Camera upload and all existing actions
+       remain intact.
+     - Only the Customers-page presentation is changed:
+       customer names are the selectable/scrollable list; the
+       selected customer's existing full card is shown in detail.
+     ========================================================= -->
+<style id="nf-v9-customer-name-selector-css">
+  #view-customers .nf-v9-customer-browser{
+    display:grid;
+    grid-template-columns:minmax(180px,250px) minmax(0,1fr);
+    gap:14px;
+    align-items:start;
+  }
+
+  #view-customers .nf-v9-name-panel{
+    position:sticky;
+    top:84px;
+    background:linear-gradient(145deg,#ffffff,#faf8ff);
+    border:1px solid #e8eaf2;
+    border-radius:20px;
+    padding:10px;
+    box-shadow:0 12px 34px rgba(40,38,68,.08);
+    min-width:0;
+  }
+
+  #view-customers .nf-v9-name-panel-title{
+    padding:7px 9px 9px;
+    font-size:13px;
+    font-weight:950;
+    color:#5b45c8;
+  }
+
+  #view-customers .nf-v9-name-list{
+    display:flex;
+    flex-direction:column;
+    gap:7px;
+    max-height:calc(100dvh - 145px);
+    overflow-y:auto;
+    overflow-x:hidden;
+    padding-right:2px;
+    scrollbar-width:thin;
+  }
+
+  #view-customers .nf-v9-name-btn{
+    width:100%;
+    min-height:48px;
+    border:1px solid #e5e1f2;
+    border-radius:13px;
+    background:#fff;
+    color:#292334;
+    padding:9px 11px;
+    text-align:left;
+    font-weight:900;
+    font-size:14px;
+    line-height:1.25;
+    overflow-wrap:anywhere;
+    box-shadow:0 4px 12px rgba(40,38,68,.045);
+  }
+
+  #view-customers .nf-v9-name-btn:hover{
+    border-color:#cfc5ff;
+    background:#faf8ff;
+  }
+
+  #view-customers .nf-v9-name-btn.active{
+    color:#fff;
+    border-color:transparent;
+    background:linear-gradient(135deg,#6c4df6,#b63da0);
+    box-shadow:0 8px 18px rgba(108,77,246,.22);
+  }
+
+  #view-customers .nf-v9-name-btn:active{
+    transform:scale(.985);
+  }
+
+  #view-customers .nf-v9-detail-panel{
+    min-width:0;
+  }
+
+  #view-customers .nf-v9-detail-panel .customerCards{
+    display:block;
+  }
+
+  #view-customers .nf-v9-detail-panel .customerCard{
+    width:100%;
+    margin:0;
+  }
+
+  #view-customers .nf-v9-detail-empty{
+    min-height:280px;
+    display:grid;
+    place-items:center;
+    text-align:center;
+    padding:30px;
+    border:1px dashed #d9d2e8;
+    border-radius:20px;
+    background:linear-gradient(135deg,#fff,#faf8ff);
+    color:#746c7a;
+    font-weight:800;
+  }
+
+  #view-customers .nf-v9-name-count{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    min-width:22px;
+    height:22px;
+    margin-left:5px;
+    padding:0 6px;
+    border-radius:999px;
+    background:#f0edff;
+    color:#6349d2;
+    font-size:11px;
+    font-weight:950;
+  }
+
+  #view-customers .nf-v9-name-btn.active .nf-v9-name-count{
+    background:rgba(255,255,255,.22);
+    color:#fff;
+  }
+
+  @media(max-width:900px){
+    #view-customers .nf-v9-customer-browser{
+      grid-template-columns:1fr;
+      gap:10px;
+    }
+
+    #view-customers .nf-v9-name-panel{
+      position:relative;
+      top:auto;
+      padding:9px;
+      border-radius:17px;
+    }
+
+    #view-customers .nf-v9-name-panel-title{
+      padding:4px 4px 7px;
+    }
+
+    #view-customers .nf-v9-name-list{
+      flex-direction:row;
+      max-height:none;
+      overflow-x:auto;
+      overflow-y:hidden;
+      padding-bottom:2px;
+      -webkit-overflow-scrolling:touch;
+      scrollbar-width:none;
+    }
+
+    #view-customers .nf-v9-name-list::-webkit-scrollbar{
+      display:none;
+    }
+
+    #view-customers .nf-v9-name-btn{
+      flex:0 0 auto;
+      width:auto;
+      max-width:220px;
+      min-height:44px;
+      padding:8px 12px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+
+    #view-customers .nf-v9-detail-panel .customerCard{
+      border-radius:19px;
+    }
+  }
+
+  @media(max-width:560px){
+    #view-customers .nf-v9-name-panel{
+      border-radius:15px;
+      padding:7px;
+    }
+
+    #view-customers .nf-v9-name-panel-title{
+      font-size:12px;
+      padding:3px 3px 6px;
+    }
+
+    #view-customers .nf-v9-name-btn{
+      min-height:42px;
+      font-size:13px;
+      border-radius:12px;
+    }
+
+    #view-customers .nf-v9-detail-panel{
+      width:100%;
+    }
+  }
+</style>
+
+<script id="nf-v9-customer-name-selector-js">
+(function(){
+  "use strict";
+
+  var selectedId = null;
+
+  function getCustomerQuery(){
+    var input=document.getElementById("customerSearch");
+    return String(input?.value||"").trim().toLowerCase();
+  }
+
+  function filteredCustomers(){
+    var q=getCustomerQuery();
+    var list=typeof state!=="undefined" && Array.isArray(state.customers)?state.customers:[];
+    if(!q)return list.slice();
+    return list.filter(function(c){
+      return [c.name,c.phone,c.address,c.village]
+        .join(" ")
+        .toLowerCase()
+        .includes(q);
+    });
+  }
+
+  function safeId(id){
+    return String(id||"").replace(/[^a-zA-Z0-9_-]/g,"_");
+  }
+
+  function escName(value){
+    if(typeof window.esc==="function")return window.esc(value);
+    return String(value??"").replace(/[&<>"']/g,function(ch){
+      return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch];
+    });
+  }
+
+  function renderV9Customers(){
+    var mount=document.getElementById("customersTable");
+    if(!mount)return;
+
+    var list=filteredCustomers();
+
+    if(!list.length){
+      selectedId=null;
+      mount.innerHTML='<div class="nf-v9-detail-empty">Customer கிடைக்கவில்லை.</div>';
+      return;
+    }
+
+    var ids=list.map(function(c){return String(c.id);});
+
+    if(!selectedId || ids.indexOf(String(selectedId))===-1){
+      selectedId=String(list[0].id);
+    }else{
+      selectedId=String(selectedId);
+    }
+
+    var names=list.map(function(c,index){
+      var active=String(c.id)===String(selectedId);
+      return '<button type="button" class="nf-v9-name-btn'+(active?' active':'')+'" '+
+        'data-customer-id="'+escName(c.id)+'" '+
+        'onclick="window.nfV9SelectCustomer(\''+String(c.id).replace(/\\/g,"\\\\").replace(/'/g,"\\'")+'\')" '+
+        'aria-selected="'+(active?'true':'false')+'">'+
+        escName(c.name||"Customer")+
+        '<span class="nf-v9-name-count">'+(index+1)+'</span>'+
+        '</button>';
+    }).join("");
+
+    var detail="";
+    try{
+      if(typeof window.customerCard==="function"){
+        detail=window.customerCard(selectedId);
+      }
+    }catch(err){
+      console.error("V9 customer detail render failed",err);
+      detail='<div class="nf-v9-detail-empty">Customer details-ஐ காட்ட முடியவில்லை.</div>';
+    }
+
+    mount.innerHTML=
+      '<div class="nf-v9-customer-browser">'+
+        '<aside class="nf-v9-name-panel" aria-label="Customer names">'+
+          '<div class="nf-v9-name-panel-title">👥 Customer Names <span class="nf-v9-name-count">'+list.length+'</span></div>'+
+          '<div class="nf-v9-name-list">'+names+'</div>'+
+        '</aside>'+
+        '<section class="nf-v9-detail-panel" aria-label="Selected customer details">'+
+          (detail || '<div class="nf-v9-detail-empty">Customer details இல்லை.</div>')+
+        '</section>'+
+      '</div>';
+
+    var activeBtn=mount.querySelector('.nf-v9-name-btn.active');
+    if(activeBtn && window.innerWidth<=900){
+      requestAnimationFrame(function(){
+        try{activeBtn.scrollIntoView({behavior:"smooth",block:"nearest",inline:"center"});}catch(e){}
+      });
+    }
+  }
+
+  window.nfV9SelectCustomer=function(id){
+    selectedId=String(id||"");
+    renderV9Customers();
+    var detail= document.querySelector("#view-customers .nf-v9-detail-panel .customerCard");
+    if(detail && window.innerWidth<=900){
+      setTimeout(function(){
+        try{detail.scrollIntoView({behavior:"smooth",block:"start"});}catch(e){}
+      },40);
+    }
+  };
+
+  window.nfV9GetSelectedCustomer=function(){
+    return selectedId;
+  };
+
+  /* Replace only the Customers-page renderer. The original customerCard()
+     remains the single source for every customer detail/action. */
+  var originalRenderCustomers=window.renderCustomers;
+  if(typeof originalRenderCustomers==="function" && !originalRenderCustomers.__nfV9Wrapped){
+    var wrapped=function(){
+      renderV9Customers();
+    };
+    wrapped.__nfV9Wrapped=true;
+    wrapped.__nfV9Original=originalRenderCustomers;
+    window.renderCustomers=wrapped;
+  }
+
+  function bindSearch(){
+    var input=document.getElementById("customerSearch");
+    if(!input || input.__nfV9Bound)return;
+    input.__nfV9Bound=true;
+    input.addEventListener("input",function(){
+      selectedId=null;
+      renderV9Customers();
+    });
+  }
+
+  function initialRender(){
+    bindSearch();
+    if(document.getElementById("customersTable"))renderV9Customers();
+  }
+
+  if(document.readyState==="loading"){
+    document.addEventListener("DOMContentLoaded",initialRender,{once:true});
+  }else{
+    setTimeout(initialRender,0);
+  }
+
+  /* Existing goView/load flows may call the wrapped renderer later.
+     When returning to Customers, restore the name selector without
+     touching any underlying data or calculations. */
+  var oldGoView=window.goView;
+  if(typeof oldGoView==="function" && !oldGoView.__nfV9Wrapped){
+    var wrappedGoView=function(view,push){
+      var result=oldGoView.apply(this,arguments);
+      if(view==="customers"){
+        setTimeout(function(){
+          bindSearch();
+          renderV9Customers();
+        },0);
+      }
+      return result;
+    };
+    wrappedGoView.__nfV9Wrapped=true;
+    wrappedGoView.__nfV9Original=oldGoView;
+    window.goView=wrappedGoView;
+  }
+
+})();
+</script>
+
 </body>
 </html>
 
@@ -10488,139 +10851,5 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-head >
     window.populateQuickOrderEditor=wrapped;
   }
   document.querySelectorAll(".nf-quick-notes-label").forEach(el=>el.textContent="Alteration Notes");
-})();
-</script>
-
-
-<style id="nf-v84-customer-details">
-/* V8.4 — Customer Details modal: keep every existing calculation/data, but move the
-   long customer card into a focused details view so the customer list stays compact. */
-.nf-v84-details-modal{position:fixed;inset:0;z-index:99990;display:none;align-items:center;justify-content:center;padding:12px;background:rgba(24,14,45,.68);backdrop-filter:blur(6px)}
-.nf-v84-details-modal.open{display:flex}
-.nf-v84-details-box{width:min(980px,100%);height:min(94vh,900px);background:#fff;border-radius:24px;overflow:hidden;box-shadow:0 24px 70px rgba(35,15,70,.35);display:flex;flex-direction:column}
-.nf-v84-details-head{background:linear-gradient(110deg,#4e27b8,#7a35df 52%,#e43f8f);color:#fff;padding:14px 16px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:3}
-.nf-v84-details-head .back{width:42px;height:42px;border:0;border-radius:13px;background:rgba(255,255,255,.17);color:#fff;font-size:22px;flex:none}
-.nf-v84-details-title{min-width:0;flex:1}.nf-v84-details-title h3{margin:0;font-size:20px;font-weight:950}.nf-v84-details-title small{display:block;margin-top:2px;opacity:.86;font-weight:700}
-.nf-v84-head-actions{display:flex;gap:7px}.nf-v84-head-actions .btn{border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.16);color:#fff;font-weight:900}
-.nf-v84-details-scroll{overflow:auto;padding:14px;background:linear-gradient(180deg,#fbf8ff,#fff8fc 55%,#f7fbff);-webkit-overflow-scrolling:touch}
-.nf-v84-profile{background:#fff;border:1px solid rgba(111,73,221,.15);border-radius:20px;padding:14px;box-shadow:0 8px 24px rgba(86,46,145,.08);margin-bottom:12px}
-.nf-v84-profile-main{display:flex;gap:12px;align-items:flex-start}.nf-v84-avatar{width:58px;height:58px;border-radius:18px;background:linear-gradient(145deg,#eee5ff,#ffe7f3);display:grid;place-items:center;font-size:31px;flex:none}.nf-v84-profile h4{margin:2px 0 4px;font-size:22px}.nf-v84-contact{color:#5d5368;font-weight:750;line-height:1.5}.nf-v84-contact b{color:#28222f}
-.nf-v84-summary-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:12px}.nf-v84-summary-item{border-radius:15px;padding:10px;background:linear-gradient(135deg,#f6f0ff,#fff);border:1px solid rgba(115,78,219,.12)}.nf-v84-summary-item b{display:block;font-size:18px}.nf-v84-summary-item span{font-size:11px;color:#746b7d;font-weight:800}
-.nf-v84-quick-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:11px}.nf-v84-quick-actions .btn{flex:1;min-width:125px}
-.nf-v84-photo-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}.nf-v84-photo-row img,.nf-v84-photo-empty{width:100%;aspect-ratio:1.25;border-radius:13px;object-fit:cover;border:1px solid #ddd3f1;background:#faf7ff;display:grid;place-items:center;color:#8061d6;font-weight:900}
-.nf-v84-notes{margin-top:12px;border:1px solid rgba(216,61,141,.2);border-radius:16px;overflow:hidden;background:#fff}.nf-v84-notes-title{padding:10px 13px;color:#fff;font-weight:950;background:linear-gradient(105deg,#6c38ee,#bb39c6,#e94883)}.nf-v84-notes-body{padding:12px 13px;color:#44394d;font-weight:700;line-height:1.55;white-space:pre-wrap}
-.nf-v84-detail-content .customerCard{display:block!important;box-shadow:none;border:0;background:transparent;padding:0;margin:0}.nf-v84-detail-content .customerCardHead{display:none!important}
-.nf-v84-detail-content .customerSection:first-of-type{margin-top:0}
-.nf-v84-edit-first{border:2px solid rgba(111,62,230,.22)!important;background:linear-gradient(135deg,#f7f1ff,#fff1f8)!important;box-shadow:0 10px 26px rgba(111,62,230,.10)}
-.nf-v84-edit-first h4{font-size:18px!important;color:#4e27b8!important}
-.nf-v84-detail-content .nf-collection-panel,.nf-v84-detail-content .customerSection,.nf-v84-detail-content .customerWorkSection{margin-top:12px}
-.nf-v84-detail-content .customerActions{flex-wrap:wrap}
-.nf-v84-detail-content .nf-customer-cloth-photo-manager{display:none!important}
-.nf-v84-close-bottom{width:100%;margin-top:14px}
-@media(max-width:680px){
- .nf-v84-details-modal{padding:0}.nf-v84-details-box{width:100%;height:100%;border-radius:0}.nf-v84-details-head{padding-top:max(10px,env(safe-area-inset-top));}.nf-v84-summary-grid{grid-template-columns:repeat(2,1fr)}.nf-v84-photo-row{grid-template-columns:repeat(3,1fr)}.nf-v84-details-title h3{font-size:18px}.nf-v84-head-actions .btn{padding:9px 10px;font-size:12px}
-}
-/* Compact list card — details live in the focused modal. */
-.nf-v84-list-card{background:#fff;border:1px solid rgba(107,72,211,.16);border-left:5px solid #6b35df;border-radius:20px;padding:12px;margin-bottom:10px;box-shadow:0 8px 22px rgba(66,38,120,.07)}
-.nf-v84-list-head{display:flex;gap:10px;align-items:center}.nf-v84-list-num{width:36px;height:36px;border-radius:12px;background:#eee7ff;color:#5630c0;display:grid;place-items:center;font-weight:950;flex:none}.nf-v84-list-main{min-width:0;flex:1}.nf-v84-list-name{font-size:18px;font-weight:950;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.nf-v84-list-meta{font-size:12px;color:#70677a;font-weight:700;line-height:1.45}.nf-v84-list-delivery{padding:8px 10px;border-radius:12px;background:#fff1c9;color:#73520b;font-size:11px;font-weight:950;text-align:center;min-width:90px}.nf-v84-list-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:9px}.nf-v84-list-chip{padding:8px 9px;border-radius:11px;background:#f8f5ff;color:#51465f;font-size:11px;font-weight:850}.nf-v84-list-actions{display:flex;justify-content:flex-end;margin-top:8px}.nf-v84-list-actions .btn{width:100%;font-weight:950}
-</style>
-
-<script id="nf-v84-customer-details-js">
-(function(){
-  "use strict";
-  function ensureModal(){
-    if(document.getElementById("nfV84CustomerDetailsModal"))return;
-    document.body.insertAdjacentHTML("beforeend",`<div id="nfV84CustomerDetailsModal" class="nf-v84-details-modal" aria-hidden="true">
-      <div class="nf-v84-details-box" role="dialog" aria-modal="true" aria-labelledby="nfV84DetailsTitle">
-        <div class="nf-v84-details-head">
-          <button class="back" type="button" onclick="closeCustomerDetails()" aria-label="Back">‹</button>
-          <div class="nf-v84-details-title"><h3 id="nfV84DetailsTitle">Customer Details</h3><small id="nfV84DetailsSub">Customer information</small></div>
-          <div class="nf-v84-head-actions"><button id="nfV84EditCustomerTop" class="btn" type="button">✏️ Edit Customer</button></div>
-        </div>
-        <div id="nfV84DetailsScroll" class="nf-v84-details-scroll"><div id="nfV84DetailsContent"></div></div>
-      </div>
-    </div>`);
-    document.getElementById("nfV84CustomerDetailsModal").addEventListener("click",function(e){if(e.target===this)closeCustomerDetails()});
-  }
-  function escSafe(v){return typeof esc==="function"?esc(v):String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;", "'":"&#39;"}[m]))}
-  function moneySafe(v){return typeof money==="function"?money(v):"₹"+Number(v||0).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2})}
-  function openDetails(id){
-    ensureModal();
-    const c=(state.customers||[]).find(x=>String(x.id)===String(id));
-    if(!c){toast("Customer கிடைக்கவில்லை.",true);return}
-    const st=customerStats(id), os=customerOrders(id)||[], latest=typeof latestCustomerOrder==="function"?latestCustomerOrder(id):os[0];
-    const photos=typeof customerClothPhotos==="function"?customerClothPhotos(id):[];
-    const village=c.village||localStorage.getItem("nf_village_"+id)||"ஊர் இல்லை", address=c.address||"முகவரி இல்லை";
-    const delivery=latest?.delivery_date?dateText(latest.delivery_date):"Delivery இல்லை";
-    const content=document.getElementById("nfV84DetailsContent");
-    const title=document.getElementById("nfV84DetailsTitle"),sub=document.getElementById("nfV84DetailsSub"),edit=document.getElementById("nfV84EditCustomerTop");
-    title.textContent=c.name||"Customer";sub.textContent=(c.phone||"Phone இல்லை")+" • "+(latest?.order_no||"Order இல்லை");
-    edit.onclick=function(){closeCustomerDetails(true);openModal("customer",id)};
-    const profile=`<div class="nf-v84-profile">
-      <div class="nf-v84-profile-main"><div class="nf-v84-avatar">👤</div><div style="min-width:0;flex:1"><h4>${escSafe(c.name||"Customer")}</h4><div class="nf-v84-contact">📞 <b>${escSafe(c.phone||"Phone இல்லை")}</b><br>📍 ${escSafe(village)}<br>🏠 ${escSafe(address)}</div></div></div>
-      <div class="nf-v84-summary-grid">
-        <div class="nf-v84-summary-item"><b>📅 ${escSafe(delivery)}</b><span>Delivery</span></div>
-        <div class="nf-v84-summary-item"><b>${moneySafe(st.balance)}</b><span>Balance Due</span></div>
-        <div class="nf-v84-summary-item"><b>${st.givenBlouse}</b><span>Total blouse</span></div>
-        <div class="nf-v84-summary-item"><b>${st.pendingBlouse}</b><span>Pending blouse</span></div>
-      </div>
-      <div class="nf-v84-quick-actions">
-        <button class="btn primary" type="button" onclick="nfV84EditLatestOrder('${escSafe(id)}')">✏️ Edit Order</button>
-        <button class="btn success" type="button" onclick="openCustomerPayment('${escSafe(id)}')">💰 Payment</button>
-        <button class="btn secondary" type="button" onclick="openCustomerMeasurement('${escSafe(id)}')">📏 Measurement</button>
-      </div>
-      <div class="nf-v84-photo-row">${[0,1,2].map(i=>photos[i]?.src?`<img src="${escSafe(photos[i].src)}" alt="Customer cloth photo ${i+1}" onclick="previewCustomerClothPhoto('${escSafe(id)}',${i})">`:`<div class="nf-v84-photo-empty">👕 Photo ${i+1}</div>`).join("")}</div>
-      <div class="nf-v84-notes"><div class="nf-v84-notes-title">📝 Alteration Notes</div><div class="nf-v84-notes-body">${escSafe(String(c.notes||"Customer alteration notes இல்லை.").trim()||"Customer alteration notes இல்லை.")}</div></div>
-    </div>`;
-    const holder=document.createElement("div");
-    holder.innerHTML=typeof customerCard==="function"?customerCard(id):"";
-    const article=holder.querySelector("article.customerCard");
-    if(!article){content.innerHTML=profile+`<div class="card empty">Customer details கிடைக்கவில்லை.</div>`;return;}
-    const head=article.querySelector(".customerCardHead"); if(head)head.remove();
-    const editSection=Array.from(article.querySelectorAll(".customerSection")).find(s=>/Edit Order/.test(s.textContent||""));
-    if(editSection){editSection.classList.add("nf-v84-edit-first");article.insertBefore(editSection,article.firstChild);}
-    /* Keep all existing Cash Collection, Blouse/Chudi calculations, Order Composition,
-       Alteration Notes and Customer Tools exactly as generated by the existing card. */
-    content.innerHTML=profile+`<div class="nf-v84-detail-content"></div>`;
-    const target=content.querySelector(".nf-v84-detail-content");
-    target.appendChild(article);
-    const modal=document.getElementById("nfV84CustomerDetailsModal");modal.classList.add("open");modal.setAttribute("aria-hidden","false");
-    document.getElementById("nfV84DetailsScroll").scrollTop=0;
-    const base=history.state||{view:"customers"};
-    if(!base.__nfCustomerDetails){history.pushState({...base,__nfCustomerDetails:true,__nfCustomerId:String(id)},"",location.hash||"#customer-details");}
-  }
-  window.openCustomerDetails=openDetails;
-  window.closeCustomerDetails=function(skipHistory){
-    const m=document.getElementById("nfV84CustomerDetailsModal");if(!m)return;m.classList.remove("open");m.setAttribute("aria-hidden","true");
-    if(!skipHistory&&history.state?.__nfCustomerDetails)history.back();
-  };
-  window.nfV84EditLatestOrder=function(id){
-    const os=customerOrders(id)||[], latest=typeof latestCustomerOrder==="function"?latestCustomerOrder(id):os[0];
-    if(!latest){toast("இந்த customer-க்கு Edit செய்ய order இல்லை. முதலில் New Order சேமிக்கவும்.",true);return;}
-    closeCustomerDetails(true);
-    if(typeof openOrdersEditOrder==="function")openOrdersEditOrder(latest.id);
-    else openCustomerOrderEditor(id,latest.id);
-  };
-  window.addEventListener("popstate",function(){const m=document.getElementById("nfV84CustomerDetailsModal");if(m?.classList.contains("open")){m.classList.remove("open");m.setAttribute("aria-hidden","true");}});
-
-  function compactCustomerCard(id,index){
-    const c=(state.customers||[]).find(x=>String(x.id)===String(id));if(!c)return"";
-    const st=customerStats(id), os=customerOrders(id)||[], latest=typeof latestCustomerOrder==="function"?latestCustomerOrder(id):os[0];
-    const village=c.village||localStorage.getItem("nf_village_"+id)||"ஊர் இல்லை";
-    const delivery=latest?.delivery_date?dateText(latest.delivery_date):"Delivery இல்லை";
-    const garment=latest?`${latest.garment_type||"Blouse"} ${Number(latest.quantity||0)>0?Number(latest.quantity):""}`:"Order இல்லை";
-    return `<article class="nf-v84-list-card" id="customer-card-${escSafe(id)}" onclick="openCustomerDetails('${escSafe(id)}')">
-      <div class="nf-v84-list-head"><div class="nf-v84-list-num">${index+1}</div><div class="nf-v84-list-main"><div class="nf-v84-list-name">${escSafe(c.name||"Customer")}</div><div class="nf-v84-list-meta">📞 ${escSafe(c.phone||"Phone இல்லை")} · 📍 ${escSafe(village)}</div></div><div class="nf-v84-list-delivery">${escSafe(delivery)}</div></div>
-      <div class="nf-v84-list-grid"><div class="nf-v84-list-chip">👗 ${escSafe(garment)}</div><div class="nf-v84-list-chip">💰 ${moneySafe(st.balance)} balance</div><div class="nf-v84-list-chip">📦 ${st.givenBlouse} blouse</div><div class="nf-v84-list-chip">⏳ ${st.pendingBlouse} pending</div></div>
-      <div class="nf-v84-list-actions"><button class="btn primary" type="button" onclick="event.stopPropagation();openCustomerDetails('${escSafe(id)}')">View Details ›</button></div>
-    </article>`;
-  }
-  window.renderCustomers=function(){
-    const q=(document.getElementById("customerSearch")?.value||"").toLowerCase();
-    const r=(state.customers||[]).filter(x=>[x.name,x.phone,x.address,x.village].join(" ").toLowerCase().includes(q));
-    const box=document.getElementById("customersTable");if(!box)return;
-    box.innerHTML=r.length?r.map((x,i)=>compactCustomerCard(x.id,i)).join(""): `<div class="card empty" style="grid-column:1/-1">No customers found.</div>`;
-  };
-  setTimeout(function(){try{window.renderCustomers();}catch(e){console.error(e)}},50);
 })();
 </script>
