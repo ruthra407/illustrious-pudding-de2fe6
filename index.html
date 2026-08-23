@@ -13395,3 +13395,153 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-head >
 </style>
 
 <!-- HOME: Order ID removed from customer summary cards. Detailed Order ID remains available in Orders/Customer details. -->
+
+
+<style id="v113-home-menu-and-card-visibility-fix">
+/*
+  V11.3 — HOME ONLY
+  1) Customer-list side menu: 75vw maximum, with left-swipe-to-close.
+  2) Home customer cards: reserve enough bottom space so the final
+     NEW / status / Order date row cannot sit underneath the fixed
+     bottom navigation.
+*/
+
+/* ---------- Customer list side menu: 75% width ---------- */
+@media(max-width:700px){
+  .nf-customer-slide-menu{
+    width:min(75vw,360px)!important;
+    max-width:75vw!important;
+  }
+}
+
+/* ---------- Home dashboard: keep the bottom meta row visible ---------- */
+body.nf-dashboard-mode #view-dashboard .nf-dch-list{
+  padding-bottom:112px!important;
+  scroll-padding-bottom:112px!important;
+}
+
+@media(max-width:700px){
+  body.nf-dashboard-mode #view-dashboard .nf-dch-list{
+    padding-bottom:116px!important;
+    scroll-padding-bottom:116px!important;
+  }
+
+  /*
+    Do not clip the bottom of a customer card. The list itself remains
+    the only scrolling region; the extra padding gives the last card
+    enough travel space above the fixed mobile navigation.
+  */
+  body.nf-dashboard-mode #view-dashboard .nf-dch-card{
+    overflow:visible!important;
+  }
+}
+</style>
+
+<script id="v113-customer-slide-left-swipe-close">
+(function(){
+  "use strict";
+
+  /*
+    Close ONLY the Customer List side panel.
+    Vertical scrolling inside the customer list is preserved.
+  */
+  function installCustomerSlideSwipe(){
+    var panel=document.getElementById("nfCustomerSlideMenu");
+    if(!panel || panel.__v113SwipeInstalled) return;
+    panel.__v113SwipeInstalled=true;
+
+    var startX=0,startY=0,lastX=0,active=false,decided=false;
+
+    panel.addEventListener("touchstart",function(e){
+      if(window.innerWidth>700 || !e.touches || e.touches.length!==1) return;
+      var t=e.touches[0];
+      startX=lastX=t.clientX;
+      startY=t.clientY;
+      active=false;
+      decided=false;
+    },{passive:true});
+
+    panel.addEventListener("touchmove",function(e){
+      if(window.innerWidth>700 || !e.touches || e.touches.length!==1) return;
+
+      var t=e.touches[0];
+      var dx=t.clientX-startX;
+      var dy=t.clientY-startY;
+
+      if(!decided){
+        if(Math.abs(dx)<10 && Math.abs(dy)<10) return;
+
+        /* Vertical gesture = normal customer-list scrolling. */
+        if(Math.abs(dy)>=Math.abs(dx)*1.2){
+          decided=true;
+          active=false;
+          return;
+        }
+
+        /* Only LEFT swipe closes this left-side drawer. */
+        if(dx>=0){
+          decided=true;
+          active=false;
+          return;
+        }
+
+        decided=true;
+        active=true;
+      }
+
+      if(!active) return;
+
+      e.preventDefault();
+      lastX=t.clientX;
+
+      var width=panel.getBoundingClientRect().width || (window.innerWidth*.75);
+      var x=Math.max(-width,Math.min(0,dx));
+
+      panel.style.transition="none";
+      panel.style.transform="translate3d("+x+"px,0,0)";
+    },{passive:false});
+
+    function finish(){
+      if(!active) {
+        panel.style.transition="";
+        panel.style.transform="";
+        return;
+      }
+
+      var dx=lastX-startX;
+      var width=panel.getBoundingClientRect().width || (window.innerWidth*.75);
+
+      panel.style.transition="";
+      panel.style.transform="";
+
+      /*
+        A moderate horizontal swipe closes it. A short swipe simply
+        returns to the normal open position.
+      */
+      if(dx <= -Math.max(55,width*.18)){
+        if(typeof window.closeMyCustomersSlideMenu==="function"){
+          window.closeMyCustomersSlideMenu();
+        }
+      }
+
+      active=false;
+      decided=false;
+    }
+
+    panel.addEventListener("touchend",finish,{passive:true});
+    panel.addEventListener("touchcancel",finish,{passive:true});
+  }
+
+  if(document.readyState==="loading"){
+    document.addEventListener("DOMContentLoaded",function(){
+      setTimeout(installCustomerSlideSwipe,80);
+    },{once:true});
+  }else{
+    setTimeout(installCustomerSlideSwipe,80);
+  }
+
+  /* The panel is already in the DOM, but retry after dynamic view changes. */
+  setTimeout(installCustomerSlideSwipe,500);
+})();
+</script>
+
