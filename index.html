@@ -13258,153 +13258,96 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-head >
 </style>
 
 
-<style id="nf-11_2-customer-cards-only-scroll">
+<style id="nf-11_2-customer-cards-sticky-correct">
 /*
-  11.2 — CUSTOMER CARDS ONLY
-  From 11.1. Main app/header and all other screens remain untouched.
-  In Customers view:
-    1) Customer Cards toolbar stays fixed within the Customers view.
-    2) Add Customer stays fixed with that toolbar.
-    3) ONLY the customer-card list below them scrolls.
+  11.2 — Customer Cards ONLY
+  IMPORTANT:
+  - Do NOT create a separate scroll container.
+  - Keep the existing page/body scrolling exactly as it is.
+  - Only the Customer Cards toolbar and Add Customer row are sticky.
+  - Customer cards below them continue to scroll normally.
 */
-#customers-view{
-  position:relative !important;
+#view-customers{
+  --nf-main-header-h: 0px;
 }
 
-/* The existing Customer Cards top row and Add Customer row stay above
-   the dedicated customer list scroller. */
-#customers-view .nf-customer-fixed-area{
-  position:relative !important;
-  z-index:80 !important;
-  background:inherit !important;
-}
-
-/* Only this element gets the independent vertical scroll. */
-#customers-view .nf-customer-list-scroll{
-  position:relative !important;
-  max-height:calc(100vh - 360px) !important;
-  overflow-y:auto !important;
-  overflow-x:hidden !important;
-  -webkit-overflow-scrolling:touch !important;
-  overscroll-behavior:contain !important;
-  scrollbar-width:thin !important;
-}
-
-/* Keep the top controls visible while the list itself scrolls. */
-#customers-view .nf-customer-fixed-area .nf-customer-toolbar{
+/* Customer Cards: Menu + title + Search stays visible below the main header. */
+#view-customers > .nf-customer-cards-head{
   position:sticky !important;
-  top:0 !important;
+  top:var(--nf-main-header-h) !important;
   z-index:90 !important;
+  margin-top:0 !important;
+  margin-bottom:10px !important;
   background:rgba(247,243,255,.98) !important;
-  backdrop-filter:blur(8px) !important;
-  -webkit-backdrop-filter:blur(8px) !important;
+  backdrop-filter:blur(12px) !important;
+  -webkit-backdrop-filter:blur(12px) !important;
+}
+
+/* Add Customer also stays visible; it sits immediately under the title row. */
+#view-customers > .nf-customer-cards-add-wrap{
+  position:sticky !important;
+  top:calc(var(--nf-main-header-h) + 88px) !important;
+  z-index:89 !important;
+  margin-top:0 !important;
+  margin-bottom:12px !important;
+  padding-top:4px !important;
+  padding-bottom:4px !important;
+  background:rgba(247,243,255,.98) !important;
+  backdrop-filter:blur(12px) !important;
+  -webkit-backdrop-filter:blur(12px) !important;
+}
+
+/* The customer cards themselves remain ordinary page content and scroll. */
+#view-customers > #customersTable{
+  position:relative !important;
+  z-index:1 !important;
+  overflow:visible !important;
+}
+
+/* Keep the sticky controls clean on small screens. */
+@media(max-width:700px){
+  #view-customers > .nf-customer-cards-head{
+    margin-bottom:6px !important;
+  }
+  #view-customers > .nf-customer-cards-add-wrap{
+    top:calc(var(--nf-main-header-h) + 78px) !important;
+    padding-top:3px !important;
+    padding-bottom:5px !important;
+  }
 }
 </style>
 
-<script id="nf-11_2-customer-cards-only-scroll-script">
+<script id="nf-11_2-customer-cards-sticky-correct-script">
 (function(){
-  function setupCustomerCardsScroll(){
-    const view = document.getElementById('customers-view');
-    if(!view || view.dataset.nfCustomerScrollReady === '1') return;
+  function syncCustomerCardsStickyOffset(){
+    const view = document.getElementById('view-customers');
+    const header = document.querySelector('#app > header.topbar');
+    if(!view || !header) return;
 
     /*
-      Locate the existing Customer Cards heading, then preserve the DOM
-      structure as much as possible. We only wrap the Add Customer + cards
-      area; no global body/page scrolling CSS is changed.
+      Use the REAL rendered header height instead of guessing. This keeps
+      Customer Cards below the existing NEW FASHION TAILORING header on
+      every phone size/orientation without changing that header.
     */
-    const heading = Array.from(
-      view.querySelectorAll('h1,h2,h3,.section-title,.page-title')
-    ).find(el => /Customer Cards/i.test((el.textContent || '').trim()));
-
-    if(!heading) return;
-
-    /*
-      The heading's parent is treated as the existing Customers top row.
-      Find Add Customer and customer-card containers without guessing
-      customer field contents.
-    */
-    const addCustomer = Array.from(
-      view.querySelectorAll('button,a,.btn,div')
-    ).find(el => {
-      const t = (el.textContent || '').trim();
-      return t === '＋ Add Customer' || t === '+ Add Customer' || t === 'Add Customer';
-    });
-
-    if(!addCustomer) return;
-
-    /* Find the nearest common content container containing actual cards. */
-    const possibleCards = Array.from(view.querySelectorAll('[id^="customer-card-"], .customer-card'));
-    if(!possibleCards.length) return;
-
-    const firstCard = possibleCards[0];
-
-    /*
-      Keep the heading row + Add Customer outside the scroll container.
-      Everything from the first customer card onward becomes the ONLY
-      scrollable area.
-    */
-    const listParent = firstCard.parentElement;
-    if(!listParent) return;
-
-    const cards = [];
-    let n = firstCard;
-    while(n){
-      cards.push(n);
-      n = n.nextElementSibling;
-    }
-    if(!cards.length) return;
-
-    const fixed = document.createElement('div');
-    fixed.className = 'nf-customer-fixed-area';
-
-    const toolbar = heading.closest('.customer-header,.section-header,.header-row') || heading.parentElement;
-    if(toolbar && toolbar.parentElement){
-      toolbar.classList.add('nf-customer-toolbar');
-      toolbar.parentElement.insertBefore(fixed, toolbar);
-      fixed.appendChild(toolbar);
-
-      /*
-        Add Customer may not be adjacent to the heading. Move only its
-        existing row/container into the fixed area.
-      */
-      const addRow = addCustomer.closest('.add-customer-row,.customer-add-row,.action-row') || addCustomer.parentElement;
-      if(addRow && addRow !== toolbar && addRow.parentElement === toolbar.parentElement){
-        fixed.appendChild(addRow);
-      }
-    } else {
-      return;
-    }
-
-    const scroll = document.createElement('div');
-    scroll.className = 'nf-customer-list-scroll';
-    listParent.insertBefore(scroll, firstCard);
-    cards.forEach(card => scroll.appendChild(card));
-
-    view.dataset.nfCustomerScrollReady = '1';
-  }
-
-  function delayedSetup(){
-    setupCustomerCardsScroll();
+    const h = Math.ceil(header.getBoundingClientRect().height);
+    view.style.setProperty('--nf-main-header-h', h + 'px');
   }
 
   if(document.readyState === 'loading'){
-    document.addEventListener('DOMContentLoaded', delayedSetup);
+    document.addEventListener('DOMContentLoaded', syncCustomerCardsStickyOffset);
   }else{
-    delayedSetup();
+    syncCustomerCardsStickyOffset();
   }
 
-  /*
-    Customer cards are rendered dynamically. Retry after navigation/render,
-    but stop permanently once the Customer Cards structure is prepared.
-  */
-  let tries = 0;
-  const timer = setInterval(function(){
-    setupCustomerCardsScroll();
-    tries++;
-    if(tries > 30 || document.getElementById('customers-view')?.dataset.nfCustomerScrollReady === '1'){
-      clearInterval(timer);
-    }
-  }, 250);
+  window.addEventListener('resize', syncCustomerCardsStickyOffset, {passive:true});
+  window.addEventListener('orientationchange', function(){
+    setTimeout(syncCustomerCardsStickyOffset, 120);
+  }, {passive:true});
+
+  const roTarget = document.querySelector('#app > header.topbar');
+  if(window.ResizeObserver && roTarget){
+    new ResizeObserver(syncCustomerCardsStickyOffset).observe(roTarget);
+  }
 })();
 </script>
 
