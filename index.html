@@ -1,10 +1,10 @@
 <!doctype html>
-<html nf-build="V10.6-customer-cards-synced-menu" lang="ta">
+<html nf-build="V10.6-home-customer-card-clarity-v1" lang="ta">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="nf-build" content="V10.6-customer-cards-synced-menu">
-<title>New Fashion Tailoring – Online Management | V10.6 • Synced Customer Cards Menu</title>
+<meta name="nf-build" content="V10.6-home-customer-card-clarity-v1">
+<title>New Fashion Tailoring – Online Management | V10.6 • Home Customer Card Clarity</title>
 <link rel="manifest" href="manifest.json">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -4946,6 +4946,143 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
 #app [id^="quick-order-"] .nf-edit-category-box .moneyStat input:focus,#app [id^="quick-order-"] .nf-edit-category-box .field input:focus,#app [id^="quick-order-"] .nf-edit-category-box select:focus{border-color:var(--nf-cat-color,#6c4df6)!important;box-shadow:0 0 0 4px color-mix(in srgb,var(--nf-cat-color,#6c4df6) 16%,transparent)!important}
 @media(max-width:560px){#app [id^="quick-order-"] .nf-edit-category-grid,#app [id^="quick-order-"] .nf-lining-cost-grid{grid-template-columns:1fr!important}#app [id^="quick-order-"] .nf-edit-category-box{padding:11px!important}#app [id^="quick-order-"] .nf-edit-category-head strong{font-size:16px!important}#app [id^="quick-order-"] .nf-edit-category-head small{font-size:10px!important}}
 </style>
+
+
+<style id="nf-home-customer-card-clarity-v1">
+/*
+  HOME CUSTOMER CARD CLARITY — visual/data-summary pass.
+  Scope: Home dashboard customer cards only.
+  - Order ID is removed from the Home summary card.
+  - Full address is removed from the Home summary card.
+  - Village remains visible beside the phone number.
+  - Garment/Details expands to the full available row.
+  - Strong, readable Tamil + English typography.
+  - Vibrant but controlled card borders and customer-name colors.
+*/
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-card{
+  position:relative!important;
+  overflow:hidden!important;
+  border:2px solid #d8d4ee!important;
+  border-left-width:6px!important;
+  border-radius:18px!important;
+  padding:13px 13px 12px!important;
+  background:linear-gradient(135deg,#ffffff 0%,#fbf9ff 62%,#fff8fb 100%)!important;
+  box-shadow:0 7px 18px rgba(42,35,80,.10)!important;
+  font-family:system-ui,-apple-system,"Noto Sans Tamil","Noto Sans",Arial,sans-serif!important;
+  -webkit-font-smoothing:antialiased!important;
+  text-rendering:geometricPrecision!important;
+}
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-card:nth-child(5n+1){
+  border-color:#b9a8ff!important;
+  border-left-color:#6c4df6!important;
+  background:linear-gradient(135deg,#ffffff 0%,#f6f2ff 100%)!important;
+}
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-card:nth-child(5n+2){
+  border-color:#8fddec!important;
+  border-left-color:#159fc2!important;
+  background:linear-gradient(135deg,#ffffff 0%,#effcff 100%)!important;
+}
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-card:nth-child(5n+3){
+  border-color:#f2b6cf!important;
+  border-left-color:#e84383!important;
+  background:linear-gradient(135deg,#ffffff 0%,#fff4f8 100%)!important;
+}
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-card:nth-child(5n+4){
+  border-color:#f0d27e!important;
+  border-left-color:#e5a800!important;
+  background:linear-gradient(135deg,#ffffff 0%,#fffaf0 100%)!important;
+}
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-card:nth-child(5n+5){
+  border-color:#9dd9bd!important;
+  border-left-color:#18a66d!important;
+  background:linear-gradient(135deg,#ffffff 0%,#f2fff9 100%)!important;
+}
+
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-name{
+  font-size:20px!important;
+  line-height:1.18!important;
+  font-weight:950!important;
+  letter-spacing:-.25px!important;
+  overflow-wrap:anywhere!important;
+  color:#4d35bd!important;
+}
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-card:nth-child(5n+2) .nf-dch-name{color:#087d9c!important}
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-card:nth-child(5n+3) .nf-dch-name{color:#c62f70!important}
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-card:nth-child(5n+4) .nf-dch-name{color:#9a6900!important}
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-card:nth-child(5n+5) .nf-dch-name{color:#08784e!important}
+
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-contact{
+  margin-top:5px!important;
+  font-size:12.5px!important;
+  line-height:1.45!important;
+  font-weight:700!important;
+  color:#4f5362!important;
+  overflow-wrap:anywhere!important;
+}
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-contact::first-line{
+  color:#333746!important;
+}
+
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-info{
+  grid-template-columns:1fr!important;
+  gap:7px!important;
+  margin-top:9px!important;
+}
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-garment-box{
+  width:100%!important;
+  min-height:50px!important;
+  padding:9px 11px!important;
+  border-radius:13px!important;
+  background:linear-gradient(135deg,#fff0f7,#f4efff)!important;
+  border:1px solid #e3c9ef!important;
+}
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-garment-box b{
+  display:block!important;
+  font-size:14px!important;
+  line-height:1.35!important;
+  font-weight:950!important;
+  color:#242334!important;
+  white-space:normal!important;
+  overflow-wrap:anywhere!important;
+}
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-garment-box span{
+  display:block!important;
+  margin-top:3px!important;
+  font-size:11px!important;
+  line-height:1.2!important;
+  font-weight:800!important;
+  color:#6a6272!important;
+}
+
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-meta{
+  gap:6px!important;
+  margin-top:8px!important;
+}
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-pill{
+  font-size:11px!important;
+  line-height:1.25!important;
+  font-weight:850!important;
+  padding:5px 8px!important;
+}
+
+@media(max-width:560px){
+  #view-dashboard .nf-dashboard-customer-hub .nf-dch-card{
+    padding:12px 10px 10px!important;
+    border-left-width:5px!important;
+  }
+  #view-dashboard .nf-dashboard-customer-hub .nf-dch-name{
+    font-size:18px!important;
+  }
+  #view-dashboard .nf-dashboard-customer-hub .nf-dch-contact{
+    font-size:11.5px!important;
+    line-height:1.42!important;
+  }
+  #view-dashboard .nf-dashboard-customer-hub .nf-dch-garment-box b{
+    font-size:13px!important;
+  }
+}
+</style>
+
 </head>
 <body>
 
@@ -5409,11 +5546,12 @@ function dashboardCustomerCard(c,index,category){
  const x=dashboardCustomerInfo(c,category),o=x.o;
  const status=category==="delivered"?"delivered":"new";
  const statusText=category==="delivered"?"DELIVERED":"NEW";
- const orderNo=o?.order_no||"Order இல்லை";
  const delivery=o?.delivery_date?dateText(o.delivery_date):"—";
  const phone=c.phone||"Phone இல்லை";
 
- /* Delivery countdown + date are grouped beside the customer name. */
+ /* Home dashboard card: keep the summary clean.
+    Order ID and full address are intentionally omitted here.
+    Detailed order/customer information remains available inside the customer record. */
  let deliveryLabel="Delivery";
  let deliveryKind="";
  if(o?.delivery_date){
@@ -5431,7 +5569,7 @@ function dashboardCustomerCard(c,index,category){
      <span class="nf-dch-no">${index+1}</span>
      <div class="nf-dch-identity">
        <div class="nf-dch-name">${esc(c.name||"Customer")}</div>
-       <div class="nf-dch-contact">📞 ${esc(phone)} · 📍 ${esc(x.village)}<br>🏠 ${esc(x.address)}</div>
+       <div class="nf-dch-contact">📞 ${esc(phone)} · 📍 ${esc(x.village)}</div>
      </div>
      <div class="nf-dch-delivery ${deliveryKind}">
        <div class="nf-dch-delivery-label">${esc(deliveryLabel)}</div>
@@ -5440,8 +5578,7 @@ function dashboardCustomerCard(c,index,category){
      <span class="nf-dch-arrow">›</span>
    </div>
    <div class="nf-dch-info">
-     <div class="nf-dch-box"><b>${esc(orderNo)}</b><span>Order No</span></div>
-     <div class="nf-dch-box"><b>${esc(x.detail)}</b><span>Garment / Details</span></div>
+     <div class="nf-dch-box nf-dch-garment-box"><b>${esc(x.detail)}</b><span>Garment / Details</span></div>
    </div>
    <div class="nf-dch-meta">
      <span class="nf-dch-pill ${status}">${statusText}</span>
@@ -13256,3 +13393,5 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-head >
  #app [id^="quick-order-"] .nf-edit-category-box .moneyStat,#app [id^="quick-order-"] .nf-edit-chudi .field,#app [id^="quick-order-"] .nf-edit-design-blouse .nf-v13-design-controls .moneyStat{grid-template-columns:minmax(0,1fr) 102px!important}
 }
 </style>
+
+<!-- HOME: Order ID removed from customer summary cards. Detailed Order ID remains available in Orders/Customer details. -->
