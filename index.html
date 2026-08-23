@@ -6004,8 +6004,20 @@ async function saveQuickOrder(id,customerId){
 
 
 function getQuickDesignRates(id,qty,fallback){
+  const host=$("qo-design-rates-box-"+id);
+  const box=host?.querySelector(".nf-design-3slot");
+  if(box){
+    const rows=[...box.querySelectorAll(".nf-design-slot-card")];
+    const values=[];
+    rows.forEach(card=>{
+      const q=Math.max(0,Number(card.querySelector(".nf-di-qty")?.value||0));
+      const r=Math.max(0,Number(card.querySelector(".nf-di-rate")?.value||0));
+      for(let i=0;i<q;i++)values.push(r);
+    });
+    return values;
+  }
   const q=Math.max(0,Number(qty||0));
-  const rate=Math.max(0,Number($("qo-design-rate-"+id)?.value||fallback||0));
+  const rate=Math.max(0,Number(fallback||0));
   return Array.from({length:q},()=>rate);
 }
 function renderQuickDesignRates(id,rates){
@@ -6125,8 +6137,8 @@ const clothPhotoActionsHtml="";
  <div class="moneyStat"><span>Lining blouse — ஒன்றுக்கு விலை</span><input id="qo-lining-rate-${id}" class="input" type="number" min="0" step="0.01" value="${getRates().lining}" oninput="updateQuickOrderCalc('${id}')"></div>
  <div class="moneyStat"><span>Design blouse — எத்தனை</span><input id="qo-design-${id}" class="input" type="number" min="0" step="1" value="0" oninput="updateQuickOrderCalc('${id}');renderQuickDesignRates('${id}');updateQuickBlouseHandover('${id}')"></div>
  <div class="moneyStat"><span>Design blouse — வாங்கிச் சென்றது</span><input id="qo-design-handover-${id}" class="input" type="number" min="0" step="1" value="0" oninput="updateQuickBlouseHandover('${id}')"></div>
- <div class="moneyStat nf-design-single-rate"><span>Design blouse — ஒன்றுக்கு விலை</span><input id="qo-design-rate-${id}" class="input" type="number" min="0" step="0.01" value="${getRates().design}" oninput="updateQuickOrderCalc('${id}')"></div>
- <div class="moneyStat"><span>மொத்த Blouse + Saree count</span><input id="qo-qty-${id}" class="input" type="number" value="0" readonly></div></div></div>
+
+ </div></div>
  <div class="field full nf-design-rate-box nf-quick-blouse" id="qo-design-rates-box-${id}" style="display:none"></div>
  <div class="field full nf-quick-blouse" style="background:#fff8df;border:1px solid #f0d58a;border-radius:12px;padding:10px"><h4 style="margin:0 0 8px">🥻 Saree Details — Blouse order-உடன் ஒரே கணக்கு</h4><div class="formgrid"><div class="moneyStat"><span>Saree / சேலை — எத்தனை</span><input id="qo-saree-${id}" class="input" type="number" min="0" step="1" value="0" oninput="updateQuickOrderCalc('${id}')"></div><div class="moneyStat"><span>வாங்கிச் சென்ற சேலை</span><input id="qo-saree-handover-${id}" class="input" type="number" min="0" step="1" value="0"></div><div class="moneyStat"><span>Saree — ஒன்றுக்கு விலை</span><input id="qo-saree-rate-${id}" class="input" type="number" min="0" step="0.01" value="${getRates().saree}" oninput="updateQuickOrderCalc('${id}')"></div><div class="moneyStat"><span>Saree மொத்தம்</span><div id="qo-saree-total-${id}" class="nf-lining-cost-total">₹0.00</div></div></div></div>
  <div class="field full nf-lining-cost-box"><h4>🧵 Lining — Customer Amount-ல் சேர்க்க</h4><div class="nf-lining-cost-grid"><div class="nf-lining-cost-field"><label>Lining யார் வாங்கியது?</label><select id="qo-lining-source-${id}" class="input" onchange="updateQuickOrderCalc('${id}')"><option value="">தேவையில்லை</option><option value="customer">Customer கொடுத்தது</option><option value="shop">நாம் வாங்கியது</option></select></div><div class="nf-lining-cost-field"><label>Lining எத்தனை</label><input id="qo-lining-qty-${id}" class="input" type="number" min="0" step="1" value="0" oninput="updateQuickOrderCalc('${id}')"></div><div class="nf-lining-cost-field"><label>நாம் வாங்கிய Lining விலை / ஒன்று</label><input id="qo-lining-cost-rate-${id}" class="input" type="number" min="0" step="0.01" value="0" oninput="updateQuickOrderCalc('${id}')"></div><div class="nf-lining-cost-field"><label>Lining மொத்த விலை</label><div id="qo-lining-total-${id}" class="nf-lining-cost-total">₹0.00</div></div></div></div>
@@ -12648,5 +12660,130 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-head >
   };
   document.addEventListener("keydown",function(e){if(e.key==="Escape")closeMyCustomersSlideMenu()});
   document.addEventListener("DOMContentLoaded",function(){setTimeout(function(){if(typeof renderMyCustomersSlideMenu==="function")renderMyCustomersSlideMenu()},120)},{once:true});
+})();
+</script>
+
+<style id="v10-13-design-edit-layout">
+/* V10.14: keep Design blouse controls together; hide legacy duplicate summary. */
+.nf-v13-design-section{margin:10px 0;padding:12px;border:1px solid #d8c7ff;border-radius:14px;background:linear-gradient(135deg,#f7f2ff,#fff5fb)}
+.nf-v13-design-section-title{font-weight:900;font-size:17px;color:#4d2aa5;margin:0 0 9px}
+.nf-v13-design-controls{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.nf-v13-design-controls .moneyStat{margin:0}
+@media(max-width:560px){.nf-v13-design-controls{grid-template-columns:1fr}}
+/* The old top 3-slot block and old combined total are intentionally not shown. */
+.nf-modal-design-3slot.nf-v13-hidden-design-top{display:none!important}
+.nf-modal-blouse-saree-total.nf-v13-hidden-combined-total{display:none!important}
+</style>
+
+<script id="v10-13-design-edit-sync">
+(function(){
+  "use strict";
+  function byId(id){return document.getElementById(id)}
+  function moveQuickDesignControls(id){
+    const root=byId("quick-order-"+id);
+    if(!root)return;
+    const design=byId("qo-design-"+id), hand=byId("qo-design-handover-"+id), rate=byId("qo-design-rate-"+id), host=byId("qo-design-rates-box-"+id);
+    if(!design||!hand||!host)return;
+    let section=root.querySelector(".nf-v13-design-section");
+    if(!section){
+      section=document.createElement("div");
+      section.className="nf-v13-design-section nf-quick-blouse";
+      section.innerHTML='<div class="nf-v13-design-section-title">🎨 Design blouse</div><div class="nf-v13-design-controls"></div>';
+      host.parentNode.insertBefore(section,host);
+    }
+    const controls=section.querySelector(".nf-v13-design-controls");
+    [design,hand,rate].forEach(function(el){
+      const field=el.closest(".moneyStat");
+      if(field && field.parentNode!==controls)controls.appendChild(field);
+    });
+    /* Remove the old empty grid cells/labels if the original form left wrappers behind. */
+    root.querySelectorAll(".nf-quick-blouse .moneyStat").forEach(function(cell){
+      if(cell!==design.closest(".moneyStat") && cell!==hand.closest(".moneyStat") && cell!==rate.closest(".moneyStat") && !cell.closest(".nf-v13-design-section"))return;
+    });
+  }
+  function hideLegacyModalParts(form){
+    if(!form)return;
+    const top=form.querySelector(".nf-modal-design-3slot");
+    if(top)top.classList.add("nf-v13-hidden-design-top");
+    form.querySelectorAll(".nf-modal-blouse-saree-total").forEach(function(x){x.classList.add("nf-v13-hidden-combined-total")});
+    /* Also hide the old note that only described the combined total. */
+    form.querySelectorAll(".nf-modal-blouse-saree-note").forEach(function(x){x.classList.add("nf-v13-hidden-combined-total")});
+  }
+  function patchQuick(id){
+    moveQuickDesignControls(id);
+    const root=byId("quick-order-"+id);
+    if(!root)return;
+    const host=byId("qo-design-rates-box-"+id);
+    if(host){
+      host.classList.add("nf-v13-design-slots-host");
+      /* The existing 3 design cards stay directly under the Design blouse controls. */
+      const section=root.querySelector(".nf-v13-design-section");
+      if(section && host.previousElementSibling!==section)section.parentNode.insertBefore(section,host);
+    }
+  }
+  function patchAll(){
+    (window.state?.customers||[]).forEach(function(c){patchQuick(c.id)});
+    hideLegacyModalParts(document.getElementById("formFields"));
+  }
+
+  /* Patch the shared Customer Card editor after it is rendered/opened. */
+  const oldOpenCustomerOrderEditor=window.openCustomerOrderEditor;
+  if(typeof oldOpenCustomerOrderEditor==="function" && !oldOpenCustomerOrderEditor.__v13){
+    window.openCustomerOrderEditor=function(customerId,orderId){
+      const r=oldOpenCustomerOrderEditor.apply(this,arguments);
+      setTimeout(function(){patchQuick(customerId)},220);
+      setTimeout(function(){patchQuick(customerId)},600);
+      return r;
+    };
+    window.openCustomerOrderEditor.__v13=true;
+  }
+
+  /* Orders-page Edit Order clones the exact same Customer Card editor, so the
+     same layout is automatically synchronized there. This hook also covers
+     the short time between cloning and population. */
+  const oldOrdersEdit=window.openOrdersEditOrder;
+  if(typeof oldOrdersEdit==="function" && !oldOrdersEdit.__v13){
+    window.openOrdersEditOrder=function(orderId){
+      const r=oldOrdersEdit.apply(this,arguments);
+      setTimeout(function(){
+        const id="orders_"+String(orderId||"").replace(/[^a-zA-Z0-9_-]/g,"_");
+        patchQuick(id);
+      },120);
+      setTimeout(function(){
+        const id="orders_"+String(orderId||"").replace(/[^a-zA-Z0-9_-]/g,"_");
+        patchQuick(id);
+      },500);
+      return r;
+    };
+    window.openOrdersEditOrder.__v13=true;
+  }
+
+  /* Any legacy modal Edit Order uses the same storage fields. Hide only the
+     duplicate visual blocks; do not remove the underlying named inputs used
+     by the existing save logic. */
+  const oldOpenModal=window.openModal;
+  if(typeof oldOpenModal==="function" && !oldOpenModal.__v13){
+    window.openModal=function(type,id){
+      const r=oldOpenModal.apply(this,arguments);
+      if(type==="order"){
+        setTimeout(function(){hideLegacyModalParts(document.getElementById("formFields"))},40);
+        setTimeout(function(){hideLegacyModalParts(document.getElementById("formFields"))},220);
+      }
+      return r;
+    };
+    window.openModal.__v13=true;
+  }
+
+  /* Re-apply after customer/order rerenders without touching data. */
+  const oldRenderCustomers=window.renderCustomers;
+  if(typeof oldRenderCustomers==="function" && !oldRenderCustomers.__v13){
+    window.renderCustomers=function(){
+      const r=oldRenderCustomers.apply(this,arguments);
+      setTimeout(patchAll,80);setTimeout(patchAll,350);
+      return r;
+    };
+    window.renderCustomers.__v13=true;
+  }
+  document.addEventListener("DOMContentLoaded",function(){setTimeout(patchAll,100);setTimeout(patchAll,500)});
 })();
 </script>
