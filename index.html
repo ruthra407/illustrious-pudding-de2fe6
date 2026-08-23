@@ -11005,6 +11005,61 @@ body.nf-dashboard-mode #view-dashboard .nf-dch-list{
   #view-dashboard .nf-dashboard-customer-hub .nf-dch-contact{font-size:8.5px!important}
 }
 </style>
+
+<style id="v107-customer-menu-fix">
+/* V10.7 — shared Customer List menu must work from every view */
+#view-dashboard .nf-dashboard-customer-hub .nf-left-customer-menu-btn,
+#view-customers .nf-customer-cards-menu-btn{
+  width:46px!important;height:46px!important;min-width:46px!important;
+  border-radius:12px!important;font-size:22px!important;
+}
+#nfCustomerSlideMenu.nf-customer-slide-global{z-index:99998!important}
+#nfCustomerSlideBackdrop.nf-customer-slide-global{z-index:99997!important}
+</style>
+<script id="v107-customer-menu-fix-js">
+(function(){
+  "use strict";
+  function moveSharedCustomerMenuToBody(){
+    var panel=document.getElementById("nfCustomerSlideMenu");
+    var back=document.getElementById("nfCustomerSlideBackdrop");
+    if(panel && panel.parentElement!==document.body){
+      document.body.appendChild(panel);
+      panel.classList.add("nf-customer-slide-global");
+    }
+    if(back && back.parentElement!==document.body){
+      document.body.appendChild(back);
+      back.classList.add("nf-customer-slide-global");
+    }
+    /* Re-render from the single existing customer source whenever the shared
+       menu is opened. The source is state.customers, so Home and Customer Cards
+       always show the same list and phone numbers. */
+    if(typeof renderMyCustomersSlideMenu === "function") renderMyCustomersSlideMenu();
+  }
+  function install(){
+    moveSharedCustomerMenuToBody();
+    var original=window.toggleMyCustomersSlideMenu;
+    if(typeof original === "function" && !original.__v107Wrapped){
+      var wrapped=function(e){
+        moveSharedCustomerMenuToBody();
+        return original.call(this,e);
+      };
+      wrapped.__v107Wrapped=true;
+      window.toggleMyCustomersSlideMenu=wrapped;
+    }
+  }
+  if(document.readyState === "loading") document.addEventListener("DOMContentLoaded",install,{once:true});
+  else install();
+  /* If the app rebuilds dashboard DOM, restore the shared menu at body level. */
+  var mo=new MutationObserver(function(){
+    var panel=document.getElementById("nfCustomerSlideMenu");
+    var back=document.getElementById("nfCustomerSlideBackdrop");
+    if(panel && panel.parentElement!==document.body) document.body.appendChild(panel);
+    if(back && back.parentElement!==document.body) document.body.appendChild(back);
+  });
+  mo.observe(document.body,{childList:true,subtree:true});
+})();
+</script>
+
 </body>
 </html>
 
