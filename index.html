@@ -10714,7 +10714,7 @@ body.nf-dashboard-mode #view-dashboard .nf-dch-list{
 </script>
 
 <style id="v98-my-customers-menu-compact">
-/* V9.8 rebuild from V9.7: one title + working menu + compact customer list. */
+/* V10.0 rebuild from V9.7: one title + working menu + compact customer list. */
 #view-dashboard .nf-dashboard-customer-hub .nf-my-customers-head{
   position:relative!important;
   display:flex!important;
@@ -11866,5 +11866,259 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-head >
     });
   }
   document.addEventListener('DOMContentLoaded',function(){setTimeout(normalizeCustomerActions,140)} ,{once:true});
+})();
+</script>
+
+<!-- V10.1 — My Customers: animated all-customer name + phone menu -->
+<style id="v101-my-customers-name-menu">
+/* Remove the decorative customer icon above My Customers; keep the header compact. */
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-title::before{display:none!important;content:none!important}
+#view-dashboard .nf-dashboard-customer-hub .nf-my-customers-head{
+  min-height:46px!important;
+  padding:5px 8px 4px!important;
+}
+#view-dashboard .nf-dashboard-customer-hub .nf-my-customers-title-wrap{padding-left:0!important}
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-title{
+  font-size:23px!important;
+  line-height:1!important;
+  letter-spacing:-.35px!important;
+}
+#view-dashboard .nf-dashboard-customer-hub .nf-my-customers-actions{
+  gap:5px!important;
+}
+#view-dashboard .nf-dashboard-customer-hub .nf-dashboard-add-customer-btn{
+  width:38px!important;height:38px!important;min-width:38px!important;
+}
+#view-dashboard .nf-dashboard-customer-hub .nf-my-customers-menu-btn{
+  width:40px!important;height:40px!important;min-width:40px!important;
+  border-radius:12px!important;
+  border:1px solid rgba(255,255,255,.55)!important;
+  background:rgba(255,255,255,.18)!important;
+  color:#fff!important;
+  font-size:22px!important;
+  box-shadow:0 5px 14px rgba(37,16,95,.18)!important;
+  transition:transform .16s ease,background .16s ease!important;
+}
+#view-dashboard .nf-dashboard-customer-hub .nf-my-customers-menu-btn:active{
+  transform:scale(.94)!important;
+}
+
+/* New animated customer directory. */
+#view-dashboard .nf-dashboard-customer-hub .nf-my-customers-menu{
+  position:fixed!important;
+  right:12px!important;
+  top:calc(var(--nf-header-height, 72px) + 8px)!important;
+  width:min(360px,calc(100vw - 24px))!important;
+  max-height:min(72vh,560px)!important;
+  overflow:hidden!important;
+  padding:10px!important;
+  border:1px solid rgba(255,255,255,.72)!important;
+  border-radius:22px!important;
+  background:linear-gradient(145deg,rgba(255,255,255,.98),rgba(248,245,255,.98))!important;
+  box-shadow:0 24px 70px rgba(34,15,79,.34),0 4px 18px rgba(89,45,180,.18)!important;
+  backdrop-filter:blur(14px)!important;
+  -webkit-backdrop-filter:blur(14px)!important;
+  transform-origin:top right!important;
+  animation:v101MenuIn .28s cubic-bezier(.2,.85,.25,1) both!important;
+  z-index:100000!important;
+}
+#view-dashboard .nf-dashboard-customer-hub .nf-my-customers-menu[hidden]{display:none!important}
+@keyframes v101MenuIn{
+  from{opacity:0;transform:translate3d(20px,-16px,0) scale(.94)}
+  to{opacity:1;transform:translate3d(0,0,0) scale(1)}
+}
+#view-dashboard .nf-dashboard-customer-hub .nf-my-customers-menu::before{
+  content:"";
+  position:absolute;
+  top:-8px;right:24px;
+  width:16px;height:16px;
+  background:#fff;
+  border-left:1px solid rgba(255,255,255,.72);
+  border-top:1px solid rgba(255,255,255,.72);
+  transform:rotate(45deg);
+}
+#view-dashboard .nf-my-customers-menu .v101-menu-head{
+  position:relative!important;
+  z-index:1!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:8px!important;
+  padding:4px 4px 9px!important;
+  border-bottom:1px solid #e6e0f2!important;
+  margin-bottom:7px!important;
+}
+#view-dashboard .nf-my-customers-menu .v101-menu-title{
+  font-size:16px!important;
+  line-height:1.1!important;
+  font-weight:950!important;
+  color:#37206d!important;
+}
+#view-dashboard .nf-my-customers-menu .v101-menu-count{
+  min-width:28px!important;height:26px!important;
+  padding:0 8px!important;border-radius:999px!important;
+  display:grid!important;place-items:center!important;
+  background:linear-gradient(135deg,#6337ef,#d63e9d)!important;
+  color:#fff!important;font-size:12px!important;font-weight:950!important;
+}
+#view-dashboard .nf-my-customers-menu .v101-menu-list{
+  max-height:calc(min(72vh,560px) - 58px)!important;
+  overflow-y:auto!important;
+  overscroll-behavior:contain!important;
+  -webkit-overflow-scrolling:touch!important;
+  padding:1px 2px 2px!important;
+}
+#view-dashboard .nf-my-customers-menu .v101-customer-row{
+  width:100%!important;
+  min-height:58px!important;
+  margin:0 0 7px!important;
+  padding:9px 10px!important;
+  border:1px solid #e5def4!important;
+  border-radius:15px!important;
+  background:linear-gradient(135deg,#ffffff,#f8f5ff)!important;
+  color:#1f2030!important;
+  text-align:left!important;
+  display:grid!important;
+  grid-template-columns:36px minmax(0,1fr) 20px!important;
+  align-items:center!important;
+  gap:9px!important;
+  cursor:pointer!important;
+  box-shadow:0 5px 14px rgba(50,25,100,.07)!important;
+  opacity:0!important;
+  animation:v101RowIn .34s cubic-bezier(.2,.85,.25,1) forwards!important;
+  transition:transform .14s ease,box-shadow .14s ease,border-color .14s ease!important;
+}
+#view-dashboard .nf-my-customers-menu .v101-customer-row:nth-child(1){animation-delay:.025s!important}
+#view-dashboard .nf-my-customers-menu .v101-customer-row:nth-child(2){animation-delay:.055s!important}
+#view-dashboard .nf-my-customers-menu .v101-customer-row:nth-child(3){animation-delay:.085s!important}
+#view-dashboard .nf-my-customers-menu .v101-customer-row:nth-child(4){animation-delay:.115s!important}
+#view-dashboard .nf-my-customers-menu .v101-customer-row:nth-child(5){animation-delay:.145s!important}
+#view-dashboard .nf-my-customers-menu .v101-customer-row:nth-child(n+6){animation-delay:.17s!important}
+@keyframes v101RowIn{
+  from{opacity:0;transform:translate3d(22px,0,0)}
+  to{opacity:1;transform:translate3d(0,0,0)}
+}
+#view-dashboard .nf-my-customers-menu .v101-customer-row:active{
+  transform:scale(.985)!important;
+  box-shadow:0 3px 8px rgba(50,25,100,.09)!important;
+}
+#view-dashboard .nf-my-customers-menu .v101-avatar{
+  width:36px!important;height:36px!important;
+  border-radius:12px!important;
+  display:grid!important;place-items:center!important;
+  background:linear-gradient(135deg,#6637ef,#d63e9d)!important;
+  color:#fff!important;font-size:13px!important;font-weight:950!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.35)!important;
+}
+#view-dashboard .nf-my-customers-menu .v101-customer-info{
+  min-width:0!important;display:flex!important;flex-direction:column!important;
+  gap:2px!important;
+}
+#view-dashboard .nf-my-customers-menu .v101-customer-name{
+  font-size:14px!important;line-height:1.15!important;
+  font-weight:950!important;color:#171827!important;
+  white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;
+}
+#view-dashboard .nf-my-customers-menu .v101-customer-phone{
+  font-size:12px!important;line-height:1.1!important;
+  font-weight:800!important;color:#665d78!important;
+  white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;
+}
+#view-dashboard .nf-my-customers-menu .v101-arrow{
+  font-size:22px!important;line-height:1!important;
+  color:#7a4ce8!important;font-weight:900!important;
+}
+#view-dashboard .nf-my-customers-menu .v101-empty{
+  padding:24px 10px!important;text-align:center!important;
+  color:#665d78!important;font-weight:800!important;font-size:13px!important;
+}
+@media(max-width:560px){
+  #view-dashboard .nf-dashboard-customer-hub .nf-dch-title{font-size:22px!important}
+  #view-dashboard .nf-dashboard-customer-hub .nf-my-customers-menu{
+    right:10px!important;
+    width:calc(100vw - 20px)!important;
+    max-height:68vh!important;
+    border-radius:20px!important;
+  }
+  #view-dashboard .nf-my-customers-menu .v101-customer-row{min-height:56px!important}
+}
+@media(prefers-reduced-motion:reduce){
+  #view-dashboard .nf-dashboard-customer-hub .nf-my-customers-menu,
+  #view-dashboard .nf-my-customers-menu .v101-customer-row{animation:none!important;opacity:1!important}
+}
+</style>
+
+<script id="v101-my-customers-name-menu-script">
+(function(){
+  "use strict";
+  function customerInitials(name){
+    var s=String(name||"Customer").trim();
+    if(!s)return "C";
+    var parts=s.split(/\s+/).filter(Boolean);
+    return ((parts[0]||"").charAt(0)+(parts.length>1?(parts[parts.length-1]||"").charAt(0):"")).toUpperCase()||"C";
+  }
+  function getCustomers(){
+    return (window.state && Array.isArray(window.state.customers)) ? window.state.customers.slice() : [];
+  }
+  function renderCustomerDirectory(){
+    var menu=document.getElementById("myCustomersMenu");
+    if(!menu)return;
+    var customers=getCustomers().sort(function(a,b){
+      return String(a.name||"").localeCompare(String(b.name||""),undefined,{sensitivity:"base"});
+    });
+    menu.innerHTML=''+
+      '<div class="v101-menu-head">'+
+        '<div class="v101-menu-title">👥 All Customers</div>'+ 
+        '<div class="v101-menu-count">'+customers.length+'</div>'+ 
+      '</div>'+ 
+      '<div class="v101-menu-list">'+
+        (customers.length ? customers.map(function(c){
+          var id=String(c.id||"").replace(/'/g,"\\'");
+          var name=esc(c.name||"Customer");
+          var phone=esc(c.phone||"Phone இல்லை");
+          return '<button type="button" class="v101-customer-row" onclick="selectMyCustomer(\''+id+'\')">'+
+            '<span class="v101-avatar">'+esc(customerInitials(c.name))+'</span>'+ 
+            '<span class="v101-customer-info"><span class="v101-customer-name">'+name+'</span><span class="v101-customer-phone">📞 '+phone+'</span></span>'+ 
+            '<span class="v101-arrow">›</span>'+ 
+          '</button>';
+        }).join("") : '<div class="v101-empty">Customer இன்னும் சேர்க்கப்படவில்லை.</div>')+
+      '</div>';
+  }
+  window.toggleMyCustomersMenu=function(e){
+    if(e){e.preventDefault();e.stopPropagation();}
+    var menu=document.getElementById("myCustomersMenu");
+    if(!menu)return;
+    if(menu.hidden){
+      renderCustomerDirectory();
+      menu.hidden=false;
+    }else{
+      menu.hidden=true;
+    }
+  };
+  window.closeMyCustomersMenu=function(){
+    var menu=document.getElementById("myCustomersMenu");
+    if(menu)menu.hidden=true;
+  };
+  window.selectMyCustomer=function(id){
+    closeMyCustomersMenu();
+    if(typeof window.goToCustomer==="function"){
+      window.goToCustomer(id);
+    }else if(typeof window.goView==="function"){
+      window.goView("customers");
+    }
+  };
+  document.addEventListener("click",function(e){
+    var menu=document.getElementById("myCustomersMenu");
+    if(!menu || menu.hidden)return;
+    var actions=e.target.closest ? e.target.closest(".nf-my-customers-actions") : null;
+    if(!actions)menu.hidden=true;
+  },true);
+  document.addEventListener("keydown",function(e){
+    if(e.key==="Escape")closeMyCustomersMenu();
+  });
+  window.addEventListener("load",function(){
+    var menu=document.getElementById("myCustomersMenu");
+    if(menu)menu.hidden=true;
+  });
 })();
 </script>
