@@ -5122,10 +5122,6 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
 </div>
 
 <button class="navbtn" data-view="orders">🧾 Orders</button>
-<div id="nfDailySummaryCard" aria-label="Daily Update Summary">
-  <div class="nfDailySummaryHead"><b>📊 Daily Update</b><span>இன்றைய நிலவரம்</span></div>
-  <div id="dailyUpdate"></div>
-</div>
 <button class="navbtn logout" id="sideLogout">⎋ Logout</button>
 </aside>
 
@@ -5190,6 +5186,10 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
   <div id="nfCustomerSlideList" class="nf-customer-slide-list"></div>
 </aside>
 
+<div id="nfDailySummaryCard" aria-label="Daily Update Summary">
+  <div class="nfDailySummaryHead"><b>📊 Daily Update</b><span>இன்றைய நிலவரம்</span></div>
+  <div id="dailyUpdate"></div>
+</div>
 <div class="nf-dashboard-compat" aria-hidden="true">
   <span id="kpiReminder"></span>
   <span id="kpiPending"></span><span id="kpiPendingSmall"></span><span id="kpiPendingDetails"></span>
@@ -13930,6 +13930,224 @@ body.nf-dashboard-mode #view-dashboard .nf-dch-list{
       drawer.classList.add("open");
       sync();
     }else if(s.close && dx<-55){
+      drawer.classList.remove("open");
+    }
+  },{passive:true});
+})();
+</script>
+
+<style id="v116-drawer-60-percent">
+/* V11.6 — Dashboard drawer: 60% width, smooth edge-swipe, compact 10-row customer view. */
+@media(max-width:900px){
+  #sidebar{
+    width:60vw!important;
+    max-width:60vw!important;
+    min-width:60vw!important;
+    top:68px!important;
+    bottom:0!important;
+    padding:8px 7px calc(10px + env(safe-area-inset-bottom))!important;
+    gap:6px!important;
+    overflow:hidden!important;
+    transform:translate3d(-102%,0,0)!important;
+    transition:transform .32s cubic-bezier(.22,.61,.36,1)!important;
+    will-change:transform!important;
+    contain:layout paint;
+  }
+  #sidebar.open{
+    transform:translate3d(0,0,0)!important;
+  }
+
+  /* Only the requested navigation remains in the drawer. */
+  #sidebar .nf-sidebar-hidden-nav,
+  #sidebar [data-view="measurements"],
+  #sidebar [data-view="alterations"],
+  #sidebar [data-view="payments"],
+  #sidebar #nfPendingMenuBtn,
+  #sidebar [data-view="designs"],
+  #sidebar #nfDailySummaryCard{
+    display:none!important;
+  }
+
+  #sidebar .navbtn[data-view="customers"]{
+    flex:0 0 48px!important;
+    min-height:48px!important;
+    height:48px!important;
+    margin:0!important;
+    padding:0 12px!important;
+    border-radius:15px!important;
+    font-size:18px!important;
+    background:linear-gradient(135deg,#6547ee,#d13a9b)!important;
+    border:2px solid rgba(255,255,255,.18)!important;
+    box-shadow:0 7px 18px rgba(83,47,184,.24)!important;
+  }
+
+  #nfSidebarCustomerListWrap{
+    order:2!important;
+    min-height:0!important;
+    flex:1 1 auto!important;
+    display:flex!important;
+    flex-direction:column!important;
+    padding:5px!important;
+    border-radius:16px!important;
+    border:1px solid rgba(255,255,255,.14)!important;
+    background:rgba(255,255,255,.055)!important;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.07)!important;
+  }
+
+  .nfSidebarCustomerListHead{
+    padding:2px 6px 5px!important;
+    font-size:13px!important;
+    line-height:1.15!important;
+    font-weight:950!important;
+  }
+
+  .nfSidebarCustomerList{
+    gap:5px!important;
+    padding:0!important;
+    overflow-y:auto!important;
+    -webkit-overflow-scrolling:touch!important;
+    scrollbar-width:none!important;
+  }
+  .nfSidebarCustomerList::-webkit-scrollbar{display:none!important}
+
+  /* Match the Dashboard customer-card visual language:
+     white card, purple number badge, strong name, phone below, arrow right. */
+  .nfSidebarCustomerRow{
+    min-height:57px!important;
+    height:57px!important;
+    padding:6px 7px!important;
+    grid-template-columns:30px minmax(0,1fr) 13px!important;
+    gap:6px!important;
+    border:1.5px solid #d8cef5!important;
+    border-radius:13px!important;
+    background:#fff!important;
+    box-shadow:0 4px 10px rgba(35,25,70,.09)!important;
+    transition:transform .12s ease,box-shadow .12s ease!important;
+  }
+  .nfSidebarCustomerRow:nth-child(4n+1),
+  .nfSidebarCustomerRow:nth-child(4n+2),
+  .nfSidebarCustomerRow:nth-child(4n+3),
+  .nfSidebarCustomerRow:nth-child(4n+4){
+    background:#fff!important;
+  }
+  .nfSidebarCustomerRow:nth-child(4n+1){border-color:#b8a4ff!important}
+  .nfSidebarCustomerRow:nth-child(4n+2){border-color:#83d7cc!important}
+  .nfSidebarCustomerRow:nth-child(4n+3){border-color:#f2a1ba!important}
+  .nfSidebarCustomerRow:nth-child(4n+4){border-color:#e8c66c!important}
+
+  .nfSidebarCustomerNo{
+    width:30px!important;height:30px!important;
+    border-radius:10px!important;
+    font-size:12px!important;
+  }
+  .nfSidebarCustomerName{
+    font-size:12.5px!important;
+    line-height:1.12!important;
+    color:#241f2b!important;
+    white-space:nowrap!important;
+    overflow:hidden!important;
+    text-overflow:ellipsis!important;
+  }
+  .nfSidebarCustomerPhone{
+    margin-top:2px!important;
+    font-size:10px!important;
+    line-height:1.1!important;
+    color:#777184!important;
+    white-space:nowrap!important;
+    overflow:hidden!important;
+    text-overflow:ellipsis!important;
+  }
+  .nfSidebarCustomerArrow{
+    font-size:20px!important;
+    color:#7b57df!important;
+  }
+
+  #sidebar [data-view="orders"]{
+    order:3!important;
+    flex:0 0 44px!important;
+    min-height:44px!important;
+    height:44px!important;
+    font-size:16px!important;
+  }
+  #sidebar #sideLogout{
+    order:4!important;
+    flex:0 0 42px!important;
+    min-height:42px!important;
+    height:42px!important;
+    font-size:15px!important;
+  }
+
+  /* Backdrop is slightly lighter so the drawer feels like a smooth overlay. */
+  body.drawer-open::after{
+    opacity:.42!important;
+    transition:opacity .32s ease!important;
+  }
+}
+
+@media(max-width:560px){
+  #sidebar{
+    width:60vw!important;
+    max-width:60vw!important;
+    min-width:60vw!important;
+  }
+}
+</style>
+
+<style id="v116-dashboard-daily-update">
+/* Daily Update now lives on the Dashboard, not inside the side drawer. */
+#view-dashboard #nfDailySummaryCard{
+  display:block!important;
+  margin:12px 0 16px!important;
+  padding:13px!important;
+  border-radius:18px!important;
+  background:linear-gradient(135deg,#f7f1ff,#fff5fa)!important;
+  border:1px solid #d9c9f4!important;
+  color:#302742!important;
+  box-shadow:0 7px 18px rgba(54,35,93,.09)!important;
+}
+#view-dashboard #nfDailySummaryCard .nfDailySummaryHead b{
+  color:#4f2da8!important;
+  font-size:15px!important;
+}
+#view-dashboard #nfDailySummaryCard .nfDailySummaryHead span{
+  color:#777184!important;
+  font-size:10px!important;
+}
+#view-dashboard #nfDailySummaryCard #dailyUpdate{
+  color:#51495d!important;
+  font-size:12px!important;
+}
+</style>
+
+<script id="v116-drawer-swipe-polish">
+(function(){
+  "use strict";
+  var drawer=document.getElementById("sidebar");
+  if(!drawer)return;
+
+  /* Keep the existing drawer logic intact, but make the edge swipe feel
+     continuous and cancel accidental horizontal gestures. */
+  var sx=0,sy=0,tracking=false,openAtStart=false;
+
+  document.addEventListener("touchstart",function(e){
+    if(window.innerWidth>900 || !e.touches || e.touches.length!==1)return;
+    var t=e.touches[0];
+    sx=t.clientX; sy=t.clientY;
+    openAtStart=drawer.classList.contains("open");
+    tracking=(!openAtStart && sx<=18) || openAtStart;
+  },{passive:true});
+
+  document.addEventListener("touchend",function(e){
+    if(!tracking)return;
+    var t=e.changedTouches&&e.changedTouches[0];
+    tracking=false;
+    if(!t)return;
+    var dx=t.clientX-sx,dy=t.clientY-sy;
+    if(Math.abs(dx)<50 || Math.abs(dx)<Math.abs(dy)*1.15)return;
+
+    if(!openAtStart && dx>0 && sx<=18){
+      drawer.classList.add("open");
+    }else if(openAtStart && dx<0){
       drawer.classList.remove("open");
     }
   },{passive:true});
