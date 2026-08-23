@@ -4904,6 +4904,15 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
 }
 </style>
 
+
+<style id="nf-v1016-order-card-edit-clone">
+/* V10.16 — Order Card uses the same Customer Card Edit Order editor. */
+.nf-order-card-actions .nf-edit-order-btn{
+  width:42px!important;min-width:42px!important;height:42px!important;
+  padding:0!important;display:inline-grid!important;place-items:center!important;
+  border-radius:12px!important;font-size:19px!important;font-weight:900!important;
+}
+</style>
 </head>
 <body>
 
@@ -9868,7 +9877,7 @@ html{
       var delivered=!isFinished(o)?'<button type="button" class="btn success" onclick="event.stopPropagation();markDelivered(\''+o.id+'\')">Delivered</button>':'';
       return '<div class="nf-order-card-actions">'+
         '<button type="button" class="btn primary" onclick="event.stopPropagation();openOrdersNewOrderForCustomer(\''+o.customer_id+'\')">＋ New Order</button>'+
-        '<button type="button" class="btn nf-edit-order-btn" onclick="event.stopPropagation();openOrdersEditOrder(\''+o.id+'\')">✏️ Edit Order</button>'+ 
+        '<button type="button" class="btn nf-edit-order-btn" onclick="event.stopPropagation();openOrdersEditOrder(\''+o.id+'\')" title="Edit Order" aria-label="Edit Order">✏️</button>'+ 
       '</div>'+
       '<div class="nf-order-full-action-row"><button type="button" class="btn nf-customer-order-full-btn" onclick="event.stopPropagation();openOrderFullDetails(\''+o.id+'\')">📋 Order Full Details</button></div>'+
       '<div class="actions">'+delivered+'<button type="button" class="btn danger" onclick="event.stopPropagation();removeRow(\'orders\',\''+o.id+'\')">Delete</button></div>';
@@ -12785,5 +12794,38 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-head >
     window.renderCustomers.__v13=true;
   }
   document.addEventListener("DOMContentLoaded",function(){setTimeout(patchAll,100);setTimeout(patchAll,500)});
+})();
+</script>
+
+<script id="nf-v10_15-remove-order-card-edit-order">
+/* V10.16 — Remove the OLD Edit Order option from the Orders card UI only.
+   The shared Customer Card Edit Order editor/functionality is untouched. */
+(function(){
+  function removeOldOrderCardEditButton(){
+    try{
+      document.querySelectorAll('#ordersTable .nf-edit-order-btn').forEach(function(btn){
+        btn.remove();
+      });
+      /* Remove an empty action wrapper left behind after removing the button. */
+      document.querySelectorAll('#ordersTable .nf-order-card-actions').forEach(function(row){
+        if(!row.querySelector('button')) row.remove();
+      });
+    }catch(e){ console.error('V10.16 remove order edit button',e); }
+  }
+
+  var baseRenderOrders=window.renderOrders;
+  if(typeof baseRenderOrders==='function' && !baseRenderOrders.__nfV10_15){
+    window.renderOrders=function(){
+      var r=baseRenderOrders.apply(this,arguments);
+      setTimeout(removeOldOrderCardEditButton,0);
+      return r;
+    };
+    window.renderOrders.__nfV10_15=true;
+  }
+
+  document.addEventListener('DOMContentLoaded',function(){
+    setTimeout(removeOldOrderCardEditButton,150);
+    setTimeout(removeOldOrderCardEditButton,500);
+  },{once:true});
 })();
 </script>
