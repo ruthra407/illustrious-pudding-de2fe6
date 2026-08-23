@@ -12829,3 +12829,97 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-head >
   },{once:true});
 })();
 </script>
+
+<style id="nf-v1017-order-card-edit-order-visible">
+/* V10.17 — Put the SAME Customer Card Edit Order action visibly on each Order Card. */
+.nf-order-card-actions .nf-same-customer-edit-order{
+  background:linear-gradient(135deg,#6c4df6,#ef4f8a)!important;
+  color:#fff!important;
+  border:0!important;
+  box-shadow:0 7px 18px rgba(108,77,246,.18);
+  font-weight:850;
+}
+.nf-mobile-order-card .nf-same-customer-edit-order{min-width:132px}
+</style>
+<script id="nf-v10_17-add-same-customer-edit-order">
+/* V10.17
+   The OLD Orders-card Edit button was removed in V10.16. This patch adds back
+   ONLY a clearly labelled button which calls the SAME openOrdersEditOrder()
+   path used by the shared Customer Card editor. No second editor/calculator is created.
+*/
+(function(){
+  function addSameEditButtons(){
+    try{
+      document.querySelectorAll('#ordersTable .nf-mobile-order-card').forEach(function(card){
+        if(card.querySelector('.nf-same-customer-edit-order')) return;
+        var label=card.getAttribute('aria-label')||'';
+        var m=label.match(/Order\s+(.+)$/i);
+        var orderNo=m?m[1].trim():'';
+        var order=(state.orders||[]).find(function(o){return String(o.order_no||'').trim()===orderNo;});
+        if(!order) return;
+        var row=card.querySelector('.nf-order-card-actions');
+        if(!row){
+          row=document.createElement('div');
+          row.className='nf-order-card-actions';
+          var anchor=card.querySelector('.nf-mobile-order-top');
+          if(anchor) anchor.insertAdjacentElement('afterend',row); else card.insertBefore(row,card.firstChild);
+        }
+        var btn=document.createElement('button');
+        btn.type='button';
+        btn.className='btn nf-same-customer-edit-order';
+        btn.title='Edit Order';
+        btn.setAttribute('aria-label','Edit Order');
+        btn.textContent='✏️ Edit Order';
+        btn.addEventListener('click',function(e){
+          e.preventDefault();e.stopPropagation();
+          openOrdersEditOrder(order.id);
+        });
+        row.appendChild(btn);
+      });
+
+      document.querySelectorAll('#ordersTable .table tbody tr').forEach(function(tr){
+        if(tr.querySelector('.nf-same-customer-edit-order')) return;
+        var cells=tr.querySelectorAll('td');
+        if(cells.length<2) return;
+        var orderNo=(cells[0].textContent||'').trim();
+        var order=(state.orders||[]).find(function(o){return String(o.order_no||'').trim()===orderNo;});
+        if(!order) return;
+        var actions=tr.querySelector('td:last-child .actions, td:last-child .nf-order-card-actions');
+        if(!actions) return;
+        var btn=document.createElement('button');
+        btn.type='button';
+        btn.className='btn nf-same-customer-edit-order';
+        btn.title='Edit Order';
+        btn.setAttribute('aria-label','Edit Order');
+        btn.textContent='✏️ Edit Order';
+        btn.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();openOrdersEditOrder(order.id);});
+        actions.insertBefore(btn,actions.firstChild);
+      });
+    }catch(e){console.error('V10.17 order edit action',e)}
+  }
+
+  var base=window.renderOrders;
+  if(typeof base==='function' && !base.__nfV1017){
+    window.renderOrders=function(){
+      var r=base.apply(this,arguments);
+      setTimeout(addSameEditButtons,0);
+      setTimeout(addSameEditButtons,120);
+      return r;
+    };
+    window.renderOrders.__nfV1017=true;
+  }
+  document.addEventListener('DOMContentLoaded',function(){
+    setTimeout(addSameEditButtons,200);
+    setTimeout(addSameEditButtons,700);
+  },{once:true});
+
+  /* In the full-details view, use the exact same label/functionality too. */
+  document.addEventListener('click',function(){
+    setTimeout(function(){
+      document.querySelectorAll('.nf-order-full-actions .btn.primary').forEach(function(btn){
+        if((btn.textContent||'').includes('Edit Details')) btn.textContent='✏️ Edit Order';
+      });
+    },0);
+  });
+})();
+</script>
