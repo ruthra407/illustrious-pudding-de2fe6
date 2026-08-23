@@ -13437,14 +13437,14 @@ body.nf-dashboard-mode #view-dashboard .nf-dch-list{
 }
 </style>
 
-<script id="v114-customer-slide-smooth-swipe">
+<script id="v114-smooth-swipe-from-v113">
 (function(){
   "use strict";
 
-  function installCustomerSlideSwipe(){
+  function install(){
     var panel=document.getElementById("nfCustomerSlideMenu");
-    if(!panel || panel.__v114SwipeInstalled) return;
-    panel.__v114SwipeInstalled=true;
+    if(!panel || panel.__v114SmoothInstalled) return;
+    panel.__v114SmoothInstalled=true;
 
     var startX=0,startY=0,lastX=0,dragging=false,decided=false;
 
@@ -13455,7 +13455,6 @@ body.nf-dashboard-mode #view-dashboard .nf-dch-list{
       startY=t.clientY;
       dragging=false;
       decided=false;
-      panel.style.transition="";
     },{passive:true});
 
     panel.addEventListener("touchmove",function(e){
@@ -13468,14 +13467,14 @@ body.nf-dashboard-mode #view-dashboard .nf-dch-list{
       if(!decided){
         if(Math.abs(dx)<8 && Math.abs(dy)<8) return;
 
-        /* Vertical movement remains normal list scrolling. */
+        /* Vertical gesture remains the menu's normal customer-list scroll. */
         if(Math.abs(dy)>Math.abs(dx)*1.15){
           decided=true;
           dragging=false;
           return;
         }
 
-        /* This drawer only closes with a LEFT swipe. */
+        /* Only a left swipe can close the left drawer. */
         if(dx>=0){
           decided=true;
           dragging=false;
@@ -13484,7 +13483,6 @@ body.nf-dashboard-mode #view-dashboard .nf-dch-list{
 
         decided=true;
         dragging=true;
-        panel.style.willChange="transform";
       }
 
       if(!dragging) return;
@@ -13501,9 +13499,7 @@ body.nf-dashboard-mode #view-dashboard .nf-dch-list{
 
     function finish(){
       if(!dragging){
-        panel.style.transition="";
-        panel.style.transform="";
-        panel.style.willChange="";
+        decided=false;
         return;
       }
 
@@ -13512,29 +13508,25 @@ body.nf-dashboard-mode #view-dashboard .nf-dch-list{
       var threshold=Math.max(50,width*.18);
 
       if(dx <= -threshold){
-        /*
-          Continue from the finger position to fully closed.
-          Do NOT reset to 0 before closing — that was the visual "jerk".
-        */
-        panel.style.transition="transform .26s cubic-bezier(.25,.8,.25,1)";
+        /* Continue smoothly from the finger position to the closed position. */
+        panel.style.transition="transform .25s cubic-bezier(.22,.8,.25,1)";
         panel.style.transform="translate3d(-104%,0,0)";
 
         setTimeout(function(){
           panel.style.transition="";
           panel.style.transform="";
-          panel.style.willChange="";
           if(typeof window.closeMyCustomersSlideMenu==="function"){
             window.closeMyCustomersSlideMenu();
           }
-        },270);
+        },260);
       }else{
-        /* Snap gently back to open position. */
+        /* Smoothly return to the open position. */
         panel.style.transition="transform .22s cubic-bezier(.22,.8,.25,1)";
         panel.style.transform="translate3d(0,0,0)";
+
         setTimeout(function(){
           panel.style.transition="";
           panel.style.transform="";
-          panel.style.willChange="";
         },230);
       }
 
@@ -13548,121 +13540,74 @@ body.nf-dashboard-mode #view-dashboard .nf-dch-list{
 
   if(document.readyState==="loading"){
     document.addEventListener("DOMContentLoaded",function(){
-      setTimeout(installCustomerSlideSwipe,80);
+      setTimeout(install,100);
     },{once:true});
   }else{
-    setTimeout(installCustomerSlideSwipe,80);
+    setTimeout(install,100);
   }
-  setTimeout(installCustomerSlideSwipe,500);
+
+  setTimeout(install,600);
 })();
 </script>
 
 
-<style id="v114-customer-slide-smooth-visuals">
-/* Smooth opening/closing: use compositor-friendly transforms. */
-.nf-customer-slide-menu{
-  width:min(75vw,360px)!important;
-  max-width:75vw!important;
-  transform:translate3d(-104%,0,0)!important;
-  transition:transform .32s cubic-bezier(.22,.8,.25,1)!important;
-  will-change:transform;
-  backface-visibility:hidden;
-  -webkit-backface-visibility:hidden;
-}
-.nf-customer-slide-menu.nf-open{
-  transform:translate3d(0,0,0)!important;
-}
-
-/* Keep backdrop lightweight so opening does not feel stuck. */
-.nf-customer-slide-backdrop{
-  backdrop-filter:blur(1px)!important;
-  -webkit-backdrop-filter:blur(1px)!important;
-  transition:opacity .24s ease!important;
-}
-
-/* Bright, distinct customer rows. */
-.nf-customer-slide-list{
-  padding:12px 10px calc(18px + env(safe-area-inset-bottom))!important;
-  background:linear-gradient(180deg,#f7f4ff 0%,#fff7fb 48%,#f2fbff 100%)!important;
-}
-
-.nf-customer-slide-row{
-  position:relative!important;
-  border:2px solid transparent!important;
-  min-height:60px!important;
-  background:#fff!important;
-  box-shadow:0 7px 18px rgba(62,38,110,.10)!important;
-  opacity:0!important;
-  transform:translate3d(-10px,0,0)!important;
-  animation:nfCustomerRowInV114 .24s cubic-bezier(.22,.8,.25,1) forwards!important;
-  animation-delay:calc(var(--nf-row-index,0) * 22ms)!important;
-  transition:transform .14s ease,box-shadow .14s ease!important;
-}
-.nf-customer-slide-row:nth-child(4n+1){
-  border-color:#8b6cf6!important;
-  background:linear-gradient(135deg,#ffffff 0%,#f4efff 100%)!important;
-}
-.nf-customer-slide-row:nth-child(4n+2){
-  border-color:#24b8a6!important;
-  background:linear-gradient(135deg,#ffffff 0%,#edfffa 100%)!important;
-}
-.nf-customer-slide-row:nth-child(4n+3){
-  border-color:#f06a8d!important;
-  background:linear-gradient(135deg,#ffffff 0%,#fff0f5 100%)!important;
-}
-.nf-customer-slide-row:nth-child(4n+4){
-  border-color:#f2b632!important;
-  background:linear-gradient(135deg,#ffffff 0%,#fff8df 100%)!important;
-}
-.nf-customer-slide-row:active{
-  transform:scale(.985)!important;
-  box-shadow:0 4px 10px rgba(62,38,110,.12)!important;
-}
-
-.nf-customer-slide-no{
-  box-shadow:0 5px 13px rgba(108,77,246,.22)!important;
-}
-.nf-customer-slide-name{
-  color:#24145f!important;
-  font-size:15px!important;
-  font-weight:950!important;
-}
-.nf-customer-slide-phone{
-  color:#4d4659!important;
-  font-size:12px!important;
-  font-weight:850!important;
-}
-.nf-customer-slide-arrow{
-  color:#7a43e6!important;
-  font-size:26px!important;
-}
-
-@keyframes nfCustomerRowInV114{
-  from{opacity:0;transform:translate3d(-10px,0,0)}
-  to{opacity:1;transform:translate3d(0,0,0)}
-}
-
-@media(max-width:560px){
+<style id="v114-safe-smooth-customer-menu">
+@media(max-width:700px){
   .nf-customer-slide-menu{
     width:75vw!important;
     max-width:75vw!important;
+    transition:transform .32s cubic-bezier(.22,.8,.25,1)!important;
+    will-change:transform;
+    backface-visibility:hidden;
+    -webkit-backface-visibility:hidden;
   }
-  .nf-customer-slide-row{
-    min-height:58px!important;
-    padding:10px 9px!important;
-  }
-}
 
-@media(prefers-reduced-motion:reduce){
-  .nf-customer-slide-menu,
-  .nf-customer-slide-backdrop,
-  .nf-customer-slide-row{
-    transition:none!important;
-    animation:none!important;
+  /* Keep the existing .nf-open transform from V11.3 intact. */
+  .nf-customer-slide-menu.nf-open{
+    transform:translate3d(0,0,0);
   }
+
+  /* Bright, readable customer rows — existing list/markup is preserved. */
+  .nf-customer-slide-list{
+    background:linear-gradient(180deg,#f8f5ff 0%,#fff8fb 52%,#f2fbff 100%);
+  }
+
   .nf-customer-slide-row{
-    opacity:1!important;
-    transform:none!important;
+    border-width:2px!important;
+    box-shadow:0 6px 16px rgba(57,40,108,.09)!important;
+  }
+
+  .nf-customer-slide-row:nth-child(4n+1){
+    border-color:#8b6cf6!important;
+    background:linear-gradient(135deg,#fff 0%,#f4efff 100%)!important;
+  }
+  .nf-customer-slide-row:nth-child(4n+2){
+    border-color:#25b7a6!important;
+    background:linear-gradient(135deg,#fff 0%,#edfffa 100%)!important;
+  }
+  .nf-customer-slide-row:nth-child(4n+3){
+    border-color:#f06a8d!important;
+    background:linear-gradient(135deg,#fff 0%,#fff0f5 100%)!important;
+  }
+  .nf-customer-slide-row:nth-child(4n+4){
+    border-color:#efb532!important;
+    background:linear-gradient(135deg,#fff 0%,#fff8df 100%)!important;
+  }
+
+  .nf-customer-slide-name{
+    color:#24145f!important;
+    font-weight:950!important;
+  }
+  .nf-customer-slide-phone{
+    color:#4b4657!important;
+    font-weight:850!important;
+  }
+  .nf-customer-slide-arrow{
+    color:#7044dc!important;
+  }
+
+  .nf-customer-slide-backdrop{
+    transition:opacity .26s ease!important;
   }
 }
 </style>
