@@ -13044,3 +13044,50 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-head >
  #app [id^="quick-order-"] .nf-edit-category-box .moneyStat,#app [id^="quick-order-"] .nf-edit-chudi .field,#app [id^="quick-order-"] .nf-edit-design-blouse .nf-v13-design-controls .moneyStat{grid-template-columns:minmax(0,1fr) 102px!important}
 }
 </style>
+
+
+<style id="nf-11-chudidhar-single-column-fix">
+/*
+  11.0 — Chudidhar / சுடிதார் ONLY
+  Fix: the Chudidhar fields were being placed inside one column of the
+  parent form grid, which made the labels extremely narrow and wrap
+  character-by-character on mobile.
+  UI/layout only — no field names, calculations, save, load or sync logic changed.
+*/
+#app [id^="quick-order-"] .nf-quick-chudi{
+  grid-column:1 / -1 !important;
+  width:100% !important;
+  min-width:0 !important;
+  box-sizing:border-box !important;
+}
+
+#app [id^="quick-order-"] .nf-quick-chudi > label{
+  min-width:0 !important;
+  width:auto !important;
+  overflow:visible !important;
+  white-space:normal !important;
+  overflow-wrap:anywhere !important;
+  word-break:normal !important;
+  line-height:1.35 !important;
+}
+
+#app [id^="quick-order-"] .nf-quick-chudi > input,
+#app [id^="quick-order-"] .nf-quick-chudi > select{
+  min-width:0 !important;
+  width:100% !important;
+  box-sizing:border-box !important;
+}
+
+@media(max-width:560px){
+  #app [id^="quick-order-"] .nf-quick-chudi{
+    grid-column:1 / -1 !important;
+    grid-template-columns:minmax(0,1fr) 140px !important;
+    gap:8px !important;
+  }
+
+  #app [id^="quick-order-"] .nf-quick-chudi > label{
+    font-size:12px !important;
+  }
+}
+</style>
+
