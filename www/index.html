@@ -1,10 +1,10 @@
 <!doctype html>
-<html nf-build="V10.1-home-synced-customer-menu-orders-menu" lang="ta">
+<html nf-build="V10.3-my-customers-centered-compact" lang="ta">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="nf-build" content="V10.1-home-synced-customer-menu-orders-menu">
-<title>New Fashion Tailoring – Online Management | V10.1 • Synced Customer Menus</title>
+<meta name="nf-build" content="V10.3-my-customers-centered-compact">
+<title>New Fashion Tailoring – Online Management | V10.3 • My Customers Centered Compact</title>
 <link rel="manifest" href="manifest.json">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -4434,6 +4434,108 @@ body{
 }
 </style>
 
+
+<style id="v103-my-customers-final-layout">
+/* V10.3 — final compact My Customers header: left menu + centered title + right filter menu */
+#view-dashboard .nf-dashboard-customer-hub{
+  margin-top:0!important;
+  padding-top:0!important;
+}
+#view-dashboard .nf-dashboard-customer-hub .nf-my-customers-head{
+  position:relative!important;
+  display:grid!important;
+  grid-template-columns:52px minmax(0,1fr) 52px!important;
+  align-items:center!important;
+  justify-items:center!important;
+  gap:4px!important;
+  width:100%!important;
+  min-height:50px!important;
+  height:50px!important;
+  box-sizing:border-box!important;
+  margin:0!important;
+  padding:2px 7px!important;
+  overflow:visible!important;
+}
+#view-dashboard .nf-dashboard-customer-hub .nf-my-customers-title-wrap{
+  grid-column:2!important;
+  grid-row:1!important;
+  width:100%!important;
+  min-width:0!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  text-align:center!important;
+}
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-title{
+  width:100%!important;
+  margin:0!important;
+  padding:0!important;
+  text-align:center!important;
+  font-size:22px!important;
+  line-height:1!important;
+  font-weight:950!important;
+  white-space:nowrap!important;
+}
+#view-dashboard .nf-dashboard-customer-hub .nf-left-customer-menu-btn{
+  grid-column:1!important;
+  grid-row:1!important;
+  justify-self:start!important;
+  width:50px!important;
+  height:50px!important;
+  min-width:50px!important;
+  min-height:50px!important;
+  padding:0!important;
+  margin:0!important;
+  border-radius:14px!important;
+  font-size:27px!important;
+}
+#view-dashboard .nf-dashboard-customer-hub .nf-my-customers-actions{
+  grid-column:3!important;
+  grid-row:1!important;
+  width:52px!important;
+  min-width:52px!important;
+  height:50px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:flex-end!important;
+  gap:0!important;
+  position:relative!important;
+  flex:0 0 auto!important;
+}
+#view-dashboard .nf-dashboard-customer-hub .nf-dashboard-add-customer-btn{display:none!important}
+#view-dashboard .nf-dashboard-customer-hub .nf-my-customers-menu-btn{
+  width:46px!important;
+  height:46px!important;
+  min-width:46px!important;
+  min-height:46px!important;
+  margin:0!important;
+  padding:0!important;
+  border-radius:14px!important;
+  font-size:23px!important;
+}
+#view-dashboard .nf-dashboard-customer-hub .nf-my-customers-menu{
+  top:50px!important;
+  right:0!important;
+}
+#view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
+  padding-top:0!important;
+}
+@media(max-width:390px){
+  #view-dashboard .nf-dashboard-customer-hub .nf-my-customers-head{
+    grid-template-columns:50px minmax(0,1fr) 50px!important;
+    min-height:48px!important;
+    height:48px!important;
+    padding:1px 5px!important;
+  }
+  #view-dashboard .nf-dashboard-customer-hub .nf-left-customer-menu-btn{
+    width:48px!important;height:48px!important;min-width:48px!important;min-height:48px!important;font-size:26px!important;
+  }
+  #view-dashboard .nf-dashboard-customer-hub .nf-dch-title{font-size:21px!important}
+  #view-dashboard .nf-dashboard-customer-hub .nf-my-customers-actions{width:50px!important;min-width:50px!important;height:48px!important}
+  #view-dashboard .nf-dashboard-customer-hub .nf-my-customers-menu-btn{width:44px!important;height:44px!important;min-width:44px!important;min-height:44px!important}
+}
+</style>
+
 </head>
 <body>
 
@@ -4521,7 +4623,6 @@ body{
       <div class="nf-dch-title">My Customers</div>
     </div>
     <div class="nf-my-customers-actions">
-      <button class="btn primary nf-dashboard-add-customer-btn" type="button" onclick="openModal('customer')" aria-label="Add Customer" title="Add Customer">＋</button>
       <button class="nf-my-customers-menu-btn" type="button" onclick="toggleMyCustomersMenu(event)" aria-label="Customer filter" title="Customer filter">☷</button>
       <div id="myCustomersMenu" class="nf-my-customers-menu" hidden>
         <button type="button" class="active" data-my-filter="all" onclick="setDashboardCustomerTab('all');closeMyCustomersMenu()">All Customers <span id="dchCountAll">0</span></button>
