@@ -13091,3 +13091,100 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-head >
 }
 </style>
 
+
+<style id="nf-11_2-chudidhar-structural-fix">
+/*
+  11.2 — CHUDIDHAR ONLY / STRUCTURAL FIX
+  The outer Chudidhar category also had .nf-quick-chudi, so the generic
+  .nf-quick-chudi grid rule was turning the WHOLE section into a narrow
+  two-column layout. This override targets the outer category separately.
+  No field IDs, values, calculations, save/load or sync logic changed.
+*/
+
+/* The Chudidhar category itself must occupy the full available width. */
+#app [id^="quick-order-"] .nf-edit-chudi.nf-edit-category-box:not(.nf-field-hidden){
+  display:block !important;
+  width:100% !important;
+  min-width:0 !important;
+  box-sizing:border-box !important;
+  grid-template-columns:none !important;
+}
+
+/* Its contents are one full-width vertical stack. */
+#app [id^="quick-order-"] .nf-edit-chudi.nf-edit-category-box:not(.nf-field-hidden) > .nf-edit-category-grid{
+  display:grid !important;
+  grid-template-columns:1fr !important;
+  width:100% !important;
+  min-width:0 !important;
+  gap:9px !important;
+}
+
+/* Every Chudidhar field is a full-width label/value row. */
+#app [id^="quick-order-"] .nf-edit-chudi.nf-edit-category-box > .nf-edit-category-grid > .nf-quick-chudi{
+  display:grid !important;
+  grid-template-columns:minmax(0,1fr) 140px !important;
+  align-items:center !important;
+  width:100% !important;
+  min-width:0 !important;
+  box-sizing:border-box !important;
+  gap:9px !important;
+  padding:10px !important;
+  border:1px solid rgba(25,20,35,.12) !important;
+  border-radius:12px !important;
+  background:#fff !important;
+}
+
+/* Labels must use the whole left side and never break character-by-character. */
+#app [id^="quick-order-"] .nf-edit-chudi.nf-edit-category-box > .nf-edit-category-grid > .nf-quick-chudi > label{
+  display:block !important;
+  width:auto !important;
+  min-width:0 !important;
+  margin:0 !important;
+  color:#211d25 !important;
+  font-size:13px !important;
+  font-weight:900 !important;
+  line-height:1.35 !important;
+  text-align:left !important;
+  white-space:normal !important;
+  overflow:visible !important;
+  overflow-wrap:normal !important;
+  word-break:normal !important;
+}
+
+/* Inputs/selects stay as a proper value control on the right. */
+#app [id^="quick-order-"] .nf-edit-chudi.nf-edit-category-box > .nf-edit-category-grid > .nf-quick-chudi > input,
+#app [id^="quick-order-"] .nf-edit-chudi.nf-edit-category-box > .nf-edit-category-grid > .nf-quick-chudi > select{
+  display:block !important;
+  width:100% !important;
+  min-width:0 !important;
+  min-height:42px !important;
+  margin:0 !important;
+  box-sizing:border-box !important;
+  text-align:right !important;
+  font-weight:900 !important;
+}
+
+/* Do not let the generic .nf-quick-chudi mobile rule shrink the field labels. */
+@media(max-width:560px){
+  #app [id^="quick-order-"] .nf-edit-chudi.nf-edit-category-box:not(.nf-field-hidden){
+    display:block !important;
+  }
+
+  #app [id^="quick-order-"] .nf-edit-chudi.nf-edit-category-box:not(.nf-field-hidden) > .nf-edit-category-grid{
+    grid-template-columns:1fr !important;
+    gap:8px !important;
+  }
+
+  #app [id^="quick-order-"] .nf-edit-chudi.nf-edit-category-box > .nf-edit-category-grid > .nf-quick-chudi{
+    grid-template-columns:minmax(0,1fr) 128px !important;
+    gap:8px !important;
+    padding:9px !important;
+  }
+
+  #app [id^="quick-order-"] .nf-edit-chudi.nf-edit-category-box > .nf-edit-category-grid > .nf-quick-chudi > label{
+    font-size:12px !important;
+    line-height:1.4 !important;
+  }
+}
+</style>
+
