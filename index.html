@@ -1,10 +1,10 @@
 <!doctype html>
-<html nf-build="V10.5-customer-cards-synced-menu" lang="ta">
+<html nf-build="V10.6-customer-cards-synced-menu" lang="ta">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="nf-build" content="V10.5-customer-cards-synced-menu">
-<title>New Fashion Tailoring – Online Management | V10.5 • Synced Customer Cards Menu</title>
+<meta name="nf-build" content="V10.6-customer-cards-synced-menu">
+<title>New Fashion Tailoring – Online Management | V10.6 • Synced Customer Cards Menu</title>
 <link rel="manifest" href="manifest.json">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -4437,7 +4437,7 @@ body{
 
 
 <style id="v105-customer-cards-synced-menu">
-/* V10.5 — Customer Cards uses the SAME synced Customer List slide-menu
+/* V10.6 — Customer Cards uses the SAME synced Customer List slide-menu
    already used by My Customers on Home. Dashboard menu is not duplicated. */
 #view-customers .nf-customer-cards-head{
   position:relative!important;
@@ -4564,6 +4564,42 @@ body{
   }
 }
 </style>
+
+<style id="v106-home-menu-size">
+@media(max-width:900px){
+  #menuBtn{width:50px!important;height:50px!important;min-width:50px!important;border-radius:15px!important;font-size:24px!important}
+}
+@media(max-width:560px){
+  #menuBtn{width:48px!important;height:48px!important;min-width:48px!important;font-size:23px!important}
+}
+</style>
+<script id="v106-global-customer-slide-menu-fix">
+(function(){
+  "use strict";
+  function mountCustomerSlideMenu(){
+    var panel=document.getElementById("nfCustomerSlideMenu");
+    var back=document.getElementById("nfCustomerSlideBackdrop");
+    // The slide menu was originally nested inside the dashboard view.
+    // Move it to body so it remains visible and clickable on Customer Cards too.
+    if(panel && panel.parentElement!==document.body) document.body.appendChild(panel);
+    if(back && back.parentElement!==document.body) document.body.appendChild(back);
+    if(typeof renderMyCustomersSlideMenu==="function") renderMyCustomersSlideMenu();
+  }
+  document.addEventListener("DOMContentLoaded",function(){
+    mountCustomerSlideMenu();
+    var oldLoadAll=window.loadAll;
+    if(typeof oldLoadAll==="function" && !oldLoadAll.__v106SlideSync){
+      var wrappedLoadAll=async function(){
+        var result=await oldLoadAll.apply(this,arguments);
+        try{mountCustomerSlideMenu();}catch(e){console.warn("Customer slide sync:",e)}
+        return result;
+      };
+      wrappedLoadAll.__v106SlideSync=true;
+      window.loadAll=wrappedLoadAll;
+    }
+  },{once:true});
+})();
+</script>
 </head>
 <body>
 
@@ -12031,7 +12067,7 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-head >
   display:flex!important;align-items:center!important;gap:7px!important;min-width:0!important;
 }
 #view-dashboard .nf-dashboard-customer-hub .nf-left-customer-menu-btn{
-  flex:0 0 auto!important;width:34px!important;height:34px!important;min-width:34px!important;
+  flex:0 0 auto!important;width:52px!important;height:52px!important;min-width:52px!important;
   padding:0!important;border:1px solid rgba(255,255,255,.42)!important;border-radius:10px!important;
   background:linear-gradient(135deg,rgba(25,184,215,.95),rgba(108,77,246,.95))!important;
   color:#fff!important;display:grid!important;place-items:center!important;font-size:18px!important;
@@ -12084,7 +12120,7 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-head >
 .nf-customer-slide-empty{margin-top:8px;padding:22px 14px;border:1px dashed #cfc6e8;border-radius:15px;background:#fff;text-align:center;color:#6e6879;font-weight:800}
 @keyframes nfCustomerRowIn{from{opacity:0;transform:translateX(-18px) scale(.985)}to{opacity:1;transform:translateX(0) scale(1)}}
 @media(max-width:560px){
-  #view-dashboard .nf-dashboard-customer-hub .nf-left-customer-menu-btn{width:32px!important;height:32px!important;min-width:32px!important;font-size:17px!important}
+  #view-dashboard .nf-dashboard-customer-hub .nf-left-customer-menu-btn{width:48px!important;height:48px!important;min-width:48px!important;font-size:24px!important}
   .nf-customer-slide-menu{width:min(90vw,350px);border-radius:0 20px 20px 0}
   .nf-customer-slide-head{padding:15px 13px 13px}.nf-customer-slide-title{font-size:18px}
   .nf-customer-slide-row{grid-template-columns:32px minmax(0,1fr) 20px;padding:10px 9px}
