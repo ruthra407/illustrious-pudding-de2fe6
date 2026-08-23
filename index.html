@@ -4913,6 +4913,39 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
   border-radius:12px!important;font-size:19px!important;font-weight:900!important;
 }
 </style>
+
+<style id="nf-edit-order-colorful-category-boxes">
+/* V10.17 colorful Edit Order category cards — UI only. */
+#app [id^="quick-order-"]{background:linear-gradient(145deg,#fff,#fbf9ff)!important;border:1px solid #ddd6ff!important;border-radius:20px!important;padding:14px!important;box-shadow:0 14px 36px rgba(77,53,130,.10)!important}
+#app [id^="quick-order-"] .nf-edit-category-stack{display:grid!important;gap:12px!important;margin-top:10px!important}
+#app [id^="quick-order-"] .nf-edit-category-box{position:relative!important;min-width:0!important;overflow:hidden!important;border-radius:17px!important;padding:13px!important;background:#fff!important;box-shadow:0 8px 24px rgba(42,32,70,.08)!important}
+#app [id^="quick-order-"] .nf-edit-category-box::before{content:"";position:absolute;left:0;top:0;bottom:0;width:6px;border-radius:17px 0 0 17px;background:var(--nf-cat-color,#6c4df6)!important}
+#app [id^="quick-order-"] .nf-edit-category-head{display:flex!important;align-items:center!important;gap:10px!important;margin:0 0 10px 3px!important;min-width:0!important}
+#app [id^="quick-order-"] .nf-edit-category-head>span{width:40px!important;height:40px!important;display:grid!important;place-items:center!important;border-radius:12px!important;background:var(--nf-cat-soft,#f0edff)!important;font-size:23px!important;flex:0 0 40px!important}
+#app [id^="quick-order-"] .nf-edit-category-head strong{display:block!important;color:#15131a!important;font-size:17px!important;font-weight:950!important;line-height:1.15!important}
+#app [id^="quick-order-"] .nf-edit-category-head small{display:block!important;color:#514b5b!important;font-size:11px!important;font-weight:800!important;margin-top:3px!important;line-height:1.3!important}
+#app [id^="quick-order-"] .nf-edit-category-grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important;min-width:0!important}
+#app [id^="quick-order-"] .nf-edit-category-box .moneyStat,#app [id^="quick-order-"] .nf-edit-category-box .field{min-width:0!important;background:rgba(255,255,255,.94)!important;border:1px solid rgba(25,20,35,.10)!important;border-radius:12px!important;padding:9px!important}
+#app [id^="quick-order-"] .nf-edit-category-box .moneyStat>span,#app [id^="quick-order-"] .nf-edit-category-box .field>label{color:#29242e!important;font-weight:900!important;font-size:12px!important;line-height:1.3!important}
+#app [id^="quick-order-"] .nf-edit-category-box input,#app [id^="quick-order-"] .nf-edit-category-box select{font-weight:950!important;color:#111018!important;border-color:#cfc8da!important;background:#fff!important}
+#app [id^="quick-order-"] .nf-edit-normal{--nf-cat-color:#ef4f8a;--nf-cat-soft:#ffe5ef;background:linear-gradient(135deg,#fff5f9,#fff)!important;border:2px solid #f5a2c2!important}
+#app [id^="quick-order-"] .nf-edit-lining-blouse{--nf-cat-color:#22a86d;--nf-cat-soft:#ddf8ea;background:linear-gradient(135deg,#f2fff8,#fff)!important;border:2px solid #8bd9b4!important}
+#app [id^="quick-order-"] .nf-edit-design-blouse{--nf-cat-color:#e94455;--nf-cat-soft:#ffe3e7;background:linear-gradient(135deg,#fff4f5,#fff)!important;border:2px solid #f19aa4!important}
+#app [id^="quick-order-"] .nf-edit-saree{--nf-cat-color:#f39b22;--nf-cat-soft:#fff0d2;background:linear-gradient(135deg,#fffaf0,#fff)!important;border:2px solid #f4cf77!important;margin-top:12px!important}
+#app [id^="quick-order-"] .nf-edit-lining-cloth{--nf-cat-color:#18a7b8;--nf-cat-soft:#dff8fb;background:linear-gradient(135deg,#f1fdff,#fff)!important;border:2px solid #7dd5df!important;margin-top:12px!important}
+#app [id^="quick-order-"] .nf-edit-chudi{--nf-cat-color:#7351ed;--nf-cat-soft:#ece7ff;background:linear-gradient(135deg,#f7f4ff,#fff)!important;border:2px solid #b8a9ff!important;margin-top:12px!important}
+#app [id^="quick-order-"] .nf-edit-chudi .field{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(92px,116px)!important;align-items:center!important;gap:8px!important}
+#app [id^="quick-order-"] .nf-edit-chudi .field>input,#app [id^="quick-order-"] .nf-edit-chudi .field>select{text-align:right!important}
+#app [id^="quick-order-"] .nf-design-rate-box{margin-top:10px!important;border:1px dashed #e94455!important;border-radius:13px!important;background:rgba(255,255,255,.78)!important;padding:8px!important}
+#app [id^="quick-order-"] .nf-design-rate-box .nf-design-3slot-head,#app [id^="quick-order-"] .nf-design-rate-box .nf-design-slot-title{color:#b21f36!important;font-weight:950!important}
+#app [id^="quick-order-"] .nf-design-rate-box .nf-design-slot-card{border:1px solid #f0a0ab!important;background:#fff!important;border-radius:13px!important;box-shadow:0 5px 15px rgba(239,79,95,.08)!important}
+#app [id^="quick-order-"] .nf-quick-handover-summary{font-weight:900!important;color:#26212b!important;background:#fff!important;border:1px solid #d8d2e4!important;border-radius:11px!important;padding:8px!important;margin-top:7px!important}
+#app [id^="quick-order-"] .nf-lining-cost-grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important}
+#app [id^="quick-order-"] .nf-lining-cost-field{background:#fff!important;border:1px solid #8ed9e1!important;border-radius:12px!important;padding:9px!important}
+#app [id^="quick-order-"] .nf-lining-cost-total{color:#0d5d66!important;font-weight:950!important;font-size:17px!important}
+#app [id^="quick-order-"] .nf-edit-category-box .moneyStat input:focus,#app [id^="quick-order-"] .nf-edit-category-box .field input:focus,#app [id^="quick-order-"] .nf-edit-category-box select:focus{border-color:var(--nf-cat-color,#6c4df6)!important;box-shadow:0 0 0 4px color-mix(in srgb,var(--nf-cat-color,#6c4df6) 16%,transparent)!important}
+@media(max-width:560px){#app [id^="quick-order-"] .nf-edit-category-grid,#app [id^="quick-order-"] .nf-lining-cost-grid{grid-template-columns:1fr!important}#app [id^="quick-order-"] .nf-edit-category-box{padding:11px!important}#app [id^="quick-order-"] .nf-edit-category-head strong{font-size:16px!important}#app [id^="quick-order-"] .nf-edit-category-head small{font-size:10px!important}}
+</style>
 </head>
 <body>
 
@@ -6137,21 +6170,27 @@ const clothPhotoActionsHtml="";
  <div class="customerSection"><h4>🛠️ Customer Tools — இந்த customer card-லேயே</h4><div class="customerActions"><button class="btn secondary" onclick="toggleCustomerDesignPicker('${id}')">🎨 Blouse Design (3)</button><button class="btn secondary" onclick="openCustomerMeasurement('${id}')">📏 Measurement</button><button class="btn success" onclick="openCustomerPayment('${id}')">💰 Payment</button></div><div id="customer-design-picker-${id}" class="nf-design-picker hidden"><div class="nf-design-picker-title">🎨 இந்த customer-க்கு 3 blouse design தேர்வு</div><div class="nf-design-slots">${selectedDesignHtml}</div><div class="nf-design-picker-actions"><label class="btn secondary">🖼️ Gallery<input type="file" accept="image/*" style="display:none" onchange="uploadCustomerDesign('${id}',this.files[0])"></label><label class="btn secondary">📷 Camera<input type="file" accept="image/*" capture="environment" style="display:none" onchange="uploadCustomerDesign('${id}',this.files[0])"></label><button class="btn secondary" onclick="searchDesignForCustomer('${id}')">🔎 Google Images</button></div><div class="hint">மூன்று design மட்டும் தேர்வு செய்யலாம். ஒவ்வொன்றையும் ✏️ மாற்றலாம்; 🗑️ நீக்கலாம்.</div><div id="customer-design-search-${id}" class="hidden nf-design-search-wrap"><div class="toolbar"><input class="input search" id="customer-design-q-${id}" placeholder="blouse design search"><button class="btn primary" onclick="runCustomerDesignSearch('${id}')">Search</button></div><div id="customer-design-results-${id}" class="customerDesignGrid"></div></div></div></div>
  <div id="quick-order-${id}" class="hidden" style="margin-top:10px;background:#faf8f6;border:1px solid var(--line);border-radius:13px;padding:12px"><h4 class="nf-quick-edit-title" style="margin:0 0 10px">🧾 New Order</h4><div class="formgrid">
  <div class="field"><label>Garment / Blouse / Chudi</label><select id="qo-garment-${id}" class="input" onchange="updateQuickGarment('${id}')"><option value="Blouse">Blouse</option><option value="Chudi">Chudi</option></select></div><div class="field"><label>துணி கொடுத்த தேதி</label><input id="qo-cloth-${id}" class="input" type="date" value="${localDate()}"></div><div class="field"><label>Delivery Date</label><input id="qo-delivery-${id}" class="input" type="date"></div>
- <div class="field full nf-quick-blouse"><label>👗 Customer கொடுத்த blouse — வகை வாரியாக எண்ணிக்கை + வாங்கிச் சென்றது + ஒன்றுக்கு விலை</label><div id="qo-blouse-handover-summary-${id}" class="nf-quick-handover-summary"></div><div class="formgrid" style="margin-top:7px">
+ <div class="field full nf-quick-blouse"><label>👗 Customer கொடுத்த blouse — வகை வாரியாக எண்ணிக்கை + வாங்கிச் சென்றது + ஒன்றுக்கு விலை</label><div id="qo-blouse-handover-summary-${id}" class="nf-quick-handover-summary"></div><div class="nf-edit-category-stack">
+ <section class="nf-edit-category-box nf-edit-normal"><div class="nf-edit-category-head"><span>👗</span><div><strong>Normal blouse</strong><small>எண்ணிக்கை · வாங்கிச் சென்றது · ஒன்றுக்கு விலை</small></div></div><div class="nf-edit-category-grid">
  <div class="moneyStat"><span>Normal blouse — எத்தனை</span><input id="qo-normal-${id}" class="input" type="number" min="0" step="1" value="0" oninput="updateQuickOrderCalc('${id}');updateQuickBlouseHandover('${id}')"></div>
  <div class="moneyStat"><span>Normal blouse — வாங்கிச் சென்றது</span><input id="qo-normal-handover-${id}" class="input" type="number" min="0" step="1" value="0" oninput="updateQuickBlouseHandover('${id}')"></div>
  <div class="moneyStat"><span>Normal blouse — ஒன்றுக்கு விலை</span><input id="qo-normal-rate-${id}" class="input" type="number" min="0" step="0.01" value="${getRates().normal}" oninput="updateQuickOrderCalc('${id}')"></div>
+ </div></section>
+ <section class="nf-edit-category-box nf-edit-lining-blouse"><div class="nf-edit-category-head"><span>🧵</span><div><strong>Lining blouse</strong><small>எண்ணிக்கை · வாங்கிச் சென்றது · ஒன்றுக்கு விலை</small></div></div><div class="nf-edit-category-grid">
  <div class="moneyStat"><span>Lining blouse — எத்தனை</span><input id="qo-lining-${id}" class="input" type="number" min="0" step="1" value="0" oninput="updateQuickOrderCalc('${id}');updateQuickBlouseHandover('${id}')"></div>
  <div class="moneyStat"><span>Lining blouse — வாங்கிச் சென்றது</span><input id="qo-lining-handover-${id}" class="input" type="number" min="0" step="1" value="0" oninput="updateQuickBlouseHandover('${id}')"></div>
  <div class="moneyStat"><span>Lining blouse — ஒன்றுக்கு விலை</span><input id="qo-lining-rate-${id}" class="input" type="number" min="0" step="0.01" value="${getRates().lining}" oninput="updateQuickOrderCalc('${id}')"></div>
+ </div></section>
+ <section class="nf-edit-category-box nf-edit-design-blouse"><div class="nf-edit-category-head"><span>🎨</span><div><strong>Design blouse</strong><small>எண்ணிக்கை · வாங்கிச் சென்றது · design-wise விலை</small></div></div><div class="nf-edit-category-grid">
  <div class="moneyStat"><span>Design blouse — எத்தனை</span><input id="qo-design-${id}" class="input" type="number" min="0" step="1" value="0" oninput="updateQuickOrderCalc('${id}');renderQuickDesignRates('${id}');updateQuickBlouseHandover('${id}')"></div>
  <div class="moneyStat"><span>Design blouse — வாங்கிச் சென்றது</span><input id="qo-design-handover-${id}" class="input" type="number" min="0" step="1" value="0" oninput="updateQuickBlouseHandover('${id}')"></div>
-
+ </div><div class="nf-design-rate-box nf-quick-blouse" id="qo-design-rates-box-${id}" style="display:none"></div></section>
  </div></div>
- <div class="field full nf-design-rate-box nf-quick-blouse" id="qo-design-rates-box-${id}" style="display:none"></div>
- <div class="field full nf-quick-blouse" style="background:#fff8df;border:1px solid #f0d58a;border-radius:12px;padding:10px"><h4 style="margin:0 0 8px">🥻 Saree Details — Blouse order-உடன் ஒரே கணக்கு</h4><div class="formgrid"><div class="moneyStat"><span>Saree / சேலை — எத்தனை</span><input id="qo-saree-${id}" class="input" type="number" min="0" step="1" value="0" oninput="updateQuickOrderCalc('${id}')"></div><div class="moneyStat"><span>வாங்கிச் சென்ற சேலை</span><input id="qo-saree-handover-${id}" class="input" type="number" min="0" step="1" value="0"></div><div class="moneyStat"><span>Saree — ஒன்றுக்கு விலை</span><input id="qo-saree-rate-${id}" class="input" type="number" min="0" step="0.01" value="${getRates().saree}" oninput="updateQuickOrderCalc('${id}')"></div><div class="moneyStat"><span>Saree மொத்தம்</span><div id="qo-saree-total-${id}" class="nf-lining-cost-total">₹0.00</div></div></div></div>
- <div class="field full nf-lining-cost-box"><h4>🧵 Lining — Customer Amount-ல் சேர்க்க</h4><div class="nf-lining-cost-grid"><div class="nf-lining-cost-field"><label>Lining யார் வாங்கியது?</label><select id="qo-lining-source-${id}" class="input" onchange="updateQuickOrderCalc('${id}')"><option value="">தேவையில்லை</option><option value="customer">Customer கொடுத்தது</option><option value="shop">நாம் வாங்கியது</option></select></div><div class="nf-lining-cost-field"><label>Lining எத்தனை</label><input id="qo-lining-qty-${id}" class="input" type="number" min="0" step="1" value="0" oninput="updateQuickOrderCalc('${id}')"></div><div class="nf-lining-cost-field"><label>நாம் வாங்கிய Lining விலை / ஒன்று</label><input id="qo-lining-cost-rate-${id}" class="input" type="number" min="0" step="0.01" value="0" oninput="updateQuickOrderCalc('${id}')"></div><div class="nf-lining-cost-field"><label>Lining மொத்த விலை</label><div id="qo-lining-total-${id}" class="nf-lining-cost-total">₹0.00</div></div></div></div>
- <div class="field nf-quick-chudi"><label>👚 எத்தனை Chudi / சுடிதார்</label><input id="qo-chudi-${id}" class="input" type="number" min="0" step="1" value="0" oninput="updateQuickOrderCalc('${id}')"></div><div class="field nf-quick-chudi"><label>👚 வாங்கிச் சென்ற சுடிதார்</label><input id="qo-chudi-handover-${id}" class="input" type="number" min="0" step="1" value="0"></div><div class="field nf-quick-chudi"><label>🧵 Chudi-க்கு lining கொடுத்தாரா?</label><select id="qo-chudi-lining-${id}" class="input" onchange="updateChudiLiningLabel('${id}')"><option value="no">இல்லை</option><option value="yes">ஆம்</option></select></div><div class="field nf-quick-chudi"><label id="qo-chudi-lining-label-${id}">🧵 நாம் வாங்கிய Chudi lining எத்தனை</label><input id="qo-chudi-lining-qty-${id}" class="input" type="number" min="0" step="1" value="0"></div><div class="field nf-quick-chudi"><label>👚 Chudi விலை / ஒன்றுக்கு</label><input id="qo-chudi-rate-${id}" class="input" type="number" min="0" step="0.01" value="${getRates().chudi}" oninput="updateQuickOrderCalc('${id}')"></div>
+ <section class="field full nf-quick-blouse nf-edit-category-box nf-edit-saree"><div class="nf-edit-category-head"><span>🥻</span><div><strong>Saree / சேலை</strong><small>எண்ணிக்கை · வாங்கிச் சென்றது · ஒன்றுக்கு விலை · மொத்தம்</small></div></div><div class="nf-edit-category-grid">
+ <div class="moneyStat"><span>Saree / சேலை — எத்தனை</span><input id="qo-saree-${id}" class="input" type="number" min="0" step="1" value="0" oninput="updateQuickOrderCalc('${id}')"></div><div class="moneyStat"><span>வாங்கிச் சென்ற சேலை</span><input id="qo-saree-handover-${id}" class="input" type="number" min="0" step="1" value="0"></div><div class="moneyStat"><span>Saree — ஒன்றுக்கு விலை</span><input id="qo-saree-rate-${id}" class="input" type="number" min="0" step="0.01" value="${getRates().saree}" oninput="updateQuickOrderCalc('${id}')"></div><div class="moneyStat"><span>Saree மொத்தம்</span><div id="qo-saree-total-${id}" class="nf-lining-cost-total">₹0.00</div></div></div></section>
+ <section class="field full nf-lining-cost-box nf-edit-category-box nf-edit-lining-cloth"><div class="nf-edit-category-head"><span>🧵</span><div><strong>Lining cloth</strong><small>யார் வாங்கியது · அளவு · விலை · மொத்தம்</small></div></div><div class="nf-lining-cost-grid"><div class="nf-lining-cost-field"><label>Lining யார் வாங்கியது?</label><select id="qo-lining-source-${id}" class="input" onchange="updateQuickOrderCalc('${id}')"><option value="">தேவையில்லை</option><option value="customer">Customer கொடுத்தது</option><option value="shop">நாம் வாங்கியது</option></select></div><div class="nf-lining-cost-field"><label>Lining எத்தனை</label><input id="qo-lining-qty-${id}" class="input" type="number" min="0" step="1" value="0" oninput="updateQuickOrderCalc('${id}')"></div><div class="nf-lining-cost-field"><label>நாம் வாங்கிய Lining விலை / ஒன்று</label><input id="qo-lining-cost-rate-${id}" class="input" type="number" min="0" step="0.01" value="0" oninput="updateQuickOrderCalc('${id}')"></div><div class="nf-lining-cost-field"><label>Lining மொத்த விலை</label><div id="qo-lining-total-${id}" class="nf-lining-cost-total">₹0.00</div></div></div></section>
+ <section class="nf-edit-category-box nf-edit-chudi nf-quick-chudi"><div class="nf-edit-category-head"><span>👚</span><div><strong>Chudidhar / சுடிதார்</strong><small>எண்ணிக்கை · வாங்கிச் சென்றது · lining · ஒன்றுக்கு விலை</small></div></div><div class="nf-edit-category-grid">
+ <div class="field nf-quick-chudi"><label>👚 எத்தனை Chudi / சுடிதார்</label><input id="qo-chudi-${id}" class="input" type="number" min="0" step="1" value="0" oninput="updateQuickOrderCalc('${id}')"></div><div class="field nf-quick-chudi"><label>👚 வாங்கிச் சென்ற சுடிதார்</label><input id="qo-chudi-handover-${id}" class="input" type="number" min="0" step="1" value="0"></div><div class="field nf-quick-chudi"><label>🧵 Chudi-க்கு lining கொடுத்தாரா?</label><select id="qo-chudi-lining-${id}" class="input" onchange="updateChudiLiningLabel('${id}')"><option value="no">இல்லை</option><option value="yes">ஆம்</option></select></div><div class="field nf-quick-chudi"><label id="qo-chudi-lining-label-${id}">🧵 நாம் வாங்கிய Chudi lining எத்தனை</label><input id="qo-chudi-lining-qty-${id}" class="input" type="number" min="0" step="1" value="0"></div><div class="field nf-quick-chudi"><label>👚 Chudi விலை / ஒன்றுக்கு</label><input id="qo-chudi-rate-${id}" class="input" type="number" min="0" step="0.01" value="${getRates().chudi}" oninput="updateQuickOrderCalc('${id}')"></div></div></section>
  <div class="field"><label>Advance வாங்கியது</label><input id="qo-advance-${id}" class="input" type="number" min="0" step="0.01" value="0"></div><div class="field"><label>Status</label><select id="qo-status-${id}" class="input"><option value="Pending">Pending</option><option value="In Progress">Progress</option><option value="Ready">Ready</option><option value="Delivered">Delivered</option><option value="Cancelled">Cancel</option></select></div>
  <div class="field full"><label class="nf-quick-notes-label">Alteration Notes</label><textarea id="qo-notes-${id}" class="input" placeholder="தேவைப்பட்டால் குறிப்பு"></textarea></div>
  </div><div class="customerActions" style="margin-top:10px"><button class="btn primary nf-quick-save-btn" onclick="saveQuickOrder('${id}')">💾 Save Order</button><button class="btn secondary" onclick="toggleQuickOrder('${id}')">Close</button></div></div></div>
@@ -11499,6 +11538,42 @@ body.nf-dashboard-mode #view-dashboard .nf-dch-list{
 })();
 </script>
 
+
+<script id="nf-edit-order-category-grouping">
+(function(){
+  "use strict";
+  function group(){
+    var form=document.getElementById("formFields");
+    if(!form||!form.classList.contains("nf-standard-edit-layout")||form.querySelector(".nf-modal-category-box"))return;
+    var fields=Array.from(form.children).filter(function(e){return e.classList&&e.classList.contains("field")&&!e.classList.contains("nf-blouse-handover-summary")});
+    function by(n){return fields.find(function(f){return f.querySelector('[name="'+n+'"]')});}
+    var gs=[
+      ["nf-modal-common","📋","Order Details","Customer · Order No · Dates · Garment",["customer_id","order_no","garment_type","order_date","cloth_received_date","delivery_date"]],
+      ["nf-modal-normal","👗","Normal blouse","எண்ணிக்கை · வாங்கிச் சென்றது",["normal_qty","normal_handover"]],
+      ["nf-modal-lining","🧵","Lining blouse","எண்ணிக்கை · வாங்கிச் சென்றது",["lining_qty","lining_handover"]],
+      ["nf-modal-design","🎨","Design blouse","எண்ணிக்கை · வாங்கிச் சென்றது",["design_qty","design_handover"]],
+      ["nf-modal-chudi","👚","Chudidhar / சுடிதார்","எண்ணிக்கை · வாங்கிச் சென்றது · lining",["chudi_qty","chudi_handover","chudi_lining","chudi_lining_qty","chudi_rate"]],
+      ["nf-modal-saree","🥻","Saree / சேலை","எண்ணிக்கை · வாங்கிச் சென்றது · ஒன்றுக்கு விலை",["saree_qty","saree_handover","saree_rate"]],
+      ["nf-modal-lining-cloth","🧵","Lining cloth","யார் வாங்கியது · அளவு",["lining_cloth_source","lining_cloth_qty"]],
+      ["nf-modal-common","💰","Amount & Status","மொத்தம் · Advance · Status",["quantity","rate_type","unit_price","total_amount","advance_amount","status"]]
+    ];
+    var used=new Set();
+    gs.forEach(function(g){
+      var picked=g[4].map(by).filter(Boolean).filter(function(f){return !used.has(f)});
+      if(!picked.length)return;
+      var box=document.createElement("section");box.className="nf-modal-category-box "+g[0];
+      box.innerHTML='<div class="nf-modal-category-head"><span>'+g[1]+'</span><div><strong>'+g[2]+'</strong><small>'+g[3]+'</small></div></div><div class="nf-modal-category-fields"></div>';
+      form.insertBefore(box,picked[0]);var holder=box.querySelector(".nf-modal-category-fields");picked.forEach(function(f){holder.appendChild(f);used.add(f)});
+    });
+    Array.from(form.children).filter(function(e){return e.classList&&e.classList.contains("field")&&!e.classList.contains("nf-blouse-handover-summary")}).forEach(function(f){
+      var box=document.createElement("section");box.className="nf-modal-category-box nf-modal-common";var holder=document.createElement("div");holder.className="nf-modal-category-fields";box.appendChild(holder);form.insertBefore(box,f);holder.appendChild(f);
+    });
+  }
+  var obs=new MutationObserver(group);
+  function start(){var f=document.getElementById("formFields");if(f)obs.observe(f,{childList:true});group()}
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",start,{once:true});else start();
+})();
+</script>
 </body>
 </html>
 
@@ -12923,3 +12998,49 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-head >
   });
 })();
 </script>
+
+<style id="nf-v1017-final-colorful-edit-order-override">
+/* FINAL CASCADE OVERRIDE — keeps the requested bright category-card design after all legacy V10 patches. */
+#app [id^="quick-order-"] .nf-edit-category-box{
+  position:relative!important;overflow:hidden!important;border-radius:18px!important;padding:13px!important;
+  box-shadow:0 9px 26px rgba(42,32,70,.10)!important;background:#fff!important;
+}
+#app [id^="quick-order-"] .nf-edit-category-box::before{content:""!important;display:block!important;position:absolute!important;left:0!important;top:0!important;bottom:0!important;width:6px!important;background:var(--nf-cat-color,#6c4df6)!important;border-radius:18px 0 0 18px!important}
+#app [id^="quick-order-"] .nf-edit-category-head strong{color:#101018!important;font-weight:950!important}
+#app [id^="quick-order-"] .nf-edit-category-head small{color:#45404c!important;font-weight:850!important}
+#app [id^="quick-order-"] .nf-edit-category-grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important}
+#app [id^="quick-order-"] .nf-edit-category-box .moneyStat{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(94px,116px)!important;align-items:center!important;gap:8px!important;background:#fff!important;border:1px solid rgba(20,16,28,.13)!important;border-radius:12px!important;padding:9px!important}
+#app [id^="quick-order-"] .nf-edit-category-box .moneyStat>span{color:#211d25!important;font-weight:900!important;font-size:12px!important;line-height:1.3!important}
+#app [id^="quick-order-"] .nf-edit-category-box .moneyStat>input{color:#111018!important;font-weight:950!important;background:#fff!important;border-color:#c9c4d0!important}
+#app [id^="quick-order-"] .nf-edit-normal{--nf-cat-color:#ef4f8a!important;--nf-cat-soft:#ffe1ed!important;border:2px solid #f39abc!important;background:linear-gradient(135deg,#fff1f7,#fff)!important}
+#app [id^="quick-order-"] .nf-edit-lining-blouse{--nf-cat-color:#1fa56a!important;--nf-cat-soft:#dff8eb!important;border:2px solid #81d4aa!important;background:linear-gradient(135deg,#effff7,#fff)!important}
+#app [id^="quick-order-"] .nf-edit-design-blouse{--nf-cat-color:#e43f52!important;--nf-cat-soft:#ffe1e5!important;border:2px solid #ed929c!important;background:linear-gradient(135deg,#fff0f2,#fff)!important}
+#app [id^="quick-order-"] .nf-edit-saree{--nf-cat-color:#ef951c!important;--nf-cat-soft:#fff0d1!important;border:2px solid #f2c76d!important;background:linear-gradient(135deg,#fff9ed,#fff)!important}
+#app [id^="quick-order-"] .nf-edit-lining-cloth{--nf-cat-color:#119eaf!important;--nf-cat-soft:#dcf8fb!important;border:2px solid #72ced8!important;background:linear-gradient(135deg,#effdff,#fff)!important}
+#app [id^="quick-order-"] .nf-edit-chudi{--nf-cat-color:#7048e8!important;--nf-cat-soft:#ebe5ff!important;border:2px solid #b3a1fa!important;background:linear-gradient(135deg,#f6f3ff,#fff)!important}
+#app [id^="quick-order-"] .nf-edit-chudi .field{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(92px,116px)!important;align-items:center!important;gap:8px!important;background:#fff!important;border:1px solid rgba(20,16,28,.13)!important;border-radius:12px!important;padding:9px!important}
+#app [id^="quick-order-"] .nf-edit-chudi .field>label{color:#211d25!important;font-weight:900!important}
+#app [id^="quick-order-"] .nf-edit-chudi .field>input,#app [id^="quick-order-"] .nf-edit-chudi .field>select{color:#111018!important;font-weight:950!important;text-align:right!important}
+#app [id^="quick-order-"] .nf-edit-design-blouse .nf-v13-design-section{margin:10px 0 0!important;padding:10px!important;border:1px solid #ed929c!important;border-radius:14px!important;background:linear-gradient(135deg,#fff6f7,#fff)!important}
+#app [id^="quick-order-"] .nf-edit-design-blouse .nf-v13-design-section-title{color:#b51e38!important;font-weight:950!important}
+#app [id^="quick-order-"] .nf-edit-design-blouse .nf-v13-design-controls{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important}
+#app [id^="quick-order-"] .nf-edit-design-blouse .nf-v13-design-controls .moneyStat{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(94px,116px)!important;background:#fff!important;border:1px solid #f0a6af!important;border-radius:12px!important;padding:9px!important}
+#app [id^="quick-order-"] .nf-edit-design-blouse .nf-design-rate-box{display:block!important;margin-top:8px!important;border:1px dashed #e43f52!important;border-radius:13px!important;background:#fff!important;padding:8px!important}
+#app [id^="quick-order-"] .nf-edit-saree .nf-lining-cost-total{color:#a95800!important;font-weight:950!important}
+#app [id^="quick-order-"] .nf-edit-lining-cloth .nf-lining-cost-grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important}
+#app [id^="quick-order-"] .nf-edit-lining-cloth .nf-lining-cost-field{background:#fff!important;border:1px solid #77cfd8!important;border-radius:12px!important;padding:9px!important}
+#app .nf-standard-edit-layout .nf-modal-category-box{position:relative!important;overflow:hidden!important;border-radius:18px!important;padding:13px!important;margin:0 0 12px!important;box-shadow:0 9px 26px rgba(42,32,70,.10)!important}
+#app .nf-standard-edit-layout .nf-modal-category-box::before{content:""!important;position:absolute!important;left:0!important;top:0!important;bottom:0!important;width:6px!important;background:var(--nf-cat-color,#6c4df6)!important}
+#app .nf-standard-edit-layout .nf-modal-category-fields{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important}
+#app .nf-standard-edit-layout .nf-modal-category-fields>.field{background:#fff!important;border:1px solid rgba(20,16,28,.13)!important;border-radius:12px!important;padding:9px!important}
+#app .nf-standard-edit-layout .nf-modal-normal{--nf-cat-color:#ef4f8a!important;border:2px solid #f39abc!important;background:linear-gradient(135deg,#fff1f7,#fff)!important}
+#app .nf-standard-edit-layout .nf-modal-lining{--nf-cat-color:#1fa56a!important;border:2px solid #81d4aa!important;background:linear-gradient(135deg,#effff7,#fff)!important}
+#app .nf-standard-edit-layout .nf-modal-design{--nf-cat-color:#e43f52!important;border:2px solid #ed929c!important;background:linear-gradient(135deg,#fff0f2,#fff)!important}
+#app .nf-standard-edit-layout .nf-modal-chudi{--nf-cat-color:#7048e8!important;border:2px solid #b3a1fa!important;background:linear-gradient(135deg,#f6f3ff,#fff)!important}
+#app .nf-standard-edit-layout .nf-modal-saree{--nf-cat-color:#ef951c!important;border:2px solid #f2c76d!important;background:linear-gradient(135deg,#fff9ed,#fff)!important}
+#app .nf-standard-edit-layout .nf-modal-lining-cloth{--nf-cat-color:#119eaf!important;border:2px solid #72ced8!important;background:linear-gradient(135deg,#effdff,#fff)!important}
+@media(max-width:560px){
+ #app [id^="quick-order-"] .nf-edit-category-grid,#app [id^="quick-order-"] .nf-edit-lining-cloth .nf-lining-cost-grid,#app [id^="quick-order-"] .nf-edit-design-blouse .nf-v13-design-controls,#app .nf-standard-edit-layout .nf-modal-category-fields{grid-template-columns:1fr!important}
+ #app [id^="quick-order-"] .nf-edit-category-box .moneyStat,#app [id^="quick-order-"] .nf-edit-chudi .field,#app [id^="quick-order-"] .nf-edit-design-blouse .nf-v13-design-controls .moneyStat{grid-template-columns:minmax(0,1fr) 102px!important}
+}
+</style>
