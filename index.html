@@ -13258,39 +13258,38 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-head >
 </style>
 
 
-<style id="nf-11_7-customer-cards-corrected-viewport">
+<style id="nf-11_8-customer-cards-final-viewport">
 /*
-  11.7 — CUSTOMER CARDS ONLY
-  Base: 11.1.
-  IMPORTANT: #app already reserves the fixed top header with padding-top.
-  Therefore Customer Cards height is based on the available .main area,
-  NOT by subtracting the header a second time.
+  11.8 — CUSTOMER CARDS ONLY
+  Clean structural implementation based directly on 11.1.
+  The app's existing fixed header/bottom navigation remain untouched.
+  Customer Cards alone gets an internal vertical scroll viewport.
 */
 #view-customers{
   --nf-cc-bottom-nav-h:0px;
 }
 
-/* Customer Cards is the only view converted to a flex viewport. */
+/*
+  The .main area already begins below the fixed app header in 11.1.
+  Therefore do NOT subtract the top header again here.
+*/
 #view-customers.active{
   display:flex !important;
   flex-direction:column !important;
   min-height:0 !important;
-  height:calc(
-    100dvh - var(--nf-cc-bottom-nav-h)
-  ) !important;
-  max-height:calc(
-    100dvh - var(--nf-cc-bottom-nav-h)
-  ) !important;
+  height:calc(100dvh - var(--nf-cc-bottom-nav-h)) !important;
+  max-height:calc(100dvh - var(--nf-cc-bottom-nav-h)) !important;
   box-sizing:border-box !important;
   overflow:hidden !important;
 }
 
-/* These stay outside the scroll area. */
+/* Non-scrolling Customer Cards controls. */
 #view-customers.active > .nf-customer-cards-head{
   flex:0 0 auto !important;
   position:relative !important;
   top:auto !important;
   z-index:30 !important;
+  overflow:visible !important;
 }
 
 #view-customers.active > .nf-customer-cards-add-wrap{
@@ -13298,79 +13297,70 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-head >
   position:relative !important;
   top:auto !important;
   z-index:29 !important;
+  overflow:visible !important;
 }
 
+/*
+  Search panel is a control area, not part of the customer-card list.
+  It therefore remains outside the scrolling element.
+*/
 #view-customers.active > #customerSearchPanel{
   flex:0 0 auto !important;
   position:relative !important;
   z-index:28 !important;
 }
 
-/* ONLY THIS ELEMENT SCROLLS. */
+/*
+  The customer list gets the remaining height.
+  min-height:0 is critical in a flex column: without it the child can
+  refuse to shrink and the parent can appear completely non-scrollable.
+*/
 #view-customers.active > #customersTable{
-  flex:1 1 0 !important;
+  flex:1 1 auto !important;
   min-height:0 !important;
   min-width:0 !important;
-  height:0 !important;
+  height:auto !important;
   max-height:none !important;
   overflow-y:auto !important;
   overflow-x:hidden !important;
-  -webkit-overflow-scrolling:touch !important;
   overscroll-behavior-y:contain !important;
+  -webkit-overflow-scrolling:touch !important;
   touch-action:pan-y !important;
   box-sizing:border-box !important;
   padding-bottom:24px !important;
 }
 
-/* Prevent nested vertical scrollbars inside the customer list. */
+/* Do not introduce nested vertical scroll containers. */
 #view-customers.active > #customersTable .customer-card-list,
 #view-customers.active > #customersTable .customerCards{
   overflow:visible !important;
   max-height:none !important;
 }
 
-/* Existing bottom nav remains above the customer list. */
+/* Existing mobile navigation remains above the list. */
 #p4MobileNav{
   z-index:10000 !important;
 }
 </style>
 
-<script id="nf-11_7-customer-cards-corrected-viewport-script">
+<script id="nf-11_8-customer-cards-final-viewport-script">
 (function(){
   "use strict";
 
-  function sync(){
+  function syncCustomerCardsViewport(){
     var view=document.getElementById("view-customers");
     if(!view) return;
 
-    var bottom=document.getElementById("p4MobileNav");
-    var bottomVisible=bottom && getComputedStyle(bottom).display!=="none";
-    var bottomH=bottomVisible ? Math.ceil(bottom.getBoundingClientRect().height) : 0;
+    var nav=document.getElementById("p4MobileNav");
+    var navVisible=nav && getComputedStyle(nav).display!=="none";
+    var navH=navVisible ? Math.ceil(nav.getBoundingClientRect().height) : 0;
 
-    view.style.setProperty("--nf-cc-bottom-nav-h",bottomH+"px");
-  }
-
-  if(document.readyState==="loading"){
-    document.addEventListener("DOMContentLoaded",function(){
-      setTimeout(sync,100);
-    });
-  }else{
-    setTimeout(sync,100);
-  }
-
-  window.addEventListener("resize",sync,{passive:true});
-  window.addEventListener("orientationchange",function(){
-    setTimeout(sync,150);
-  },{passive:true});
-
-  if(window.ResizeObserver){
-    var bottom=document.getElementById("p4MobileNav");
-    if(bottom) new ResizeObserver(sync).observe(bottom);
+    view.style.setProperty("--nf-cc-bottom-nav-h",navH+"px");
   }
 
   /*
-    Customer-only helper. No global scrollIntoView override.
-    Existing app scrolling remains untouched.
+    This is deliberately scoped to Customer Cards.
+    No global scroll API is overridden.
   */
   window.nfCustomerCardsScrollTo=function(el,behavior,block){
     var view=document.getElementById("view-customers");
@@ -13383,22 +13373,40 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-head >
     var target=list.scrollTop;
 
     if(block==="center"){
-      target += (er.top + er.height/2) - (lr.top + lr.height/2);
+      target+=(er.top+er.height/2)-(lr.top+lr.height/2);
     }else if(block==="end"){
-      target += er.bottom - lr.bottom;
+      target+=er.bottom-lr.bottom;
     }else if(block==="nearest"){
-      if(er.top < lr.top) target += er.top-lr.top;
-      else if(er.bottom > lr.bottom) target += er.bottom-lr.bottom;
+      if(er.top<lr.top) target+=er.top-lr.top;
+      else if(er.bottom>lr.bottom) target+=er.bottom-lr.bottom;
     }else{
-      target += er.top-lr.top;
+      target+=er.top-lr.top;
     }
 
     list.scrollTo({
       top:Math.max(0,target),
-      behavior:behavior || "smooth"
+      behavior:behavior||"smooth"
     });
     return true;
   };
+
+  if(document.readyState==="loading"){
+    document.addEventListener("DOMContentLoaded",function(){
+      setTimeout(syncCustomerCardsViewport,100);
+    });
+  }else{
+    setTimeout(syncCustomerCardsViewport,100);
+  }
+
+  window.addEventListener("resize",syncCustomerCardsViewport,{passive:true});
+  window.addEventListener("orientationchange",function(){
+    setTimeout(syncCustomerCardsViewport,150);
+  },{passive:true});
+
+  if(window.ResizeObserver){
+    var nav=document.getElementById("p4MobileNav");
+    if(nav) new ResizeObserver(syncCustomerCardsViewport).observe(nav);
+  }
 })();
 </script>
 
