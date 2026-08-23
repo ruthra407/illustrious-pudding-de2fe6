@@ -13256,3 +13256,172 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-head >
  #app [id^="quick-order-"] .nf-edit-category-box .moneyStat,#app [id^="quick-order-"] .nf-edit-chudi .field,#app [id^="quick-order-"] .nf-edit-design-blouse .nf-v13-design-controls .moneyStat{grid-template-columns:minmax(0,1fr) 102px!important}
 }
 </style>
+
+
+<style id="nf-11_2-customer-cards-dedicated-scroll">
+/*
+  11.2 — Customer Cards dedicated scroll layout.
+  ONLY #view-customers is changed to a fixed-height flex column.
+  Other views keep their existing page scrolling.
+*/
+#view-customers{
+  --nf-cc-header-offset:var(--nf-header-offset,84px);
+  display:none;
+}
+
+/* When Customer Cards is the active screen, its top controls are outside
+   the scroll area and the customer list gets the only vertical scroll. */
+#view-customers.active{
+  display:flex !important;
+  flex-direction:column !important;
+  min-height:0 !important;
+  height:calc(100dvh - var(--nf-cc-header-offset) - 40px) !important;
+  max-height:calc(100dvh - var(--nf-cc-header-offset) - 40px) !important;
+  overflow:hidden !important;
+}
+
+/* Menu + Customer Cards title + Search button — never scrolls. */
+#view-customers.active > .nf-customer-cards-head{
+  flex:0 0 auto !important;
+  position:relative !important;
+  min-height:78px !important;
+  margin:0 0 10px !important;
+}
+
+/* Add Customer — never scrolls. */
+#view-customers.active > .nf-customer-cards-add-wrap{
+  flex:0 0 auto !important;
+  width:100% !important;
+  margin:0 0 12px !important;
+}
+
+/* Search panel is also outside the scrolling customer list. */
+#view-customers.active > #customerSearchPanel{
+  flex:0 0 auto !important;
+  max-height:none !important;
+  overflow:visible !important;
+}
+
+/* ONLY customer cards scroll. */
+#view-customers.active > #customersTable{
+  flex:1 1 auto !important;
+  min-height:0 !important;
+  height:auto !important;
+  max-height:none !important;
+  overflow-y:auto !important;
+  overflow-x:hidden !important;
+  overscroll-behavior-y:contain !important;
+  -webkit-overflow-scrolling:touch !important;
+  touch-action:pan-y !important;
+  padding-bottom:18px !important;
+}
+
+/* Keep the existing card grid intact inside the scroll area. */
+#view-customers.active > #customersTable.customerCards{
+  align-content:start !important;
+}
+</style>
+
+<script id="nf-11_2-customer-cards-dedicated-scroll-script">
+(function(){
+  "use strict";
+
+  /*
+    Customer Cards is now the only screen with a dedicated list scroller.
+    This helper is used by customer navigation/focus routines so programmatic
+    navigation scrolls the customer list instead of moving the whole page.
+  */
+  window.nfScrollCustomerElement = function(el, behavior, block){
+    if(!el) return;
+    var list=document.getElementById("customersTable");
+    var view=document.getElementById("view-customers");
+
+    if(!list || !view || !view.classList.contains("active")){
+      el.scrollIntoView({
+        behavior:behavior||"smooth",
+        block:block||"start"
+      });
+      return;
+    }
+
+    var listRect=list.getBoundingClientRect();
+    var elRect=el.getBoundingClientRect();
+    var current=list.scrollTop;
+
+    if(block==="center"){
+      current += (elRect.top + elRect.height/2) - (listRect.top + listRect.height/2);
+    }else if(block==="nearest"){
+      if(elRect.top < listRect.top) current += elRect.top-listRect.top;
+      else if(elRect.bottom > listRect.bottom) current += elRect.bottom-listRect.bottom;
+    }else{
+      current += elRect.top-listRect.top;
+    }
+
+    list.scrollTo({
+      top:Math.max(0,current),
+      behavior:behavior||"smooth"
+    });
+  };
+
+  /*
+    Replace the customer-specific navigation functions after the original
+    application code has loaded. Other screens/functions are untouched.
+  */
+  function patchCustomerNavigation(){
+    if(typeof window.goToCustomer==="function" && !window.goToCustomer.__nfCC11_2){
+      var originalGoToCustomer=window.goToCustomer;
+      window.goToCustomer=function(id){
+        if(typeof window.goView==="function") window.goView("customers");
+        setTimeout(function(){
+          var card=document.getElementById("customer-card-"+id);
+          window.nfScrollCustomerElement(card,"smooth","start");
+        },140);
+      };
+      window.goToCustomer.__nfCC11_2=true;
+    }
+
+    if(typeof window.goToOrderCustomer==="function" && !window.goToOrderCustomer.__nfCC11_2){
+      var originalGoToOrderCustomer=window.goToOrderCustomer;
+      window.goToOrderCustomer=function(orderId){
+        var o=(window.state && window.state.orders||[]).find(function(x){return x.id===orderId;});
+        if(!o){
+          if(typeof window.goView==="function") window.goView("orders");
+          return;
+        }
+        if(typeof window.goView==="function") window.goView("customers");
+        setTimeout(function(){
+          var target=document.getElementById("customer-order-"+orderId);
+          var card=document.getElementById("customer-card-"+o.customer_id);
+          if(target){
+            window.nfScrollCustomerElement(target,"smooth","center");
+            target.classList.remove("nf-order-focus");
+            void target.offsetWidth;
+            target.classList.add("nf-order-focus");
+            setTimeout(function(){target.classList.remove("nf-order-focus");},1800);
+          }else if(card){
+            window.nfScrollCustomerElement(card,"smooth","start");
+          }
+        },160);
+      };
+      window.goToOrderCustomer.__nfCC11_2=true;
+    }
+  }
+
+  if(document.readyState==="loading"){
+    document.addEventListener("DOMContentLoaded",function(){
+      setTimeout(patchCustomerNavigation,250);
+    });
+  }else{
+    setTimeout(patchCustomerNavigation,250);
+  }
+
+  /* Re-check after dynamic rendering/navigation without touching other views. */
+  var tries=0;
+  var timer=setInterval(function(){
+    patchCustomerNavigation();
+    tries++;
+    if(tries>40) clearInterval(timer);
+  },250);
+})();
+</script>
+
