@@ -5115,13 +5115,13 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
 <div class="layout">
 <aside id="sidebar" class="sidebar">
 <button class="navbtn dashboardNav active nf-sidebar-hidden-nav" data-view="dashboard" aria-hidden="true" tabindex="-1">📊 <span>Dashboard</span></button>
-<button class="navbtn" data-view="customers">👥 Customers</button>
 <div id="nfSidebarCustomerListWrap" aria-label="Customer list">
   <div class="nfSidebarCustomerListHead">👥 Customer List</div>
   <div id="nfSidebarCustomerList" class="nfSidebarCustomerList"></div>
 </div>
 
 <button class="navbtn" data-view="orders">🧾 Orders</button>
+<button class="navbtn" data-view="customers">👥 Customers</button>
 <button class="navbtn logout" id="sideLogout">⎋ Logout</button>
 </aside>
 
@@ -14153,3 +14153,32 @@ body.nf-dashboard-mode #view-dashboard .nf-dch-list{
   },{passive:true});
 })();
 </script>
+
+<style id="v116-customer-list-first-final">
+@media(max-width:900px){
+  #sidebar{
+    display:flex!important;
+    flex-direction:column!important;
+  }
+  /* Opening the menu shows Customer List immediately. */
+  #sidebar #nfSidebarCustomerListWrap{
+    order:1!important;
+    flex:1 1 auto!important;
+    min-height:0!important;
+  }
+  #sidebar [data-view="orders"]{
+    order:2!important;
+    flex:0 0 44px!important;
+    min-height:44px!important;
+    height:44px!important;
+  }
+  /* Customers button is deliberately moved to the bottom. */
+  #sidebar [data-view="customers"]{
+    order:3!important;
+    flex:0 0 44px!important;
+    min-height:44px!important;
+    height:44px!important;
+    margin-top:6px!important;
+  }
+}
+</style>
