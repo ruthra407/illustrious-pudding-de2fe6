@@ -13256,3 +13256,82 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-head >
  #app [id^="quick-order-"] .nf-edit-category-box .moneyStat,#app [id^="quick-order-"] .nf-edit-chudi .field,#app [id^="quick-order-"] .nf-edit-design-blouse .nf-v13-design-controls .moneyStat{grid-template-columns:minmax(0,1fr) 102px!important}
 }
 </style>
+
+
+<style id="nf-11_2-customer-cards-only-sticky">
+/*
+  11.2 — CUSTOMER CARDS ONLY
+  Keep the existing main app header and all other page scrolling unchanged.
+  Only the Customer Cards toolbar remains visible while the customer list
+  underneath scrolls.
+*/
+
+/* Customer Cards content becomes its own scroll area. */
+#customers-view .nf-customer-cards-scroll{
+  position:relative;
+  max-height:calc(100vh - 430px);
+  overflow-y:auto;
+  overflow-x:hidden;
+  overscroll-behavior-y:contain;
+  -webkit-overflow-scrolling:touch;
+}
+
+/* The Customer Cards title/menu/search row stays at the top of that list. */
+#customers-view .nf-customer-cards-toolbar{
+  position:sticky;
+  top:0;
+  z-index:50;
+  background:rgba(247,243,255,.97);
+  backdrop-filter:blur(10px);
+  -webkit-backdrop-filter:blur(10px);
+}
+</style>
+<script id="nf-11_2-customer-cards-sticky-script">
+(function(){
+  function setupCustomerCardsOnly(){
+    const view = document.getElementById('customers-view');
+    if(!view || view.dataset.nfCustomerStickyReady) return;
+
+    /*
+      Find the Customer Cards heading area without changing the existing
+      main header. The first matching heading is used as the toolbar anchor.
+    */
+    const heading = Array.from(view.querySelectorAll('h1,h2,h3,.section-title,.page-title'))
+      .find(el => /Customer Cards/i.test((el.textContent||'').trim()));
+
+    if(!heading) return;
+
+    const toolbar = heading.closest('.nf-customer-cards-toolbar') || heading.parentElement;
+    if(!toolbar) return;
+
+    /* Wrap only the customer content that follows the toolbar. */
+    const wrapper = document.createElement('div');
+    wrapper.className = 'nf-customer-cards-scroll';
+
+    const nodes = [];
+    let node = toolbar.nextElementSibling;
+    while(node){
+      nodes.push(node);
+      node = node.nextElementSibling;
+    }
+
+    if(!nodes.length) return;
+
+    toolbar.classList.add('nf-customer-cards-toolbar');
+    toolbar.parentNode.insertBefore(wrapper, toolbar.nextSibling);
+    nodes.forEach(n => wrapper.appendChild(n));
+
+    view.dataset.nfCustomerStickyReady = '1';
+  }
+
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', setupCustomerCardsOnly);
+  }else{
+    setupCustomerCardsOnly();
+  }
+
+  const observer = new MutationObserver(setupCustomerCardsOnly);
+  observer.observe(document.documentElement,{childList:true,subtree:true});
+})();
+</script>
+
