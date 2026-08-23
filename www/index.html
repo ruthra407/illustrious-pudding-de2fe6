@@ -5109,7 +5109,6 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
 <header class="topbar">
 <button id="menuBtn" class="iconbtn mobileOnly">☰</button>
 <div class="brandBlock"><h1>NEW FASHION TAILORING</h1><small>ONLINE MANAGEMENT · <span id="liveClock">--:--:--</span></small></div>
-<button id="nfHeaderDailyBtn" class="iconbtn nf-header-daily-btn" type="button" onclick="goView('daily-update')" aria-label="Daily Update" title="Daily Update">📊</button>
 <button id="backBtn" class="iconbtn" title="Back" aria-label="Back">‹</button><div class="spacer"></div><div id="userChip" class="userchip"></div><button id="passkeySetupBtn" class="iconbtn" title="Passkey" aria-label="Passkey">🔑</button>
 <button id="reloadBtn" class="iconbtn" title="Refresh">↻</button><button id="logoutBtn" class="iconbtn" title="Logout">⎋</button>
 </header>
@@ -5164,6 +5163,7 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
     </div>
     <div class="nf-my-customers-actions">
       <button class="btn primary nf-dashboard-add-customer-btn" type="button" onclick="openModal('customer')" aria-label="Add Customer" title="Add Customer">＋</button>
+      <button class="nf-dashboard-daily-btn" type="button" onclick="goView('daily-update')" aria-label="Daily Update" title="Daily Update">📊</button>
       <button class="nf-my-customers-menu-btn" type="button" onclick="toggleMyCustomersMenu(event)" aria-label="Customer filter" title="Customer filter">☷</button>
       <div id="myCustomersMenu" class="nf-my-customers-menu" hidden>
         <button type="button" class="active" data-my-filter="all" onclick="setDashboardCustomerTab('all');closeMyCustomersMenu()">All Customers <span id="dchCountAll">0</span></button>
@@ -5187,8 +5187,7 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
   <div id="nfCustomerSlideList" class="nf-customer-slide-list"></div>
 </aside>
 
-<div id="dailyUpdate"></div>
-</div>
+
 <div class="nf-dashboard-compat" aria-hidden="true">
   <span id="kpiReminder"></span>
   <span id="kpiPending"></span><span id="kpiPendingSmall"></span><span id="kpiPendingDetails"></span>
@@ -5209,6 +5208,8 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
   </div>
   <div id="nfDailySummaryCard" aria-label="Daily Update Summary">
   <div class="nfDailySummaryHead"><b>📊 Daily Update</b><span>இன்றைய நிலவரம்</span></div>
+  <div id="dailyUpdate"></div>
+</div>
 </section>
 
 <section id="view-customers" class="view">
@@ -14195,63 +14196,138 @@ body.nf-dashboard-mode #view-dashboard .nf-dch-list{
 }
 </style>
 
-<style id="v118-daily-symbol-and-mycustomers-fix">
-/* V11.8
-   - Home: replace the large Daily Update card with one small header symbol.
-   - Daily Update opens as its own screen.
-   - My Customers header stays fully visible inside its purple hub and
-     never sits underneath the fixed top header.
+<style id="v119-home-daily-in-customers-bar-final">
+/* V11.9:
+   1) No large Daily Update card on Home.
+   2) Daily Update is a compact icon inside My Customers header.
+   3) Icon opens a dedicated Daily Update screen.
+   4) My Customers header/title has stable height and cannot be covered
+      by the customer list.
 */
 
-/* Small Daily Update symbol in the fixed title bar. */
-#app > .topbar .nf-header-daily-btn{
-  width:40px!important;
-  height:40px!important;
-  min-width:40px!important;
+/* Compact Daily Update icon in the My Customers action bar. */
+body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dashboard-daily-btn{
+  width:38px!important;
+  height:38px!important;
+  min-width:38px!important;
+  min-height:38px!important;
+  flex:0 0 38px!important;
   padding:0!important;
-  margin-left:4px!important;
+  margin:0!important;
+  border:1px solid rgba(255,255,255,.38)!important;
   border-radius:12px!important;
-  border:1px solid rgba(255,255,255,.35)!important;
-  background:linear-gradient(135deg,rgba(108,69,232,.9),rgba(211,63,153,.9))!important;
+  background:linear-gradient(135deg,#6c45e8,#d33f99)!important;
   color:#fff!important;
-  font-size:19px!important;
   display:grid!important;
   place-items:center!important;
-  box-shadow:0 5px 14px rgba(40,20,90,.18)!important;
+  font-size:18px!important;
+  line-height:1!important;
+  box-shadow:0 6px 15px rgba(77,42,155,.20)!important;
   cursor:pointer!important;
   -webkit-tap-highlight-color:transparent!important;
 }
-#app > .topbar .nf-header-daily-btn:active{
+body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dashboard-daily-btn:active{
   transform:scale(.94)!important;
 }
 
-@media(max-width:700px){
-  #app > .topbar .nf-header-daily-btn{
-    width:36px!important;
-    height:36px!important;
-    min-width:36px!important;
-    border-radius:11px!important;
-    font-size:17px!important;
-  }
+/* The Home customer header is a real row, not an overlay. */
+body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub{
+  position:relative!important;
+  overflow:hidden!important;
+}
+body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-my-customers-head{
+  position:relative!important;
+  z-index:30!important;
+  display:grid!important;
+  grid-template-columns:50px minmax(0,1fr) auto!important;
+  align-items:center!important;
+  gap:7px!important;
+  width:100%!important;
+  height:64px!important;
+  min-height:64px!important;
+  max-height:64px!important;
+  padding:7px 8px!important;
+  margin:0!important;
+  box-sizing:border-box!important;
+  overflow:visible!important;
+}
+body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-my-customers-title-wrap{
+  display:flex!important;
+  align-items:center!important;
+  min-width:0!important;
+  width:auto!important;
+  height:100%!important;
+  gap:7px!important;
+  overflow:visible!important;
+}
+body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-title{
+  display:block!important;
+  position:relative!important;
+  z-index:32!important;
+  margin:0!important;
+  padding:0!important;
+  font-size:20px!important;
+  line-height:1.05!important;
+  font-weight:950!important;
+  white-space:nowrap!important;
+  overflow:visible!important;
+  transform:none!important;
+}
+body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-my-customers-actions{
+  position:relative!important;
+  z-index:33!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:flex-end!important;
+  gap:5px!important;
+  min-width:0!important;
+  height:100%!important;
+  flex:0 0 auto!important;
+}
+body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-left-customer-menu-btn{
+  width:48px!important;
+  height:48px!important;
+  min-width:48px!important;
+  min-height:48px!important;
+  margin:0!important;
+  align-self:center!important;
+}
+body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dashboard-add-customer-btn,
+body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-my-customers-menu-btn{
+  width:38px!important;
+  height:38px!important;
+  min-width:38px!important;
+  min-height:38px!important;
+  flex:0 0 38px!important;
+  margin:0!important;
+  padding:0!important;
 }
 
-/* Dedicated Daily Update screen. */
+/* List starts after the header; it must not slide over the title. */
+body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
+  position:relative!important;
+  z-index:2!important;
+  margin:0!important;
+  padding-top:6px!important;
+  clear:both!important;
+}
+
+/* Dedicated Daily Update page. */
 #view-daily-update{
   box-sizing:border-box!important;
-  padding:10px 10px 90px!important;
+  padding:12px 10px 90px!important;
   max-width:760px!important;
   margin:0 auto!important;
   overflow-y:auto!important;
   overflow-x:hidden!important;
 }
-.nf-daily-page-head{
+#view-daily-update .nf-daily-page-head{
   display:flex!important;
   align-items:center!important;
   gap:10px!important;
   margin:0 0 12px!important;
-  padding:2px 0!important;
 }
-.nf-daily-back{
+#view-daily-update .nf-daily-back{
   width:44px!important;
   height:44px!important;
   min-width:44px!important;
@@ -14262,13 +14338,13 @@ body.nf-dashboard-mode #view-dashboard .nf-dch-list{
   font-size:31px!important;
   line-height:1!important;
 }
-.nf-daily-page-head h2{
+#view-daily-update .nf-daily-page-head h2{
   margin:0!important;
   color:#2b2140!important;
   font-size:23px!important;
   font-weight:950!important;
 }
-.nf-daily-page-head p{
+#view-daily-update .nf-daily-page-head p{
   margin:2px 0 0!important;
   color:#777184!important;
   font-size:11px!important;
@@ -14281,73 +14357,48 @@ body.nf-dashboard-mode #view-dashboard .nf-dch-list{
   border-radius:19px!important;
   background:linear-gradient(135deg,#f7f1ff,#fff5fa)!important;
   border:1px solid #d9c9f4!important;
-  color:#302742!important;
   box-shadow:0 8px 22px rgba(54,35,93,.10)!important;
 }
+#view-daily-update #nfDailySummaryCard .nfDailySummaryHead{
+  display:flex!important;
+  justify-content:space-between!important;
+  align-items:center!important;
+  margin-bottom:8px!important;
+}
 #view-daily-update #nfDailySummaryCard .nfDailySummaryHead b{
-  font-size:19px!important;
   color:#4f2da8!important;
+  font-size:19px!important;
 }
 #view-daily-update #nfDailySummaryCard .nfDailySummaryHead span{
-  font-size:10px!important;
   color:#777184!important;
-}
-#view-daily-update #nfDailySummaryCard #dailyUpdate{
-  font-size:14px!important;
-  line-height:1.6!important;
-  color:#51495d!important;
+  font-size:10px!important;
 }
 
-/* Fix the Dashboard My Customers heading:
-   it must remain inside the purple customer hub, fully above the list. */
-@media(max-width:900px){
-  #view-dashboard.active{
-    padding-top:8px!important;
+@media(max-width:390px){
+  body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-my-customers-head{
+    grid-template-columns:46px minmax(0,1fr) auto!important;
+    height:60px!important;
+    min-height:60px!important;
+    max-height:60px!important;
+    padding:5px 5px!important;
+    gap:4px!important;
   }
-
-  #view-dashboard .nf-dashboard-customer-hub{
-    position:relative!important;
-    z-index:2!important;
-    margin-top:8px!important;
-    overflow:hidden!important;
+  body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-left-customer-menu-btn{
+    width:44px!important;
+    height:44px!important;
+    min-width:44px!important;
   }
-
-  #view-dashboard .nf-dashboard-customer-hub .nf-dch-head{
-    position:relative!important;
-    z-index:10!important;
-    flex:0 0 auto!important;
-    min-height:62px!important;
-    height:62px!important;
-    padding:7px 10px!important;
-    box-sizing:border-box!important;
-    overflow:visible!important;
-    transform:none!important;
+  body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-title{
+    font-size:18px!important;
   }
-
-  #view-dashboard .nf-dashboard-customer-hub .nf-my-customers-title-wrap{
-    min-width:0!important;
-    align-items:center!important;
-    height:100%!important;
-    overflow:visible!important;
-  }
-
-  #view-dashboard .nf-dashboard-customer-hub .nf-dch-title{
-    position:relative!important;
-    z-index:12!important;
-    display:block!important;
-    margin:0!important;
-    padding:0!important;
-    line-height:1.05!important;
-    white-space:nowrap!important;
-    overflow:visible!important;
-    transform:none!important;
-  }
-
-  #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
-    position:relative!important;
-    z-index:3!important;
-    margin:0!important;
-    padding-top:6px!important;
+  body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dashboard-add-customer-btn,
+  body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dashboard-daily-btn,
+  body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-my-customers-menu-btn{
+    width:34px!important;
+    height:34px!important;
+    min-width:34px!important;
+    flex-basis:34px!important;
+    font-size:16px!important;
   }
 }
 </style>
