@@ -6803,3 +6803,86 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-my-custome
   body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dashboard-daily-btn,
   body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-my-customers-menu-btn{width:34px!important;height:34px!important;min-width:34px!important;flex-basis:34px!important;font-size:16px!important}}</style>
 
+
+
+<style id="v100-customer-card-inner-scroll">
+/*
+ V100.0 — Customer Cards only:
+ Keep the Customer Cards header/menu/search controls fixed inside the page.
+ Only the customer detail list (#customersTable) scrolls.
+ No global body/main/sidebar scroll behavior is changed.
+*/
+#view-customers.active{
+  display:flex!important;
+  flex-direction:column!important;
+  height:100%!important;
+  min-height:0!important;
+  max-height:100%!important;
+  overflow:hidden!important;
+  box-sizing:border-box!important;
+}
+
+/* Fixed Customer Cards header: menu + title + search. */
+#view-customers.active > .nf-customer-cards-head{
+  position:relative!important;
+  top:auto!important;
+  z-index:40!important;
+  flex:0 0 auto!important;
+  width:100%!important;
+  box-sizing:border-box!important;
+  margin-bottom:8px!important;
+  background:rgba(255,255,255,.96)!important;
+  backdrop-filter:blur(14px)!important;
+  -webkit-backdrop-filter:blur(14px)!important;
+}
+
+/* Add-customer control and search panel stay outside the scrolling list. */
+#view-customers.active > .nf-customer-cards-add-wrap,
+#view-customers.active > #customerSearchPanel{
+  flex:0 0 auto!important;
+}
+
+/* The ONLY scrolling container on Customer Cards. */
+#view-customers.active > #customersTable{
+  flex:1 1 auto!important;
+  min-height:0!important;
+  max-height:none!important;
+  height:auto!important;
+  overflow-y:auto!important;
+  overflow-x:hidden!important;
+  -webkit-overflow-scrolling:touch!important;
+  overscroll-behavior-y:contain!important;
+  overscroll-behavior-x:none!important;
+  scrollbar-gutter:stable!important;
+  padding-bottom:18px!important;
+}
+
+/* Prevent individual customer cards from becoming their own competing
+   page-level scroll container. */
+#view-customers.active > #customersTable .customerCard{
+  overflow:hidden!important;
+}
+
+/* Keep the Customer Cards header readable on small screens. */
+@media(max-width:700px){
+  #view-customers.active > .nf-customer-cards-head{
+    flex-basis:72px!important;
+    min-height:72px!important;
+    max-height:72px!important;
+    margin-bottom:8px!important;
+  }
+}
+@media(max-width:380px){
+  #view-customers.active > .nf-customer-cards-head{
+    flex-basis:62px!important;
+    min-height:62px!important;
+    max-height:62px!important;
+  }
+}
+
+/* Do not allow the Customer List scroll container to propagate its
+   vertical gesture into the page underneath. */
+#view-customers.active > #customersTable{
+  touch-action:pan-y!important;
+}
+</style>
