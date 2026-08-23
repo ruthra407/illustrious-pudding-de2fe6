@@ -5109,19 +5109,20 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
 <header class="topbar">
 <button id="menuBtn" class="iconbtn mobileOnly">☰</button>
 <div class="brandBlock"><h1>NEW FASHION TAILORING</h1><small>ONLINE MANAGEMENT · <span id="liveClock">--:--:--</span></small></div>
+<button id="nfHeaderDailyBtn" class="iconbtn nf-header-daily-btn" type="button" onclick="goView('daily-update')" aria-label="Daily Update" title="Daily Update">📊</button>
 <button id="backBtn" class="iconbtn" title="Back" aria-label="Back">‹</button><div class="spacer"></div><div id="userChip" class="userchip"></div><button id="passkeySetupBtn" class="iconbtn" title="Passkey" aria-label="Passkey">🔑</button>
 <button id="reloadBtn" class="iconbtn" title="Refresh">↻</button><button id="logoutBtn" class="iconbtn" title="Logout">⎋</button>
 </header>
 <div class="layout">
 <aside id="sidebar" class="sidebar">
 <button class="navbtn dashboardNav active nf-sidebar-hidden-nav" data-view="dashboard" aria-hidden="true" tabindex="-1">📊 <span>Dashboard</span></button>
-<button class="navbtn" data-view="customers">👥 Customers</button>
 <div id="nfSidebarCustomerListWrap" aria-label="Customer list">
   <div class="nfSidebarCustomerListHead">👥 Customer List</div>
   <div id="nfSidebarCustomerList" class="nfSidebarCustomerList"></div>
 </div>
 
 <button class="navbtn" data-view="orders">🧾 Orders</button>
+<button class="navbtn" data-view="customers">👥 Customers</button>
 <button class="navbtn logout" id="sideLogout">⎋ Logout</button>
 </aside>
 
@@ -5186,9 +5187,7 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
   <div id="nfCustomerSlideList" class="nf-customer-slide-list"></div>
 </aside>
 
-<div id="nfDailySummaryCard" aria-label="Daily Update Summary">
-  <div class="nfDailySummaryHead"><b>📊 Daily Update</b><span>இன்றைய நிலவரம்</span></div>
-  <div id="dailyUpdate"></div>
+<div id="dailyUpdate"></div>
 </div>
 <div class="nf-dashboard-compat" aria-hidden="true">
   <span id="kpiReminder"></span>
@@ -5197,6 +5196,19 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
   <span id="dueSoonCount"></span><span id="dueSoonList"></span>
 </div>
 <div class="nf-dashboard-compat" aria-hidden="true"><span id="recentOrders"></span></div>
+</section>
+
+
+<section id="view-daily-update" class="view">
+  <div class="nf-daily-page-head">
+    <button type="button" class="nf-daily-back" onclick="goView('dashboard')" aria-label="Back to Home">‹</button>
+    <div>
+      <h2>📊 Daily Update</h2>
+      <p>இன்றைய நிலவரம்</p>
+    </div>
+  </div>
+  <div id="nfDailySummaryCard" aria-label="Daily Update Summary">
+  <div class="nfDailySummaryHead"><b>📊 Daily Update</b><span>இன்றைய நிலவரம்</span></div>
 </section>
 
 <section id="view-customers" class="view">
@@ -14153,3 +14165,189 @@ body.nf-dashboard-mode #view-dashboard .nf-dch-list{
   },{passive:true});
 })();
 </script>
+
+<style id="v116-customer-list-first-final">
+@media(max-width:900px){
+  #sidebar{
+    display:flex!important;
+    flex-direction:column!important;
+  }
+  /* Opening the menu shows Customer List immediately. */
+  #sidebar #nfSidebarCustomerListWrap{
+    order:1!important;
+    flex:1 1 auto!important;
+    min-height:0!important;
+  }
+  #sidebar [data-view="orders"]{
+    order:2!important;
+    flex:0 0 44px!important;
+    min-height:44px!important;
+    height:44px!important;
+  }
+  /* Customers button is deliberately moved to the bottom. */
+  #sidebar [data-view="customers"]{
+    order:3!important;
+    flex:0 0 44px!important;
+    min-height:44px!important;
+    height:44px!important;
+    margin-top:6px!important;
+  }
+}
+</style>
+
+<style id="v118-daily-symbol-and-mycustomers-fix">
+/* V11.8
+   - Home: replace the large Daily Update card with one small header symbol.
+   - Daily Update opens as its own screen.
+   - My Customers header stays fully visible inside its purple hub and
+     never sits underneath the fixed top header.
+*/
+
+/* Small Daily Update symbol in the fixed title bar. */
+#app > .topbar .nf-header-daily-btn{
+  width:40px!important;
+  height:40px!important;
+  min-width:40px!important;
+  padding:0!important;
+  margin-left:4px!important;
+  border-radius:12px!important;
+  border:1px solid rgba(255,255,255,.35)!important;
+  background:linear-gradient(135deg,rgba(108,69,232,.9),rgba(211,63,153,.9))!important;
+  color:#fff!important;
+  font-size:19px!important;
+  display:grid!important;
+  place-items:center!important;
+  box-shadow:0 5px 14px rgba(40,20,90,.18)!important;
+  cursor:pointer!important;
+  -webkit-tap-highlight-color:transparent!important;
+}
+#app > .topbar .nf-header-daily-btn:active{
+  transform:scale(.94)!important;
+}
+
+@media(max-width:700px){
+  #app > .topbar .nf-header-daily-btn{
+    width:36px!important;
+    height:36px!important;
+    min-width:36px!important;
+    border-radius:11px!important;
+    font-size:17px!important;
+  }
+}
+
+/* Dedicated Daily Update screen. */
+#view-daily-update{
+  box-sizing:border-box!important;
+  padding:10px 10px 90px!important;
+  max-width:760px!important;
+  margin:0 auto!important;
+  overflow-y:auto!important;
+  overflow-x:hidden!important;
+}
+.nf-daily-page-head{
+  display:flex!important;
+  align-items:center!important;
+  gap:10px!important;
+  margin:0 0 12px!important;
+  padding:2px 0!important;
+}
+.nf-daily-back{
+  width:44px!important;
+  height:44px!important;
+  min-width:44px!important;
+  border:0!important;
+  border-radius:13px!important;
+  background:linear-gradient(135deg,#6c45e8,#d33f99)!important;
+  color:#fff!important;
+  font-size:31px!important;
+  line-height:1!important;
+}
+.nf-daily-page-head h2{
+  margin:0!important;
+  color:#2b2140!important;
+  font-size:23px!important;
+  font-weight:950!important;
+}
+.nf-daily-page-head p{
+  margin:2px 0 0!important;
+  color:#777184!important;
+  font-size:11px!important;
+  font-weight:750!important;
+}
+#view-daily-update #nfDailySummaryCard{
+  display:block!important;
+  margin:0!important;
+  padding:17px!important;
+  border-radius:19px!important;
+  background:linear-gradient(135deg,#f7f1ff,#fff5fa)!important;
+  border:1px solid #d9c9f4!important;
+  color:#302742!important;
+  box-shadow:0 8px 22px rgba(54,35,93,.10)!important;
+}
+#view-daily-update #nfDailySummaryCard .nfDailySummaryHead b{
+  font-size:19px!important;
+  color:#4f2da8!important;
+}
+#view-daily-update #nfDailySummaryCard .nfDailySummaryHead span{
+  font-size:10px!important;
+  color:#777184!important;
+}
+#view-daily-update #nfDailySummaryCard #dailyUpdate{
+  font-size:14px!important;
+  line-height:1.6!important;
+  color:#51495d!important;
+}
+
+/* Fix the Dashboard My Customers heading:
+   it must remain inside the purple customer hub, fully above the list. */
+@media(max-width:900px){
+  #view-dashboard.active{
+    padding-top:8px!important;
+  }
+
+  #view-dashboard .nf-dashboard-customer-hub{
+    position:relative!important;
+    z-index:2!important;
+    margin-top:8px!important;
+    overflow:hidden!important;
+  }
+
+  #view-dashboard .nf-dashboard-customer-hub .nf-dch-head{
+    position:relative!important;
+    z-index:10!important;
+    flex:0 0 auto!important;
+    min-height:62px!important;
+    height:62px!important;
+    padding:7px 10px!important;
+    box-sizing:border-box!important;
+    overflow:visible!important;
+    transform:none!important;
+  }
+
+  #view-dashboard .nf-dashboard-customer-hub .nf-my-customers-title-wrap{
+    min-width:0!important;
+    align-items:center!important;
+    height:100%!important;
+    overflow:visible!important;
+  }
+
+  #view-dashboard .nf-dashboard-customer-hub .nf-dch-title{
+    position:relative!important;
+    z-index:12!important;
+    display:block!important;
+    margin:0!important;
+    padding:0!important;
+    line-height:1.05!important;
+    white-space:nowrap!important;
+    overflow:visible!important;
+    transform:none!important;
+  }
+
+  #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
+    position:relative!important;
+    z-index:3!important;
+    margin:0!important;
+    padding-top:6px!important;
+  }
+}
+</style>
