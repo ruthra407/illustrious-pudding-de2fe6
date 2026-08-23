@@ -13437,28 +13437,25 @@ body.nf-dashboard-mode #view-dashboard .nf-dch-list{
 }
 </style>
 
-<script id="v113-customer-slide-left-swipe-close">
+<script id="v114-customer-slide-smooth-swipe">
 (function(){
   "use strict";
 
-  /*
-    Close ONLY the Customer List side panel.
-    Vertical scrolling inside the customer list is preserved.
-  */
   function installCustomerSlideSwipe(){
     var panel=document.getElementById("nfCustomerSlideMenu");
-    if(!panel || panel.__v113SwipeInstalled) return;
-    panel.__v113SwipeInstalled=true;
+    if(!panel || panel.__v114SwipeInstalled) return;
+    panel.__v114SwipeInstalled=true;
 
-    var startX=0,startY=0,lastX=0,active=false,decided=false;
+    var startX=0,startY=0,lastX=0,dragging=false,decided=false;
 
     panel.addEventListener("touchstart",function(e){
       if(window.innerWidth>700 || !e.touches || e.touches.length!==1) return;
       var t=e.touches[0];
       startX=lastX=t.clientX;
       startY=t.clientY;
-      active=false;
+      dragging=false;
       decided=false;
+      panel.style.transition="";
     },{passive:true});
 
     panel.addEventListener("touchmove",function(e){
@@ -13469,32 +13466,33 @@ body.nf-dashboard-mode #view-dashboard .nf-dch-list{
       var dy=t.clientY-startY;
 
       if(!decided){
-        if(Math.abs(dx)<10 && Math.abs(dy)<10) return;
+        if(Math.abs(dx)<8 && Math.abs(dy)<8) return;
 
-        /* Vertical gesture = normal customer-list scrolling. */
-        if(Math.abs(dy)>=Math.abs(dx)*1.2){
+        /* Vertical movement remains normal list scrolling. */
+        if(Math.abs(dy)>Math.abs(dx)*1.15){
           decided=true;
-          active=false;
+          dragging=false;
           return;
         }
 
-        /* Only LEFT swipe closes this left-side drawer. */
+        /* This drawer only closes with a LEFT swipe. */
         if(dx>=0){
           decided=true;
-          active=false;
+          dragging=false;
           return;
         }
 
         decided=true;
-        active=true;
+        dragging=true;
+        panel.style.willChange="transform";
       }
 
-      if(!active) return;
+      if(!dragging) return;
 
       e.preventDefault();
       lastX=t.clientX;
 
-      var width=panel.getBoundingClientRect().width || (window.innerWidth*.75);
+      var width=panel.getBoundingClientRect().width || window.innerWidth*.75;
       var x=Math.max(-width,Math.min(0,dx));
 
       panel.style.transition="none";
@@ -13502,29 +13500,45 @@ body.nf-dashboard-mode #view-dashboard .nf-dch-list{
     },{passive:false});
 
     function finish(){
-      if(!active) {
+      if(!dragging){
         panel.style.transition="";
         panel.style.transform="";
+        panel.style.willChange="";
         return;
       }
 
       var dx=lastX-startX;
-      var width=panel.getBoundingClientRect().width || (window.innerWidth*.75);
+      var width=panel.getBoundingClientRect().width || window.innerWidth*.75;
+      var threshold=Math.max(50,width*.18);
 
-      panel.style.transition="";
-      panel.style.transform="";
+      if(dx <= -threshold){
+        /*
+          Continue from the finger position to fully closed.
+          Do NOT reset to 0 before closing — that was the visual "jerk".
+        */
+        panel.style.transition="transform .26s cubic-bezier(.25,.8,.25,1)";
+        panel.style.transform="translate3d(-104%,0,0)";
 
-      /*
-        A moderate horizontal swipe closes it. A short swipe simply
-        returns to the normal open position.
-      */
-      if(dx <= -Math.max(55,width*.18)){
-        if(typeof window.closeMyCustomersSlideMenu==="function"){
-          window.closeMyCustomersSlideMenu();
-        }
+        setTimeout(function(){
+          panel.style.transition="";
+          panel.style.transform="";
+          panel.style.willChange="";
+          if(typeof window.closeMyCustomersSlideMenu==="function"){
+            window.closeMyCustomersSlideMenu();
+          }
+        },270);
+      }else{
+        /* Snap gently back to open position. */
+        panel.style.transition="transform .22s cubic-bezier(.22,.8,.25,1)";
+        panel.style.transform="translate3d(0,0,0)";
+        setTimeout(function(){
+          panel.style.transition="";
+          panel.style.transform="";
+          panel.style.willChange="";
+        },230);
       }
 
-      active=false;
+      dragging=false;
       decided=false;
     }
 
@@ -13539,9 +13553,117 @@ body.nf-dashboard-mode #view-dashboard .nf-dch-list{
   }else{
     setTimeout(installCustomerSlideSwipe,80);
   }
-
-  /* The panel is already in the DOM, but retry after dynamic view changes. */
   setTimeout(installCustomerSlideSwipe,500);
 })();
 </script>
+
+
+<style id="v114-customer-slide-smooth-visuals">
+/* Smooth opening/closing: use compositor-friendly transforms. */
+.nf-customer-slide-menu{
+  width:min(75vw,360px)!important;
+  max-width:75vw!important;
+  transform:translate3d(-104%,0,0)!important;
+  transition:transform .32s cubic-bezier(.22,.8,.25,1)!important;
+  will-change:transform;
+  backface-visibility:hidden;
+  -webkit-backface-visibility:hidden;
+}
+.nf-customer-slide-menu.nf-open{
+  transform:translate3d(0,0,0)!important;
+}
+
+/* Keep backdrop lightweight so opening does not feel stuck. */
+.nf-customer-slide-backdrop{
+  backdrop-filter:blur(1px)!important;
+  -webkit-backdrop-filter:blur(1px)!important;
+  transition:opacity .24s ease!important;
+}
+
+/* Bright, distinct customer rows. */
+.nf-customer-slide-list{
+  padding:12px 10px calc(18px + env(safe-area-inset-bottom))!important;
+  background:linear-gradient(180deg,#f7f4ff 0%,#fff7fb 48%,#f2fbff 100%)!important;
+}
+
+.nf-customer-slide-row{
+  position:relative!important;
+  border:2px solid transparent!important;
+  min-height:60px!important;
+  background:#fff!important;
+  box-shadow:0 7px 18px rgba(62,38,110,.10)!important;
+  opacity:0!important;
+  transform:translate3d(-10px,0,0)!important;
+  animation:nfCustomerRowInV114 .24s cubic-bezier(.22,.8,.25,1) forwards!important;
+  animation-delay:calc(var(--nf-row-index,0) * 22ms)!important;
+  transition:transform .14s ease,box-shadow .14s ease!important;
+}
+.nf-customer-slide-row:nth-child(4n+1){
+  border-color:#8b6cf6!important;
+  background:linear-gradient(135deg,#ffffff 0%,#f4efff 100%)!important;
+}
+.nf-customer-slide-row:nth-child(4n+2){
+  border-color:#24b8a6!important;
+  background:linear-gradient(135deg,#ffffff 0%,#edfffa 100%)!important;
+}
+.nf-customer-slide-row:nth-child(4n+3){
+  border-color:#f06a8d!important;
+  background:linear-gradient(135deg,#ffffff 0%,#fff0f5 100%)!important;
+}
+.nf-customer-slide-row:nth-child(4n+4){
+  border-color:#f2b632!important;
+  background:linear-gradient(135deg,#ffffff 0%,#fff8df 100%)!important;
+}
+.nf-customer-slide-row:active{
+  transform:scale(.985)!important;
+  box-shadow:0 4px 10px rgba(62,38,110,.12)!important;
+}
+
+.nf-customer-slide-no{
+  box-shadow:0 5px 13px rgba(108,77,246,.22)!important;
+}
+.nf-customer-slide-name{
+  color:#24145f!important;
+  font-size:15px!important;
+  font-weight:950!important;
+}
+.nf-customer-slide-phone{
+  color:#4d4659!important;
+  font-size:12px!important;
+  font-weight:850!important;
+}
+.nf-customer-slide-arrow{
+  color:#7a43e6!important;
+  font-size:26px!important;
+}
+
+@keyframes nfCustomerRowInV114{
+  from{opacity:0;transform:translate3d(-10px,0,0)}
+  to{opacity:1;transform:translate3d(0,0,0)}
+}
+
+@media(max-width:560px){
+  .nf-customer-slide-menu{
+    width:75vw!important;
+    max-width:75vw!important;
+  }
+  .nf-customer-slide-row{
+    min-height:58px!important;
+    padding:10px 9px!important;
+  }
+}
+
+@media(prefers-reduced-motion:reduce){
+  .nf-customer-slide-menu,
+  .nf-customer-slide-backdrop,
+  .nf-customer-slide-row{
+    transition:none!important;
+    animation:none!important;
+  }
+  .nf-customer-slide-row{
+    opacity:1!important;
+    transform:none!important;
+  }
+}
+</style>
 
