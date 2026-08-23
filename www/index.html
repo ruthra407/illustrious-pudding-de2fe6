@@ -4726,6 +4726,164 @@ body{
 }
 </style>
 
+
+<style id="v109-home-customer-header-final">
+/* V10.9 FINAL — Home Page customer controls: no overlap, compact header, clear buttons. */
+body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-my-customers-head{
+  position:relative!important;
+  display:grid!important;
+  grid-template-columns:56px minmax(0,1fr) auto!important;
+  align-items:center!important;
+  gap:8px!important;
+  flex:0 0 64px!important;
+  width:100%!important;
+  min-height:64px!important;
+  height:64px!important;
+  max-height:64px!important;
+  margin:0!important;
+  padding:5px 8px!important;
+  box-sizing:border-box!important;
+  overflow:visible!important;
+  z-index:20!important;
+}
+body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-my-customers-title-wrap{
+  display:contents!important;
+}
+body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-left-customer-menu-btn{
+  grid-column:1!important;
+  grid-row:1!important;
+  justify-self:start!important;
+  align-self:center!important;
+  width:52px!important;
+  height:52px!important;
+  min-width:52px!important;
+  min-height:52px!important;
+  margin:0!important;
+  padding:0!important;
+  border-radius:15px!important;
+  border:1px solid rgba(255,255,255,.48)!important;
+  background:linear-gradient(145deg,#16b9d5 0%,#287be9 52%,#6047e8 100%)!important;
+  color:#fff!important;
+  display:grid!important;
+  place-items:center!important;
+  font-size:27px!important;
+  line-height:1!important;
+  box-shadow:0 7px 18px rgba(22,120,224,.25),inset 0 1px 0 rgba(255,255,255,.28)!important;
+  z-index:22!important;
+}
+body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-title{
+  grid-column:2!important;
+  grid-row:1!important;
+  justify-self:center!important;
+  align-self:center!important;
+  width:auto!important;
+  min-width:0!important;
+  margin:0!important;
+  padding:0!important;
+  display:block!important;
+  text-align:center!important;
+  white-space:nowrap!important;
+  font-size:22px!important;
+  line-height:1.05!important;
+  font-weight:950!important;
+  letter-spacing:-.3px!important;
+  color:#fff!important;
+}
+body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-title::before{
+  display:none!important;
+  content:none!important;
+}
+body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-sub{
+  display:none!important;
+}
+body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-my-customers-actions{
+  grid-column:3!important;
+  grid-row:1!important;
+  justify-self:end!important;
+  align-self:center!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:flex-end!important;
+  gap:6px!important;
+  margin:0!important;
+  padding:0!important;
+  min-width:0!important;
+  position:relative!important;
+  z-index:22!important;
+}
+body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dashboard-add-customer-btn,
+body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-my-customers-menu-btn{
+  flex:0 0 46px!important;
+  width:46px!important;
+  height:46px!important;
+  min-width:46px!important;
+  min-height:46px!important;
+  margin:0!important;
+  padding:0!important;
+  border-radius:14px!important;
+  display:grid!important;
+  place-items:center!important;
+  color:#fff!important;
+  border:1px solid rgba(255,255,255,.46)!important;
+  box-shadow:0 6px 16px rgba(57,30,120,.18),inset 0 1px 0 rgba(255,255,255,.25)!important;
+}
+body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dashboard-add-customer-btn{
+  background:linear-gradient(145deg,#7650f3 0%,#a43ce0 55%,#d73e91 100%)!important;
+  font-size:27px!important;
+  font-weight:950!important;
+}
+body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-my-customers-menu-btn{
+  background:linear-gradient(145deg,#e39b2e 0%,#f1bd48 48%,#e9d05d 100%)!important;
+  color:#3f2b00!important;
+  font-size:22px!important;
+  font-weight:950!important;
+}
+body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-left-customer-menu-btn:active,
+body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dashboard-add-customer-btn:active,
+body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-my-customers-menu-btn:active{
+  transform:scale(.95)!important;
+}
+body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
+  flex:1 1 auto!important;
+  min-height:0!important;
+  margin:0!important;
+  padding-top:6px!important;
+  position:relative!important;
+  z-index:1!important;
+}
+@media(max-width:560px){
+  body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-my-customers-head{
+    grid-template-columns:54px minmax(0,1fr) auto!important;
+    flex-basis:62px!important;
+    min-height:62px!important;
+    height:62px!important;
+    max-height:62px!important;
+    gap:5px!important;
+    padding:4px 6px!important;
+  }
+  body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-left-customer-menu-btn{
+    width:50px!important;height:50px!important;min-width:50px!important;min-height:50px!important;
+    border-radius:14px!important;font-size:26px!important;
+  }
+  body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-title{font-size:21px!important}
+  body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-my-customers-actions{gap:5px!important}
+  body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dashboard-add-customer-btn,
+  body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-my-customers-menu-btn{
+    flex-basis:44px!important;width:44px!important;height:44px!important;min-width:44px!important;min-height:44px!important;border-radius:13px!important;
+  }
+}
+@media(max-width:390px){
+  body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-my-customers-head{
+    grid-template-columns:50px minmax(0,1fr) auto!important;
+    flex-basis:58px!important;height:58px!important;min-height:58px!important;max-height:58px!important;padding:3px 5px!important;
+  }
+  body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-left-customer-menu-btn{width:46px!important;height:46px!important;min-width:46px!important;min-height:46px!important;font-size:24px!important}
+  body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-title{font-size:19px!important}
+  body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dashboard-add-customer-btn,
+  body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-my-customers-menu-btn{flex-basis:40px!important;width:40px!important;height:40px!important;min-width:40px!important;min-height:40px!important}
+}
+</style>
+
 </head>
 <body>
 
