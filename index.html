@@ -13258,115 +13258,117 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-head >
 </style>
 
 
-<style id="nf-11_8-customer-cards-final-viewport">
+<style id="nf-11_9-customer-cards-list-only-scroll">
 /*
-  11.8 — CUSTOMER CARDS ONLY
-  Clean structural implementation based directly on 11.1.
-  The app's existing fixed header/bottom navigation remain untouched.
-  Customer Cards alone gets an internal vertical scroll viewport.
-*/
-#view-customers{
-  --nf-cc-bottom-nav-h:0px;
-}
-
-/*
-  The .main area already begins below the fixed app header in 11.1.
-  Therefore do NOT subtract the top header again here.
+  11.9 — CUSTOMER CARDS ONLY
+  Based directly on 11.1.
+  IMPORTANT:
+  - Do not lock #view-customers to 100dvh.
+  - Do not change .main/body scrolling.
+  - Keep the existing Customer Cards controls in normal flow.
+  - Only #customersTable becomes a bounded scroll viewport.
 */
 #view-customers.active{
-  display:flex !important;
-  flex-direction:column !important;
-  min-height:0 !important;
-  height:calc(100dvh - var(--nf-cc-bottom-nav-h)) !important;
-  max-height:calc(100dvh - var(--nf-cc-bottom-nav-h)) !important;
-  box-sizing:border-box !important;
-  overflow:hidden !important;
-}
-
-/* Non-scrolling Customer Cards controls. */
-#view-customers.active > .nf-customer-cards-head{
-  flex:0 0 auto !important;
-  position:relative !important;
-  top:auto !important;
-  z-index:30 !important;
   overflow:visible !important;
-}
-
-#view-customers.active > .nf-customer-cards-add-wrap{
-  flex:0 0 auto !important;
-  position:relative !important;
-  top:auto !important;
-  z-index:29 !important;
-  overflow:visible !important;
-}
-
-/*
-  Search panel is a control area, not part of the customer-card list.
-  It therefore remains outside the scrolling element.
-*/
-#view-customers.active > #customerSearchPanel{
-  flex:0 0 auto !important;
-  position:relative !important;
-  z-index:28 !important;
-}
-
-/*
-  The customer list gets the remaining height.
-  min-height:0 is critical in a flex column: without it the child can
-  refuse to shrink and the parent can appear completely non-scrollable.
-*/
-#view-customers.active > #customersTable{
-  flex:1 1 auto !important;
-  min-height:0 !important;
-  min-width:0 !important;
   height:auto !important;
   max-height:none !important;
+  min-height:0 !important;
+}
+
+/*
+  The header/search/add controls stay in normal document flow.
+  They are not themselves scroll containers.
+*/
+#view-customers.active > .nf-customer-cards-head,
+#view-customers.active > .nf-customer-cards-add-wrap,
+#view-customers.active > #customerSearchPanel{
+  overflow:visible !important;
+}
+
+/*
+  Only the customer-card list gets the scroll viewport.
+  Its height is supplied from the space available between the existing
+  app header and mobile bottom navigation, after accounting for the
+  controls above it.
+*/
+#view-customers.active > #customersTable{
+  min-height:0 !important;
+  min-width:0 !important;
+  height:var(--nf-cc-list-height, auto) !important;
+  max-height:var(--nf-cc-list-height, auto) !important;
   overflow-y:auto !important;
   overflow-x:hidden !important;
-  overscroll-behavior-y:contain !important;
   -webkit-overflow-scrolling:touch !important;
+  overscroll-behavior-y:contain !important;
   touch-action:pan-y !important;
   box-sizing:border-box !important;
   padding-bottom:24px !important;
 }
 
-/* Do not introduce nested vertical scroll containers. */
+/* Prevent accidental nested vertical scrolling inside the list. */
 #view-customers.active > #customersTable .customer-card-list,
 #view-customers.active > #customersTable .customerCards{
   overflow:visible !important;
   max-height:none !important;
 }
-
-/* Existing mobile navigation remains above the list. */
-#p4MobileNav{
-  z-index:10000 !important;
-}
 </style>
 
-<script id="nf-11_8-customer-cards-final-viewport-script">
+<script id="nf-11_9-customer-cards-list-only-scroll-script">
 (function(){
   "use strict";
 
-  function syncCustomerCardsViewport(){
+  function updateCustomerListHeight(){
     var view=document.getElementById("view-customers");
-    if(!view) return;
+    var list=document.getElementById("customersTable");
+    if(!view || !list || !view.classList.contains("active")) return;
 
-    var nav=document.getElementById("p4MobileNav");
-    var navVisible=nav && getComputedStyle(nav).display!=="none";
-    var navH=navVisible ? Math.ceil(nav.getBoundingClientRect().height) : 0;
+    var header=document.querySelector("#app > header.topbar");
+    var bottom=document.getElementById("p4MobileNav");
 
-    view.style.setProperty("--nf-cc-bottom-nav-h",navH+"px");
+    var viewportH=window.innerHeight;
+
+    /*
+      Main header is fixed and #app already reserves its height.
+      Therefore only use its rendered bottom edge to determine where
+      the usable page area starts; do NOT subtract it from #app again.
+    */
+    var headerBottom=header
+      ? Math.ceil(header.getBoundingClientRect().bottom)
+      : 0;
+
+    var bottomTop=(bottom && getComputedStyle(bottom).display!=="none")
+      ? Math.floor(bottom.getBoundingClientRect().top)
+      : viewportH;
+
+    /*
+      The existing Customer Cards controls are normal-flow content.
+      Measure the list's natural top position after those controls.
+    */
+    var listTop=Math.ceil(list.getBoundingClientRect().top);
+
+    /*
+      Never let the list start above the app's usable area and never let it
+      extend underneath the existing bottom navigation.
+    */
+    var top=Math.max(listTop,headerBottom);
+    var available=Math.max(120,bottomTop-top-4);
+
+    list.style.setProperty("--nf-cc-list-height",available+"px");
+    list.style.height=available+"px";
+    list.style.maxHeight=available+"px";
   }
 
   /*
-    This is deliberately scoped to Customer Cards.
-    No global scroll API is overridden.
+    Customer-specific scrolling helper only.
+    No global scrollIntoView/window scrolling is overridden.
   */
   window.nfCustomerCardsScrollTo=function(el,behavior,block){
     var view=document.getElementById("view-customers");
     var list=document.getElementById("customersTable");
 
-    if(!el || !view || !list || !view.classList.contains("active")) return false;
+    if(!el || !view || !list || !view.classList.contains("active")){
+      return false;
+    }
 
     var lr=list.getBoundingClientRect();
     var er=el.getBoundingClientRect();
@@ -13387,26 +13389,44 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-head >
       top:Math.max(0,target),
       behavior:behavior||"smooth"
     });
+
     return true;
   };
 
-  if(document.readyState==="loading"){
-    document.addEventListener("DOMContentLoaded",function(){
-      setTimeout(syncCustomerCardsViewport,100);
-    });
-  }else{
-    setTimeout(syncCustomerCardsViewport,100);
+  function sync(){
+    updateCustomerListHeight();
   }
 
-  window.addEventListener("resize",syncCustomerCardsViewport,{passive:true});
+  if(document.readyState==="loading"){
+    document.addEventListener("DOMContentLoaded",function(){
+      setTimeout(sync,100);
+    });
+  }else{
+    setTimeout(sync,100);
+  }
+
+  window.addEventListener("resize",sync,{passive:true});
   window.addEventListener("orientationchange",function(){
-    setTimeout(syncCustomerCardsViewport,150);
+    setTimeout(sync,150);
   },{passive:true});
 
   if(window.ResizeObserver){
-    var nav=document.getElementById("p4MobileNav");
-    if(nav) new ResizeObserver(syncCustomerCardsViewport).observe(nav);
+    var header=document.querySelector("#app > header.topbar");
+    var bottom=document.getElementById("p4MobileNav");
+    if(header) new ResizeObserver(sync).observe(header);
+    if(bottom) new ResizeObserver(sync).observe(bottom);
   }
+
+  /*
+    Customer Cards is rendered dynamically, so recalculate after it becomes
+    active. This does not change scrolling anywhere else.
+  */
+  new MutationObserver(function(){
+    var view=document.getElementById("view-customers");
+    if(view && view.classList.contains("active")){
+      setTimeout(sync,0);
+    }
+  }).observe(document.body,{childList:true,subtree:true});
 })();
 </script>
 
