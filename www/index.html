@@ -535,6 +535,35 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-my-custome
 <style id="v10050-payment-update-ui">
 .nf-v10050-payment-card{margin-top:4px}.nf-v10050-edit-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}.nf-v10050-edit-box{padding:11px;border:1px solid #e1d8f4;border-radius:13px;background:rgba(255,255,255,.88)}.nf-v10050-edit-box label{display:block;font-size:12px;font-weight:900;color:#4f3c78;margin-bottom:6px}.nf-v10050-edit-box small{display:block;font-size:10px;color:#6f7482;margin:7px 0 4px}.nf-v10050-edit-box b{display:block;font-size:18px;padding:7px 0}.nf-v10050-summary-grid{margin-top:4px}.nf-v10050-edit-box .input{min-height:38px;padding:7px 9px}@media(max-width:560px){.nf-v10050-edit-grid{grid-template-columns:1fr}.nf-v10050-edit-box{padding:10px}}
 </style>
+
+<style>
+/* V100.93 — compact side-by-side payment calculation cards */
+.nf-payment-calc-grid{
+  display:grid !important;
+  grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+  gap:12px !important;
+  align-items:stretch;
+}
+.nf-payment-calc-grid > *{
+  min-width:0;
+  width:auto !important;
+  margin:0 !important;
+  box-sizing:border-box;
+}
+.nf-payment-calc-grid .calc-card,
+.nf-payment-calc-grid .payment-calc-card{
+  min-height:118px;
+}
+@media (max-width:560px){
+  .nf-payment-calc-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+    gap:10px !important;
+  }
+  .nf-payment-calc-grid > *{
+    padding:12px !important;
+  }
+}
+</style>
 </head>
 <body>
 
