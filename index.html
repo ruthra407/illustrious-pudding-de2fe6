@@ -1261,14 +1261,11 @@ function blouseSplitText(o){
 }
 function cleanPaymentNotes(v){
   return String(v||"")
-    .replace(/(?:^|\\s*\\|\\s*)ORDER_DATE:[0-9]{4}-[0-9]{2}-[0-9]{2}/g,"")
-    .replace(/(?:^|\\s*\\|\\s*)ADVANCE_DATE:[0-9]{4}-[0-9]{2}-[0-9]{2}/g,"")
-    .replace(/(?:^|\\s*\\|\\s*)BALANCE_PAID_DATE:[0-9]{4}-[0-9]{2}-[0-9]{2}/g,"")
-    .replace(/(?:^|\\s*\\|\\s*)REFUND_AMOUNT:[0-9.]+/g,"")
-    .replace(/(?:^|\\s*\\|\\s*)REFUND_PAID_DATE:[0-9]{4}-[0-9]{2}-[0-9]{2}/g,"")
-    .replace(/\\s*\\|\\s*\\|\\s*/g," | ")
-    .replace(/^\\s*\\|\\s*|\\s*\\|\\s*$/g,"")
-    .replace(/\\s{2,}/g," ")
+    // Remove internal payment metadata regardless of where it appears in the Notes string.
+    .replace(/(?:ORDER_DATE|ADVANCE_DATE|BALANCE_PAID_DATE|REFUND_AMOUNT|REFUND_PAID_DATE):[^|]*/gi,"")
+    .replace(/\s*\|\s*\|\s*/g," | ")
+    .replace(/^\s*\|\s*|\s*\|\s*$/g,"")
+    .replace(/[ \t]{2,}/g," ")
     .trim();
 }
 function cleanOrderNotes(v){
@@ -2415,6 +2412,8 @@ if(type==="payment"){
   });
   const notesField=notesEl?.closest(".field");
   if(notesField)notesField.classList.add("nf-edit-payment-notes-field");
+  // Final defensive cleanup: Notes must contain only human-entered notes.
+  if(notesEl) notesEl.value=cleanPaymentNotes(notesEl.value||"");
   const existingNotes=String(row?.notes||"");
   const existingBalanceDate=existingNotes.match(/BALANCE_PAID_DATE:([0-9]{4}-[0-9]{2}-[0-9]{2})/)?.[1]||"";
   const existingRefundDate=existingNotes.match(/REFUND_PAID_DATE:([0-9]{4}-[0-9]{2}-[0-9]{2})/)?.[1]||"";
