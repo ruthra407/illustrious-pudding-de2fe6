@@ -7034,3 +7034,159 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-my-custome
   },{once:true});
 })();
 </script>
+
+
+<style id="v10030-payment-balance-sync">
+/* V100.30 — Payment/Advance balance display only. Existing colours/layout remain untouched. */
+.nf-payment-live-grid .nf-pay-refund{
+  border:1px solid #f1a7b8;
+  border-radius:14px;
+  background:#fff1f4;
+}
+.nf-payment-live-grid .nf-pay-refund b{color:#c72d4e}
+.nf-payment-live-grid .nf-pay-receivable{
+  border:1px solid #9bd8c3;
+  border-radius:14px;
+  background:#effcf6;
+}
+.nf-payment-live-grid .nf-pay-receivable b{color:#16845a}
+.nf-advance-date-inline{display:block;font-size:.82em;margin-top:3px;opacity:.8}
+</style>
+<script id="v10030-payment-balance-sync-js">
+(function(){
+  function num(v){return Number(v||0)||0}
+  function payInfo(o){
+    if(typeof nfOrderPaymentInfo==="function") return nfOrderPaymentInfo(o||{});
+    const total=typeof orderTotal==="function"?num(orderTotal(o)):num(o?.total_amount);
+    const advance=num(o?.advance_amount);
+    const payments=(state.payments||[]).filter(p=>String(p.order_id||"")===String(o?.id||""));
+    const customerPaid=payments.reduce((s,p)=>s+num(p.amount),0);
+    return {total,advance,customerPaid,totalPaid:advance+customerPaid,balance:Math.max(0,total-advance-customerPaid),payments,advanceDate:""};
+  }
+  window.nfV10030MoneyStatus=function(o){
+    const p=payInfo(o);
+    const refund=Math.max(0,p.totalPaid-p.total);
+    const receive=Math.max(0,p.total-p.totalPaid);
+    return {p,refund,receive};
+  };
+
+  /* Add explicit refund/receivable figures to the existing Cash Collection panel
+     without changing the existing design or calculation source. */
+  const oldCustomerStats=window.customerStats;
+  if(typeof oldCustomerStats==="function"){
+    window.customerStats=function(id){
+      const st=oldCustomerStats(id);
+      st.totalPaid=num(st.advance)+num(st.paid);
+      st.refundDue=Math.max(0,st.totalPaid-num(st.total));
+      st.receiveDue=Math.max(0,num(st.total)-st.totalPaid);
+      return st;
+    };
+  }
+
+  /* Payment modal: keep the existing calculation, add the two directional balances. */
+  const oldOpenModal=window.openModal;
+  if(typeof oldOpenModal==="function"){
+    window.openModal=function(type,id){
+      oldOpenModal.apply(this,arguments);
+      if(type!=="payment") return;
+      const grid=document.querySelector(".nf-payment-live-grid");
+      if(!grid || document.getElementById("nfPayRefundDue")) return;
+      const a=document.createElement("div");
+      a.className="nf-pay-refund";
+      a.innerHTML='<span>🔴 Customer-க்கு கொடுக்க வேண்டியது</span><b id="nfPayRefundDue">₹0.00</b>';
+      const b=document.createElement("div");
+      b.className="nf-pay-receivable";
+      b.innerHTML='<span>🟢 Customer-இடமிருந்து பெற வேண்டியது</span><b id="nfPayReceiveDue">₹0.00</b>';
+      grid.append(a,b);
+
+      const orderEl=document.querySelector('#formFields [name="order_id"]');
+      const refresh=function(){
+        const oid=orderEl?.value;
+        const o=(state.orders||[]).find(x=>String(x.id)===String(oid));
+        if(!o)return;
+        const {refund,receive}=window.nfV10030MoneyStatus(o);
+        const r=document.getElementById("nfPayRefundDue"),q=document.getElementById("nfPayReceiveDue");
+        if(r)r.textContent=money(refund);
+        if(q)q.textContent=money(receive);
+      };
+      orderEl?.addEventListener("change",refresh);
+      refresh();
+    };
+  }
+
+  /* Add the directional result to the Order Full Details view. */
+  const oldOpenFull=window.openOrderFullDetails;
+  if(typeof oldOpenFull==="function"){
+    window.openOrderFullDetails=function(id){
+      oldOpenFull.apply(this,arguments);
+      const o=(state.orders||[]).find(x=>String(x.id)===String(id));
+      if(!o)return;
+      const box=document.querySelector("#nfOrderFullDetails .nf-order-detail-grid");
+      if(!box || box.querySelector(".nf-v10030-refund"))return;
+      const {refund,receive}=window.nfV10030MoneyStatus(o);
+      const div=document.createElement("div");
+      div.className="nf-order-detail-item nf-v10030-refund";
+      div.innerHTML=refund>0
+        ? `<span>Customer-க்கு கொடுக்க வேண்டியது</span><b>${money(refund)}</b>`
+        : `<span>Customer-இடமிருந்து பெற வேண்டியது</span><b>${money(receive)}</b>`;
+      box.appendChild(div);
+    };
+  }
+})();
+</script>
+
+<script id="v10030-cash-collection-decorator">
+(function(){
+  function decorate(){
+    document.querySelectorAll(".nf-cash-collection").forEach(panel=>{
+      const id=(panel.querySelector(".nf-cash-payment-btn")?.getAttribute("onclick")||"").match(/openCustomerPayment\('([^']+)/)?.[1];
+      if(!id || panel.querySelector(".nf-v10030-directional-balance")) return;
+      const st=typeof customerStats==="function"?customerStats(id):null;
+      if(!st)return;
+      const totalPaid=Number(st.totalPaid||0);
+      const total=Number(st.total||0);
+      const refund=Math.max(0,totalPaid-total);
+      const receive=Math.max(0,total-totalPaid);
+      const grid=panel.querySelector(".customerMoneyGrid");
+      if(!grid)return;
+      const d=document.createElement("div");
+      d.className="moneyStat nf-v10030-directional-balance";
+      d.innerHTML=refund>0
+        ? `<b style="color:#c72d4e">${money(refund)}</b><span>🔴 Customer-க்கு கொடுக்க வேண்டியது</span>`
+        : `<b style="color:#16845a">${money(receive)}</b><span>🟢 Customer-இடமிருந்து பெற வேண்டியது</span>`;
+      grid.appendChild(d);
+
+      const adv=panel.querySelector(".moneyStat:nth-child(3) span");
+      if(adv && typeof nfOrderPaymentInfo==="function"){
+        const info=(st.os||[]).map(nfOrderPaymentInfo).find(x=>Number(x.advance||0)>0);
+        if(info && info.advanceDate){
+          adv.innerHTML='Advance வாங்கியது <span class="nf-advance-date-inline">📅 '+nfFormatPaymentDate(info.advanceDate)+'</span>';
+        }
+      }
+    });
+  }
+  const oldRender=window.renderCustomers;
+  if(typeof oldRender==="function"){
+    window.renderCustomers=function(){
+      const r=oldRender.apply(this,arguments);
+      setTimeout(decorate,0);
+      return r;
+    };
+  }
+  document.addEventListener("DOMContentLoaded",()=>setTimeout(decorate,100));
+})();
+</script>
+
+<script id="v10030-advance-date-label">
+(function(){
+  const old=window.openModal;
+  if(typeof old!=="function")return;
+  window.openModal=function(type,id){
+    old.apply(this,arguments);
+    if(type==="order"){
+      const l=document.querySelector("#nfAdvanceDate")?.closest(".field")?.querySelector("label");
+      if(l)l.textContent="Advance வாங்கிய தேதி";
+    }
+  };
+})();
+</script>
