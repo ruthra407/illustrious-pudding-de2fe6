@@ -7672,8 +7672,11 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-my-custome
 </style>
 
 
-<!-- V100.100 — Edit Order Advance Date + linked Payment sync.
-     Base: V100.99. No Home/Blouse/Payment UI redesign. -->
+<!-- V100.100 — Edit Order Advance Date + linked Payment sync. Base: V100.99.
+     Previous V100.99 Payment ↔ Order date / advance sync retained.
+     No Home/Blouse/Payment UI redesign.
+     <!-- V100.99 — Payment ↔ Order date / advance sync only.
+     Base: V100.98. No payment UI/layout redesign and no Home/Customer changes. -->
 <script id="v10099-order-payment-date-sync">
 (function(){
   "use strict";
@@ -7781,5 +7784,94 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-my-custome
     wrappedLoad.__nfV10099=true;
     window.loadAll=wrappedLoad;
   }
+})();
+</script>
+
+
+<!-- V100.100 PATCH: Cash Collection ↔ Payment total sync + collection section colors only.
+     Base remains V100.100; existing Payment Date/Advance sync logic is preserved. -->
+<style id="v100100-collection-polish">
+/* Keep the customer-card collection UI scoped; do not alter Home or Payment screens. */
+.nf-blouse-collection .nfBlouseHandoverGrid{gap:10px!important;padding-left:16px!important;padding-right:16px!important}
+.nf-blouse-collection .nfBlouseHandoverBox{border:2px solid!important;border-radius:16px!important;padding:11px 12px!important;box-shadow:0 5px 14px rgba(45,25,80,.06)!important}
+.nf-blouse-collection .nfBlouseHandoverGiven{border-color:#9f83e8!important;background:linear-gradient(145deg,#f4efff,#fff9ff)!important}
+.nf-blouse-collection .nfBlouseHandoverPending{border-color:#e3bd59!important;background:linear-gradient(145deg,#fff9e7,#f6fff9)!important}
+.nf-blouse-collection .nfBlouseHandoverGiven .nfBlouseHandoverTitle{color:#4d267c!important;border-bottom-color:#d8c9f4!important}
+.nf-blouse-collection .nfBlouseHandoverPending .nfBlouseHandoverTitle{color:#765400!important;border-bottom-color:#ead8a5!important}
+.nf-blouse-collection .nfBlouseHandoverGiven .nfBlouseHandoverRow span{color:#57348b!important}
+.nf-blouse-collection .nfBlouseHandoverPending .nfBlouseHandoverRow span{color:#705b17!important}
+.nf-blouse-collection .nfBlouseHandoverGiven .nfBlouseHandoverRow b{color:#34205f!important}
+.nf-blouse-collection .nfBlouseHandoverPending .nfBlouseHandoverRow b{color:#51420d!important}
+
+/* Chudi subsection gets its own visual identity while remaining inside Blouse Collection. */
+.nf-blouse-collection .nf-garment-subtitle{margin:14px 10px 8px!important;border:2px solid #58c9bb!important;background:linear-gradient(135deg,#dffaf5,#f7fffd)!important;color:#08766d!important;box-shadow:0 4px 12px rgba(24,130,118,.08)!important}
+.nf-blouse-collection .nfChudiTotalBox{border:2px solid #58c9bb!important;background:linear-gradient(145deg,#e9fbf7,#f8fffd)!important;box-shadow:0 5px 14px rgba(24,130,118,.08)!important}
+.nf-blouse-collection .nfChudiTotalBox span{color:#08766d!important}
+.nf-blouse-collection .nfChudiHandoverGrid .nfBlouseHandoverGiven{border-color:#8d7be7!important;background:linear-gradient(145deg,#f2edff,#fffaff)!important}
+.nf-blouse-collection .nfChudiHandoverGrid .nfBlouseHandoverPending{border-color:#63c7ba!important;background:linear-gradient(145deg,#eafbf7,#fbfffe)!important}
+.nf-blouse-collection .nfChudiHandoverGrid .nfBlouseHandoverGiven .nfBlouseHandoverTitle{color:#50318b!important;border-bottom-color:#d8cdf4!important}
+.nf-blouse-collection .nfChudiHandoverGrid .nfBlouseHandoverPending .nfBlouseHandoverTitle{color:#08766d!important;border-bottom-color:#bfe8e1!important}
+.nf-blouse-collection .nfChudiHandoverGrid .nfBlouseHandoverGiven .nfBlouseHandoverRow span{color:#57348b!important}
+.nf-blouse-collection .nfChudiHandoverGrid .nfBlouseHandoverPending .nfBlouseHandoverRow span{color:#08766d!important}
+
+/* Cash Collection title remains gold; Blouse title remains purple; only their internal boxes are enhanced. */
+.nf-cash-collection .nf-collection-title{border:2px solid #e1b83f!important}
+.nf-blouse-collection .nf-collection-title{border:2px solid #a56de1!important}
+</style>
+
+<script id="v100100-payment-total-sync">
+(function(){
+  // V100.100 already owns Order Date + Advance Amount sync. This patch only makes
+  // the Payment total explicitly re-sync to the selected order's Cash Collection total.
+  function nfSyncPaymentTotalAndOrder(){
+    try{
+      const orderEl=document.querySelector('#formFields [name="order_id"]');
+      const totalEl=document.getElementById('nfPayTotalEdit');
+      if(!orderEl || !totalEl || typeof orderTotal!=='function') return;
+      const o=(state.orders||[]).find(x=>String(x.id)===String(orderEl.value||''));
+      if(!o) return;
+      totalEl.value=Number(orderTotal(o)||0);
+      totalEl.dispatchEvent(new Event('input',{bubbles:true}));
+    }catch(e){ console.warn('V100.100 payment total sync:',e); }
+  }
+
+  function nfPatchCustomerPayment(){
+    if(typeof window.openCustomerPayment!=='function' || window.openCustomerPayment.__v100100TotalSync) return;
+    const original=window.openCustomerPayment;
+    const wrapped=function(id){
+      const result=original.apply(this,arguments);
+      setTimeout(function(){
+        try{
+          const os=customerOrders(id);
+          const orderId=os&&os[0]?os[0].id:'';
+          const orderEl=document.querySelector('#formFields [name="order_id"]');
+          if(orderEl && orderId){
+            orderEl.value=orderId;
+            orderEl.dispatchEvent(new Event('change',{bubbles:true}));
+          }
+          nfSyncPaymentTotalAndOrder();
+        }catch(e){ console.warn('V100.100 customer payment sync:',e); }
+      },80);
+      return result;
+    };
+    wrapped.__v100100TotalSync=true;
+    window.openCustomerPayment=wrapped;
+  }
+
+  function nfInstall(){
+    nfPatchCustomerPayment();
+    nfSyncPaymentTotalAndOrder();
+    const orderEl=document.querySelector('#formFields [name="order_id"]');
+    if(orderEl && !orderEl.__v100100SyncBound){
+      orderEl.addEventListener('change',nfSyncPaymentTotalAndOrder);
+      orderEl.__v100100SyncBound=true;
+    }
+  }
+
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',function(){setTimeout(nfInstall,120);setTimeout(nfInstall,500);});
+  else {setTimeout(nfInstall,120);setTimeout(nfInstall,500);}
+
+  const observer=new MutationObserver(function(){clearTimeout(window.__nfV100100SyncTimer);window.__nfV100100SyncTimer=setTimeout(nfInstall,100);});
+  if(document.body) observer.observe(document.body,{childList:true,subtree:true});
 })();
 </script>
