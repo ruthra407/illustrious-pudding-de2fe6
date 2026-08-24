@@ -1961,7 +1961,7 @@ $("alterationsTable").innerHTML=r.length?`<div class="tablewrap"><table class="t
 }
 function renderPayments(){
 const q=($("paymentSearch").value||"").toLowerCase(),r=state.payments.filter(x=>[orderLabel(x.order_id),x.payment_method,x.reference_no].join(" ").toLowerCase().includes(q));
-$("paymentsTable").innerHTML=r.length?`<div class="tablewrap"><table class="table"><thead><tr><th>Order</th><th>Date</th><th>Amount</th><th>Method</th><th>Reference</th><th>Notes</th><th>Actions</th></tr></thead><tbody>${r.map(x=>`<tr><td>${esc(orderLabel(x.order_id))}</td><td>${dateText(x.payment_date)}</td><td><b>${money(x.amount)}</b><br><span class="mini">Customer payment · ${dateText(x.payment_date)}</span><br><span class="mini">Advance: ${money((state.orders||[]).find(o=>String(o.id)===String(x.order_id))?.advance_amount||0)} · Balance after: ${money(nfOrderBalance((state.orders||[]).find(o=>String(o.id)===String(x.order_id))||{}))}</span></td><td>${esc(x.payment_method)}</td><td>${esc(x.reference_no)}</td><td>${esc(x.notes)}</td><td><div class="actions"><button class="btn secondary" onclick="openModal('payment','${x.id}')">Edit</button><button class="btn danger" onclick="removeRow('payments','${x.id}')">Delete</button></div></td></tr>`).join("")}</tbody></table></div>`:`<div class="empty">No payments found.</div>`;
+$("paymentsTable").innerHTML=r.length?`<div class="tablewrap"><table class="table"><thead><tr><th>Order</th><th>Date</th><th>Amount</th><th>Method</th><th>Reference</th><th>Notes</th><th>Actions</th></tr></thead><tbody>${r.map(x=>`<tr><td>${esc(orderLabel(x.order_id))}</td><td>${dateText(x.payment_date)}</td><td><b>${money(x.amount)}</b><br><span class="mini">Customer payment · ${dateText(x.payment_date)}</span><br><span class="mini">Advance: ${money((state.orders||[]).find(o=>String(o.id)===String(x.order_id))?.advance_amount||0)} · Balance after: ${money(nfOrderBalance((state.orders||[]).find(o=>String(o.id)===String(x.order_id))||{}))}</span></td><td>${esc(x.payment_method)}</td><td>${esc(x.reference_no)}</td><td>${esc(x.notes)}</td><td><div class="actions nf-payment-actions"><button type="button" class="btn secondary nf-payment-icon-btn nf-payment-edit-icon" title="Edit Payment" aria-label="Edit Payment" onclick="openModal('payment','${x.id}')">✏️</button><button type="button" class="btn danger nf-payment-icon-btn nf-payment-delete-icon" title="Delete Payment" aria-label="Delete Payment" onclick="removeRow('payments','${x.id}')">🗑️</button></div></td></tr>`).join("")}</tbody></table></div>`:`<div class="empty">No payments found.</div>`;
 }
 function renderDesigns(){
 const q=($("designSearch").value||"").toLowerCase();
@@ -6038,105 +6038,63 @@ function nfFormatPaymentDate(v){return v?dateText(v):"—";}
 })();
 </script>
 
-<style id="v10090-payment-management">
-/* V100.90 — Cash Collection is summary-only; payment management stays in Payment screen. */
-.nf-cash-collection .nf-edit-payment-list,
+<style id="v10091-payment-management">
+/* V100.91 — Cash Collection: Payment + one Edit icon only. All payment editing/deleting lives in Payments screen. */
 .nf-cash-collection .nf-payment-edit-list,
-.nf-cash-collection .nf-payment-history-actions{
-  display:none!important;
-}
-.nf-cash-collection .nf-payment-history-item .nf-payment-edit-btn,
-.nf-cash-collection .nf-payment-history-item .nf-payment-delete-btn,
+.nf-cash-collection .nf-payment-edit-row,
+.nf-cash-collection .nf-payment-history-actions,
 .nf-cash-collection .nf-payment-edit-btn,
-.nf-cash-collection .nf-payment-delete-btn{
-  display:none!important;
-}
+.nf-cash-collection .nf-payment-delete-btn{display:none!important}
+.nf-cash-payment-action{display:flex!important;align-items:center!important;justify-content:flex-end!important;gap:8px!important}
+.nf-cash-edit-payment-btn{display:inline-grid!important;place-items:center!important;width:42px!important;height:42px!important;min-width:42px!important;padding:0!important;border:1px solid #bfa8ed!important;border-radius:13px!important;background:linear-gradient(135deg,#7b3ff2,#d43ca7)!important;color:#fff!important;font-size:20px!important;font-weight:950!important;box-shadow:0 5px 14px rgba(112,55,220,.18)!important;cursor:pointer!important}
+.nf-cash-edit-payment-btn:disabled{opacity:.45!important;cursor:not-allowed!important;filter:grayscale(.25)!important}
+#view-payments .nf-payment-actions{display:flex!important;align-items:center!important;justify-content:center!important;gap:7px!important}
+#view-payments .nf-payment-icon-btn{display:inline-grid!important;place-items:center!important;width:40px!important;height:40px!important;min-width:40px!important;padding:0!important;border-radius:11px!important;font-size:18px!important;font-weight:950!important;line-height:1!important}
+#view-payments .nf-payment-edit-icon{border:1px solid #bfa8ed!important;background:linear-gradient(135deg,#7b3ff2,#d43ca7)!important;color:#fff!important}
+#view-payments .nf-payment-delete-icon{border:1px solid #e5a0ae!important;background:#fff0f3!important;color:#b32645!important}
 </style>
-
-<script id="v10090-payment-management-js">
+<script id="v10091-payment-management-js">
 (function(){
   "use strict";
-
-  function hideCashCollectionPaymentEdits(){
-    document.querySelectorAll(".nf-cash-collection").forEach(function(panel){
-      panel.querySelectorAll(
-        ".nf-payment-edit-list,.nf-payment-history-actions,.nf-payment-edit-btn,.nf-payment-delete-btn"
-      ).forEach(function(el){ el.remove(); });
-      // Remove per-payment action rows/buttons that were injected by V100.80.
-      panel.querySelectorAll(".nf-payment-history-item").forEach(function(item){
-        item.querySelectorAll("button,a,[role='button']").forEach(function(el){
-          const t=(el.textContent||"").trim().toLowerCase();
-          if(t.includes("edit") || t.includes("delete") || t.includes("✏") || t.includes("🗑")){
-            el.remove();
-          }
-        });
-      });
+  function addCashEditIcon(panel){
+    const action=panel.querySelector('.nf-cash-payment-action');
+    if(!action) return;
+    action.querySelectorAll('.nf-cash-edit-payment-btn').forEach(function(x){x.remove();});
+    // Remove any old per-payment edit UI. Only one edit symbol is allowed here.
+    panel.querySelectorAll('.nf-payment-edit-list,.nf-payment-edit-row,.nf-payment-history-actions,.nf-payment-edit-btn,.nf-payment-delete-btn').forEach(function(x){x.remove();});
+    const paymentBtn=action.querySelector('.nf-cash-payment-btn');
+    if(!paymentBtn) return;
+    const onclick=paymentBtn.getAttribute('onclick')||'';
+    const m=onclick.match(/openCustomerPayment\(['"]([^'"]+)['"]\)/);
+    if(!m) return;
+    const customerId=m[1];
+    const orders=(state.orders||[]).filter(function(o){return String(o.customer_id)===String(customerId);});
+    const orderIds=new Set(orders.map(function(o){return String(o.id);}));
+    const payments=(state.payments||[]).filter(function(p){return orderIds.has(String(p.order_id));}).slice().sort(function(a,b){
+      return String(b.payment_date||'').localeCompare(String(a.payment_date||'')) || String(b.created_at||'').localeCompare(String(a.created_at||''));
     });
-  }
-
-  // Keep payment management on the Payment screen.
-  // If the app already exposes edit/delete there, do not duplicate another control.
-  function ensurePaymentScreenManagement(){
-    document.querySelectorAll(".nf-payment-screen,.payment-screen,.nf-payment-page").forEach(function(screen){
-      screen.querySelectorAll(".nf-payment-history-item").forEach(function(item){
-        if(item.querySelector(".nf-v10090-actions")) return;
-
-        const id =
-          item.getAttribute("data-payment-id") ||
-          item.dataset?.paymentId ||
-          item.getAttribute("data-id");
-
-        if(!id) return;
-
-        const actions=document.createElement("div");
-        actions.className="nf-v10090-actions";
-        actions.style.cssText="display:flex;gap:8px;justify-content:flex-end;margin-top:8px;";
-
-        const edit=document.createElement("button");
-        edit.type="button";
-        edit.textContent="✏️ Edit Payment";
-        edit.className="nf-v10090-edit";
-        edit.onclick=function(){
-          if(typeof window.openEditPayment==="function") window.openEditPayment(id);
-          else if(typeof window.editPayment==="function") window.editPayment(id);
-          else if(typeof window.openCustomerPaymentEdit==="function") window.openCustomerPaymentEdit(id);
-        };
-
-        const del=document.createElement("button");
-        del.type="button";
-        del.textContent="🗑️ Delete";
-        del.className="nf-v10090-delete";
-        del.onclick=function(){
-          const ok=window.confirm("இந்த payment-ஐ delete செய்யவா?");
-          if(!ok) return;
-          if(typeof window.deletePayment==="function") window.deletePayment(id);
-          else if(typeof window.removePayment==="function") window.removePayment(id);
-        };
-
-        actions.append(edit,del);
-        item.appendChild(actions);
+    const btn=document.createElement('button');
+    btn.type='button';
+    btn.className='nf-cash-edit-payment-btn';
+    btn.textContent='✏️';
+    btn.title=payments.length?'Edit Payment':'No payment to edit';
+    btn.setAttribute('aria-label',payments.length?'Edit Payment':'No payment to edit');
+    if(!payments.length){btn.disabled=true;}
+    else{
+      btn.addEventListener('click',function(){
+        const latest=payments[0];
+        if(latest && typeof openModal==='function') openModal('payment',latest.id);
       });
-    });
+    }
+    // Edit icon sits directly beside the existing Payment button.
+    action.appendChild(btn);
   }
-
-  function refresh(){
-    hideCashCollectionPaymentEdits();
-    ensurePaymentScreenManagement();
-  }
-
-  document.addEventListener("DOMContentLoaded",function(){
-    setTimeout(refresh,100);
-    setTimeout(refresh,500);
-  });
-
-  const observer=new MutationObserver(function(){
-    clearTimeout(window.__nf10090_timer);
-    window.__nf10090_timer=setTimeout(refresh,80);
-  });
+  function refresh(){document.querySelectorAll('.nf-cash-collection').forEach(addCashEditIcon);}
+  document.addEventListener('DOMContentLoaded',function(){setTimeout(refresh,120);setTimeout(refresh,500);});
+  const observer=new MutationObserver(function(){clearTimeout(window.__nf10091);window.__nf10091=setTimeout(refresh,80);});
   if(document.body) observer.observe(document.body,{childList:true,subtree:true});
 })();
 </script>
-
 </body>
 </html>
 
