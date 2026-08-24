@@ -6428,6 +6428,81 @@ function nfFormatPaymentDate(v){return v?dateText(v):"—";}
   .customerCard .customerRateTotal{margin:0 9px 9px!important}
 }
 </style>
+
+<style id="v100106-cash-collection-final">
+/* V100.106: Cash Collection rows only. Header/actions and all other sections untouched. */
+.nf-cash-collection .nf-cash-columns-head{display:none!important}
+.nf-cash-collection .customerMoneyGrid{
+  display:block!important;
+  margin:0!important;
+  padding:0!important;
+}
+.nf-cash-collection .customerMoneyGrid .moneyStat{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) minmax(112px,145px) minmax(90px,125px)!important;
+  gap:0!important;
+  align-items:center!important;
+  min-height:68px!important;
+  margin:0!important;
+  padding:11px 16px!important;
+  border:0!important;
+  border-bottom:1.5px solid rgba(88,62,120,.18)!important;
+  border-radius:0!important;
+  box-shadow:none!important;
+}
+.nf-cash-collection .customerMoneyGrid .moneyStat:first-child{border-top:1.5px solid rgba(88,62,120,.18)!important}
+.nf-cash-collection .customerMoneyGrid .moneyStat:nth-child(1){background:linear-gradient(90deg,#f5f0ff,#fffaff)!important}
+.nf-cash-collection .customerMoneyGrid .moneyStat:nth-child(2){background:linear-gradient(90deg,#effbf5,#fbfffd)!important}
+.nf-cash-collection .customerMoneyGrid .moneyStat:nth-child(3){background:linear-gradient(90deg,#fff9e8,#fffdf5)!important}
+.nf-cash-collection .customerMoneyGrid .moneyStat:nth-child(4){background:linear-gradient(90deg,#fff1f4,#fffafd)!important}
+.nf-cash-collection .customerMoneyGrid .moneyStat > span.nf-v10080-label{
+  display:contents!important;
+  font-size:16px!important;
+  font-weight:900!important;
+  line-height:1.25!important;
+}
+.nf-cash-collection .customerMoneyGrid .moneyStat > span.nf-v10080-label .nf-v10080-date{
+  order:2!important;
+  display:block!important;
+  justify-self:center!important;
+  margin:0!important;
+  padding:5px 10px!important;
+  border-radius:9px!important;
+  font-size:15px!important;
+  line-height:1.15!important;
+  font-weight:950!important;
+  white-space:nowrap!important;
+  text-align:center!important;
+}
+.nf-cash-collection .customerMoneyGrid .moneyStat > b{
+  order:3!important;
+  display:block!important;
+  margin:0!important;
+  font-size:19px!important;
+  line-height:1.2!important;
+  font-weight:950!important;
+  text-align:right!important;
+  white-space:nowrap!important;
+}
+.nf-cash-collection .customerMoneyGrid .moneyStat:nth-child(1)>span.nf-v10080-label{color:#4e2d93!important}
+.nf-cash-collection .customerMoneyGrid .moneyStat:nth-child(2)>span.nf-v10080-label{color:#14794f!important}
+.nf-cash-collection .customerMoneyGrid .moneyStat:nth-child(3)>span.nf-v10080-label{color:#9a6500!important}
+.nf-cash-collection .customerMoneyGrid .moneyStat:nth-child(4)>span.nf-v10080-label{color:#bf3045!important}
+.nf-cash-collection .customerMoneyGrid .moneyStat:nth-child(1)>b{color:#4e2d93!important}
+.nf-cash-collection .customerMoneyGrid .moneyStat:nth-child(2)>b{color:#14794f!important}
+.nf-cash-collection .customerMoneyGrid .moneyStat:nth-child(3)>b{color:#9a6500!important}
+.nf-cash-collection .customerMoneyGrid .moneyStat:nth-child(4)>b{color:#bf3045!important}
+@media(max-width:560px){
+  .nf-cash-collection .customerMoneyGrid .moneyStat{
+    grid-template-columns:minmax(0,1fr) 104px 82px!important;
+    min-height:66px!important;
+    padding:10px 12px!important;
+  }
+  .nf-cash-collection .customerMoneyGrid .moneyStat>span.nf-v10080-label{font-size:15px!important}
+  .nf-cash-collection .customerMoneyGrid .moneyStat>span.nf-v10080-label .nf-v10080-date{font-size:14px!important;padding:5px 7px!important}
+  .nf-cash-collection .customerMoneyGrid .moneyStat>b{font-size:17px!important}
+}
+</style>
 </body>
 
 <style id="v10098-collection-count-layout">
