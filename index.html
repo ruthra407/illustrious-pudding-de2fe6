@@ -6268,6 +6268,166 @@ function nfFormatPaymentDate(v){return v?dateText(v):"—";}
   if(document.body) observer.observe(document.body,{childList:true,subtree:true});
 })();
 </script>
+
+<style id="v100104-customer-work-colors">
+/* Customer card: rich section styling matching the Blouse Collection header */
+.customerCard .customerWorkSummary{
+  padding:10px!important;
+  border:2px solid #cdb8f5!important;
+  border-radius:20px!important;
+  background:linear-gradient(135deg,#f7f2ff 0%,#fff4fb 52%,#fff9ed 100%)!important;
+  box-shadow:0 10px 26px rgba(76,52,130,.10)!important;
+}
+.customerCard .customerWorkSection{
+  margin:9px 0!important;
+  padding:0!important;
+  overflow:hidden!important;
+  border:2px solid #cbb8f2!important;
+  border-radius:17px!important;
+  background:#fff!important;
+  box-shadow:0 6px 18px rgba(72,48,120,.08)!important;
+}
+.customerCard .customerWorkSection h4{
+  margin:0!important;
+  padding:11px 14px!important;
+  min-height:44px!important;
+  display:flex!important;
+  align-items:center!important;
+  gap:8px!important;
+  color:#fff!important;
+  font-size:18px!important;
+  font-weight:950!important;
+  line-height:1.2!important;
+  background:linear-gradient(135deg,#6036dc 0%,#b63fc0 55%,#e84f8b 100%)!important;
+  border-bottom:2px solid rgba(255,255,255,.45)!important;
+  text-shadow:0 1px 2px rgba(45,20,80,.22)!important;
+}
+/* Blouse Section body */
+.customerCard .customerWorkSection:first-child{
+  border-color:#a991e8!important;
+  background:linear-gradient(180deg,#faf7ff,#fff)!important;
+}
+.customerCard .customerWorkSection:first-child h4{
+  background:linear-gradient(135deg,#5d35db,#c43fae,#ec4f8b)!important;
+}
+/* Chudi Section */
+.customerCard .customerWorkSection:nth-child(2){
+  border-color:#58c4b5!important;
+  background:linear-gradient(180deg,#effcf9,#fff)!important;
+}
+.customerCard .customerWorkSection:nth-child(2) h4{
+  background:linear-gradient(135deg,#087f78,#16a89b,#40c7b1)!important;
+}
+/* Each quantity card gets its own distinct color */
+.customerCard .customerWorkGrid{
+  padding:11px!important;
+  gap:9px!important;
+  background:rgba(255,255,255,.72)!important;
+}
+.customerCard .customerWorkItem{
+  min-height:76px!important;
+  padding:11px 10px!important;
+  border-width:2px!important;
+  border-radius:14px!important;
+  display:flex!important;
+  flex-direction:column!important;
+  justify-content:center!important;
+  box-shadow:0 4px 12px rgba(55,40,90,.05)!important;
+}
+.customerCard .customerWorkItem:nth-child(1){
+  background:linear-gradient(145deg,#f0ebff,#faf8ff)!important;
+  border-color:#b7a1f1!important;
+}
+.customerCard .customerWorkItem:nth-child(2){
+  background:linear-gradient(145deg,#fff0f7,#fff9fc)!important;
+  border-color:#efa8c8!important;
+}
+.customerCard .customerWorkItem:nth-child(3){
+  background:linear-gradient(145deg,#fff6dc,#fffdf3)!important;
+  border-color:#e7c45c!important;
+}
+.customerCard .customerWorkItem:nth-child(4){
+  background:linear-gradient(145deg,#e9faf6,#f8fffd)!important;
+  border-color:#78cdbf!important;
+}
+.customerCard .customerWorkItem b{
+  color:#241a31!important;
+  font-size:21px!important;
+  font-weight:950!important;
+}
+.customerCard .customerWorkItem span{
+  margin-top:4px!important;
+  color:#3f3548!important;
+  font-size:13px!important;
+  font-weight:900!important;
+}
+/* Rate/details rows also become individual colored boxes */
+.customerCard .customerRateList{
+  padding:0 11px 11px!important;
+  gap:8px!important;
+}
+.customerCard .customerRateRow{
+  min-height:45px!important;
+  padding:10px 11px!important;
+  border:2px solid #ded5ed!important;
+  border-radius:13px!important;
+  background:linear-gradient(145deg,#fff,#faf8ff)!important;
+  box-shadow:0 3px 10px rgba(55,40,90,.04)!important;
+}
+.customerCard .customerRateRow:nth-child(2n){
+  border-color:#e8b8cd!important;
+  background:linear-gradient(145deg,#fff7fb,#fff)!important;
+}
+.customerCard .customerRateRow .rateLabel,
+.customerCard .customerRateRow .rateMath{
+  color:#27212d!important;
+  font-weight:900!important;
+}
+.customerCard .customerRateTotal{
+  margin:0 11px 11px!important;
+  padding:11px 13px!important;
+  border:0!important;
+  border-radius:13px!important;
+  background:linear-gradient(135deg,#6137dc,#a63fc8,#e94f8c)!important;
+  color:#fff!important;
+  box-shadow:0 6px 14px rgba(100,53,205,.16)!important;
+}
+.customerCard .customerLiningNote{
+  margin:0 0 8px!important;
+  border:2px solid #78cdb0!important;
+  background:linear-gradient(145deg,#edfff8,#fff)!important;
+}
+/* Alteration section gets a matching separate card */
+.customerCard .customerWorkSection.nf-summary-alteration-section{
+  border-color:#d4a7df!important;
+  background:linear-gradient(180deg,#fff4fc,#fff)!important;
+}
+.customerCard .nf-summary-alteration-section .nf-alteration-notes-title{
+  margin:0!important;
+  padding:10px 13px!important;
+  background:linear-gradient(135deg,#8b4ad8,#d64f9c)!important;
+  color:#fff!important;
+  font-weight:950!important;
+}
+.customerCard .nf-summary-alteration-section .nf-alteration-notes-content{
+  margin:10px!important;
+  padding:11px!important;
+  border:2px solid #ead6ee!important;
+  border-radius:12px!important;
+  background:#fff!important;
+}
+@media(max-width:560px){
+  .customerCard .customerWorkSummary{padding:8px!important;border-radius:18px!important}
+  .customerCard .customerWorkSection{margin:8px 0!important;border-radius:16px!important}
+  .customerCard .customerWorkSection h4{padding:10px 12px!important;font-size:17px!important}
+  .customerCard .customerWorkGrid{padding:9px!important;gap:8px!important}
+  .customerCard .customerWorkItem{min-height:70px!important;padding:9px!important;border-radius:13px!important}
+  .customerCard .customerWorkItem b{font-size:19px!important}
+  .customerCard .customerWorkItem span{font-size:12px!important}
+  .customerCard .customerRateList{padding:0 9px 9px!important}
+  .customerCard .customerRateTotal{margin:0 9px 9px!important}
+}
+</style>
 </body>
 
 <style id="v10098-collection-count-layout">
