@@ -5994,6 +5994,169 @@ function nfFormatPaymentDate(v){return v?dateText(v):"—";}
 })();
 </script>
 
+
+<style id="v10070-cash-date-below-label">
+/* V100.70 — Cash Collection dates sit below their labels, never beside them. */
+.nf-cash-collection .customerMoneyGrid .moneyStat{
+  align-items:center!important;
+}
+.nf-cash-collection .customerMoneyGrid .moneyStat > span.nf-v10070-label{
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:flex-start!important;
+  justify-content:center!important;
+  min-width:0!important;
+  line-height:1.18!important;
+}
+.nf-cash-collection .customerMoneyGrid .moneyStat > span.nf-v10070-label .nf-v10070-date{
+  display:block!important;
+  margin-top:5px!important;
+  padding:2px 8px!important;
+  border:1px solid #d8c8ee!important;
+  border-radius:8px!important;
+  background:#f7f2ff!important;
+  color:#5a4380!important;
+  font-size:10px!important;
+  line-height:1.2!important;
+  font-weight:950!important;
+  white-space:nowrap!important;
+}
+.nf-cash-collection .customerMoneyGrid .moneyStat:nth-child(1) > span.nf-v10070-label .nf-v10070-date{
+  border-color:#b8a5f2!important;background:#f4efff!important;color:#5035a0!important;
+}
+.nf-cash-collection .customerMoneyGrid .moneyStat:nth-child(2) > span.nf-v10070-label .nf-v10070-date{
+  border-color:#8fd2b8!important;background:#effbf5!important;color:#197453!important;
+}
+.nf-cash-collection .customerMoneyGrid .moneyStat:nth-child(3) > span.nf-v10070-label .nf-v10070-date{
+  border-color:#efc96c!important;background:#fff9e9!important;color:#8a5a00!important;
+}
+.nf-cash-collection .customerMoneyGrid .moneyStat:nth-child(4) > span.nf-v10070-label .nf-v10070-date{
+  border-color:#eaa0ae!important;background:#fff1f4!important;color:#a72b46!important;
+}
+.nf-cash-collection .customerMoneyGrid .moneyStat:nth-child(5) > span.nf-v10070-label .nf-v10070-date{
+  border-color:#8fd2b8!important;background:#effbf5!important;color:#197453!important;
+}
+</style>
+
+<script id="v10070-cash-date-below-label-js">
+(function(){
+  "use strict";
+
+  function dateDMY(v){
+    if(!v) return "—";
+    const s=String(v);
+    const m=s.match(/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})/);
+    if(m) return Number(m[3])+"-"+Number(m[2])+"-"+m[1];
+    const d=new Date(s);
+    if(!isNaN(d.getTime())){
+      return d.getDate()+"-"+(d.getMonth()+1)+"-"+d.getFullYear();
+    }
+    return s;
+  }
+
+  function latest(list){
+    return (list||[]).filter(Boolean).map(String).sort().slice(-1)[0] || "";
+  }
+
+  function paymentInfo(o){
+    try{
+      return typeof nfOrderPaymentInfo==="function" ? nfOrderPaymentInfo(o||{}) : null;
+    }catch(e){ return null; }
+  }
+
+  function normalizePanel(panel){
+    const btn=panel.querySelector(".nf-cash-payment-btn");
+    const match=(btn?.getAttribute("onclick")||"").match(/openCustomerPayment\('([^']+)/);
+    if(!match) return;
+
+    const id=match[1];
+    const orders=(state.orders||[]).filter(o=>String(o.customer_id)===String(id));
+    if(!orders.length) return;
+
+    const infos=orders.map(paymentInfo).filter(Boolean);
+    const paidDates=infos.flatMap(x=>(x.payments||[]).map(p=>p.payment_date)).filter(Boolean);
+    const advanceDates=infos.map(x=>x.advanceDate).filter(Boolean);
+    const refundDates=infos.map(x=>x.refundPaidDate).filter(Boolean);
+    const balanceDates=infos.map(x=>x.balancePaidDate).filter(Boolean);
+
+    const totalDate=latest(orders.map(o=>o.order_date).filter(Boolean));
+    const paidDate=latest(paidDates);
+    const advanceDate=latest(advanceDates);
+    const refundDate=latest(refundDates);
+    const balanceDate=latest(balanceDates);
+
+    const st=typeof customerStats==="function" ? customerStats(id) : null;
+    const total=Number(st?.total||0);
+    const totalPaid=Number(st?.advance||0)+Number(st?.paid||0);
+    const refund=Math.max(0,totalPaid-total);
+    const receive=Math.max(0,total-totalPaid);
+
+    const cards=panel.querySelectorAll(".customerMoneyGrid .moneyStat");
+    const labels=[
+      "மொத்த order",
+      "Customer paid",
+      "Advance வாங்கியது",
+      refund>0 ? "Customer-க்கு கொடுக்க வேண்டும்" : "இன்னும் கொடுக்க வேண்டும்",
+      refund>0 ? "Customer-க்கு கொடுத்தது" : "Customer-இடமிருந்து பெற வேண்டியது"
+    ];
+    const dates=[
+      totalDate,
+      paidDate,
+      advanceDate,
+      refund>0 ? refundDate : balanceDate,
+      refund>0 ? refundDate : balanceDate
+    ];
+
+    cards.forEach((card,i)=>{
+      if(i>=labels.length) return;
+      const span=card.querySelector("span");
+      if(!span) return;
+
+      span.classList.add("nf-v10070-label");
+
+      // Remove every old date node/inline date before rebuilding this label.
+      span.querySelectorAll(".nf-v10060-cash-date,.nf-v10070-date,.nf-advance-date-inline").forEach(n=>n.remove());
+
+      // Keep the amount <b> untouched; rebuild only the label/date area.
+      span.textContent="";
+      span.append(document.createTextNode(labels[i]));
+
+      const date=document.createElement("small");
+      date.className="nf-v10070-date";
+      date.textContent="📅 "+dateDMY(dates[i]);
+      span.appendChild(date);
+    });
+  }
+
+  function refresh(){
+    document.querySelectorAll(".nf-cash-collection").forEach(normalizePanel);
+  }
+
+  const oldRender=window.renderCustomers;
+  if(typeof oldRender==="function" && !window.__nf10070CashDateFix){
+    window.__nf10070CashDateFix=true;
+    window.renderCustomers=function(){
+      const r=oldRender.apply(this,arguments);
+      setTimeout(refresh,0);
+      setTimeout(refresh,120);
+      return r;
+    };
+  }
+
+  document.addEventListener("DOMContentLoaded",function(){
+    setTimeout(refresh,120);
+    setTimeout(refresh,500);
+  });
+
+  // Also catches panels created by modal/view rendering without touching data.
+  const mo=new MutationObserver(function(){
+    clearTimeout(window.__nf10070CashDateTimer);
+    window.__nf10070CashDateTimer=setTimeout(refresh,60);
+  });
+  if(document.body) mo.observe(document.body,{childList:true,subtree:true});
+})();
+</script>
+
 </body>
 </html>
 
