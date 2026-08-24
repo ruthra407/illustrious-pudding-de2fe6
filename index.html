@@ -524,6 +524,9 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-my-custome
 <style id="nf-home-customer-card-clarity-v1">#view-dashboard .nf-dashboard-customer-hub .nf-dch-card{position:relative!important;overflow:hidden!important;border:2px solid #d8d4ee!important;border-left-width:6px!important;background:linear-gradient(135deg,#ffffff 0%,#fbf9ff 62%,#fff8fb 100%)!important;font-family:system-ui,-apple-system,"Noto Sans Tamil","Noto Sans",Arial,sans-serif!important;-webkit-font-smoothing:antialiased!important;text-rendering:geometricPrecision!important}#view-dashboard .nf-dashboard-customer-hub .nf-dch-card:nth-child(5n/**/+1){border-color:#b9a8ff!important;border-left-color:#6c4df6!important;background:linear-gradient(135deg,#ffffff 0%,#f6f2ff 100%)!important}#view-dashboard .nf-dashboard-customer-hub .nf-dch-card:nth-child(5n/**/+2){border-color:#8fddec!important;border-left-color:#159fc2!important;background:linear-gradient(135deg,#ffffff 0%,#effcff 100%)!important}#view-dashboard .nf-dashboard-customer-hub .nf-dch-card:nth-child(5n/**/+3){border-color:#f2b6cf!important;border-left-color:#e84383!important;background:linear-gradient(135deg,#ffffff 0%,#fff4f8 100%)!important}#view-dashboard .nf-dashboard-customer-hub .nf-dch-card:nth-child(5n/**/+4){border-color:#f0d27e!important;border-left-color:#e5a800!important;background:linear-gradient(135deg,#ffffff 0%,#fffaf0 100%)!important}#view-dashboard .nf-dashboard-customer-hub .nf-dch-card:nth-child(5n/**/+5){border-color:#9dd9bd!important;border-left-color:#18a66d!important;background:linear-gradient(135deg,#ffffff 0%,#f2fff9 100%)!important}#view-dashboard .nf-dashboard-customer-hub .nf-dch-name{letter-spacing:-.25px!important;overflow-wrap:anywhere!important;color:#4d35bd!important}#view-dashboard .nf-dashboard-customer-hub .nf-dch-card:nth-child(5n/**/+2) .nf-dch-name{color:#087d9c!important}#view-dashboard .nf-dashboard-customer-hub .nf-dch-card:nth-child(5n/**/+3) .nf-dch-name{color:#c62f70!important}#view-dashboard .nf-dashboard-customer-hub .nf-dch-card:nth-child(5n/**/+4) .nf-dch-name{color:#9a6900!important}#view-dashboard .nf-dashboard-customer-hub .nf-dch-card:nth-child(5n/**/+5) .nf-dch-name{color:#08784e!important}#view-dashboard .nf-dashboard-customer-hub .nf-dch-contact{font-weight:700!important;color:#4f5362!important;overflow-wrap:anywhere!important}#view-dashboard .nf-dashboard-customer-hub .nf-dch-contact::first-line{color:#333746!important}#view-dashboard .nf-dashboard-customer-hub .nf-dch-garment-box{width:100%!important;min-height:50px!important;padding:9px 11px!important;border-radius:13px!important;background:linear-gradient(135deg,#fff0f7,#f4efff)!important;border:1px solid #e3c9ef!important}#view-dashboard .nf-dashboard-customer-hub .nf-dch-garment-box b{display:block!important;font-size:14px!important;line-height:1.35!important;font-weight:950!important;color:#242334!important;white-space:normal!important;overflow-wrap:anywhere!important}#view-dashboard .nf-dashboard-customer-hub .nf-dch-garment-box span{display:block!important;margin-top:3px!important;font-size:11px!important;line-height:1.2!important;font-weight:800!important;color:#6a6272!important}#view-dashboard .nf-dashboard-customer-hub .nf-dch-pill{font-weight:850!important}@media (max-width:560px){#view-dashboard .nf-dashboard-customer-hub .nf-dch-card{padding:12px 10px 10px!important;border-left-width:5px!important}#view-dashboard .nf-dashboard-customer-hub .nf-dch-name{font-size:18px!important}#view-dashboard .nf-dashboard-customer-hub .nf-dch-contact{font-size:11.5px!important;line-height:1.42!important}#view-dashboard .nf-dashboard-customer-hub .nf-dch-garment-box b{font-size:13px!important}}</style>
 
 
+<style id="v10050-payment-update-ui">
+.nf-v10050-payment-card{margin-top:4px}.nf-v10050-edit-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}.nf-v10050-edit-box{padding:11px;border:1px solid #e1d8f4;border-radius:13px;background:rgba(255,255,255,.88)}.nf-v10050-edit-box label{display:block;font-size:12px;font-weight:900;color:#4f3c78;margin-bottom:6px}.nf-v10050-edit-box small{display:block;font-size:10px;color:#6f7482;margin:7px 0 4px}.nf-v10050-edit-box b{display:block;font-size:18px;padding:7px 0}.nf-v10050-summary-grid{margin-top:4px}.nf-v10050-edit-box .input{min-height:38px;padding:7px 9px}@media(max-width:560px){.nf-v10050-edit-grid{grid-template-columns:1fr}.nf-v10050-edit-box{padding:10px}}
+</style>
 </head>
 <body>
 
@@ -2069,7 +2072,7 @@ order:{title:"Order",table:"orders",fields:[
 ["lining_cloth_source","Lining cloth","liningSource"],["lining_cloth_qty","Lining cloth quantity","number"],["total_amount","மொத்த தொகை","number",true],["advance_amount","Advance / Paid","number",true],["status","Status","orderstatus",true],["notes","Alteration Notes","textarea"]
 ]},
 alteration:{title:"Alteration",table:"alterations",fields:[["customer_id","Customer","customer",true],["order_id","Order","order"],["alteration_details","Alteration Details","textarea",true],["alteration_date","Alteration Date","date",true],["delivery_date","Delivery Date","date"],["status","Status","alterstatus",true],["amount","Amount","number"],["notes","Notes","textarea"]]},
-payment:{title:"Payment",table:"payments",fields:[["order_id","Order","order",true],["payment_date","Payment Date","date",true],["amount","Amount","number",true],["payment_method","Payment Method","paymentmethod",true],["reference_no","Reference No","text"],["notes","Notes","textarea"]]},
+payment:{title:"Payment",table:"payments",fields:[["order_id","Order","order",true],["payment_date","Payment Date","date",true],["amount","Customer Paid Amount","number",true],["payment_method","Payment Method","paymentmethod",true],["reference_no","Reference No","text"],["notes","Notes","textarea"]]},
 design:{title:"Design",table:"designs",fields:[["design_no","Design No","text",true],["design_name","Design Name","text",true],["category","Category","text"],["description","Description","textarea"],["image_url","Image URL","url"],["price","Price","number"]]}
 };
 
@@ -2238,73 +2241,78 @@ fileInput.value="";cameraInput.value="";fileInput.dataset.dataUrl="";cameraInput
 if(type==="payment"){
   const wrap=document.createElement("div");
   wrap.className="nf-payment-entry-summary field full";
-  wrap.innerHTML=`<div class="nf-payment-live-card">
-    <h4>💰 Payment Calculation</h4>
-    <div class="nf-payment-live-grid">
-      <div><span>Total Order</span><b id="nfPayTotal">₹0.00</b></div>
-      <div><span>Advance Paid</span><b id="nfPayAdvance">₹0.00</b><small id="nfPayAdvanceDate">Date: —</small></div>
-      <div><span>Customer Paid</span><b id="nfPayCustomerPaid">₹0.00</b></div>
-      <div><span>Balance Before Payment</span><b id="nfPayBalanceBefore">₹0.00</b></div>
-      <div><span>Current Payment</span><b id="nfPayCurrent">₹0.00</b></div>
-      <div class="nf-pay-balance"><span>Balance After Payment</span><b id="nfPayBalanceAfter">₹0.00</b></div>
+  wrap.innerHTML=`<div class="nf-payment-live-card nf-v10050-payment-card">
+    <h4>💰 Payment Calculation & Update</h4>
+    <div class="nf-v10050-edit-grid">
+      <div class="nf-v10050-edit-box"><label>மொத்த Order Amount</label><input class="input" type="number" min="0" step="0.01" id="nfPayTotalEdit"><small>Order Date</small><input class="input" type="date" id="nfPayOrderDate"></div>
+      <div class="nf-v10050-edit-box"><label>Advance Amount</label><input class="input" type="number" min="0" step="0.01" id="nfPayAdvanceEdit"><small>Advance கொடுத்த தேதி</small><input class="input" type="date" id="nfPayAdvanceDateEdit"></div>
+      <div class="nf-v10050-edit-box"><label>Customer-க்கு Refund</label><input class="input" type="number" min="0" step="0.01" id="nfPayRefundEdit"><small>Refund கொடுத்த தேதி</small><input class="input" type="date" id="nfRefundPaidDate"></div>
+      <div class="nf-v10050-edit-box"><label>Customer-இடமிருந்து இன்னும் பெற வேண்டியது</label><b id="nfPayReceiveDue">₹0.00</b><small>Balance settle செய்த தேதி</small><input class="input" type="date" id="nfBalancePaidDate"></div>
+      <div class="nf-v10050-edit-box nf-pay-balance"><label>Balance After Payment</label><b id="nfPayBalanceAfter">₹0.00</b><small>இந்த கணக்கு Cash Collection-க்கும் sync ஆகும்</small></div>
     </div>
-  </div>
-  <div class="field"><label>💵 Balance Amount Paid Date</label><input class="input" type="date" id="nfBalancePaidDate" value=""></div>
-  <div class="field"><label>🔴 Customer Refund Paid Date</label><input class="input" type="date" id="nfRefundPaidDate" value=""></div>`;
+    <div class="nf-payment-live-grid nf-v10050-summary-grid">
+      <div><span>Total Order</span><b id="nfPayTotal">₹0.00</b><small id="nfPayTotalDate">Date: —</small></div>
+      <div><span>Advance Paid</span><b id="nfPayAdvance">₹0.00</b><small id="nfPayAdvanceDate">Date: —</small></div>
+      <div><span>Customer Paid (before this)</span><b id="nfPayCustomerPaid">₹0.00</b></div>
+      <div><span>Current Payment</span><b id="nfPayCurrent">₹0.00</b></div>
+      <div><span>Balance Before Payment</span><b id="nfPayBalanceBefore">₹0.00</b></div>
+      <div><span>Refund</span><b id="nfPayRefundDue">₹0.00</b></div>
+    </div>
+  </div>`;
   $("formFields").appendChild(wrap);
   const orderEl=$("formFields").querySelector('[name="order_id"]');
   const amountEl=$("formFields").querySelector('[name="amount"]');
   const paymentDateEl=$("formFields").querySelector('[name="payment_date"]');
   const notesEl=$("formFields").querySelector('[name="notes"]');
+  const totalEdit=$("nfPayTotalEdit"), orderDateEdit=$("nfPayOrderDate"), advanceEdit=$("nfPayAdvanceEdit"), advanceDateEdit=$("nfPayAdvanceDateEdit"), refundEdit=$("nfPayRefundEdit");
   const existingNotes=String(row?.notes||"");
   const existingBalanceDate=existingNotes.match(/BALANCE_PAID_DATE:([0-9]{4}-[0-9]{2}-[0-9]{2})/)?.[1]||"";
   const existingRefundDate=existingNotes.match(/REFUND_PAID_DATE:([0-9]{4}-[0-9]{2}-[0-9]{2})/)?.[1]||"";
-  $("nfBalancePaidDate").value=existingBalanceDate;
-  $("nfRefundPaidDate").value=existingRefundDate;
-  const refreshPaymentCalc=()=>{
-    const oid=orderEl?.value;
-    const o=(state.orders||[]).find(x=>String(x.id)===String(oid));
-    const total=Number(o?orderTotal(o):0)||0;
-    const advance=Number(o?.advance_amount||0)||0;
-    const payments=(state.payments||[]).filter(p=>String(p.order_id||"")===String(oid)&&String(p.id)!==String(id));
-    const customerPaid=payments.reduce((s,p)=>s+Number(p.amount||0),0);
-    const before=Math.max(0,total-advance-customerPaid);
-    const current=Math.max(0,Number(amountEl?.value||0)||0);
-    const after=Math.max(0,before-current);
-    const totalAfterPayment=advance+customerPaid+current;
-    const refundAfter=Math.max(0,totalAfterPayment-total);
-    const receiveAfter=Math.max(0,total-totalAfterPayment);
-    $("nfPayTotal").textContent=money(total);
-    $("nfPayAdvance").textContent=money(advance);
-    $("nfPayAdvanceDate").textContent="Date: "+nfFormatPaymentDate(nfOrderPaymentInfo(o||{}).advanceDate);
-    $("nfPayCustomerPaid").textContent=money(customerPaid);
-    $("nfPayBalanceBefore").textContent=money(before);
-    $("nfPayCurrent").textContent=money(current);
-    $("nfPayBalanceAfter").textContent=money(after);
-    let refundBox=$("nfPayRefundDue"), receiveBox=$("nfPayReceiveDue");
-    if(!refundBox || !receiveBox){
-      const grid=document.querySelector(".nf-payment-live-grid");
-      if(grid){
-        const a=document.createElement("div");a.className="nf-pay-refund";a.innerHTML='<span>🔴 Customer-க்கு கொடுக்க வேண்டியது</span><b id="nfPayRefundDue">₹0.00</b>';
-        const b=document.createElement("div");b.className="nf-pay-receivable";b.innerHTML='<span>🟢 Customer-இடமிருந்து பெற வேண்டியது</span><b id="nfPayReceiveDue">₹0.00</b>';
-        grid.append(a,b); refundBox=$("nfPayRefundDue"); receiveBox=$("nfPayReceiveDue");
-      }
-    }
-    if(refundBox)refundBox.textContent=money(refundAfter);
-    if(receiveBox)receiveBox.textContent=money(receiveAfter);
-    if(after===0 && totalAfterPayment>=total && current>0 && paymentDateEl && $("nfBalancePaidDate") && !$("nfBalancePaidDate").value){
-      $("nfBalancePaidDate").value=paymentDateEl.value||localDate();
-    }
-    if(refundAfter>0 && current>0 && paymentDateEl && $("nfRefundPaidDate") && !$("nfRefundPaidDate").value){
-      $("nfRefundPaidDate").value=paymentDateEl.value||localDate();
-    }
-    if(after>0 && !existingBalanceDate && $("nfBalancePaidDate")) $("nfBalancePaidDate").value="";
-    if(refundAfter<=0 && !existingRefundDate && $("nfRefundPaidDate")) $("nfRefundPaidDate").value="";
-    if(amountEl) amountEl.removeAttribute("max");
+  const selectedOrder=()=> (state.orders||[]).find(x=>String(x.id)===String(orderEl?.value));
+  const setOrderFields=()=>{
+    const o=selectedOrder(); if(!o)return;
+    const info=nfOrderPaymentInfo(o);
+    if(totalEdit)totalEdit.value=Number(orderTotal(o)||0);
+    if(orderDateEdit)orderDateEdit.value=String(o.order_date||"");
+    if(advanceEdit)advanceEdit.value=Number(o.advance_amount||0);
+    if(advanceDateEdit)advanceDateEdit.value=String(info.advanceDate||"");
   };
-  orderEl?.addEventListener("change",refreshPaymentCalc);
-  amountEl?.addEventListener("input",refreshPaymentCalc);
-  paymentDateEl?.addEventListener("change",()=>{const o=(state.orders||[]).find(x=>String(x.id)===String(orderEl?.value));const before=Number($("nfPayBalanceBefore")?.textContent?.replace(/[^0-9.]/g,"")||0);if(Number(amountEl?.value||0)>0&&before-Number(amountEl?.value||0)<=0&&$("nfBalancePaidDate")&&!$("nfBalancePaidDate").value)$("nfBalancePaidDate").value=paymentDateEl.value||localDate();});
+  setOrderFields();
+  if(paymentDateEl && !paymentDateEl.value) paymentDateEl.value=localDate();
+  if(amountEl) amountEl.value = id ? (row?.amount??0) : (amountEl.value||0);
+  if($("nfBalancePaidDate")) $("nfBalancePaidDate").value=existingBalanceDate;
+  if($("nfRefundPaidDate")) $("nfRefundPaidDate").value=existingRefundDate;
+  const refreshPaymentCalc=()=>{
+    const o=selectedOrder();
+    const total=Math.max(0,Number(totalEdit?.value||0)||0);
+    const advance=Math.max(0,Number(advanceEdit?.value||0)||0);
+    const payments=(state.payments||[]).filter(p=>String(p.order_id||"")===String(orderEl?.value||"")&&String(p.id)!==String(id));
+    const customerPaid=payments.reduce((s,p)=>s+Number(p.amount||0),0);
+    const current=Math.max(0,Number(amountEl?.value||0)||0);
+    const refundInput=Math.max(0,Number(refundEdit?.value||0)||0);
+    const before=Math.max(0,total-advance-customerPaid);
+    const totalAfterPayment=advance+customerPaid+current;
+    const computedReceive=Math.max(0,total-totalAfterPayment);
+    const computedRefund=Math.max(0,totalAfterPayment-total);
+    const refund=Math.min(refundInput||computedRefund, Math.max(0,totalAfterPayment));
+    const after=Math.max(0,computedReceive);
+    $("nfPayTotal").textContent=money(total);
+    $("nfPayTotalDate").textContent="Date: "+nfFormatPaymentDate(orderDateEdit?.value||o?.order_date||"");
+    $("nfPayAdvance").textContent=money(advance);
+    $("nfPayAdvanceDate").textContent="Date: "+nfFormatPaymentDate(advanceDateEdit?.value||"");
+    $("nfPayCustomerPaid").textContent=money(customerPaid);
+    $("nfPayCurrent").textContent=money(current);
+    $("nfPayBalanceBefore").textContent=money(before);
+    $("nfPayBalanceAfter").textContent=money(after);
+    $("nfPayRefundDue").textContent=money(refund);
+    $("nfPayReceiveDue").textContent=money(after);
+    if(after===0 && totalAfterPayment>=total && current>0 && paymentDateEl && $("nfBalancePaidDate") && !$("nfBalancePaidDate").value) $("nfBalancePaidDate").value=paymentDateEl.value||localDate();
+    if(refund>0 && current>0 && paymentDateEl && $("nfRefundPaidDate") && !$("nfRefundPaidDate").value) $("nfRefundPaidDate").value=paymentDateEl.value||localDate();
+    if(refundEdit && !refundEdit.value && computedRefund>0) refundEdit.value=computedRefund.toFixed(2);
+  };
+  orderEl?.addEventListener("change",()=>{setOrderFields();refreshPaymentCalc();});
+  [amountEl,totalEdit,advanceEdit,orderDateEdit,advanceDateEdit,refundEdit,paymentDateEl].forEach(el=>el?.addEventListener("input",refreshPaymentCalc));
+  [orderDateEdit,advanceDateEdit,$("nfBalancePaidDate"),$("nfRefundPaidDate")].forEach(el=>el?.addEventListener("change",refreshPaymentCalc));
   refreshPaymentCalc();
 }
 
@@ -2370,22 +2378,39 @@ if(type==="payment"){
   const oid=String(payload.order_id||"");
   const o=(state.orders||[]).find(x=>String(x.id)===oid);
   if(!o){$("formMsg").textContent="Order தேர்வு செய்ய வேண்டும்.";$("formMsg").className="msg error";return;}
-  const total=Number(orderTotal(o)||0), advance=Number(o.advance_amount||0);
+  const total=Math.max(0,Number($("nfPayTotalEdit")?.value||orderTotal(o)||0));
+  const advance=Math.max(0,Number($("nfPayAdvanceEdit")?.value||0));
   const otherPaid=(state.payments||[]).filter(p=>String(p.order_id||"")===oid&&String(p.id)!==String(id)).reduce((s,p)=>s+Number(p.amount||0),0);
-  const available=Math.max(0,total-advance-otherPaid), amount=Math.max(0,Number(payload.amount||0));
-  if(amount<=0){$("formMsg").textContent="Payment amount 0 ஆக இருக்கக்கூடாது.";$("formMsg").className="msg error";return;}
-  const balanceAfter=Math.max(0,available-amount);
+  const amount=Math.max(0,Number(payload.amount||0));
+  const refundAmount=Math.max(0,Number($("nfPayRefundEdit")?.value||0));
+  if(amount<=0 && refundAmount<=0){$("formMsg").textContent="Customer Payment அல்லது Refund amount கொடுக்க வேண்டும்.";$("formMsg").className="msg error";return;}
+  const balanceAfter=Math.max(0,total-advance-otherPaid-amount);
   const totalAfterPayment=advance+otherPaid+amount;
-  const refundAfter=Math.max(0,totalAfterPayment-total);
+  const computedRefund=Math.max(0,totalAfterPayment-total);
+  const refund=Math.min(refundAmount||computedRefund,Math.max(0,totalAfterPayment));
   const balanceDate=$("nfBalancePaidDate")?.value||"";
   const refundDate=$("nfRefundPaidDate")?.value||"";
+  const advanceDate=advance>0?($("nfPayAdvanceDateEdit")?.value||$("nfPayOrderDate")?.value||payload.payment_date||localDate()):"";
+  const orderDate=$("nfPayOrderDate")?.value||o.order_date||localDate();
   const clean=cleanOrderNotes(payload.notes||"")
     .replace(/BALANCE_PAID_DATE:[0-9]{4}-[0-9]{2}-[0-9]{2}\s*\|?\s*/g,"")
-    .replace(/REFUND_PAID_DATE:[0-9]{4}-[0-9]{2}-[0-9]{2}\s*\|?\s*/g,"").trim();
+    .replace(/REFUND_PAID_DATE:[0-9]{4}-[0-9]{2}-[0-9]{2}\s*\|?\s*/g,"")
+    .replace(/REFUND_AMOUNT:[0-9.]+\s*\|?\s*/g,"").trim();
   payload.notes=[clean,
+    `ORDER_DATE:${orderDate}`,
+    `ADVANCE_DATE:${advanceDate}`,
     balanceAfter===0?`BALANCE_PAID_DATE:${balanceDate||payload.payment_date}`:"",
-    refundAfter>0?`REFUND_PAID_DATE:${refundDate||payload.payment_date}`:""
+    refund>0?`REFUND_AMOUNT:${refund.toFixed(2)}`:"",
+    refund>0?`REFUND_PAID_DATE:${refundDate||payload.payment_date}`:""
   ].filter(Boolean).join(" | ");
+  payload.amount=amount;
+  payload.__orderUpdate={
+    total_amount:total,
+    advance_amount:advance,
+    balance_amount:Math.max(0,total-advance),
+    order_date:orderDate,
+    notes:(String(o.notes||"").replace(/ADVANCE_DATE:[0-9]{4}-[0-9]{2}-[0-9]{2}\s*\|?\s*/g,"").replace(/ORDER_DATE:[0-9]{4}-[0-9]{2}-[0-9]{2}\s*\|?\s*/g,"").trim()+` | ORDER_DATE:${orderDate} | ADVANCE_DATE:${advanceDate}`).replace(/^\s*\|\s*|\s*\|\s*$/g,"")
+  };
 }
 if(type==="design"){const f=$("designPhotoFile"),cam=$("designCameraFile");const dataUrl=f?.dataset.dataUrl||cam?.dataset.dataUrl;const remove=f?.dataset.remove==="1"||cam?.dataset.remove==="1";if(dataUrl)payload.image_url=dataUrl;else if(remove)payload.image_url=null;}
 if(type==="order"){
@@ -2438,6 +2463,11 @@ if(type==="order"){
 }
 const b=$("saveBtn");b.disabled=true;b.textContent="Saving...";
 try{
+if(type==="payment" && payload.__orderUpdate){
+  const ou=payload.__orderUpdate; delete payload.__orderUpdate;
+  const ur=await supabaseClient.from("orders").update(ou).eq("id",String(payload.order_id));
+  if(ur.error)throw ur.error;
+}
 let result=id?await supabaseClient.from(def.table).update(payload).eq("id",id).select().single():await supabaseClient.from(def.table).insert(payload).select().single();
 if(result.error)throw result.error;
 if(type==="customer"){
@@ -5875,16 +5905,19 @@ function nfFormatPaymentDate(v){return v?dateText(v):"—";}
       let refund=0,receive=0,refundDate='',balanceDate='';
       orders.forEach(o=>{
         const info=typeof nfOrderPaymentInfo==='function'?nfOrderPaymentInfo(o):null; if(!info)return;
+        if(Number(info.total)>0) rows.push(`<div class="row"><span>🧾 Total Order ${money(info.total)}</span><span class="date">${fmt(o.order_date||"")}</span></div>`);
         if(Number(info.advance)>0) rows.push(`<div class="row"><span>💵 Advance ${money(info.advance)}</span><span class="date">${fmt(info.advanceDate)}</span></div>`);
         (info.payments||[]).forEach(p=>{
           rows.push(`<div class="row"><span>💳 Customer Paid ${money(p.amount)}</span><span class="date">${fmt(p.payment_date)}</span></div>`);
           const bn=String(p.notes||'').match(/BALANCE_PAID_DATE:([0-9]{4}-[0-9]{2}-[0-9]{2})/)?.[1]||'';
           const rn=String(p.notes||'').match(/REFUND_PAID_DATE:([0-9]{4}-[0-9]{2}-[0-9]{2})/)?.[1]||'';
+          const ra=Number(String(p.notes||'').match(/REFUND_AMOUNT:([0-9.]+)/)?.[1]||0);
+          if(ra>0)refund+=ra;
           if(bn)balanceDate=bn; if(rn)refundDate=rn;
         });
-        refund+=Math.max(0,Number(info.totalPaid)-Number(info.total));
         receive+=Math.max(0,Number(info.total)-Number(info.totalPaid));
       });
+      if(refund<=0) orders.forEach(o=>{const info=typeof nfOrderPaymentInfo==='function'?nfOrderPaymentInfo(o):null;if(info)refund+=Math.max(0,Number(info.totalPaid)-Number(info.total));});
       if(balanceDate) rows.push(`<div class="row"><span>🟢 Balance Settled</span><span class="date">${fmt(balanceDate)}</span></div>`);
       if(refund>0) rows.push(`<div class="row refund"><span>🔴 Refund ${money(refund)}</span><span class="date">${fmt(refundDate)}</span></div>`);
       if(receive>0) rows.push(`<div class="row receive"><span>🟢 Still to Receive ${money(receive)}</span><span class="date">—</span></div>`);
