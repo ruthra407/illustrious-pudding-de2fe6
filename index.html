@@ -564,6 +564,24 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-my-custome
   }
 }
 </style>
+
+<style id="v10094-payment-summary-two-column">
+/* V100.94: Payment Calculation summary must remain side-by-side on mobile. */
+.nf-v10060-live-summary{
+  display:grid !important;
+  grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+  gap:9px !important;
+}
+.nf-v10060-live-summary > .nf-v10060-live-card{
+  min-width:0 !important;
+  width:auto !important;
+}
+@media(max-width:360px){
+  .nf-v10060-live-summary{gap:7px !important;}
+  .nf-v10060-live-card{padding:8px 7px !important;}
+  .nf-v10060-live-card b{font-size:16px !important;}
+}
+</style>
 </head>
 <body>
 
@@ -6010,7 +6028,7 @@ function nfFormatPaymentDate(v){return v?dateText(v):"—";}
 .nf-v10060-live-card b{display:block;margin-top:4px;color:#1c1722;font-size:19px;font-weight:950}
 .nf-v10060-live-card small{display:block;margin-top:3px;color:#5d5670;font-size:10px;font-weight:800}
 .nf-v10060-live-refund{border-color:#eca4b2;background:#fff5f7}.nf-v10060-live-refund b{color:#bf2d4a}
-@media(max-width:560px){.nf-v10060-payment-sections,.nf-v10060-live-summary{grid-template-columns:1fr}.nf-v10060-pay-box{padding:11px}.nf-v10060-payment-card{padding:11px!important}.nf-v10060-payment-card>h4{font-size:18px!important}}
+@media(max-width:560px){.nf-v10060-payment-sections{grid-template-columns:1fr 1fr}.nf-v10060-live-summary{grid-template-columns:1fr 1fr}.nf-v10060-pay-box{padding:9px}.nf-v10060-payment-card{padding:11px!important}.nf-v10060-payment-card>h4{font-size:18px!important}.nf-v10060-live-card{padding:9px 8px}.nf-v10060-live-card b{font-size:17px}.nf-v10060-live-card span{font-size:10px}.nf-v10060-live-card small{font-size:9px}}
 
 </style>
 
