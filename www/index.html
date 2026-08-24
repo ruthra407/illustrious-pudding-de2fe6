@@ -622,6 +622,75 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-my-custome
   .nf-edit-payment-top-field{padding:10px !important;border-radius:14px !important}
 }
 </style>
+
+<style id="v10097-collection-layout">
+/* V100.97 — Blouse/Saree/Chudithar collection presentation only. */
+.nf-v10097-blouse-grid{
+  display:grid !important;
+  grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+  gap:10px !important;
+  margin-top:10px !important;
+}
+.nf-v10097-blouse-col{
+  border:2px solid !important;
+  border-radius:16px !important;
+  padding:10px !important;
+  background:#fff !important;
+  box-shadow:0 6px 16px rgba(45,25,75,.07) !important;
+}
+.nf-v10097-blouse-col.take{
+  border-color:#63bfa9 !important;
+  background:linear-gradient(145deg,#effbf7,#ffffff) !important;
+}
+.nf-v10097-blouse-col.left{
+  border-color:#a88ae8 !important;
+  background:linear-gradient(145deg,#f5f1ff,#ffffff) !important;
+}
+.nf-v10097-blouse-col h4{
+  margin:0 0 8px !important;
+  font-weight:950 !important;
+  color:#241b33 !important;
+}
+.nf-v10097-blouse-row{
+  display:flex !important;
+  align-items:center !important;
+  justify-content:space-between !important;
+  gap:8px !important;
+  padding:8px 9px !important;
+  margin-top:6px !important;
+  border:1.5px solid !important;
+  border-radius:12px !important;
+  background:#fff !important;
+  font-weight:850 !important;
+}
+.nf-v10097-blouse-col.take .nf-v10097-blouse-row{border-color:#8bd4c2 !important;color:#146b5a !important}
+.nf-v10097-blouse-col.left .nf-v10097-blouse-row{border-color:#c0aaf0 !important;color:#4c3685 !important}
+
+.nf-v10097-chudithar{
+  margin-top:14px !important;
+  padding:14px !important;
+  border:2px solid #8d72e8 !important;
+  border-radius:20px !important;
+  background:linear-gradient(145deg,#f3efff,#fff5fb) !important;
+  box-shadow:0 8px 20px rgba(72,43,130,.09) !important;
+}
+.nf-v10097-chudithar > .section-title,
+.nf-v10097-chudithar .section-title{
+  border:1.5px solid #c9b8f3 !important;
+  border-radius:14px !important;
+  background:linear-gradient(90deg,#eee8ff,#ffe8f7) !important;
+  padding:9px 11px !important;
+  color:#3b266d !important;
+  font-weight:950 !important;
+}
+@media(max-width:560px){
+  .nf-v10097-blouse-grid{grid-template-columns:1fr 1fr !important;gap:7px !important}
+  .nf-v10097-blouse-col{padding:7px !important;border-radius:13px !important}
+  .nf-v10097-blouse-row{padding:7px !important;font-size:13px !important}
+  .nf-v10097-blouse-col h4{font-size:14px !important}
+  .nf-v10097-chudithar{padding:10px !important;border-radius:16px !important}
+}
+</style>
 </head>
 <body>
 
@@ -6233,6 +6302,118 @@ function nfFormatPaymentDate(v){return v?dateText(v):"—";}
   document.addEventListener('DOMContentLoaded',function(){setTimeout(refresh,120);setTimeout(refresh,500);});
   const observer=new MutationObserver(function(){clearTimeout(window.__nf10091);window.__nf10091=setTimeout(refresh,80);});
   if(document.body) observer.observe(document.body,{childList:true,subtree:true});
+})();
+</script>
+
+<script id="v10097-collection-layout-js">
+(function(){
+  function norm(s){return String(s||"").replace(/\s+/g," ").trim().toLowerCase();}
+  function findText(root, txt){
+    const els=[...root.querySelectorAll("*")];
+    return els.find(el=>el.children.length===0 && norm(el.textContent)===norm(txt)) ||
+           els.find(el=>norm(el.textContent).includes(norm(txt)));
+  }
+  function apply(){
+    const body=document.body;
+    if(!body) return;
+
+    // Identify the existing blouse collection card.
+    const blouseTitle=findText(body,"Blouse Collection");
+    if(blouseTitle){
+      let card=blouseTitle.closest(".card,.section,.collection-card,.panel") ||
+               blouseTitle.parentElement?.parentElement;
+      if(card && !card.dataset.v10097){
+        card.dataset.v10097="blouse";
+        const text=norm(card.textContent);
+        const rows=[...card.querySelectorAll("div,li,tr")].filter(el=>{
+          const t=norm(el.textContent);
+          return /normal/.test(t) || /lining/.test(t) || /design/.test(t);
+        });
+        // Preserve original content, but wrap matching rows side-by-side.
+        if(rows.length>=2){
+          const grid=document.createElement("div");
+          grid.className="nf-v10097-blouse-grid";
+          const take=document.createElement("div");
+          take.className="nf-v10097-blouse-col take";
+          const left=document.createElement("div");
+          left.className="nf-v10097-blouse-col left";
+          const h1=document.createElement("h4"); h1.textContent="வாங்கிச் சென்றது";
+          const h2=document.createElement("h4"); h2.textContent="மீதமுள்ளது";
+          take.appendChild(h1); left.appendChild(h2);
+          const seen=new Set();
+          rows.forEach(r=>{
+            if(seen.has(r)) return;
+            const t=norm(r.textContent);
+            if(/வாங்கிச் சென்றது|மீதமுள்ளது/.test(t)) return;
+            const clone=r.cloneNode(true);
+            clone.classList.add("nf-v10097-blouse-row");
+            if(/normal|lining|design/.test(t)){
+              // Use the existing row's first meaningful label/value.
+              if(/normal/.test(t)) { take.appendChild(clone); }
+              else if(/lining/.test(t)) { take.appendChild(clone); }
+              else if(/design/.test(t)) { take.appendChild(clone); }
+            }
+            seen.add(r);
+          });
+          // Build a matching right column from the same labels when possible.
+          ["Normal","Lining","Design"].forEach(label=>{
+            const row=document.createElement("div");
+            row.className="nf-v10097-blouse-row";
+            const source=[...rows].find(r=>norm(r.textContent).includes(norm(label)));
+            if(source){
+              const c=source.cloneNode(true);
+              c.classList.add("nf-v10097-blouse-row");
+              left.appendChild(c);
+            }else{
+              row.innerHTML="<span>"+label+"</span><strong>0</strong>";
+              left.appendChild(row);
+            }
+          });
+          // If we cannot confidently identify the existing paired rows, do not
+          // replace anything. This keeps data safe on unknown DOM variants.
+          const takeRows=take.querySelectorAll(".nf-v10097-blouse-row");
+          const leftRows=left.querySelectorAll(".nf-v10097-blouse-row");
+          if(takeRows.length===3 && leftRows.length===3){
+            card.appendChild(grid);
+            grid.append(take,left);
+            rows.forEach(r=>{
+              if(r.parentElement!==grid && r.parentElement!==take && r.parentElement!==left){
+                // hide only the old duplicated Normal/Lining/Design rows
+                const t=norm(r.textContent);
+                if(/normal|lining|design/.test(t)) r.style.display="none";
+              }
+            });
+          }
+        }
+      }
+    }
+
+    // Move any standalone "சேலை" collection item into the blouse card,
+    // while leaving Chudithar as its own boxed section.
+    const saree=findText(body,"சேலை");
+    const blouseTitle2=findText(body,"Blouse Collection");
+    if(saree && blouseTitle2){
+      const blouseCard=blouseTitle2.closest(".card,.section,.collection-card,.panel") ||
+                       blouseTitle2.parentElement?.parentElement;
+      let item=saree.closest("div,li,tr");
+      if(blouseCard && item && item!==blouseCard && !item.dataset.v10097Moved){
+        item.dataset.v10097Moved="1";
+        blouseCard.appendChild(item);
+      }
+    }
+
+    const ch=findText(body,"சுடிதார்");
+    if(ch){
+      let chCard=ch.closest(".card,.section,.collection-card,.panel") ||
+                 ch.parentElement?.parentElement;
+      if(chCard) chCard.classList.add("nf-v10097-chudithar");
+    }
+  }
+  let timer;
+  const kick=()=>{clearTimeout(timer);timer=setTimeout(apply,120);};
+  new MutationObserver(kick).observe(document.body,{subtree:true,childList:true});
+  window.addEventListener("load",kick);
+  kick();
 })();
 </script>
 </body>
