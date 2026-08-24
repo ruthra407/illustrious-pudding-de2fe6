@@ -6805,84 +6805,119 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-my-custome
 
 
 
-<style id="v10010-customer-card-scroll-fix">
+<style id="v10040-exact-customer-scroll">
 /*
- V100.10 — Customer Cards scroll architecture.
- The previous V100.0 approach made the page itself non-scrollable.
- This version keeps only the Customer Cards header fixed and gives
- #customersTable the complete remaining viewport height.
+ V100.40
+ EXACT requested behavior:
+ - Customer Cards header/headline controls stay in place.
+ - Add Customer stays in place.
+ - Only the customer-card list below them scrolls.
+ - The floating/sticky + action is hidden on Customer Cards.
+ - No global page scroll rules are changed.
 */
 
-/* Customer Cards view is the only view converted to a vertical flex shell. */
+/* 1. Make the Customer Cards screen a bounded column. */
 #view-customers.active{
   display:flex!important;
   flex-direction:column!important;
-  box-sizing:border-box!important;
-  height:calc(100dvh - var(--nf-header-height))!important;
+  height:100%!important;
   min-height:0!important;
-  max-height:calc(100dvh - var(--nf-header-height))!important;
+  max-height:100%!important;
   overflow:hidden!important;
-  padding-bottom:0!important;
-}
-
-/* Header/menu/search never participates in the scrolling area. */
-#view-customers.active > .nf-customer-cards-head{
-  position:relative!important;
-  z-index:50!important;
-  flex:0 0 auto!important;
-  min-height:72px!important;
-  max-height:none!important;
-  margin:0 0 8px!important;
   box-sizing:border-box!important;
 }
 
-/* Add button / search panel remain fixed above the list as well. */
-#view-customers.active > .nf-customer-cards-add-wrap,
+/* 2. Header/headline stays outside the scroll container. */
+#view-customers.active > .nf-customer-cards-head{
+  flex:0 0 auto!important;
+  height:72px!important;
+  min-height:72px!important;
+  max-height:72px!important;
+  position:relative!important;
+  top:auto!important;
+  z-index:100!important;
+  margin:0!important;
+  box-sizing:border-box!important;
+}
+
+/* 3. Add Customer also stays outside the scrolling area. */
+#view-customers.active > .nf-customer-cards-add-wrap{
+  flex:0 0 auto!important;
+  position:relative!important;
+  z-index:90!important;
+  box-sizing:border-box!important;
+}
+
+/* Search panel, when opened, stays above the list too. */
 #view-customers.active > #customerSearchPanel{
   flex:0 0 auto!important;
+  position:relative!important;
+  z-index:90!important;
+  box-sizing:border-box!important;
 }
 
-/* This is the actual touch-scroll surface. */
+/*
+ 4. THE ONLY SCROLL CONTAINER.
+ The explicit flex-basis/height combination is intentional:
+ it forces a real finite clientHeight so overflow-y:auto has
+ an actual touch-scroll surface on mobile.
+*/
 #view-customers.active > #customersTable{
-  display:grid!important;
-  flex:1 1 auto!important;
+  flex:1 1 0!important;
+  height:0!important;
   min-height:0!important;
   max-height:none!important;
-  height:auto!important;
-  overflow-y:scroll!important;
+  width:100%!important;
+  display:grid!important;
+  grid-template-columns:1fr!important;
+  align-content:start!important;
+  overflow-y:auto!important;
   overflow-x:hidden!important;
+  touch-action:pan-y!important;
   -webkit-overflow-scrolling:touch!important;
   overscroll-behavior-y:contain!important;
   overscroll-behavior-x:none!important;
-  touch-action:pan-y!important;
-  padding:2px 2px 24px!important;
+  scrollbar-width:none!important;
   box-sizing:border-box!important;
-  align-content:start!important;
+  padding:0 2px 28px!important;
+}
+#view-customers.active > #customersTable::-webkit-scrollbar{
+  display:none!important;
 }
 
-/* Preserve the existing card grid/layout inside the scroll surface. */
-#view-customers.active > #customersTable .customerCard{
-  min-width:0!important;
-}
-
-/* Do not make individual cards steal the page gesture. */
-#view-customers.active > #customersTable .customerCard{
+/* Cards are content inside that scroll surface; they do not lock touch. */
+#view-customers.active > #customersTable > .customerCard{
+  position:relative!important;
   touch-action:pan-y!important;
 }
 
-@media(max-width:700px){
-  #view-customers.active{
-    height:calc(100dvh - var(--nf-header-height))!important;
-    max-height:calc(100dvh - var(--nf-header-height))!important;
-  }
-  #view-customers.active > .nf-customer-cards-head{
-    min-height:72px!important;
-  }
+/* 5. Remove the floating/sticky action ONLY while Customer Cards is open. */
+#view-customers.active ~ #p4Fab{
+  display:none!important;
 }
 
+/* No sticky positioning is introduced for any Customer Cards control. */
+#view-customers.active .nf-customer-cards-head,
+#view-customers.active .nf-customer-cards-add-wrap,
+#view-customers.active #customerSearchPanel{
+  position:relative!important;
+  top:auto!important;
+  bottom:auto!important;
+}
+
+/* Small screens keep exactly the same architecture. */
+@media(max-width:700px){
+  #view-customers.active > .nf-customer-cards-head{
+    height:72px!important;
+    min-height:72px!important;
+    max-height:72px!important;
+  }
+}
 @media(max-width:380px){
   #view-customers.active > .nf-customer-cards-head{
-    min-height:62px!important;
+    height:64px!important;
+    min-height:64px!important;
+    max-height:64px!important;
   }
 }
 </style>
