@@ -6921,3 +6921,116 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-my-custome
   }
 }
 </style>
+
+
+<style id="v10050-customer-scroll-shell-fix">
+/*
+ V100.50 — FINAL SHELL FIX
+ The previous version made #customersTable a flex child, but its parent
+ (.main/.layout) did not have a finite mobile height. That caused the
+ list to collapse to almost zero height.
+
+ This version fixes the parent chain first:
+ #app -> .layout -> .main -> #view-customers -> #customersTable
+
+ Header + Add Customer are fixed in the Customer view.
+ Only #customersTable scrolls.
+*/
+
+/* Give the Customer Cards page a real viewport-sized shell on mobile. */
+@media (max-width:900px){
+  #app > .layout > .main:has(#view-customers.active){
+    height:calc(100dvh - var(--nf-header-height))!important;
+    min-height:0!important;
+    max-height:calc(100dvh - var(--nf-header-height))!important;
+    overflow:hidden!important;
+    box-sizing:border-box!important;
+    padding-bottom:78px!important;
+  }
+
+  #view-customers.active{
+    display:flex!important;
+    flex-direction:column!important;
+    height:100%!important;
+    min-height:0!important;
+    max-height:100%!important;
+    overflow:hidden!important;
+    box-sizing:border-box!important;
+  }
+
+  /* Fixed portion of the Customer Cards page. */
+  #view-customers.active > .nf-customer-cards-head{
+    flex:0 0 72px!important;
+    height:72px!important;
+    min-height:72px!important;
+    max-height:72px!important;
+    position:relative!important;
+    top:auto!important;
+    z-index:100!important;
+    box-sizing:border-box!important;
+  }
+
+  #view-customers.active > .nf-customer-cards-add-wrap{
+    flex:0 0 auto!important;
+    position:relative!important;
+    z-index:90!important;
+    box-sizing:border-box!important;
+  }
+
+  #view-customers.active > #customerSearchPanel{
+    flex:0 0 auto!important;
+    position:relative!important;
+    z-index:90!important;
+    box-sizing:border-box!important;
+  }
+
+  /*
+   REAL SCROLL AREA:
+   Because every parent above now has a finite height,
+   flex:1 gets an actual clientHeight.
+  */
+  #view-customers.active > #customersTable{
+    flex:1 1 0!important;
+    height:auto!important;
+    min-height:0!important;
+    max-height:none!important;
+    width:100%!important;
+    display:grid!important;
+    grid-template-columns:1fr!important;
+    align-content:start!important;
+    overflow-y:scroll!important;
+    overflow-x:hidden!important;
+    -webkit-overflow-scrolling:touch!important;
+    touch-action:pan-y!important;
+    overscroll-behavior-y:contain!important;
+    overscroll-behavior-x:none!important;
+    scrollbar-width:none!important;
+    box-sizing:border-box!important;
+    padding:0 2px 28px!important;
+  }
+
+  #view-customers.active > #customersTable::-webkit-scrollbar{
+    display:none!important;
+  }
+
+  #view-customers.active > #customersTable > .customerCard{
+    position:relative!important;
+    touch-action:pan-y!important;
+    flex:none!important;
+  }
+
+  /* No floating + on Customer Cards. */
+  #app:has(#view-customers.active) #p4Fab{
+    display:none!important;
+  }
+}
+
+@media (max-width:380px){
+  #view-customers.active > .nf-customer-cards-head{
+    flex-basis:64px!important;
+    height:64px!important;
+    min-height:64px!important;
+    max-height:64px!important;
+  }
+}
+</style>
