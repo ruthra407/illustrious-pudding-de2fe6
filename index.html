@@ -8249,3 +8249,37 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-my-custome
   if(document.body) observer.observe(document.body,{childList:true,subtree:true});
 })();
 </script>
+
+<!-- V100.107: Cash Collection date emphasis + two internal vertical dividers only. -->
+<style id="v100107-cash-date-dividers">
+.nf-cash-collection .customerMoneyGrid .moneyStat > span.nf-v10080-label .nf-v10080-date{
+  font-size:15px!important;
+  line-height:1.2!important;
+  font-weight:1000!important;
+  min-height:34px!important;
+  padding:7px 10px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  border-left:2px solid rgba(92,61,145,.22)!important;
+  border-radius:0!important;
+}
+.nf-cash-collection .customerMoneyGrid .moneyStat > b{
+  min-height:34px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:flex-end!important;
+  padding-left:12px!important;
+  border-left:2px solid rgba(92,61,145,.22)!important;
+}
+.nf-cash-collection .customerMoneyGrid .moneyStat:nth-child(2) > span.nf-v10080-label .nf-v10080-date,
+.nf-cash-collection .customerMoneyGrid .moneyStat:nth-child(2) > b{border-left-color:rgba(20,121,79,.22)!important}
+.nf-cash-collection .customerMoneyGrid .moneyStat:nth-child(3) > span.nf-v10080-label .nf-v10080-date,
+.nf-cash-collection .customerMoneyGrid .moneyStat:nth-child(3) > b{border-left-color:rgba(154,101,0,.25)!important}
+.nf-cash-collection .customerMoneyGrid .moneyStat:nth-child(4) > span.nf-v10080-label .nf-v10080-date,
+.nf-cash-collection .customerMoneyGrid .moneyStat:nth-child(4) > b{border-left-color:rgba(191,48,69,.22)!important}
+@media (max-width:560px){
+  .nf-cash-collection .customerMoneyGrid .moneyStat > span.nf-v10080-label .nf-v10080-date{font-size:14px!important;min-height:34px!important;padding:7px 6px!important}
+  .nf-cash-collection .customerMoneyGrid .moneyStat > b{font-size:16px!important;min-height:34px!important;padding-left:8px!important}
+}
+</style>
