@@ -6466,6 +6466,7 @@ function nfFormatPaymentDate(v){return v?dateText(v):"—";}
 })();
 </script><style>.nf-cash-collection .customerMoneyGrid .moneyStat>span.nf-v10080-label .nf-v10080-date{font-size:15px!important;line-height:1.2!important;font-weight:1000!important;min-height:34px!important;padding:7px 10px!important;display:flex!important;align-items:center!important;justify-content:center!important;border-left:2px solid rgba(92,61,145,.22)!important;border-radius:0!important}.nf-cash-collection .customerMoneyGrid .moneyStat>b{min-height:34px!important;display:flex!important;align-items:center!important;justify-content:flex-end!important;padding-left:12px!important;border-left:2px solid rgba(92,61,145,.22)!important}.nf-cash-collection .customerMoneyGrid .moneyStat:nth-child(2)>span.nf-v10080-label .nf-v10080-date,.nf-cash-collection .customerMoneyGrid .moneyStat:nth-child(2)>b{border-left-color:rgba(20,121,79,.22)!important}.nf-cash-collection .customerMoneyGrid .moneyStat:nth-child(3)>span.nf-v10080-label .nf-v10080-date,.nf-cash-collection .customerMoneyGrid .moneyStat:nth-child(3)>b{border-left-color:rgba(154,101,0,.25)!important}.nf-cash-collection .customerMoneyGrid .moneyStat:nth-child(4)>span.nf-v10080-label .nf-v10080-date,.nf-cash-collection .customerMoneyGrid .moneyStat:nth-child(4)>b{border-left-color:rgba(191,48,69,.22)!important}@media (max-width:560px){.nf-cash-collection .customerMoneyGrid .moneyStat>span.nf-v10080-label .nf-v10080-date{font-size:14px!important;min-height:34px!important;padding:7px 6px!important}.nf-cash-collection .customerMoneyGrid .moneyStat>b{font-size:16px!important;min-height:34px!important;padding-left:8px!important}}</style>
 
+<!-- V203.0: Customer-card Edit Order opens the same standalone screen as Orders-card Edit Order. -->
 <!-- V202.0 final targeted fixes based strictly on Deep_clean_version_201.0 -->
 <style id="nf-v202-final-css">
 /* Customer Card: Edit Order + Order Full Details live below customer photos. */
@@ -6574,7 +6575,14 @@ function nfFormatPaymentDate(v){return v?dateText(v):"—";}
       }
       edit.onclick=function(e){
         e.stopPropagation();
-        openCustomerOrderEditor(customerId);
+        /* Use the same standalone Edit Order screen as the Orders card.
+           Do NOT open the inline customer-card editor. */
+        var latest=latestOrderForCustomer(customerId);
+        if(!latest){
+          toast("இந்த customer-க்கு Edit செய்ய Order இல்லை.",true);
+          return;
+        }
+        openOrdersEditOrder(String(latest.id));
       };
 
       var full=row.querySelector(".nf-v202-full");
