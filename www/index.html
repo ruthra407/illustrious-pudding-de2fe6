@@ -4934,6 +4934,257 @@ function nfFormatPaymentDate(v){return v?dateText(v):"—";}
   if(document.body) mo.observe(document.body,{childList:true,subtree:true});
 })();
 </script>
+
+<!-- V203.2: customer-card action swap only, based on V203.1 -->
+<style id="nf-v2032-customer-action-swap">
+/* Name row: keep only the two order actions, with their labels visible. */
+.customerCard .nf-customer-name-row .nf-customer-compact-actions{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:flex-end!important;
+  gap:7px!important;
+  flex:0 0 auto!important;
+  flex-wrap:nowrap!important;
+}
+.customerCard .nf-customer-name-row .nf-v202-customer-action{
+  width:auto!important;
+  min-width:0!important;
+  min-height:44px!important;
+  height:44px!important;
+  padding:0 11px!important;
+  border-radius:13px!important;
+  display:inline-flex!important;
+  flex-direction:row!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:5px!important;
+  font-size:13px!important;
+  font-weight:950!important;
+  white-space:nowrap!important;
+  box-shadow:0 6px 15px rgba(80,55,140,.12)!important;
+}
+.customerCard .nf-customer-name-row .nf-v202-customer-action .nf-v202-action-icon{
+  font-size:21px!important;
+  line-height:1!important;
+}
+.customerCard .nf-customer-name-row .nf-v202-customer-action .nf-v202-action-label{
+  font-size:13px!important;
+  line-height:1!important;
+}
+
+/* Lower action row: Edit Customer + Delete only. */
+.customerCard .nf-v2032-customer-actions{
+  display:grid!important;
+  grid-template-columns:1fr 1fr!important;
+  gap:10px!important;
+  margin-top:12px!important;
+  padding-top:12px!important;
+  border-top:1px solid rgba(108,77,246,.16)!important;
+}
+.customerCard .nf-v2032-customer-action{
+  min-height:68px!important;
+  border:1px solid rgba(108,77,246,.18)!important;
+  border-radius:16px!important;
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:7px!important;
+  font-weight:950!important;
+  cursor:pointer!important;
+  box-shadow:0 7px 18px rgba(80,55,140,.10)!important;
+}
+.customerCard .nf-v2032-edit-customer{
+  background:linear-gradient(135deg,#f0eaff,#fff0fb)!important;
+  color:#5935bd!important;
+}
+.customerCard .nf-v2032-delete-customer{
+  background:linear-gradient(135deg,#fff0f3,#fff8f8)!important;
+  color:#c02d49!important;
+  border-color:rgba(192,45,73,.20)!important;
+}
+.customerCard .nf-v2032-customer-action .nf-v2032-action-icon{
+  font-size:29px!important;
+  line-height:1!important;
+}
+.customerCard .nf-v2032-customer-action .nf-v2032-action-label{
+  font-size:12px!important;
+  line-height:1.1!important;
+}
+.customerCard .nf-v2032-customer-action:active{transform:scale(.97)!important}
+@media(max-width:560px){
+  .customerCard .nf-customer-name-row .nf-v202-customer-action{
+    min-height:40px!important;height:40px!important;
+    padding:0 8px!important;border-radius:11px!important;
+  }
+  .customerCard .nf-customer-name-row .nf-v202-customer-action .nf-v202-action-icon{font-size:18px!important}
+  .customerCard .nf-customer-name-row .nf-v202-customer-action .nf-v202-action-label{font-size:11px!important}
+  .customerCard .nf-v2032-customer-actions{gap:8px!important;margin-top:10px!important;padding-top:10px!important}
+  .customerCard .nf-v2032-customer-action{min-height:68px!important;border-radius:15px!important}
+  .customerCard .nf-v2032-customer-action .nf-v2032-action-icon{font-size:29px!important}
+  .customerCard .nf-v2032-customer-action .nf-v2032-action-label{font-size:11px!important}
+}
+</style>
+<script id="nf-v2032-customer-action-swap-js">
+(function(){
+  "use strict";
+
+  function customerId(card){
+    return String((card && card.id || "").replace(/^customer-card-/,""));
+  }
+
+  function latestOrder(id){
+    var orders=(state.orders||[]).filter(function(o){
+      return String(o.customer_id)===String(id);
+    });
+    if(!orders.length) return null;
+    orders.sort(function(a,b){
+      var ad=String(a.cloth_received_date||a.created_at||a.order_date||"");
+      var bd=String(b.cloth_received_date||b.created_at||b.order_date||"");
+      return bd.localeCompare(ad);
+    });
+    return orders[0];
+  }
+
+  function apply(){
+    try{
+      document.querySelectorAll(".customerCard").forEach(function(card){
+        var id=customerId(card);
+        if(!id) return;
+
+        var nameRow=card.querySelector(".nf-customer-name-row");
+        var photoManager=card.querySelector(".nf-customer-cloth-photo-manager");
+        if(!nameRow || !photoManager) return;
+
+        var compact=nameRow.querySelector(".nf-customer-compact-actions");
+        if(!compact){
+          compact=document.createElement("div");
+          compact.className="nf-customer-compact-actions";
+          compact.setAttribute("aria-label","Order actions");
+          nameRow.appendChild(compact);
+        }
+
+        /* Remove the old icon-only order buttons from the name row. */
+        compact.querySelectorAll(".nf-edit-order,.nf-order-full-details").forEach(function(el){el.remove();});
+
+        /* Locate the V202 standalone order-action buttons. If they are not
+           present yet, create equivalent buttons with the same standalone actions. */
+        var oldRow=card.querySelector(".nf-v202-customer-actions");
+        if(!oldRow){
+          oldRow=document.createElement("div");
+          oldRow.className="nf-v202-customer-actions";
+          oldRow.setAttribute("aria-label","Order actions");
+          photoManager.insertAdjacentElement("afterend",oldRow);
+        }
+
+        var editOrder=oldRow.querySelector(".nf-v202-edit");
+        if(!editOrder){
+          editOrder=document.createElement("button");
+          editOrder.type="button";
+          editOrder.className="nf-v202-customer-action nf-v202-edit";
+          editOrder.innerHTML='<span class="nf-v202-action-icon">✏️</span><span class="nf-v202-action-label">Edit Order</span>';
+          editOrder.title="Edit Order";
+          editOrder.setAttribute("aria-label","Edit Order");
+          editOrder.onclick=function(e){
+            e.stopPropagation();
+            var latest=latestOrder(id);
+            if(!latest){ if(typeof toast==="function") toast("இந்த customer-க்கு Edit செய்ய Order இல்லை.",true); return; }
+            openOrdersEditOrder(String(latest.id));
+          };
+          oldRow.appendChild(editOrder);
+        }
+
+        var full=oldRow.querySelector(".nf-v202-full");
+        if(!full){
+          full=document.createElement("button");
+          full.type="button";
+          full.className="nf-v202-customer-action nf-v202-full";
+          full.innerHTML='<span class="nf-v202-action-icon">📋</span><span class="nf-v202-action-label">Order Full Details</span>';
+          full.title="Order Full Details";
+          full.setAttribute("aria-label","Order Full Details");
+          full.onclick=function(e){
+            e.stopPropagation();
+            var latest=latestOrder(id);
+            if(!latest){ if(typeof toast==="function") toast("இந்த customer-க்கு Order இல்லை.",true); return; }
+            openCustomerOrderFullDetails(String(latest.id));
+          };
+          oldRow.appendChild(full);
+        }
+
+        /* Move the existing Edit Order + Order Full Details buttons beside the name. */
+        compact.appendChild(editOrder);
+        compact.appendChild(full);
+
+        /* Remove any older lower duplicate order-action buttons. */
+        oldRow.querySelectorAll(".nf-customer-order-full-btn,.nf-customer-inline-edit-order,.nf-edit-order,.nf-order-full-details").forEach(function(el){el.remove();});
+
+        /* Move Edit Customer + Delete from the name row to the exact lower action area. */
+        var editCustomer=nameRow.querySelector(".nf-edit-customer");
+        var deleteCustomer=nameRow.querySelector(".nf-delete-customer");
+        if(editCustomer) editCustomer.remove();
+        if(deleteCustomer) deleteCustomer.remove();
+
+        var lower=card.querySelector(".nf-v2032-customer-actions");
+        if(!lower){
+          lower=document.createElement("div");
+          lower.className="nf-v2032-customer-actions";
+          lower.setAttribute("aria-label","Customer actions");
+          photoManager.insertAdjacentElement("afterend",lower);
+        }
+
+        if(!editCustomer){
+          editCustomer=document.createElement("button");
+          editCustomer.type="button";
+          editCustomer.className="nf-v2032-customer-action nf-v2032-edit-customer";
+          editCustomer.innerHTML='<span class="nf-v2032-action-icon">✏️</span><span class="nf-v2032-action-label">Edit Customer</span>';
+          editCustomer.title="Edit Customer";
+          editCustomer.setAttribute("aria-label","Edit Customer");
+          editCustomer.onclick=function(e){e.stopPropagation();openModal("customer",id);};
+        }else{
+          editCustomer.className="nf-v2032-customer-action nf-v2032-edit-customer";
+          editCustomer.innerHTML='<span class="nf-v2032-action-icon">✏️</span><span class="nf-v2032-action-label">Edit Customer</span>';
+        }
+
+        if(!deleteCustomer){
+          deleteCustomer=document.createElement("button");
+          deleteCustomer.type="button";
+          deleteCustomer.className="nf-v2032-customer-action nf-v2032-delete-customer";
+          deleteCustomer.innerHTML='<span class="nf-v2032-action-icon">🗑️</span><span class="nf-v2032-action-label">Delete</span>';
+          deleteCustomer.title="Delete Customer";
+          deleteCustomer.setAttribute("aria-label","Delete Customer");
+          deleteCustomer.onclick=function(e){e.stopPropagation();window.deleteCustomer(id);};
+        }else{
+          deleteCustomer.className="nf-v2032-customer-action nf-v2032-delete-customer";
+          deleteCustomer.innerHTML='<span class="nf-v2032-action-icon">🗑️</span><span class="nf-v2032-action-label">Delete</span>';
+        }
+
+        lower.appendChild(editCustomer);
+        lower.appendChild(deleteCustomer);
+
+        /* The old V202 row is now the source row for the two moved order buttons;
+           keep it visually hidden if it became empty. */
+        if(!oldRow.children.length) oldRow.remove();
+        else oldRow.style.display="none";
+      });
+    }catch(err){console.warn("V203.2 customer action swap:",err);}
+  }
+
+  function schedule(){
+    setTimeout(apply,0);
+    setTimeout(apply,120);
+    setTimeout(apply,450);
+    setTimeout(apply,900);
+  }
+  if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",schedule,{once:true});
+  else schedule();
+
+  var observer=new MutationObserver(function(){
+    clearTimeout(window.__nfV2032ActionSwapTimer);
+    window.__nfV2032ActionSwapTimer=setTimeout(apply,80);
+  });
+  if(document.body) observer.observe(document.body,{childList:true,subtree:true});
+})();
+</script>
 </body><style>.nf-blouse-collection .nfBlouseStatusGrid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important;padding:10px 16px 0!important;margin:0!important}.nf-blouse-collection .nfBlouseStatusGrid .moneyStat{min-height:70px!important;padding:12px 14px!important;border:2px solid #d7c6f1!important;border-radius:14px!important;background:#fffaff!important;display:flex!important;align-items:center!important;justify-content:space-between!important;gap:10px!important}.nf-blouse-collection .nfBlouseStatusGrid .moneyStat:first-child{border-color:#bca4ef!important;background:linear-gradient(145deg,#f5f0ff,#fff8fd)!important}.nf-blouse-collection .nfBlouseStatusGrid .moneyStat:last-child{border-color:#e0c477!important;background:linear-gradient(145deg,#fff9e8,#f1fbf8)!important}.nf-blouse-collection .nfBlouseStatusGrid .moneyStat span{order:1!important;margin:0!important;color:#4d2b82!important;font-size:15px!important;font-weight:950!important;line-height:1.3!important}.nf-blouse-collection .nfBlouseStatusGrid .moneyStat b{order:2!important;display:block!important;margin:0!important;color:#17131d!important;font-size:21px!important;font-weight:950!important;line-height:1.2!important;text-align:right!important;white-space:nowrap!important}.nf-blouse-collection .nfBlouseHandoverGrid{padding-top:10px!important}.nf-blouse-collection .nfBlouseHandoverBox .nfSareeRow{border-bottom:0!important}.nf-blouse-collection .nfBlouseHandoverBox .nfSareeRow span,.nf-blouse-collection .nfBlouseHandoverBox .nfSareeRow b{color:#7b3f9f!important}.nfChudiTotalBox{margin:10px 16px 0!important;padding:13px 14px!important;border:2px solid #b9a2ee!important;border-radius:14px!important;background:linear-gradient(145deg,#f4efff,#fff8fd)!important;display:flex!important;align-items:center!important;justify-content:space-between!important;gap:10px!important}.nfChudiTotalBox span{color:#4d2b82!important;font-size:15px!important;font-weight:950!important}.nfChudiTotalBox b{color:#17131d!important;font-size:21px!important;font-weight:950!important}.nfChudiHandoverGrid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important;padding:10px 16px 8px!important}.nfChudiHandoverGrid .nfBlouseHandoverBox{margin:0!important}.nfChudiHandoverGrid .nfBlouseHandoverRow{border-bottom:0!important}@media(max-width:560px){.nf-blouse-collection .nfBlouseStatusGrid{gap:7px!important;padding-left:10px!important;padding-right:10px!important}.nf-blouse-collection .nfBlouseStatusGrid .moneyStat{padding:10px 9px!important;min-height:62px!important}.nf-blouse-collection .nfBlouseStatusGrid .moneyStat span{font-size:13px!important}.nf-blouse-collection .nfBlouseStatusGrid .moneyStat b{font-size:18px!important}.nfChudiTotalBox{margin-left:10px!important;margin-right:10px!important}.nfChudiHandoverGrid{gap:7px!important;padding-left:10px!important;padding-right:10px!important}}</style>
 \n<style>.customerCard .nf-blouse-collection{margin:12px 0!important;border:2px solid #8b6cf0!important;border-radius:20px!important;background:linear-gradient(145deg,#faf7ff,#fff1fb)!important;box-shadow:0 10px 26px rgba(91,63,160,.12)!important;overflow:hidden!important}.customerCard .nf-blouse-collection>.nf-collection-title{margin:0!important;padding:12px 15px!important;border:0!important;border-bottom:2px solid #a56ee8!important;border-radius:0!important;background:linear-gradient(135deg,#6542e8 0%,#b13fd4 52%,#e84c92 100%)!important;color:#fff!important}.customerCard .nf-blouse-collection>.nf-collection-title h4,.customerCard .nf-blouse-collection>.nf-collection-title small{color:#fff!important}.customerCard .nf-blouse-collection>.nf-collection-title small{opacity:.95!important}.customerCard .nf-blouse-collection .nfBlouseStatusGrid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important;padding:12px 14px 8px!important;background:linear-gradient(180deg,#fff,#fbf8ff)!important}.customerCard .nf-blouse-collection .nfBlouseStatusGrid .moneyStat{min-height:72px!important;padding:12px 14px!important;border:2px solid #b9a4f3!important;border-radius:15px!important;background:linear-gradient(145deg,#f3eeff,#fff)!important;display:flex!important;align-items:center!important;justify-content:space-between!important;box-shadow:0 5px 14px rgba(90,65,145,.07)!important}.customerCard .nf-blouse-collection .nfBlouseStatusGrid .moneyStat:first-child{border-color:#8f73ea!important;background:linear-gradient(145deg,#eee8ff,#fff)!important}.customerCard .nf-blouse-collection .nfBlouseStatusGrid .moneyStat:last-child{border-color:#e1b74e!important;background:linear-gradient(145deg,#fff7df,#f7fff5)!important}.customerCard .nf-blouse-collection .nfBlouseStatusGrid .moneyStat span{color:#4d2b82!important;font-size:14px!important;font-weight:950!important;line-height:1.25!important}.customerCard .nf-blouse-collection .nfBlouseStatusGrid .moneyStat b{color:#18131f!important;font-size:22px!important;font-weight:950!important}.customerCard .nf-blouse-collection .nfBlouseHandoverGrid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important;padding:8px 14px 10px!important}.customerCard .nf-blouse-collection .nfBlouseHandoverBox{margin:0!important;padding:10px!important;border:2px solid #a995ef!important;border-radius:15px!important;background:linear-gradient(145deg,#f7f3ff,#fff)!important}.customerCard .nf-blouse-collection .nfBlouseHandoverGiven{border-color:#9b82eb!important;background:linear-gradient(145deg,#f4efff,#fff)!important}.customerCard .nf-blouse-collection .nfBlouseHandoverPending{border-color:#e1bf5d!important;background:linear-gradient(145deg,#fff9e8,#fff)!important}.customerCard .nf-blouse-collection .nfBlouseHandoverTitle{font-size:15px!important;font-weight:950!important;color:#4b2b83!important;padding-bottom:6px!important;border-bottom:2px solid #ded4f5!important}.customerCard .nf-blouse-collection .nfBlouseHandoverPending .nfBlouseHandoverTitle{color:#8a6410!important;border-bottom-color:#f0dfac!important}.customerCard .nf-blouse-collection .nfBlouseHandoverRow{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:8px!important;padding:7px 2px!important;border-bottom:1px solid #e4def0!important}.customerCard .nf-blouse-collection .nfBlouseHandoverRow span{color:#31283b!important;font-weight:850!important}.customerCard .nf-blouse-collection .nfBlouseHandoverRow b{color:#5a36a0!important;font-weight:950!important}.customerCard .nf-blouse-collection .nfBlouseHandoverPending .nfBlouseHandoverRow b{color:#9b6d08!important}.customerCard .nf-blouse-collection .nfSareeRow span,.customerCard .nf-blouse-collection .nfSareeRow b{color:#a33c83!important}.customerCard .nf-blouse-collection .nf-garment-subtitle{margin:8px 14px 0!important;padding:9px 12px!important;border:2px solid #26a9a0!important;border-radius:13px!important;background:linear-gradient(135deg,#dffaf5,#f5ffff)!important;color:#08786f!important;font-size:16px!important;font-weight:950!important}.customerCard .nf-blouse-collection .nfChudiTotalBox{margin:10px 14px 0!important;padding:12px 14px!important;border:2px solid #7d62e8!important;border-radius:15px!important;background:linear-gradient(145deg,#eee9ff,#fff)!important}.customerCard .nf-blouse-collection .nfChudiTotalBox span{color:#4d2b82!important;font-size:15px!important;font-weight:950!important}.customerCard .nf-blouse-collection .nfChudiTotalBox b{color:#20172d!important;font-size:21px!important;font-weight:950!important}.customerCard .nf-blouse-collection .nfChudiHandoverGrid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important;padding:10px 14px 14px!important}.customerCard .nf-blouse-collection .nfChudiHandoverGrid .nfBlouseHandoverBox{margin:0!important}@media(max-width:560px){.customerCard .nf-blouse-collection .nfBlouseStatusGrid,.customerCard .nf-blouse-collection .nfBlouseHandoverGrid,.customerCard .nf-blouse-collection .nfChudiHandoverGrid{gap:7px!important;padding-left:9px!important;padding-right:9px!important}.customerCard .nf-blouse-collection .nfBlouseStatusGrid .moneyStat{min-height:62px!important;padding:10px!important}.customerCard .nf-blouse-collection .nfBlouseStatusGrid .moneyStat span{font-size:12px!important}.customerCard .nf-blouse-collection .nfBlouseStatusGrid .moneyStat b{font-size:18px!important}.customerCard .nf-blouse-collection .nfBlouseHandoverBox{padding:8px!important}.customerCard .nf-blouse-collection .nf-garment-subtitle{margin-left:9px!important;margin-right:9px!important}.customerCard .nf-blouse-collection .nfChudiTotalBox{margin-left:9px!important;margin-right:9px!important}}</style>
 <!-- V201.0 targeted fixes: cloth-date display, in-app photo zoom, customer action buttons -->
