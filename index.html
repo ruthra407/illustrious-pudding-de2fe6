@@ -4768,7 +4768,7 @@ function nfFormatPaymentDate(v){return v?dateText(v):"—";}
       },80);
       return true;
     }catch(e){
-      console.error("V203.5 dedicated Edit Order routing:",e);
+      console.error("V203.6 dedicated Edit Order routing:",e);
       toast("Dedicated Edit Order screen திறக்க முடியவில்லை.",true);
       return false;
     }
@@ -6219,6 +6219,48 @@ function nfFormatPaymentDate(v){return v?dateText(v):"—";}
   background:#faf8ff!important;
   font-weight:900!important;
 }
+
+/* V203.6 — Customer card header action sizing/placement */
+.customer-card .customer-header .header-actions,
+.customer-card .customer-header-actions {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.customer-card .customer-header .header-actions button,
+.customer-card .customer-header-actions button {
+  min-width: 64px;
+  min-height: 64px;
+  width: 64px;
+  height: 64px;
+  font-size: 30px;
+  border-radius: 16px;
+}
+.customer-card .customer-header .header-actions button .icon,
+.customer-card .customer-header-actions button .icon {
+  font-size: 30px;
+}
+
+/* Dedicated customer actions under the avatar */
+.customer-card .customer-avatar-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.customer-card .customer-avatar-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  width: 100%;
+}
+.customer-card .customer-avatar-actions button {
+  width: 100%;
+  min-height: 44px;
+  font-size: 16px;
+  border-radius: 12px;
+}
+
 </style>
 <script id="nf-v202-final-fixes">
 (function(){
