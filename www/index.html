@@ -582,6 +582,46 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-my-custome
   .nf-v10060-live-card b{font-size:16px !important;}
 }
 </style>
+
+<style id="v10095-edit-payment-top-fields">
+/* V100.95: Edit Payment top controls — distinct, dark, readable cards. */
+.nf-edit-payment-top-field{
+  padding:12px 13px !important;
+  border:2px solid !important;
+  border-radius:16px !important;
+  box-shadow:0 7px 18px rgba(55,35,95,.08) !important;
+}
+.nf-edit-payment-top-field > label{
+  font-weight:950 !important;
+  color:#241b33 !important;
+  margin-bottom:7px !important;
+}
+.nf-edit-payment-top-field .input,
+.nf-edit-payment-top-field select{
+  font-weight:900 !important;
+  color:#18131f !important;
+}
+.nf-edit-payment-order-field{
+  background:linear-gradient(145deg,#f0ecff,#fbf9ff) !important;
+  border-color:#9b82e8 !important;
+}
+.nf-edit-payment-method-field{
+  background:linear-gradient(145deg,#eaf9f6,#f8fffd) !important;
+  border-color:#68cbb9 !important;
+}
+.nf-edit-payment-reference-field{
+  background:linear-gradient(145deg,#fff6df,#fffdf7) !important;
+  border-color:#e6bd5a !important;
+}
+.nf-edit-payment-notes-field .input,
+.nf-edit-payment-notes-field textarea{
+  color:#18131f !important;
+  font-weight:650 !important;
+}
+@media(max-width:560px){
+  .nf-edit-payment-top-field{padding:10px !important;border-radius:14px !important}
+}
+</style>
 </head>
 <body>
 
@@ -1218,6 +1258,18 @@ function blouseSplitText(o){
  if(s.lining)parts.push(`Lining ${s.lining}`);
  if(s.design)parts.push(`Design ${s.design}`);
  return parts.length?parts.join(" · "):`${Number(o?.quantity||0)} pcs`;
+}
+function cleanPaymentNotes(v){
+  return String(v||"")
+    .replace(/(?:^|\\s*\\|\\s*)ORDER_DATE:[0-9]{4}-[0-9]{2}-[0-9]{2}/g,"")
+    .replace(/(?:^|\\s*\\|\\s*)ADVANCE_DATE:[0-9]{4}-[0-9]{2}-[0-9]{2}/g,"")
+    .replace(/(?:^|\\s*\\|\\s*)BALANCE_PAID_DATE:[0-9]{4}-[0-9]{2}-[0-9]{2}/g,"")
+    .replace(/(?:^|\\s*\\|\\s*)REFUND_AMOUNT:[0-9.]+/g,"")
+    .replace(/(?:^|\\s*\\|\\s*)REFUND_PAID_DATE:[0-9]{4}-[0-9]{2}-[0-9]{2}/g,"")
+    .replace(/\\s*\\|\\s*\\|\\s*/g," | ")
+    .replace(/^\\s*\\|\\s*|\\s*\\|\\s*$/g,"")
+    .replace(/\\s{2,}/g," ")
+    .trim();
 }
 function cleanOrderNotes(v){
   return String(v||"")
@@ -2353,8 +2405,16 @@ if(type==="payment"){
   const amountEl=$("formFields").querySelector('[name="amount"]');
   const paymentDateEl=$("formFields").querySelector('[name="payment_date"]');
   const notesEl=$("formFields").querySelector('[name="notes"]');
+  if(notesEl) notesEl.value=cleanPaymentNotes(row?.notes||"");
   const totalEdit=$("nfPayTotalEdit"), orderDateEdit=$("nfPayOrderDate"), advanceEdit=$("nfPayAdvanceEdit"), advanceDateEdit=$("nfPayAdvanceDateEdit"), customerPaidEdit=$("nfPayCustomerPaidEdit"), customerPaidDateEdit=$("nfPayCustomerPaidDate"), refundEdit=$("nfPayRefundEdit");
   [paymentDateEl,amountEl].forEach(el=>{const f=el?.closest(".field");if(f)f.style.display="none";});
+  [["order_id","nf-edit-payment-order-field"],["payment_method","nf-edit-payment-method-field"],["reference_no","nf-edit-payment-reference-field"]].forEach(([name,cls])=>{
+    const el=$("formFields").querySelector(`[name="${name}"]`);
+    const f=el?.closest(".field");
+    if(f)f.classList.add("nf-edit-payment-top-field",cls);
+  });
+  const notesField=notesEl?.closest(".field");
+  if(notesField)notesField.classList.add("nf-edit-payment-notes-field");
   const existingNotes=String(row?.notes||"");
   const existingBalanceDate=existingNotes.match(/BALANCE_PAID_DATE:([0-9]{4}-[0-9]{2}-[0-9]{2})/)?.[1]||"";
   const existingRefundDate=existingNotes.match(/REFUND_PAID_DATE:([0-9]{4}-[0-9]{2}-[0-9]{2})/)?.[1]||"";
