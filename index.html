@@ -1,10 +1,10 @@
 <!doctype html>
-<html nf-build="V10.99-order-advance-date-payment-sync" lang="ta">
+<html nf-build="V10.6-home-customer-card-clarity-v1" lang="ta">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="nf-build" content="V10.99-order-advance-date-payment-sync">
-<title>New Fashion Tailoring – Online Management | V10.99 • Order Advance Date Payment Sync</title>
+<meta name="nf-build" content="V10.6-home-customer-card-clarity-v1">
+<title>New Fashion Tailoring – Online Management | V10.6 • Home Customer Card Clarity</title>
 <link rel="manifest" href="manifest.json">
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -583,12 +583,6 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-my-custome
 }
 </style>
 
-<style id="v10099-order-advance-date-sync">
-/* V100.99 — Advance Date is a real Order Edit field and sync source for Payment. */
-.nf-order-edit-mode [name="advance_date"]{font-weight:900;color:#18131f}
-.nf-order-edit-mode [name="advance_date"]:focus{border-color:#e0b94d;box-shadow:0 0 0 4px rgba(224,185,77,.14)}
-.nf-order-edit-mode [name="advance_amount"] + *{}
-</style>
 <style id="v10095-edit-payment-top-fields">
 /* V100.95: Edit Payment top controls — distinct, dark, readable cards. */
 .nf-edit-payment-top-field{
@@ -2186,7 +2180,7 @@ order:{title:"Order",table:"orders",fields:[
 ["chudi_qty","👚 எத்தனை Chudi / சுடிதார்","number"],["chudi_handover","👚 வாங்கிச் சென்ற சுடிதார்","number"],["chudi_lining","🧵 Chudi-க்கு lining கொடுத்தாரா?","chudilining"],["chudi_lining_qty","🧵 Chudi lining எத்தனை","number"],["saree_qty","🥻 எத்தனை Saree / சேலை","number"],["saree_handover","🥻 வாங்கிச் சென்ற சேலை","number"],
 ["chudi_rate","👚 Chudi விலை / ஒன்றுக்கு","number"],["saree_rate","🥻 Saree விலை / ஒன்றுக்கு","number"],
 ["quantity","மொத்த blouse / garment","number",true],["rate_type","Blouse Type","ratetype",true],["unit_price","Average garment விலை","number",true],
-["lining_cloth_source","Lining cloth","liningSource"],["lining_cloth_qty","Lining cloth quantity","number"],["total_amount","மொத்த தொகை","number",true],["advance_amount","Advance / Paid","number",true],["advance_date","Advance கொடுத்த தேதி","date"],["status","Status","orderstatus",true],["notes","Alteration Notes","textarea"]
+["lining_cloth_source","Lining cloth","liningSource"],["lining_cloth_qty","Lining cloth quantity","number"],["total_amount","மொத்த தொகை","number",true],["advance_amount","Advance / Paid","number",true],["status","Status","orderstatus",true],["notes","Alteration Notes","textarea"]
 ]},
 alteration:{title:"Alteration",table:"alterations",fields:[["customer_id","Customer","customer",true],["order_id","Order","order"],["alteration_details","Alteration Details","textarea",true],["alteration_date","Alteration Date","date",true],["delivery_date","Delivery Date","date"],["status","Status","alterstatus",true],["amount","Amount","number"],["notes","Notes","textarea"]]},
 payment:{title:"Payment",table:"payments",fields:[["order_id","Order","order",true],["payment_date","Payment Date","date",true],["amount","Customer Paid Amount","number",true],["payment_method","Payment Method","paymentmethod",true],["reference_no","Reference No","text"],["notes","Notes","textarea"]]},
@@ -2311,7 +2305,6 @@ if(modalBox){
 $("formFields").innerHTML=def.fields.map(f=>{
 let val=row?.[f[0]];
 if(type==="order"&&f[0]==="notes")val=customerAlterationNotes(row?.customer_id,cleanOrderNotes(val));
-if(type==="order"&&f[0]==="advance_date")val=String(row?.advance_date||"").trim() || String(row?.notes||"").match(/ADVANCE_DATE:([0-9]{4}-[0-9]{2}-[0-9]{2})/)?.[1] || (Number(row?.advance_amount||0)>0?String(row?.order_date||today):"");
 if(type==="order"&&["normal_qty","lining_qty","design_qty"].includes(f[0])){const s=blouseSplit(row||{});val=s[f[0].replace("_qty","")]||0}
 if(type==="order"&&["normal_handover","lining_handover","design_handover"].includes(f[0])){const h=blouseHandover(row||{});val=h[f[0].replace("_handover","")]||0}
 if(type==="order"&&["chudi_handover","saree_handover"].includes(f[0])){const h=garmentHandover(row||{});val=h[f[0].replace("_handover","")]||0}
@@ -2329,6 +2322,11 @@ if(type==="order"){
   $("formFields").appendChild(blouseTrack);
   const refreshBlouseTrack=()=>{const vals=["normal","lining","design"].map(k=>{const total=Math.max(0,Number($("formFields").querySelector(`[name="${k}_qty"]`)?.value||0)),given=Math.min(total,Math.max(0,Number($("formFields").querySelector(`[name="${k}_handover"]`)?.value||0)));return {k,total,given,pending:Math.max(0,total-given)}});vals.forEach(x=>{const p=$("nf-blouse-pending-"+x.k);if(p)p.textContent=x.pending});const t=$("nf-blouse-pending-total");if(t)t.textContent=vals.reduce((a,x)=>a+x.pending,0)};
   ["normal_qty","normal_handover","lining_qty","lining_handover","design_qty","design_handover","chudi_qty","chudi_handover","saree_qty","saree_handover"].forEach(n=>$('formFields').querySelector(`[name="${n}"]`)?.addEventListener("input",refreshBlouseTrack));refreshBlouseTrack();
+  const af=document.createElement("div");
+  af.className="field";
+  const existingAdvanceDate=String(row?.advance_date||"").trim() || String(row?.notes||"").match(/ADVANCE_DATE:([0-9]{4}-[0-9]{2}-[0-9]{2})/)?.[1] || String(row?.order_date||today);
+  af.innerHTML=`<label>Advance கொடுத்த தேதி</label><input class="input" type="date" id="nfAdvanceDate" value="${esc(existingAdvanceDate)}">`;
+  $("formFields").appendChild(af);
 }
 
 if(type==="design"){
@@ -2589,8 +2587,6 @@ if(type==="payment"){
 }
 if(type==="design"){const f=$("designPhotoFile"),cam=$("designCameraFile");const dataUrl=f?.dataset.dataUrl||cam?.dataset.dataUrl;const remove=f?.dataset.remove==="1"||cam?.dataset.remove==="1";if(dataUrl)payload.image_url=dataUrl;else if(remove)payload.image_url=null;}
 if(type==="order"){
- const nfAdvanceDate=String(fd.get("advance_date")||"").trim();
- delete payload.advance_date;
  const garment=String(fd.get("garment_type")||"Blouse").toLowerCase();
  const compactGarment=garment.replace(/\s+/g,"");
  const combined=compactGarment==="blouse+chudi"||compactGarment==="blousechudi"||compactGarment==="both";
@@ -2629,9 +2625,9 @@ if(type==="order"){
    payload.notes=String(payload.notes||"").replace(/\s*\|\s*GARMENT_SPLIT:\{[^}]+\}/g,"").replace(/\s*\|\s*SAREE_RATE:[0-9.]+/g,"").trim();
    payload.notes+=" | GARMENT_SPLIT:"+JSON.stringify({chudi:0,chudiLining:"no",chudiLiningQty:0,saree:sq})+" | GARMENT_HANDOVER:"+JSON.stringify({chudi:0,saree:sh})+" | SAREE_RATE:"+sr;
  }
- const nfCleanNotes=cleanOrderNotes(payload.notes||"");
-  const effectiveAdvanceDate=Number(payload.advance_amount||0)>0?(nfAdvanceDate||payload.order_date||localDate()):"";
-  payload.notes=[nfCleanNotes.replace(/ADVANCE_DATE:[0-9]{4}-[0-9]{2}-[0-9]{2}\s*\|?\s*/g,"").trim(),effectiveAdvanceDate?`ADVANCE_DATE:${effectiveAdvanceDate}`:""].filter(Boolean).join(" | ");
+ const nfAdvanceDate=$("nfAdvanceDate")?.value || payload.order_date || localDate();
+  const nfCleanNotes=cleanOrderNotes(payload.notes||"");
+  payload.notes=[nfCleanNotes.replace(/ADVANCE_DATE:[0-9]{4}-[0-9]{2}-[0-9]{2}\s*\|?\s*/g,"").trim(),`ADVANCE_DATE:${nfAdvanceDate}`].filter(Boolean).join(" | ");
   payload.balance_amount=Math.max(0,payload.total_amount-Number(payload.advance_amount||0));
  if(!payload.status)payload.status="Pending";
  if(!payload.lining_cloth_source)payload.lining_cloth_source=null;
@@ -2647,6 +2643,15 @@ if(type==="payment" && payload.__orderUpdate){
 }
 let result=id?await supabaseClient.from(def.table).update(payload).eq("id",id).select().single():await supabaseClient.from(def.table).insert(payload).select().single();
 if(result.error)throw result.error;
+if((type==="order" || type==="payment") && result.data){
+  const syncOrderId=type==="order" ? String(result.data.id||"") : String(payload.order_id||"");
+  if(syncOrderId){
+    const syncOrder=(state.orders||[]).find(x=>String(x.id)===syncOrderId) || (type==="order" ? result.data : null);
+    const syncAdvanceDate=type==="order" ? String((payload.notes||"").match(/ADVANCE_DATE:([0-9]{4}-[0-9]{2}-[0-9]{2})/)?.[1]||payload.order_date||"") : String((payload.notes||"").match(/ADVANCE_DATE:([0-9]{4}-[0-9]{2}-[0-9]{2})/)?.[1]||"");
+    const syncOrderDate=type==="order" ? String(payload.order_date||"") : String((payload.notes||"").match(/ORDER_DATE:([0-9]{4}-[0-9]{2}-[0-9]{2})/)?.[1]||syncOrder?.order_date||"");
+    try{ await window.nfSyncLinkedPaymentDates?.(syncOrderId,syncOrderDate,syncAdvanceDate); }catch(syncErr){ console.error("Payment date sync failed",syncErr); }
+  }
+}
 if(type==="customer"){
   const village=fd.get("village")||"";localStorage.setItem("nf_village_"+result.data.id,village);
   const alterationNotes=String(payload.notes||"").trim();
@@ -7620,7 +7625,7 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-my-custome
   window.openModal=function(type,id){
     old.apply(this,arguments);
     if(type==="order"){
-      const l=document.querySelector("[name=\"advance_date\"]")?.closest(".field")?.querySelector("label");
+      const l=document.querySelector("#nfAdvanceDate")?.closest(".field")?.querySelector("label");
       if(l)l.textContent="Advance வாங்கிய தேதி";
     }
   };
@@ -7641,3 +7646,116 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-my-custome
 .nf-blouse-collection .nfBlouseStatusGrid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
 @media (max-width:560px){.nf-blouse-collection .nfBlouseHandoverGrid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:7px!important;padding-left:10px!important;padding-right:10px!important}.nf-blouse-collection .nfBlouseHandoverBox{padding:8px!important}.nf-blouse-collection .nfBlouseHandoverTitle{font-size:13px!important}.nf-blouse-collection .nfBlouseHandoverRow{padding:7px 2px!important}.nf-blouse-collection .nfBlouseHandoverRow span{font-size:12px!important}.nf-blouse-collection .nfBlouseHandoverRow b{font-size:15px!important}}
 </style>
+
+
+<!-- V100.99 — Payment ↔ Order date / advance sync only.
+     Base: V100.98. No payment UI/layout redesign and no Home/Customer changes. -->
+<script id="v10099-order-payment-date-sync">
+(function(){
+  "use strict";
+
+  function cleanHumanNotes(v){
+    return String(v||"")
+      .replace(/(?:ORDER_DATE|ADVANCE_DATE):[^|]*/gi,"")
+      .replace(/\s*\|\s*\|\s*/g," | ")
+      .replace(/^\s*\|\s*|\s*\|\s*$/g,"")
+      .trim();
+  }
+
+  function paymentMetaNotes(existing, orderDate, advanceDate){
+    const clean = cleanHumanNotes(existing);
+    return [
+      clean,
+      orderDate ? `ORDER_DATE:${orderDate}` : "",
+      advanceDate ? `ADVANCE_DATE:${advanceDate}` : ""
+    ].filter(Boolean).join(" | ");
+  }
+
+  async function syncLinkedPaymentDates(orderId, orderDate, advanceDate){
+    if(!orderId || typeof supabaseClient === "undefined") return;
+    const linked=(state.payments||[]).filter(p=>String(p.order_id||"")===String(orderId));
+    for(const p of linked){
+      const nextNotes=paymentMetaNotes(p.notes, orderDate, advanceDate);
+      if(String(p.notes||"")===nextNotes) continue;
+      const r=await supabaseClient.from("payments").update({notes:nextNotes}).eq("id",p.id);
+      if(r.error) throw r.error;
+    }
+  }
+
+  window.nfSyncLinkedPaymentDates=syncLinkedPaymentDates;
+
+  // When an Order is saved, immediately propagate its Order Date and
+  // Advance Date to every linked payment record.
+  const oldSubmit=document.getElementById("dataForm");
+  if(oldSubmit){
+    oldSubmit.addEventListener("nf-order-date-sync", async function(e){
+      const d=e.detail||{};
+      try{ await syncLinkedPaymentDates(d.orderId,d.orderDate,d.advanceDate); }
+      catch(err){ console.error("Payment date sync failed",err); }
+    });
+  }
+
+  // Keep the Payment editor fields synchronized from the selected Order.
+  function syncPaymentEditorFromOrder(){
+    const form=document.getElementById("formFields");
+    if(!form) return;
+    const orderEl=form.querySelector('[name="order_id"]');
+    if(!orderEl) return;
+    const o=(state.orders||[]).find(x=>String(x.id)===String(orderEl.value||""));
+    if(!o) return;
+    const orderDate=form.querySelector("#nfPayOrderDate");
+    const advance=form.querySelector("#nfPayAdvanceEdit");
+    const advanceDate=form.querySelector("#nfPayAdvanceDateEdit");
+    const info=typeof nfOrderPaymentInfo==="function" ? nfOrderPaymentInfo(o) : null;
+    if(orderDate) orderDate.value=String(o.order_date||"");
+    if(advance) advance.value=Number(o.advance_amount||0);
+    if(advanceDate) advanceDate.value=String(info?.advanceDate||o.order_date||"");
+    orderDate?.dispatchEvent(new Event("change",{bubbles:true}));
+    advanceDate?.dispatchEvent(new Event("change",{bubbles:true}));
+  }
+  window.nfSyncPaymentEditorFromOrder=syncPaymentEditorFromOrder;
+
+  // Wrap the existing modal only to refresh the sync fields after the
+  // original Payment modal has finished building. Existing UI is retained.
+  const oldOpenModal=window.openModal;
+  if(typeof oldOpenModal==="function" && !oldOpenModal.__nfV10099){
+    const wrapped=function(type,id){
+      const result=oldOpenModal.apply(this,arguments);
+      if(type==="payment"){
+        setTimeout(syncPaymentEditorFromOrder,0);
+        setTimeout(syncPaymentEditorFromOrder,80);
+      }
+      return result;
+    };
+    wrapped.__nfV10099=true;
+    window.openModal=wrapped;
+  }
+
+  // Patch the existing submit flow after it saves an Order or a Payment.
+  const form=document.getElementById("dataForm");
+  if(form && !form.__nfV10099SubmitHook){
+    form.addEventListener("nf-after-save-sync", async function(e){
+      const d=e.detail||{};
+      if(d.type!=="order" && d.type!=="payment") return;
+      try{
+        const o=(state.orders||[]).find(x=>String(x.id)===String(d.orderId||""));
+        if(!o) return;
+        const info=typeof nfOrderPaymentInfo==="function"?nfOrderPaymentInfo(o):null;
+        await syncLinkedPaymentDates(o.id,String(o.order_date||""),String(info?.advanceDate||o.order_date||""));
+      }catch(err){ console.error("V100.99 payment sync failed",err); }
+    });
+    form.__nfV10099SubmitHook=true;
+  }
+
+  // Refresh the Payment page whenever the app reloads its data.
+  const oldLoadAll=window.loadAll;
+  if(typeof oldLoadAll==="function" && !oldLoadAll.__nfV10099){
+    const wrappedLoad=async function(){
+      const r=await oldLoadAll.apply(this,arguments);
+      return r;
+    };
+    wrappedLoad.__nfV10099=true;
+    window.loadAll=wrappedLoad;
+  }
+})();
+</script>
