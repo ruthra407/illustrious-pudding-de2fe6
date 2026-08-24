@@ -6037,6 +6037,106 @@ function nfFormatPaymentDate(v){return v?dateText(v):"—";}
   };
 })();
 </script>
+
+<style id="v10090-payment-management">
+/* V100.90 — Cash Collection is summary-only; payment management stays in Payment screen. */
+.nf-cash-collection .nf-edit-payment-list,
+.nf-cash-collection .nf-payment-edit-list,
+.nf-cash-collection .nf-payment-history-actions{
+  display:none!important;
+}
+.nf-cash-collection .nf-payment-history-item .nf-payment-edit-btn,
+.nf-cash-collection .nf-payment-history-item .nf-payment-delete-btn,
+.nf-cash-collection .nf-payment-edit-btn,
+.nf-cash-collection .nf-payment-delete-btn{
+  display:none!important;
+}
+</style>
+
+<script id="v10090-payment-management-js">
+(function(){
+  "use strict";
+
+  function hideCashCollectionPaymentEdits(){
+    document.querySelectorAll(".nf-cash-collection").forEach(function(panel){
+      panel.querySelectorAll(
+        ".nf-payment-edit-list,.nf-payment-history-actions,.nf-payment-edit-btn,.nf-payment-delete-btn"
+      ).forEach(function(el){ el.remove(); });
+      // Remove per-payment action rows/buttons that were injected by V100.80.
+      panel.querySelectorAll(".nf-payment-history-item").forEach(function(item){
+        item.querySelectorAll("button,a,[role='button']").forEach(function(el){
+          const t=(el.textContent||"").trim().toLowerCase();
+          if(t.includes("edit") || t.includes("delete") || t.includes("✏") || t.includes("🗑")){
+            el.remove();
+          }
+        });
+      });
+    });
+  }
+
+  // Keep payment management on the Payment screen.
+  // If the app already exposes edit/delete there, do not duplicate another control.
+  function ensurePaymentScreenManagement(){
+    document.querySelectorAll(".nf-payment-screen,.payment-screen,.nf-payment-page").forEach(function(screen){
+      screen.querySelectorAll(".nf-payment-history-item").forEach(function(item){
+        if(item.querySelector(".nf-v10090-actions")) return;
+
+        const id =
+          item.getAttribute("data-payment-id") ||
+          item.dataset?.paymentId ||
+          item.getAttribute("data-id");
+
+        if(!id) return;
+
+        const actions=document.createElement("div");
+        actions.className="nf-v10090-actions";
+        actions.style.cssText="display:flex;gap:8px;justify-content:flex-end;margin-top:8px;";
+
+        const edit=document.createElement("button");
+        edit.type="button";
+        edit.textContent="✏️ Edit Payment";
+        edit.className="nf-v10090-edit";
+        edit.onclick=function(){
+          if(typeof window.openEditPayment==="function") window.openEditPayment(id);
+          else if(typeof window.editPayment==="function") window.editPayment(id);
+          else if(typeof window.openCustomerPaymentEdit==="function") window.openCustomerPaymentEdit(id);
+        };
+
+        const del=document.createElement("button");
+        del.type="button";
+        del.textContent="🗑️ Delete";
+        del.className="nf-v10090-delete";
+        del.onclick=function(){
+          const ok=window.confirm("இந்த payment-ஐ delete செய்யவா?");
+          if(!ok) return;
+          if(typeof window.deletePayment==="function") window.deletePayment(id);
+          else if(typeof window.removePayment==="function") window.removePayment(id);
+        };
+
+        actions.append(edit,del);
+        item.appendChild(actions);
+      });
+    });
+  }
+
+  function refresh(){
+    hideCashCollectionPaymentEdits();
+    ensurePaymentScreenManagement();
+  }
+
+  document.addEventListener("DOMContentLoaded",function(){
+    setTimeout(refresh,100);
+    setTimeout(refresh,500);
+  });
+
+  const observer=new MutationObserver(function(){
+    clearTimeout(window.__nf10090_timer);
+    window.__nf10090_timer=setTimeout(refresh,80);
+  });
+  if(document.body) observer.observe(document.body,{childList:true,subtree:true});
+})();
+</script>
+
 </body>
 </html>
 
