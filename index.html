@@ -6465,3 +6465,285 @@ function nfFormatPaymentDate(v){return v?dateText(v):"—";}
   if(document.body) observer.observe(document.body,{childList:true,subtree:true});
 })();
 </script><style>.nf-cash-collection .customerMoneyGrid .moneyStat>span.nf-v10080-label .nf-v10080-date{font-size:15px!important;line-height:1.2!important;font-weight:1000!important;min-height:34px!important;padding:7px 10px!important;display:flex!important;align-items:center!important;justify-content:center!important;border-left:2px solid rgba(92,61,145,.22)!important;border-radius:0!important}.nf-cash-collection .customerMoneyGrid .moneyStat>b{min-height:34px!important;display:flex!important;align-items:center!important;justify-content:flex-end!important;padding-left:12px!important;border-left:2px solid rgba(92,61,145,.22)!important}.nf-cash-collection .customerMoneyGrid .moneyStat:nth-child(2)>span.nf-v10080-label .nf-v10080-date,.nf-cash-collection .customerMoneyGrid .moneyStat:nth-child(2)>b{border-left-color:rgba(20,121,79,.22)!important}.nf-cash-collection .customerMoneyGrid .moneyStat:nth-child(3)>span.nf-v10080-label .nf-v10080-date,.nf-cash-collection .customerMoneyGrid .moneyStat:nth-child(3)>b{border-left-color:rgba(154,101,0,.25)!important}.nf-cash-collection .customerMoneyGrid .moneyStat:nth-child(4)>span.nf-v10080-label .nf-v10080-date,.nf-cash-collection .customerMoneyGrid .moneyStat:nth-child(4)>b{border-left-color:rgba(191,48,69,.22)!important}@media (max-width:560px){.nf-cash-collection .customerMoneyGrid .moneyStat>span.nf-v10080-label .nf-v10080-date{font-size:14px!important;min-height:34px!important;padding:7px 6px!important}.nf-cash-collection .customerMoneyGrid .moneyStat>b{font-size:16px!important;min-height:34px!important;padding-left:8px!important}}</style>
+
+<!-- V202.0 final targeted fixes based strictly on Deep_clean_version_201.0 -->
+<style id="nf-v202-final-css">
+/* Customer Card: Edit Order + Order Full Details live below customer photos. */
+.nf-v202-customer-actions{
+  display:grid!important;
+  grid-template-columns:1fr 1fr!important;
+  gap:10px!important;
+  margin-top:12px!important;
+  padding-top:12px!important;
+  border-top:1px solid rgba(108,77,246,.16)!important;
+}
+.nf-v202-customer-action{
+  min-height:68px!important;
+  border:1px solid rgba(108,77,246,.18)!important;
+  border-radius:16px!important;
+  background:linear-gradient(135deg,#f3efff,#fff0f7)!important;
+  color:#4f35b6!important;
+  box-shadow:0 7px 18px rgba(80,55,140,.10)!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:8px!important;
+  flex-direction:column!important;
+  font-weight:950!important;
+  cursor:pointer!important;
+}
+.nf-v202-customer-action .nf-v202-action-icon{
+  font-size:30px!important;
+  line-height:1!important;
+}
+.nf-v202-customer-action .nf-v202-action-label{
+  font-size:12px!important;
+  line-height:1.1!important;
+}
+.nf-v202-customer-action.nf-v202-full{
+  background:linear-gradient(135deg,#e8f5ff,#edf0ff)!important;
+  color:#245eae!important;
+}
+.nf-v202-customer-action:active{transform:scale(.97)!important}
+.nf-v202-customer-action:disabled{opacity:.45!important;cursor:not-allowed!important}
+@media(max-width:560px){
+  .nf-v202-customer-actions{gap:8px!important;margin-top:10px!important;padding-top:10px!important}
+  .nf-v202-customer-action{min-height:72px!important;border-radius:15px!important}
+  .nf-v202-customer-action .nf-v202-action-icon{font-size:31px!important}
+  .nf-v202-customer-action .nf-v202-action-label{font-size:11px!important}
+}
+/* Payment modal: the displayed Total Order date is the cloth-received date. */
+#nfPayOrderDate.nf-v202-cloth-date{
+  border-color:#8b72e8!important;
+  background:#faf8ff!important;
+  font-weight:900!important;
+}
+</style>
+<script id="nf-v202-final-fixes">
+(function(){
+  "use strict";
+
+  function getCustomerId(card){
+    return String((card && card.id || "").replace(/^customer-card-/,""));
+  }
+
+  function latestOrderForCustomer(customerId){
+    var orders=(state.orders||[]).filter(function(o){
+      return String(o.customer_id)===String(customerId);
+    });
+    if(!orders.length) return null;
+    orders.sort(function(a,b){
+      var ad=String(a.cloth_received_date||a.created_at||a.order_date||"");
+      var bd=String(b.cloth_received_date||b.created_at||b.order_date||"");
+      return bd.localeCompare(ad);
+    });
+    return orders[0];
+  }
+
+  /* Move only Edit Order out of the name row.
+     Keep Edit Customer/Delete where they already are. */
+  function patchCustomerActions(){
+    document.querySelectorAll(".customerCard").forEach(function(card){
+      var photoManager=card.querySelector(".nf-customer-cloth-photo-manager");
+      var nameRow=card.querySelector(".nf-customer-name-row");
+      if(!photoManager || !nameRow) return;
+
+      var oldEdit=nameRow.querySelector(".nf-edit-order");
+      if(oldEdit) oldEdit.remove();
+
+      var customerId=getCustomerId(card);
+      if(!customerId) return;
+
+      var row=card.querySelector(".nf-v202-customer-actions");
+      if(!row){
+        row=document.createElement("div");
+        row.className="nf-v202-customer-actions";
+        row.setAttribute("aria-label","Order actions");
+        photoManager.insertAdjacentElement("afterend",row);
+      }
+
+      var edit=row.querySelector(".nf-v202-edit");
+      if(!edit){
+        edit=document.createElement("button");
+        edit.type="button";
+        edit.className="nf-v202-customer-action nf-v202-edit";
+        edit.innerHTML='<span class="nf-v202-action-icon">✏️</span><span class="nf-v202-action-label">Edit Order</span>';
+        edit.title="Edit Order";
+        edit.setAttribute("aria-label","Edit Order");
+        row.appendChild(edit);
+      }
+      edit.onclick=function(e){
+        e.stopPropagation();
+        openCustomerOrderEditor(customerId);
+      };
+
+      var full=row.querySelector(".nf-v202-full");
+      var order=latestOrderForCustomer(customerId);
+      if(!full){
+        full=document.createElement("button");
+        full.type="button";
+        full.className="nf-v202-customer-action nf-v202-full";
+        full.innerHTML='<span class="nf-v202-action-icon">📋</span><span class="nf-v202-action-label">Order Full Details</span>';
+        full.title="Order Full Details";
+        full.setAttribute("aria-label","Order Full Details");
+        row.appendChild(full);
+      }
+      full.disabled=!order;
+      full.onclick=function(e){
+        e.stopPropagation();
+        var latest=latestOrderForCustomer(customerId);
+        if(!latest){
+          toast("இந்த customer-க்கு Order இல்லை.",true);
+          return;
+        }
+        openCustomerOrderFullDetails(String(latest.id));
+      };
+    });
+  }
+
+  /* Cash Collection: Total Order date = Cloth Received Date. */
+  function patchCashDate(){
+    document.querySelectorAll(".nf-cash-collection").forEach(function(panel){
+      var btn=panel.querySelector(".nf-cash-payment-btn");
+      if(!btn) return;
+      var m=(btn.getAttribute("onclick")||"").match(/openCustomerPayment\(['"]([^'"]+)['"]\)/);
+      if(!m) return;
+      var customerId=m[1];
+      var orders=(state.orders||[]).filter(function(o){
+        return String(o.customer_id)===String(customerId);
+      });
+      if(!orders.length) return;
+
+      function latest(values){
+        return values.filter(Boolean).map(String).sort().slice(-1)[0]||"";
+      }
+
+      var clothDate=latest(orders.map(function(o){return o.cloth_received_date||"";}));
+      var paidDate=latest(orders.flatMap(function(o){
+        return (state.payments||[]).filter(function(p){return String(p.order_id)===String(o.id);})
+          .map(function(p){return p.payment_date||"";});
+      }));
+      var infos=orders.map(function(o){
+        return typeof nfOrderPaymentInfo==="function"?nfOrderPaymentInfo(o):null;
+      }).filter(Boolean);
+      var advanceDate=latest(infos.map(function(x){return x.advanceDate||"";}));
+      var balanceDate=latest(infos.map(function(x){return x.balancePaidDate||"";}));
+      var totalDateValues=[clothDate];
+
+      var cards=panel.querySelectorAll(".customerMoneyGrid .moneyStat");
+      cards.forEach(function(card,i){
+        var span=card.querySelector("span.nf-v10080-label")||card.querySelector("span");
+        if(!span) return;
+        span.classList.add("nf-v10080-label");
+        var d=span.querySelector(".nf-v10080-date");
+        if(!d){
+          d=document.createElement("small");
+          d.className="nf-v10080-date";
+          span.appendChild(d);
+        }
+        var value=i===0?clothDate:i===1?paidDate:i===2?advanceDate:balanceDate;
+        d.textContent="📅 "+(typeof nfFormatPaymentDate==="function"?nfFormatPaymentDate(value):(value||"—"));
+      });
+    });
+  }
+
+  /* Payment editor: displayed Total Order date = Cloth Received Date.
+     This is a display/business-label change only; database order_date is untouched. */
+  function patchPaymentDate(){
+    var form=document.getElementById("formFields");
+    if(!form) return;
+    var orderEl=form.querySelector('[name="order_id"]');
+    var dateEl=document.getElementById("nfPayOrderDate");
+    if(!orderEl || !dateEl) return;
+
+    var o=(state.orders||[]).find(function(x){
+      return String(x.id)===String(orderEl.value||"");
+    });
+    if(!o) return;
+
+    var cloth=String(o.cloth_received_date||o.order_date||"");
+    if(cloth){
+      dateEl.value=cloth;
+      dateEl.classList.add("nf-v202-cloth-date");
+      dateEl.setAttribute("data-date-source","cloth_received_date");
+      var label=dateEl.previousElementSibling;
+      if(label && label.classList.contains("nf-v10060-date-label")){
+        label.textContent="📅 துணி கொடுத்த தேதி";
+      }
+      dateEl.dispatchEvent(new Event("input",{bubbles:true}));
+    }
+  }
+
+  function refresh(){
+    patchCustomerActions();
+    patchCashDate();
+    patchPaymentDate();
+  }
+
+  function wrapOpenModal(){
+    if(typeof window.openModal!=="function" || window.openModal.__nfV202) return;
+    var original=window.openModal;
+    var wrapped=function(type,id){
+      var result=original.apply(this,arguments);
+      if(type==="payment"){
+        setTimeout(patchPaymentDate,0);
+        setTimeout(patchPaymentDate,80);
+        setTimeout(patchPaymentDate,220);
+      }
+      return result;
+    };
+    wrapped.__nfV202=true;
+    window.openModal=wrapped;
+  }
+
+  function install(){
+    wrapOpenModal();
+    refresh();
+  }
+
+  if(document.readyState==="loading"){
+    document.addEventListener("DOMContentLoaded",function(){
+      setTimeout(install,80);
+      setTimeout(install,300);
+      setTimeout(install,800);
+    });
+  }else{
+    setTimeout(install,80);
+    setTimeout(install,300);
+    setTimeout(install,800);
+  }
+
+  var oldRenderCustomers=window.renderCustomers;
+  if(typeof oldRenderCustomers==="function" && !oldRenderCustomers.__nfV202){
+    var wrappedRC=function(){
+      var r=oldRenderCustomers.apply(this,arguments);
+      setTimeout(refresh,30);
+      setTimeout(refresh,180);
+      return r;
+    };
+    wrappedRC.__nfV202=true;
+    window.renderCustomers=wrappedRC;
+  }
+
+  var oldLoadAll=window.loadAll;
+  if(typeof oldLoadAll==="function" && !oldLoadAll.__nfV202){
+    var wrappedLA=async function(){
+      var r=await oldLoadAll.apply(this,arguments);
+      setTimeout(refresh,40);
+      setTimeout(refresh,200);
+      return r;
+    };
+    wrappedLA.__nfV202=true;
+    window.loadAll=wrappedLA;
+  }
+
+  var observer=new MutationObserver(function(){
+    clearTimeout(window.__nfV202Timer);
+    window.__nfV202Timer=setTimeout(function(){
+      wrapOpenModal();
+      refresh();
+    },120);
+  });
+  if(document.body) observer.observe(document.body,{childList:true,subtree:true});
+})();
+</script>
