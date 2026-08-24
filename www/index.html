@@ -6803,3 +6803,139 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-my-custome
   body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dashboard-daily-btn,
   body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-my-customers-menu-btn{width:34px!important;height:34px!important;min-width:34px!important;flex-basis:34px!important;font-size:16px!important}}</style>
 
+
+<style id="nf-v10010-order-edit-category-final">
+/* V100.10 — Order Card Edit Order: match Customer Card Edit Order section layout */
+#ordersNewOrderScreen #ordersNewOrderContent [id^="quick-order-"]{
+  background:linear-gradient(145deg,#fff,#fbf9ff)!important;
+  border:1px solid #ddd6ff!important;
+  border-radius:20px!important;
+  padding:14px!important;
+  box-shadow:0 14px 36px rgba(77,53,130,.10)!important;
+}
+#ordersNewOrderScreen #ordersNewOrderContent [id^="quick-order-"] .nf-edit-category-stack{
+  display:grid!important;gap:12px!important;margin-top:10px!important;
+}
+#ordersNewOrderScreen #ordersNewOrderContent [id^="quick-order-"] .nf-edit-category-box{
+  position:relative!important;display:block!important;min-width:0!important;overflow:hidden!important;
+  border-radius:18px!important;padding:13px!important;margin:0!important;
+  box-shadow:0 9px 26px rgba(42,32,70,.10)!important;
+}
+#ordersNewOrderScreen #ordersNewOrderContent [id^="quick-order-"] .nf-edit-category-box::before{
+  content:""!important;position:absolute!important;left:0!important;top:0!important;bottom:0!important;
+  width:6px!important;background:var(--nf-cat-color,#6c4df6)!important;
+  border-radius:18px 0 0 18px!important;
+}
+#ordersNewOrderScreen #ordersNewOrderContent [id^="quick-order-"] .nf-edit-category-head{
+  display:flex!important;align-items:center!important;gap:10px!important;
+  margin:0 0 10px 3px!important;min-width:0!important;
+}
+#ordersNewOrderScreen #ordersNewOrderContent [id^="quick-order-"] .nf-edit-category-head>span{
+  width:40px!important;height:40px!important;display:grid!important;place-items:center!important;
+  border-radius:12px!important;background:var(--nf-cat-soft,#f0edff)!important;
+  font-size:23px!important;flex:0 0 40px!important;
+}
+#ordersNewOrderScreen #ordersNewOrderContent [id^="quick-order-"] .nf-edit-category-head strong{
+  display:block!important;font-size:17px!important;line-height:1.15!important;
+  color:#101018!important;font-weight:950!important;
+}
+#ordersNewOrderScreen #ordersNewOrderContent [id^="quick-order-"] .nf-edit-category-head small{
+  display:block!important;font-size:11px!important;margin-top:3px!important;
+  line-height:1.3!important;color:#45404c!important;font-weight:750!important;
+}
+#ordersNewOrderScreen #ordersNewOrderContent [id^="quick-order-"] .nf-edit-category-grid{
+  display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important;min-width:0!important;
+}
+#ordersNewOrderScreen #ordersNewOrderContent [id^="quick-order-"] .nf-edit-category-box .moneyStat,
+#ordersNewOrderScreen #ordersNewOrderContent [id^="quick-order-"] .nf-edit-category-box .field{
+  min-width:0!important;background:rgba(255,255,255,.96)!important;
+  border:1px solid rgba(20,16,28,.13)!important;border-radius:12px!important;padding:9px!important;
+}
+#ordersNewOrderScreen #ordersNewOrderContent [id^="quick-order-"] .nf-edit-category-box .moneyStat{
+  display:grid!important;grid-template-columns:minmax(0,1fr) minmax(94px,116px)!important;
+  align-items:center!important;gap:8px!important;
+}
+#ordersNewOrderScreen #ordersNewOrderContent [id^="quick-order-"] .nf-edit-category-box .moneyStat>span,
+#ordersNewOrderScreen #ordersNewOrderContent [id^="quick-order-"] .nf-edit-category-box .field>label{
+  color:#211d25!important;font-weight:900!important;font-size:12px!important;line-height:1.3!important;
+}
+#ordersNewOrderScreen #ordersNewOrderContent [id^="quick-order-"] .nf-edit-category-box input,
+#ordersNewOrderScreen #ordersNewOrderContent [id^="quick-order-"] .nf-edit-category-box select{
+  color:#111018!important;font-weight:950!important;background:#fff!important;border-color:#c9c4d0!important;
+}
+/* Distinct category colours */
+#ordersNewOrderScreen #ordersNewOrderContent [id^="quick-order-"] .nf-edit-normal{--nf-cat-color:#ef4f8a!important;--nf-cat-soft:#ffe1ed!important;border:2px solid #f39abc!important;background:linear-gradient(135deg,#fff1f7,#fff)!important}
+#ordersNewOrderScreen #ordersNewOrderContent [id^="quick-order-"] .nf-edit-lining-blouse{--nf-cat-color:#1fa56a!important;--nf-cat-soft:#dff8eb!important;border:2px solid #81d4aa!important;background:linear-gradient(135deg,#effff7,#fff)!important}
+#ordersNewOrderScreen #ordersNewOrderContent [id^="quick-order-"] .nf-edit-design-blouse{--nf-cat-color:#e43f52!important;--nf-cat-soft:#ffe1e5!important;border:2px solid #ed929c!important;background:linear-gradient(135deg,#fff0f2,#fff)!important}
+#ordersNewOrderScreen #ordersNewOrderContent [id^="quick-order-"] .nf-edit-chudi{--nf-cat-color:#7048e8!important;--nf-cat-soft:#ebe5ff!important;border:2px solid #b3a1fa!important;background:linear-gradient(135deg,#f6f3ff,#fff)!important}
+#ordersNewOrderScreen #ordersNewOrderContent [id^="quick-order-"] .nf-edit-saree{--nf-cat-color:#ef951c!important;--nf-cat-soft:#fff0d1!important;border:2px solid #f2c76d!important;background:linear-gradient(135deg,#fff9ed,#fff)!important;margin-top:12px!important}
+#ordersNewOrderScreen #ordersNewOrderContent [id^="quick-order-"] .nf-edit-lining-cloth{--nf-cat-color:#119eaf!important;--nf-cat-soft:#dcf8fb!important;border:2px solid #72ced8!important;background:linear-gradient(135deg,#effdff,#fff)!important;margin-top:12px!important}
+#ordersNewOrderScreen #ordersNewOrderContent [id^="quick-order-"] .nf-edit-design-blouse .nf-design-rate-box{margin-top:8px!important;border:1px dashed #e43f52!important;border-radius:13px!important;background:#fff!important;padding:8px!important}
+#ordersNewOrderScreen #ordersNewOrderContent [id^="quick-order-"] .nf-edit-lining-cloth .nf-lining-cost-grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important}
+#ordersNewOrderScreen #ordersNewOrderContent [id^="quick-order-"] .nf-edit-lining-cloth .nf-lining-cost-field{background:#fff!important;border:1px solid #77cfd8!important;border-radius:12px!important;padding:9px!important}
+#ordersNewOrderScreen #ordersNewOrderContent [id^="quick-order-"] .nf-edit-chudi .field{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(92px,116px)!important;align-items:center!important;gap:8px!important;background:#fff!important;border:1px solid rgba(20,16,28,.13)!important;border-radius:12px!important;padding:9px!important}
+@media(max-width:560px){
+  #ordersNewOrderScreen #ordersNewOrderContent [id^="quick-order-"]{padding:11px!important}
+  #ordersNewOrderScreen #ordersNewOrderContent [id^="quick-order-"] .nf-edit-category-grid,
+  #ordersNewOrderScreen #ordersNewOrderContent [id^="quick-order-"] .nf-edit-lining-cloth .nf-lining-cost-grid{grid-template-columns:1fr!important}
+  #ordersNewOrderScreen #ordersNewOrderContent [id^="quick-order-"] .nf-edit-category-head strong{font-size:16px!important}
+  #ordersNewOrderScreen #ordersNewOrderContent [id^="quick-order-"] .nf-edit-category-head small{font-size:10px!important}
+  #ordersNewOrderScreen #ordersNewOrderContent [id^="quick-order-"] .nf-edit-category-box .moneyStat{grid-template-columns:minmax(0,1fr) 102px!important}
+}
+</style>
+
+<script id="nf-v10010-order-edit-category-enforcer">
+(function(){
+  "use strict";
+  function ensureOrderEditSections(){
+    var root=document.getElementById("ordersNewOrderContent");
+    if(!root)return;
+    var box=root.querySelector('[id^="quick-order-"]');
+    if(!box)return;
+    box.classList.add("nf-order-edit-colorful-final");
+    /* The customer-card editor already contains the correct category sections.
+       This enforcer only repairs a cloned/legacy order editor if its sections
+       were flattened, without changing field names, values, handlers or data. */
+    var existing=box.querySelectorAll(":scope > .nf-edit-category-box");
+    if(existing.length) return;
+    var fields=Array.from(box.children).filter(function(el){return el.classList&&el.classList.contains("field")});
+    if(!fields.length)return;
+    function find(names){
+      return fields.filter(function(f){return names.some(function(n){return !!f.querySelector('[id^="qo-'+n+'-"]')||!!f.querySelector('[name="'+n+'"]')})});
+    }
+    var groups=[
+      ["nf-edit-normal","👗","Normal blouse","எண்ணிக்கை · வாங்கிச் சென்றது · ஒன்றுக்கு விலை",["normal","normal-handover","normal-rate"]],
+      ["nf-edit-lining-blouse","🧵","Lining blouse","எண்ணிக்கை · வாங்கிச் சென்றது · ஒன்றுக்கு விலை",["lining","lining-handover","lining-rate"]],
+      ["nf-edit-design-blouse","🎨","Design blouse","எண்ணிக்கை · வாங்கிச் சென்றது · design-wise விலை",["design","design-handover"]],
+      ["nf-edit-chudi","👚","Chudi / சுடிதார்","எண்ணிக்கை · வாங்கிச் சென்றது · lining",["chudi","chudi-handover","chudi-lining","chudi-lining-qty","chudi-rate"]],
+      ["nf-edit-saree","🥻","Saree / சேலை","எண்ணிக்கை · வாங்கிச் சென்றது · ஒன்றுக்கு விலை",["saree","saree-handover","saree-rate"]],
+      ["nf-edit-lining-cloth","🧵","Lining","யார் வாங்கியது · அளவு · விலை · மொத்தம்",["lining-source","lining-qty","lining-cost-rate"]]
+    ];
+    groups.forEach(function(g){
+      var picked=find(g[4]);
+      if(!picked.length)return;
+      var section=document.createElement("section");
+      section.className="nf-edit-category-box "+g[0];
+      section.innerHTML='<div class="nf-edit-category-head"><span>'+g[1]+'</span><div><strong>'+g[2]+'</strong><small>'+g[3]+'</small></div></div><div class="nf-edit-category-grid"></div>';
+      var grid=section.querySelector(".nf-edit-category-grid");
+      picked.forEach(function(f){grid.appendChild(f);});
+      box.appendChild(section);
+    });
+  }
+  var oldOpen=window.openOrdersEditOrder;
+  if(typeof oldOpen==="function"&&!oldOpen.__nfV10010){
+    window.openOrdersEditOrder=function(){
+      var r=oldOpen.apply(this,arguments);
+      setTimeout(ensureOrderEditSections,0);
+      setTimeout(ensureOrderEditSections,120);
+      setTimeout(ensureOrderEditSections,450);
+      return r;
+    };
+    window.openOrdersEditOrder.__nfV10010=true;
+  }
+  document.addEventListener("DOMContentLoaded",function(){
+    setTimeout(ensureOrderEditSections,200);
+    setTimeout(ensureOrderEditSections,700);
+  },{once:true});
+})();
+</script>
