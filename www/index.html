@@ -1588,6 +1588,7 @@ function clearQuickOrderEditor(id){
    if(e)e.value=Number(value||0);
  });
  const cloth=$("qo-cloth-"+id),
+       advanceDate=$("qo-advance-date-"+id),
        delivery=$("qo-delivery-"+id),
        status=$("qo-status-"+id),
        ls=$("qo-lining-source-"+id),
@@ -1595,6 +1596,7 @@ function clearQuickOrderEditor(id){
        chudiLining=$("qo-chudi-lining-"+id),
        g=$("qo-garment-"+id);
  if(cloth)cloth.value=localDate();
+ if(advanceDate)advanceDate.value=localDate();
  if(delivery)delivery.value="";
  if(status)status.value="Pending";
  if(ls)ls.value="";
@@ -1624,7 +1626,11 @@ function populateQuickOrderEditor(id,o){
  set("qo-garment-",g);
  set("qo-cloth-",o.cloth_received_date||o.order_date||localDate());
  set("qo-delivery-",o.delivery_date||"");
+ const savedAdvanceDate=String(o.advance_date||"").trim() ||
+   String(o.notes||"").match(/ADVANCE_DATE:([0-9]{4}-[0-9]{2}-[0-9]{2})/)?.[1] ||
+   String(o.order_date||localDate());
  set("qo-advance-",Number(o.advance_amount||0));
+ set("qo-advance-date-",savedAdvanceDate);
  set("qo-status-",o.status||"Pending");
  set("qo-notes-",customerAlterationNotes(o.customer_id,cleanOrderNotes(o.notes||"")));
  const s=blouseSplit(o),h=blouseHandover(o),gx=typeof nfGarmentExtra==="function"?nfGarmentExtra(o):{chudi:0,chudiLining:"no",chudiLiningQty:0,saree:0};
@@ -1904,7 +1910,7 @@ const clothPhotoActionsHtml="";
      </div>
    </div>
  </section>
- <div class="field"><label>Advance வாங்கியது</label><input id="qo-advance-${id}" class="input" type="number" min="0" step="0.01" value="0"></div><div class="field"><label>Status</label><select id="qo-status-${id}" class="input"><option value="Pending">Pending</option><option value="In Progress">Progress</option><option value="Ready">Ready</option><option value="Delivered">Delivered</option><option value="Cancelled">Cancel</option></select></div>
+ <div class="field"><label>Advance வாங்கியது</label><input id="qo-advance-${id}" class="input" type="number" min="0" step="0.01" value="0"></div><div class="field"><label>Advance வாங்கிய தேதி</label><input id="qo-advance-date-${id}" class="input" type="date" value="${localDate()}"></div><div class="field"><label>Status</label><select id="qo-status-${id}" class="input"><option value="Pending">Pending</option><option value="In Progress">Progress</option><option value="Ready">Ready</option><option value="Delivered">Delivered</option><option value="Cancelled">Cancel</option></select></div>
  <div class="field full"><label class="nf-quick-notes-label">Alteration Notes</label><textarea id="qo-notes-${id}" class="input" placeholder="தேவைப்பட்டால் குறிப்பு"></textarea></div>
  </div><div class="customerActions" style="margin-top:10px"><button class="btn primary nf-quick-save-btn" onclick="saveQuickOrder('${id}')">💾 Save Order</button><button class="btn secondary" onclick="toggleQuickOrder('${id}')">Close</button></div></div></div>
  <div class="customerSection"><h4>⏰ Delivery Reminder</h4>${customerReminderHTML(st.os)}<div class="reminderSettings" style="margin-top:8px"><div class="field" style="min-width:100%"><label class="mini">ஒரு நாளில் 10 reminder நேரங்கள்</label><div class="reminderTimesGrid">${REMINDER_TIMES.map(t=>`<span class="reminderTimeChip">🔔 ${t}</span>`).join("")}</div></div><button class="btn warning" onclick="enableDailyNotifications()">🔔 10 Daily Notifications ON</button></div><div class="hint">Notification permission கொடுத்தால் இந்த 10 நேரங்களில் phone notification வரும். Android native notification ஆக schedule செய்யப்படும்.</div></div>
@@ -5496,7 +5502,11 @@ function nfFormatPaymentDate(v){return v?dateText(v):"—";}
     const chudiTotal=isChudi?cq*cr:0;
     const ls=document.getElementById("qo-lining-source-"+id)?.value||"",lq=N(document.getElementById("qo-lining-qty-"+id)?.value),lr=N(document.getElementById("qo-lining-cost-rate-"+id)?.value),liningTotal=ls==="shop"?lq*lr:0;
     const total=blouseTotal+chudiTotal+liningTotal,qty=(isBlouse?(s.normal+s.lining+s.design+sq):0)+(isChudi?cq:0);
-    const advance=N(document.getElementById("qo-advance-"+id)?.value),status=document.getElementById("qo-status-"+id)?.value||"Pending";
+    const advance=N(document.getElementById("qo-advance-"+id)?.value);
+    const advanceDate=advance>0
+      ? String(document.getElementById("qo-advance-date-"+id)?.value||"").trim()
+      : "";
+    const status=document.getElementById("qo-status-"+id)?.value||"Pending";
     if(!delivery){toast("Delivery Date தேர்வு செய்யுங்கள்.",true);return}
     if(qty<=0){toast(combined?"குறைந்தது 1 blouse அல்லது 1 Chudi எண்ணிக்கை கொடுக்க வேண்டும்.":isChudi?"குறைந்தது 1 Chudi கொடுக்க வேண்டும்.":"குறைந்தது 1 blouse கொடுக்க வேண்டும்.",true);return}
     if(ls==="shop"&&lq>0&&lr<=0){toast("நாம் வாங்கிய Lining-க்கு விலை கொடுக்க வேண்டும்.",true);return}
@@ -5510,6 +5520,12 @@ function nfFormatPaymentDate(v){return v?dateText(v):"—";}
     if(sq>0)notes+=" | SAREE_RATE:"+sr;
     if(isBlouse&&s.design>0)notes+=" | DESIGN_RATES:"+JSON.stringify(designRates);
     if(ls==="shop")notes+=` | LINING_COST:${JSON.stringify({source:ls,qty:lq,rate:lr,total:liningTotal})}`;
+    notes=String(notes||"")
+      .replace(/ADVANCE_DATE:[0-9]{4}-[0-9]{2}-[0-9]{2}\s*\|?\s*/g,"")
+      .replace(/\s*\|\s*\|\s*/g," | ")
+      .replace(/^\s*\|\s*|\s*\|\s*$/g,"")
+      .trim();
+    if(advanceDate) notes+=(notes?" | ":"")+`ADVANCE_DATE:${advanceDate}`;
     const storedGarment=isBlouse?"Blouse":"Chudi";
     const payload={customer_id:customerId,order_no:existing?.order_no||makeOrderNo(),garment_type:storedGarment,order_date:existing?.order_date||localDate(),cloth_received_date:cloth,delivery_date:delivery,quantity:qty,unit_price:qty?total/qty:0,total_amount:total,advance_amount:advance,balance_amount:Math.max(0,total-advance),status,rate_type:isBlouse?(s.normal>0?"normal":s.lining>0?"lining":s.design>0?"design":"normal"):"normal",lining_cloth_source:ls||null,lining_cloth_qty:lq,notes};
     try{
@@ -5518,6 +5534,14 @@ function nfFormatPaymentDate(v){return v?dateText(v):"—";}
         :await supabaseClient.from("orders").insert(payload).select("*").single();
       if(result.error)throw result.error;
       if(existing&&!result.data)throw new Error("Order update செய்யப்படவில்லை. Database UPDATE permission / RLS policy-ஐ சரிபார்க்க வேண்டும்.");
+      // Keep the linked Payment records in sync with the Edit Order values.
+      try{
+        await window.nfSyncLinkedPaymentDates?.(
+          String(existing?.id||result.data?.id||""),
+          String(payload.order_date||existing?.order_date||""),
+          advanceDate
+        );
+      }catch(syncErr){ console.error("Payment date sync failed",syncErr); }
       const syncCustomerId=String(customerId||payload.customer_id||"");
       if(syncCustomerId){
         const cr=await supabaseClient.from("customers").update({notes:userNotes}).eq("id",syncCustomerId);
@@ -7648,8 +7672,8 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-my-custome
 </style>
 
 
-<!-- V100.99 — Payment ↔ Order date / advance sync only.
-     Base: V100.98. No payment UI/layout redesign and no Home/Customer changes. -->
+<!-- V100.100 — Edit Order Advance Date + linked Payment sync.
+     Base: V100.99. No Home/Blouse/Payment UI redesign. -->
 <script id="v10099-order-payment-date-sync">
 (function(){
   "use strict";
