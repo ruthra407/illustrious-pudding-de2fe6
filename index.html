@@ -522,7 +522,6 @@ function dashboardCustomerCard(c,index,category){
  const status=category==="delivered"?"delivered":"new";
  const statusText=category==="delivered"?"DELIVERED":"NEW";
  const delivery=o?.delivery_date?dateText(o.delivery_date):"—";
- const phone=c.phone||"Phone இல்லை";
 
  let deliveryLabel="Delivery";
  let deliveryKind="";
@@ -536,10 +535,7 @@ function dashboardCustomerCard(c,index,category){
  return `<article class="nf-dch-card" role="button" tabindex="0"
    onclick="goToCustomer('${safeId}')"
    onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();goToCustomer('${safeId}')}"
-   aria-label="Open customer ${esc(c.name||"Customer")}"><div class="nf-dch-card-top"><span class="nf-dch-no">${index+1}</span><div class="nf-dch-identity"><div class="nf-dch-name">${esc(c.name||"Customer")}</div><div class="nf-dch-contact">📞 ${esc(phone)} · 📍 ${esc(x.village)}</div></div><div class="nf-dch-delivery ${deliveryKind}"><div class="nf-dch-delivery-label">${esc(deliveryLabel)}</div><div class="nf-dch-delivery-date">${esc(delivery)}</div></div><span class="nf-dch-arrow">›</span></div><div class="nf-dch-info"><div class="nf-dch-box nf-dch-garment-box"><b>${esc(x.detail)}</b><span>Garment / Details</span></div></div><div class="nf-dch-meta"><span class="nf-dch-pill ${status}">${statusText}</span>
-     ${o?.status?`<span class="nf-dch-pill">${esc(o.status)}</span>`:""}
-     ${o?`<span class="nf-dch-pill">📅 Order: ${esc(dateText(o.order_date))}</span>`:""}
-   </div></article>`;
+   aria-label="Open customer ${esc(c.name||"Customer")}"><div class="nf-dch-card-top"><span class="nf-dch-no">${index+1}</span><div class="nf-dch-identity"><div class="nf-dch-name">${esc(c.name||"Customer")}</div><div class="nf-dch-contact">📍 ${esc(x.village)}</div></div><div class="nf-dch-delivery ${deliveryKind}"><div class="nf-dch-date-delivery"><div class="nf-dch-date-label">${esc(deliveryLabel)}</div><div class="nf-dch-date-value">${esc(delivery)}</div></div><div class="nf-dch-date-order"><div class="nf-dch-date-label">📅 Order</div><div class="nf-dch-date-value">${esc(o?.order_date?dateText(o.order_date):"—")}</div></div></div><span class="nf-dch-arrow">›</span></div><div class="nf-dch-info"><div class="nf-dch-box nf-dch-garment-box"><b>${esc(x.detail)}</b><span>Garment / Details</span></div></div></article>`;
 }
 function setDashboardCustomerTab(tab){
  dashboardCustomerTab=["all","new","delivered"].includes(tab)?tab:"all";
@@ -5229,13 +5225,26 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-contac
   white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;
 }
 body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-delivery{
-  min-height:52px!important;padding:7px 7px 8px!important;border-radius:14px!important;border:2px solid #9fd1f2!important;
-  background:linear-gradient(145deg,#eaf7ff,#d8efff)!important;color:#1c587d!important;box-shadow:0 5px 12px rgba(48,126,179,.1)!important;text-align:center!important;
+  width:100%!important;min-height:0!important;padding:4px!important;border-radius:12px!important;border:2px solid #8fc8ef!important;
+  background:linear-gradient(145deg,#eaf7ff,#d8efff)!important;color:#174f73!important;box-shadow:0 4px 10px rgba(48,126,179,.09)!important;text-align:center!important;
+  display:grid!important;gap:4px!important;box-sizing:border-box!important;
 }
-body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-delivery-label{font-size:13px!important;font-weight:900!important;color:#1d5271!important}
-body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-delivery-date{margin-top:3px!important;font-size:12px!important;font-weight:900!important;color:#1d5271!important}
+body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-date-delivery,
+body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-date-order{
+  border-radius:8px!important;padding:4px 5px!important;box-sizing:border-box!important;line-height:1.05!important;
+}
+body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-date-delivery{
+  border:1px solid #9bcff0!important;background:linear-gradient(145deg,#dff3ff,#eef9ff)!important;color:#17577f!important;
+}
+body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-date-order{
+  border:1px solid #c9a9ee!important;background:linear-gradient(145deg,#f0e8ff,#fbf5ff)!important;color:#59328d!important;
+}
+body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-date-label{font-size:10px!important;font-weight:950!important;white-space:nowrap!important}
+body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-date-value{margin-top:2px!important;font-size:11px!important;font-weight:950!important;white-space:nowrap!important}
 body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-delivery.delivery-today,
 body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-delivery.late{border-color:#e1bf63!important;background:linear-gradient(145deg,#fff7d8,#fff0b9)!important;color:#7a5700!important}
+body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-delivery.delivery-today .nf-dch-date-delivery,
+body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-delivery.late .nf-dch-date-delivery{border-color:#e2bf62!important;background:linear-gradient(145deg,#fff7d8,#fff0b9)!important;color:#765500!important}
 body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-arrow{font-size:22px!important;color:#6b6275!important;font-weight:900!important;align-self:center!important}
 body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-info{display:flex!important;gap:5px!important;margin-top:8px!important}
 body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-box{
@@ -5276,12 +5285,14 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-my-custome
   body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-my-customers-menu-btn{width:44px!important;height:44px!important;min-width:44px!important;min-height:44px!important;flex-basis:44px!important}
   body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{padding-left:4px!important;padding-right:4px!important}
   body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-card{padding:10px 9px 9px!important;border-width:3px!important}
-  body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-card-top{grid-template-columns:38px minmax(0,1fr) minmax(100px,112px) 14px!important;gap:6px!important}
+  body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-card-top{grid-template-columns:34px minmax(0,1fr) minmax(92px,104px) 14px!important;gap:6px!important}
   body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-name{font-size:17px!important}
   body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-contact{font-size:12px!important}
-  body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-delivery{min-height:50px!important;padding:6px 5px!important}
-  body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-delivery-label{font-size:12px!important}
-  body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-delivery-date{font-size:11px!important}
+  body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-delivery{min-height:0!important;padding:3px!important;gap:3px!important}
+  body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-date-label{font-size:9px!important}
+  body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-date-value{font-size:10px!important}
+  body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-date-delivery,
+  body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-date-order{padding:3px 4px!important}
   body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-box{width:58%!important;min-height:48px!important}
   body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-box b{font-size:15px!important}
   body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-box span{font-size:11px!important}
@@ -5294,7 +5305,7 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-my-custome
   body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dashboard-add-customer-btn,
   body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dashboard-daily-btn,
   body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-my-customers-menu-btn{width:40px!important;height:40px!important;min-width:40px!important;min-height:40px!important;flex-basis:40px!important}
-  body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-card-top{grid-template-columns:34px minmax(0,1fr) minmax(88px,98px) 13px!important}
+  body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-card-top{grid-template-columns:32px minmax(0,1fr) minmax(88px,96px) 13px!important}
   body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-no{width:34px!important;height:34px!important;min-width:34px!important}
   body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-name{font-size:16px!important}
   body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-contact{font-size:11px!important}
