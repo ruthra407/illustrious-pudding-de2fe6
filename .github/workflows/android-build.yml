@@ -1,0 +1,161 @@
+name: Build Android APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Install Capacitor Local Notifications
+        run: npm install --no-save @capacitor/local-notifications@8.2.1
+
+      - name: Sync root web files to www
+        run: |
+          set -e
+
+          if [ ! -f index.html ]; then
+            echo "ERROR: root index.html not found."
+            exit 1
+          fi
+
+          mkdir -p www
+
+          cp index.html www/index.html
+
+          if [ -f manifest.json ]; then
+            cp manifest.json www/manifest.json
+          fi
+
+          if [ -f icon-192.png ]; then
+            cp icon-192.png www/icon-192.png
+          fi
+
+          if [ -f icon-512.png ]; then
+            cp icon-512.png www/icon-512.png
+          fi
+
+          echo "Web files synchronized successfully."
+
+          echo "Root index.html:"
+          wc -c index.html
+
+          echo "www/index.html:"
+          wc -c www/index.html
+
+          cmp -s index.html www/index.html
+          echo "SUCCESS: root index.html and www/index.html are identical."
+
+      - name: Commit synchronized www files
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add www/index.html
+
+          if [ -f www/manifest.json ]; then
+            git add www/manifest.json
+          fi
+
+          if [ -f www/icon-192.png ]; then
+            git add www/icon-192.png
+          fi
+
+          if [ -f www/icon-512.png ]; then
+            git add www/icon-512.png
+          fi
+
+          if git diff --cached --quiet; then
+            echo "www is already up to date."
+          else
+            git commit -m "Sync web files to www"
+            git push origin HEAD:main
+          fi
+
+      - name: Sync Capacitor Android
+        run: npx cap sync android
+
+      - name: Add exact alarm permission
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          manifest = Path("android/app/src/main/AndroidManifest.xml")
+          text = manifest.read_text()
+
+          permission = (
+              '    <uses-permission '
+              'android:name="android.permission.SCHEDULE_EXACT_ALARM" />\n'
+          )
+
+          if "android.permission.SCHEDULE_EXACT_ALARM" not in text:
+              match = re.search(
+                  r"<manifest\b[^>]*>",
+                  text,
+                  re.S
+              )
+
+              if not match:
+                  raise SystemExit(
+                      "ERROR: AndroidManifest.xml <manifest> tag not found."
+                  )
+
+              pos = match.end()
+
+              text = (
+                  text[:pos]
+                  + "\n"
+                  + permission
+                  + text[pos:]
+              )
+
+              manifest.write_text(text)
+
+          print("SCHEDULE_EXACT_ALARM permission is present.")
+          PY
+
+      - name: Make Gradle Wrapper executable
+        run: chmod +x android/gradlew
+
+      - name: Build Debug APK
+        working-directory: android
+        run: ./gradlew assembleDebug
+
+      - name: Verify APK
+        run: |
+          test -f android/app/build/outputs/apk/debug/app-debug.apk
+          echo "APK build successful."
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: New-Fashion-Tailoring-debug-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
