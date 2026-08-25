@@ -6433,15 +6433,19 @@ function nfFormatPaymentDate(v){return v?dateText(v):"—";}
 </script>
 
 
-<style id="nf-v2037-garment-visibility-fix">
-/* V203.7: Chudidhar category must stay hidden for a Blouse-only order.
+<style id="nf-v2038-garment-visibility-fix">
+/* V203.8: Garment category visibility
    This overrides older duplicate patches that forced .nf-edit-chudi to display:block!important. */
 #app [id^="quick-order-"] .nf-edit-chudi.nf-field-hidden,
 #app [id^="quick-order-"] .nf-quick-chudi.nf-field-hidden {
   display: none !important;
 }
+#app [id^="quick-order-"] .nf-edit-saree.nf-field-hidden,
+#app [id^="quick-order-"] .nf-quick-saree.nf-field-hidden {
+  display: none !important;
+}
 </style>
-<script id="nf-v2037-garment-visibility-fix-script">
+<script id="nf-v2038-garment-visibility-fix-script">
 (function(){
   "use strict";
   function applyGarmentVisibility(id){
@@ -6450,26 +6454,41 @@ function nfFormatPaymentDate(v){return v?dateText(v):"—";}
     if(!root || !sel) return;
     var g=String(sel.value||"Blouse").trim().toLowerCase();
     var combined=(g==="blouse+chudi" || g==="both" || g==="blousechudi");
+    var showBlouse=(g==="blouse" || combined);
     var showChudi=(g==="chudi" || combined);
-    root.querySelectorAll(".nf-edit-chudi, .nf-quick-chudi").forEach(function(el){
-      if(showChudi){
-        el.classList.remove("nf-field-hidden");
-        el.style.removeProperty("display");
-      }else{
+    var showSaree=(g==="saree");
+
+    function setVisible(selector, show){
+      root.querySelectorAll(selector).forEach(function(el){
+        if(show){
+          el.classList.remove("nf-field-hidden");
+          el.style.removeProperty("display");
+        }else{
+          el.classList.add("nf-field-hidden");
+          el.style.setProperty("display","none","important");
+        }
+      });
+    }
+
+    setVisible(".nf-edit-chudi, .nf-quick-chudi", showChudi);
+    setVisible(".nf-edit-saree, .nf-quick-saree", showSaree);
+
+    /* Blouse categories are handled by the original updateQuickGarment logic. */
+    if(!showBlouse){
+      root.querySelectorAll(".nf-quick-blouse").forEach(function(el){
         el.classList.add("nf-field-hidden");
         el.style.setProperty("display","none","important");
-      }
-    });
+      });
+    }
   }
+
   function fix(id){
     try{
-      if(typeof window.updateQuickGarment==="function"){
-        window.updateQuickGarment(id);
-      }
+      if(typeof window.updateQuickGarment==="function") window.updateQuickGarment(id);
     }catch(e){}
     applyGarmentVisibility(id);
   }
-  window.nfV2037ApplyGarmentVisibility=fix;
+  window.nfV2038ApplyGarmentVisibility=fix;
 
   document.addEventListener("change",function(e){
     var t=e.target;
@@ -6480,13 +6499,11 @@ function nfFormatPaymentDate(v){return v?dateText(v):"—";}
 
   function scan(){
     document.querySelectorAll('[id^="quick-order-"]').forEach(function(root){
-      var id=root.id.slice("quick-order-".length);
-      applyGarmentVisibility(id);
+      applyGarmentVisibility(root.id.slice("quick-order-".length));
     });
   }
   if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",scan,{once:true});
   else scan();
-
-  new MutationObserver(function(){ scan(); }).observe(document.body,{childList:true,subtree:true});
+  new MutationObserver(function(){scan();}).observe(document.body,{childList:true,subtree:true});
 })();
 </script>
