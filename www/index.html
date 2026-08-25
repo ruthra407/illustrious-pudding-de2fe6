@@ -5002,6 +5002,104 @@ function nfFormatPaymentDate(v){return v?dateText(v):"—";}
 })();
 </script>
 
+
+<style id="nf-v2043-chudi-state-fix">
+/* V204.3 — single authoritative garment-state presentation */
+#app [id^="quick-order-"] .nf-field-hidden { display:none!important; }
+</style>
+<script id="nf-v2043-chudi-state-fix-script">
+(function(){
+  "use strict";
+  if(window.__nfV2043Installed)return;
+  window.__nfV2043Installed=true;
+
+  function rootFor(id){return document.getElementById("quick-order-"+id);}
+  function valueFor(id){
+    var sel=document.getElementById("qo-garment-"+id);
+    return String(sel&&sel.value||"Blouse").trim().toLowerCase().replace(/\s+/g,"");
+  }
+  function flags(g){
+    var combined=(g==="blouse+chudi"||g==="both"||g==="blousechudi");
+    var blouse=(g==="blouse"||combined||g==="blouse+saree"||g==="blousesaree");
+    var chudi=(g==="chudi"||combined||g==="chudi+saree"||g==="chudisaree");
+    var saree=(g==="saree"||g==="blouse+saree"||g==="blousesaree"||g==="chudi+saree"||g==="chudisaree");
+    return {blouse:blouse,chudi:chudi,saree:saree,combined:combined};
+  }
+  function setGroup(root,selector,show){
+    root.querySelectorAll(selector).forEach(function(el){
+      el.classList.toggle("nf-field-hidden",!show);
+      if(show) el.style.removeProperty("display");
+      else el.style.setProperty("display","none","important");
+    });
+  }
+  function reorder(root,showChudi){
+    var chudi=root.querySelector(".nf-edit-chudi.nf-quick-chudi, .nf-edit-chudi");
+    var lining=root.querySelector(".nf-edit-lining-cloth");
+    if(!chudi||!lining||chudi.parentElement!==lining.parentElement)return;
+    if(showChudi) {
+      if(chudi.nextElementSibling!==lining) lining.parentElement.insertBefore(chudi,lining);
+    }
+  }
+  function refresh(id){
+    var root=rootFor(id); if(!root)return;
+    var f=flags(valueFor(id));
+
+    /* Do not call the older updateQuickGarment chain here: several historical
+       wrappers call each other and can restore stale Chudi visibility. */
+    setGroup(root,".nf-quick-blouse",f.blouse);
+    setGroup(root,".nf-quick-chudi",f.chudi);
+    setGroup(root,".nf-quick-saree",f.saree);
+    setGroup(root,".nf-edit-chudi",f.chudi);
+    setGroup(root,".nf-edit-saree",f.saree);
+
+    /* Lining cloth is common to the garment editor. */
+    setGroup(root,".nf-edit-lining-cloth",true);
+    reorder(root,f.chudi);
+
+    if(typeof window.updateChudiLiningLabel==="function"){
+      try{window.updateChudiLiningLabel(id);}catch(e){}
+    }
+    if(typeof window.updateQuickBlouseHandover==="function" && f.blouse){
+      try{window.updateQuickBlouseHandover(id);}catch(e){}
+    }
+    if(typeof window.updateQuickOrderCalcV314==="function"){
+      try{window.updateQuickOrderCalcV314(id);}catch(e){}
+    }else if(typeof window.updateQuickOrderCalc==="function" && window.updateQuickOrderCalc!==window.refreshGarmentState2043){
+      try{window.updateQuickOrderCalc(id);}catch(e){}
+    }
+  }
+  window.refreshGarmentState2043=refresh;
+
+  /* Replace the global handler used by the existing inline onchange.
+     No wrapper chain: one handler, one state decision. */
+  window.updateQuickGarment=refresh;
+
+  function scan(){
+    document.querySelectorAll('[id^="quick-order-"]').forEach(function(root){
+      refresh(root.id.slice("quick-order-".length));
+    });
+  }
+
+  document.addEventListener("change",function(e){
+    var t=e.target;
+    if(!t||!t.id||t.id.indexOf("qo-garment-")!==0)return;
+    var id=t.id.slice("qo-garment-".length);
+    refresh(id);
+  },true);
+
+  document.addEventListener("DOMContentLoaded",function(){
+    setTimeout(scan,0);setTimeout(scan,150);setTimeout(scan,500);
+  },{once:true});
+
+  if(document.body){
+    new MutationObserver(function(){
+      clearTimeout(window.__nfV2043ScanTimer);
+      window.__nfV2043ScanTimer=setTimeout(scan,80);
+    }).observe(document.body,{childList:true,subtree:true});
+  }
+})();
+</script>
+
 </body><style>.nf-blouse-collection .nfBlouseStatusGrid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important;padding:10px 16px 0!important;margin:0!important}.nf-blouse-collection .nfBlouseStatusGrid .moneyStat{min-height:70px!important;padding:12px 14px!important;border:2px solid #d7c6f1!important;border-radius:14px!important;background:#fffaff!important;display:flex!important;align-items:center!important;justify-content:space-between!important;gap:10px!important}.nf-blouse-collection .nfBlouseStatusGrid .moneyStat:first-child{border-color:#bca4ef!important;background:linear-gradient(145deg,#f5f0ff,#fff8fd)!important}.nf-blouse-collection .nfBlouseStatusGrid .moneyStat:last-child{border-color:#e0c477!important;background:linear-gradient(145deg,#fff9e8,#f1fbf8)!important}.nf-blouse-collection .nfBlouseStatusGrid .moneyStat span{order:1!important;margin:0!important;color:#4d2b82!important;font-size:15px!important;font-weight:950!important;line-height:1.3!important}.nf-blouse-collection .nfBlouseStatusGrid .moneyStat b{order:2!important;display:block!important;margin:0!important;color:#17131d!important;font-size:21px!important;font-weight:950!important;line-height:1.2!important;text-align:right!important;white-space:nowrap!important}.nf-blouse-collection .nfBlouseHandoverGrid{padding-top:10px!important}.nf-blouse-collection .nfBlouseHandoverBox .nfSareeRow{border-bottom:0!important}.nf-blouse-collection .nfBlouseHandoverBox .nfSareeRow span,.nf-blouse-collection .nfBlouseHandoverBox .nfSareeRow b{color:#7b3f9f!important}.nfChudiTotalBox{margin:10px 16px 0!important;padding:13px 14px!important;border:2px solid #b9a2ee!important;border-radius:14px!important;background:linear-gradient(145deg,#f4efff,#fff8fd)!important;display:flex!important;align-items:center!important;justify-content:space-between!important;gap:10px!important}.nfChudiTotalBox span{color:#4d2b82!important;font-size:15px!important;font-weight:950!important}.nfChudiTotalBox b{color:#17131d!important;font-size:21px!important;font-weight:950!important}.nfChudiHandoverGrid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important;padding:10px 16px 8px!important}.nfChudiHandoverGrid .nfBlouseHandoverBox{margin:0!important}.nfChudiHandoverGrid .nfBlouseHandoverRow{border-bottom:0!important}@media(max-width:560px){.nf-blouse-collection .nfBlouseStatusGrid{gap:7px!important;padding-left:10px!important;padding-right:10px!important}.nf-blouse-collection .nfBlouseStatusGrid .moneyStat{padding:10px 9px!important;min-height:62px!important}.nf-blouse-collection .nfBlouseStatusGrid .moneyStat span{font-size:13px!important}.nf-blouse-collection .nfBlouseStatusGrid .moneyStat b{font-size:18px!important}.nfChudiTotalBox{margin-left:10px!important;margin-right:10px!important}.nfChudiHandoverGrid{gap:7px!important;padding-left:10px!important;padding-right:10px!important}}</style>
 \n<style>.customerCard .nf-blouse-collection{margin:12px 0!important;border:2px solid #8b6cf0!important;border-radius:20px!important;background:linear-gradient(145deg,#faf7ff,#fff1fb)!important;box-shadow:0 10px 26px rgba(91,63,160,.12)!important;overflow:hidden!important}.customerCard .nf-blouse-collection>.nf-collection-title{margin:0!important;padding:12px 15px!important;border:0!important;border-bottom:2px solid #a56ee8!important;border-radius:0!important;background:linear-gradient(135deg,#6542e8 0%,#b13fd4 52%,#e84c92 100%)!important;color:#fff!important}.customerCard .nf-blouse-collection>.nf-collection-title h4,.customerCard .nf-blouse-collection>.nf-collection-title small{color:#fff!important}.customerCard .nf-blouse-collection>.nf-collection-title small{opacity:.95!important}.customerCard .nf-blouse-collection .nfBlouseStatusGrid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important;padding:12px 14px 8px!important;background:linear-gradient(180deg,#fff,#fbf8ff)!important}.customerCard .nf-blouse-collection .nfBlouseStatusGrid .moneyStat{min-height:72px!important;padding:12px 14px!important;border:2px solid #b9a4f3!important;border-radius:15px!important;background:linear-gradient(145deg,#f3eeff,#fff)!important;display:flex!important;align-items:center!important;justify-content:space-between!important;box-shadow:0 5px 14px rgba(90,65,145,.07)!important}.customerCard .nf-blouse-collection .nfBlouseStatusGrid .moneyStat:first-child{border-color:#8f73ea!important;background:linear-gradient(145deg,#eee8ff,#fff)!important}.customerCard .nf-blouse-collection .nfBlouseStatusGrid .moneyStat:last-child{border-color:#e1b74e!important;background:linear-gradient(145deg,#fff7df,#f7fff5)!important}.customerCard .nf-blouse-collection .nfBlouseStatusGrid .moneyStat span{color:#4d2b82!important;font-size:14px!important;font-weight:950!important;line-height:1.25!important}.customerCard .nf-blouse-collection .nfBlouseStatusGrid .moneyStat b{color:#18131f!important;font-size:22px!important;font-weight:950!important}.customerCard .nf-blouse-collection .nfBlouseHandoverGrid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important;padding:8px 14px 10px!important}.customerCard .nf-blouse-collection .nfBlouseHandoverBox{margin:0!important;padding:10px!important;border:2px solid #a995ef!important;border-radius:15px!important;background:linear-gradient(145deg,#f7f3ff,#fff)!important}.customerCard .nf-blouse-collection .nfBlouseHandoverGiven{border-color:#9b82eb!important;background:linear-gradient(145deg,#f4efff,#fff)!important}.customerCard .nf-blouse-collection .nfBlouseHandoverPending{border-color:#e1bf5d!important;background:linear-gradient(145deg,#fff9e8,#fff)!important}.customerCard .nf-blouse-collection .nfBlouseHandoverTitle{font-size:15px!important;font-weight:950!important;color:#4b2b83!important;padding-bottom:6px!important;border-bottom:2px solid #ded4f5!important}.customerCard .nf-blouse-collection .nfBlouseHandoverPending .nfBlouseHandoverTitle{color:#8a6410!important;border-bottom-color:#f0dfac!important}.customerCard .nf-blouse-collection .nfBlouseHandoverRow{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:8px!important;padding:7px 2px!important;border-bottom:1px solid #e4def0!important}.customerCard .nf-blouse-collection .nfBlouseHandoverRow span{color:#31283b!important;font-weight:850!important}.customerCard .nf-blouse-collection .nfBlouseHandoverRow b{color:#5a36a0!important;font-weight:950!important}.customerCard .nf-blouse-collection .nfBlouseHandoverPending .nfBlouseHandoverRow b{color:#9b6d08!important}.customerCard .nf-blouse-collection .nfSareeRow span,.customerCard .nf-blouse-collection .nfSareeRow b{color:#a33c83!important}.customerCard .nf-blouse-collection .nf-garment-subtitle{margin:8px 14px 0!important;padding:9px 12px!important;border:2px solid #26a9a0!important;border-radius:13px!important;background:linear-gradient(135deg,#dffaf5,#f5ffff)!important;color:#08786f!important;font-size:16px!important;font-weight:950!important}.customerCard .nf-blouse-collection .nfChudiTotalBox{margin:10px 14px 0!important;padding:12px 14px!important;border:2px solid #7d62e8!important;border-radius:15px!important;background:linear-gradient(145deg,#eee9ff,#fff)!important}.customerCard .nf-blouse-collection .nfChudiTotalBox span{color:#4d2b82!important;font-size:15px!important;font-weight:950!important}.customerCard .nf-blouse-collection .nfChudiTotalBox b{color:#20172d!important;font-size:21px!important;font-weight:950!important}.customerCard .nf-blouse-collection .nfChudiHandoverGrid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important;padding:10px 14px 14px!important}.customerCard .nf-blouse-collection .nfChudiHandoverGrid .nfBlouseHandoverBox{margin:0!important}@media(max-width:560px){.customerCard .nf-blouse-collection .nfBlouseStatusGrid,.customerCard .nf-blouse-collection .nfBlouseHandoverGrid,.customerCard .nf-blouse-collection .nfChudiHandoverGrid{gap:7px!important;padding-left:9px!important;padding-right:9px!important}.customerCard .nf-blouse-collection .nfBlouseStatusGrid .moneyStat{min-height:62px!important;padding:10px!important}.customerCard .nf-blouse-collection .nfBlouseStatusGrid .moneyStat span{font-size:12px!important}.customerCard .nf-blouse-collection .nfBlouseStatusGrid .moneyStat b{font-size:18px!important}.customerCard .nf-blouse-collection .nfBlouseHandoverBox{padding:8px!important}.customerCard .nf-blouse-collection .nf-garment-subtitle{margin-left:9px!important;margin-right:9px!important}.customerCard .nf-blouse-collection .nfChudiTotalBox{margin-left:9px!important;margin-right:9px!important}}</style>
 <!-- V201.0 targeted fixes: cloth-date display, in-app photo zoom, customer action buttons -->
@@ -6603,80 +6701,8 @@ function nfFormatPaymentDate(v){return v?dateText(v):"—";}
 </script>
 
 
-<style id="nf-v2038-garment-visibility-fix">
-/* V203.8: Garment category visibility
-   This overrides older duplicate patches that forced .nf-edit-chudi to display:block!important. */
-#app [id^="quick-order-"] .nf-edit-chudi.nf-field-hidden,
-#app [id^="quick-order-"] .nf-quick-chudi.nf-field-hidden {
-  display: none !important;
-}
-#app [id^="quick-order-"] .nf-edit-saree.nf-field-hidden,
-#app [id^="quick-order-"] .nf-quick-saree.nf-field-hidden {
-  display: none !important;
-}
-</style>
-<script id="nf-v2038-garment-visibility-fix-script">
-(function(){
-  "use strict";
-  function applyGarmentVisibility(id){
-    var root=document.getElementById("quick-order-"+id);
-    var sel=document.getElementById("qo-garment-"+id);
-    if(!root || !sel) return;
-    var g=String(sel.value||"Blouse").trim().toLowerCase();
-    var combined=(g==="blouse+chudi" || g==="both" || g==="blousechudi");
-    var showBlouse=(g==="blouse" || combined);
-    var showChudi=(g==="chudi" || combined);
-    var showSaree=(g==="saree");
 
-    function setVisible(selector, show){
-      root.querySelectorAll(selector).forEach(function(el){
-        if(show){
-          el.classList.remove("nf-field-hidden");
-          el.style.removeProperty("display");
-        }else{
-          el.classList.add("nf-field-hidden");
-          el.style.setProperty("display","none","important");
-        }
-      });
-    }
 
-    setVisible(".nf-edit-chudi, .nf-quick-chudi", showChudi);
-    setVisible(".nf-edit-saree, .nf-quick-saree", showSaree);
-
-    /* Blouse categories are handled by the original updateQuickGarment logic. */
-    if(!showBlouse){
-      root.querySelectorAll(".nf-quick-blouse").forEach(function(el){
-        el.classList.add("nf-field-hidden");
-        el.style.setProperty("display","none","important");
-      });
-    }
-  }
-
-  function fix(id){
-    try{
-      if(typeof window.updateQuickGarment==="function") window.updateQuickGarment(id);
-    }catch(e){}
-    applyGarmentVisibility(id);
-  }
-  window.nfV2038ApplyGarmentVisibility=fix;
-
-  document.addEventListener("change",function(e){
-    var t=e.target;
-    if(t && t.id && t.id.indexOf("qo-garment-")===0){
-      fix(t.id.slice("qo-garment-".length));
-    }
-  },true);
-
-  function scan(){
-    document.querySelectorAll('[id^="quick-order-"]').forEach(function(root){
-      applyGarmentVisibility(root.id.slice("quick-order-".length));
-    });
-  }
-  if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",scan,{once:true});
-  else scan();
-  new MutationObserver(function(){scan();}).observe(document.body,{childList:true,subtree:true});
-})();
-</script>
 
 
 <style id="nf-v2039-chudi-order-style">
@@ -6785,68 +6811,4 @@ function nfFormatPaymentDate(v){return v?dateText(v):"—";}
 }
 </style>
 
-<script id="nf-v2041-chudi-order-authoritative">
-(function(){
-  "use strict";
-  /* V204.1: The previous reorder patch checked parentNode === quick-order root.
-     The Chudi and Lining sections actually live inside the .formgrid child,
-     so that condition could never fire. Reorder within their real common parent. */
-  function reorder(id){
-    var root=document.getElementById("quick-order-"+id);
-    if(!root)return;
-    var chudi=root.querySelector(".nf-edit-chudi.nf-quick-chudi, .nf-edit-chudi");
-    var lining=root.querySelector(".nf-edit-lining-cloth");
-    if(!chudi || !lining)return;
-    var parent=chudi.parentElement;
-    if(!parent || lining.parentElement!==parent)return;
-    /* Only move Chudi immediately before Lining. This preserves every other
-       section and avoids duplicate rendering or duplicated event handlers. */
-    if(chudi.nextElementSibling!==lining){
-      parent.insertBefore(chudi,lining);
-    }
-  }
-  function apply(id){
-    if(typeof window.nfV2038ApplyGarmentVisibility==="function")window.nfV2038ApplyGarmentVisibility(id);
-    else if(typeof window.updateQuickGarment==="function")window.updateQuickGarment(id);
-    reorder(id);
-  }
-  function scan(){
-    document.querySelectorAll('[id^="quick-order-"]').forEach(function(root){
-      apply(root.id.slice("quick-order-".length));
-    });
-  }
-  var oldUpdate=window.updateQuickGarment;
-  if(typeof oldUpdate==="function" && !oldUpdate.__nfV2041){
-    function wrapped(id){
-      var r=oldUpdate.apply(this,arguments);
-      setTimeout(function(){apply(id);},0);
-      setTimeout(function(){apply(id);},100);
-      return r;
-    }
-    wrapped.__nfV2041=true;
-    window.updateQuickGarment=wrapped;
-  }
-  var oldOpen=window.openOrdersEditOrder;
-  if(typeof oldOpen==="function" && !oldOpen.__nfV2041){
-    function openWrapped(){
-      var args=arguments,r=oldOpen.apply(this,args),id=args[0];
-      [0,120,350,700].forEach(function(ms){
-        setTimeout(function(){
-          apply("orders_edit_"+String(id||"").replace(/[^a-zA-Z0-9_-]/g,"_"));
-        },ms);
-      });
-      return r;
-    }
-    openWrapped.__nfV2041=true;
-    window.openOrdersEditOrder=openWrapped;
-  }
-  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",scan,{once:true});
-  else scan();
-  if(document.body){
-    new MutationObserver(function(){
-      clearTimeout(window.__nfV2041Timer);
-      window.__nfV2041Timer=setTimeout(scan,50);
-    }).observe(document.body,{childList:true,subtree:true});
-  }
-})();
-</script>
+
