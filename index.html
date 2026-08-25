@@ -6615,51 +6615,68 @@ function nfFormatPaymentDate(v){return v?dateText(v):"—";}
 }
 </style>
 
-<script id="nf-v2040-chudi-order-authoritative">
+<script id="nf-v2041-chudi-order-authoritative">
 (function(){
   "use strict";
+  /* V204.1: The previous reorder patch checked parentNode === quick-order root.
+     The Chudi and Lining sections actually live inside the .formgrid child,
+     so that condition could never fire. Reorder within their real common parent. */
   function reorder(id){
     var root=document.getElementById("quick-order-"+id);
     if(!root)return;
     var chudi=root.querySelector(".nf-edit-chudi.nf-quick-chudi, .nf-edit-chudi");
     var lining=root.querySelector(".nf-edit-lining-cloth");
-    if(chudi && lining && chudi.parentNode===root && lining.parentNode===root){
-      if(chudi.compareDocumentPosition(lining) & Node.DOCUMENT_POSITION_PRECEDING){
-        root.insertBefore(chudi,lining);
-      }
+    if(!chudi || !lining)return;
+    var parent=chudi.parentElement;
+    if(!parent || lining.parentElement!==parent)return;
+    /* Only move Chudi immediately before Lining. This preserves every other
+       section and avoids duplicate rendering or duplicated event handlers. */
+    if(chudi.nextElementSibling!==lining){
+      parent.insertBefore(chudi,lining);
     }
   }
   function apply(id){
-    reorder(id);
     if(typeof window.nfV2038ApplyGarmentVisibility==="function")window.nfV2038ApplyGarmentVisibility(id);
     else if(typeof window.updateQuickGarment==="function")window.updateQuickGarment(id);
     reorder(id);
   }
   function scan(){
-    document.querySelectorAll('[id^="quick-order-"]').forEach(function(root){apply(root.id.slice("quick-order-".length));});
+    document.querySelectorAll('[id^="quick-order-"]').forEach(function(root){
+      apply(root.id.slice("quick-order-".length));
+    });
   }
   var oldUpdate=window.updateQuickGarment;
-  if(typeof oldUpdate==="function" && !oldUpdate.__nfV2040){
+  if(typeof oldUpdate==="function" && !oldUpdate.__nfV2041){
     function wrapped(id){
       var r=oldUpdate.apply(this,arguments);
       setTimeout(function(){apply(id);},0);
-      setTimeout(function(){apply(id);},80);
+      setTimeout(function(){apply(id);},100);
       return r;
     }
-    wrapped.__nfV2040=true;
+    wrapped.__nfV2041=true;
     window.updateQuickGarment=wrapped;
   }
   var oldOpen=window.openOrdersEditOrder;
-  if(typeof oldOpen==="function" && !oldOpen.__nfV2040){
+  if(typeof oldOpen==="function" && !oldOpen.__nfV2041){
     function openWrapped(){
       var args=arguments,r=oldOpen.apply(this,args),id=args[0];
-      [0,100,350,700].forEach(function(ms){setTimeout(function(){apply("orders_edit_"+String(id||"").replace(/[^a-zA-Z0-9_-]/g,"_"));},ms);});
+      [0,120,350,700].forEach(function(ms){
+        setTimeout(function(){
+          apply("orders_edit_"+String(id||"").replace(/[^a-zA-Z0-9_-]/g,"_"));
+        },ms);
+      });
       return r;
     }
-    openWrapped.__nfV2040=true;
+    openWrapped.__nfV2041=true;
     window.openOrdersEditOrder=openWrapped;
   }
-  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",scan,{once:true});else scan();
-  new MutationObserver(function(){clearTimeout(window.__nfV2040Timer);window.__nfV2040Timer=setTimeout(scan,60);}).observe(document.body,{childList:true,subtree:true});
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",scan,{once:true});
+  else scan();
+  if(document.body){
+    new MutationObserver(function(){
+      clearTimeout(window.__nfV2041Timer);
+      window.__nfV2041Timer=setTimeout(scan,50);
+    }).observe(document.body,{childList:true,subtree:true});
+  }
 })();
 </script>
