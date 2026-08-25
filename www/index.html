@@ -6507,3 +6507,161 @@ function nfFormatPaymentDate(v){return v?dateText(v):"—";}
   new MutationObserver(function(){scan();}).observe(document.body,{childList:true,subtree:true});
 })();
 </script>
+
+
+<style id="nf-v2039-chudi-order-style">
+/* V203.9 — Chudi editor order + stronger, clearer Chudi controls */
+#app [id^="quick-order-"] .nf-edit-chudi {
+  position:relative!important;
+  border:2px solid #8b6cf6!important;
+  border-radius:20px!important;
+  background:linear-gradient(145deg,#f7f2ff 0%,#ffffff 72%)!important;
+  box-shadow:0 10px 28px rgba(91,67,165,.14)!important;
+}
+#app [id^="quick-order-"] .nf-edit-chudi::before {
+  width:7px!important;
+  background:linear-gradient(180deg,#6b43e8,#d04ee8)!important;
+}
+#app [id^="quick-order-"] .nf-chudi-head {
+  margin-bottom:14px!important;
+  padding-bottom:12px!important;
+  border-bottom:2px solid #ded4ff!important;
+}
+#app [id^="quick-order-"] .nf-chudi-head-icon {
+  width:52px!important;
+  height:52px!important;
+  flex-basis:52px!important;
+  background:linear-gradient(135deg,#e7ddff,#f6ddff)!important;
+  border:1px solid #c8b6ff!important;
+  font-size:27px!important;
+}
+#app [id^="quick-order-"] .nf-chudi-head strong {
+  color:#24164f!important;
+  font-size:20px!important;
+  font-weight:950!important;
+  letter-spacing:.05px!important;
+}
+#app [id^="quick-order-"] .nf-chudi-head small {
+  color:#51466c!important;
+  font-size:12px!important;
+  font-weight:800!important;
+}
+#app [id^="quick-order-"] .nf-edit-chudi .nf-chudi-grid {
+  gap:10px!important;
+}
+#app [id^="quick-order-"] .nf-edit-chudi .nf-chudi-field {
+  min-height:76px!important;
+  border:2px solid #d8cff4!important;
+  border-radius:15px!important;
+  padding:10px!important;
+  box-shadow:0 4px 12px rgba(65,45,110,.07)!important;
+}
+#app [id^="quick-order-"] .nf-edit-chudi .nf-chudi-field:nth-child(1) {
+  background:linear-gradient(135deg,#f3edff,#ffffff)!important;
+  border-color:#b9a4f4!important;
+}
+#app [id^="quick-order-"] .nf-edit-chudi .nf-chudi-field:nth-child(2) {
+  background:linear-gradient(135deg,#edf5ff,#ffffff)!important;
+  border-color:#9fc7ef!important;
+}
+#app [id^="quick-order-"] .nf-edit-chudi .nf-chudi-field:nth-child(3) {
+  background:linear-gradient(135deg,#eafcf8,#ffffff)!important;
+  border-color:#8ed8ca!important;
+}
+#app [id^="quick-order-"] .nf-edit-chudi .nf-chudi-field:nth-child(4) {
+  background:linear-gradient(135deg,#fff0f7,#ffffff)!important;
+  border-color:#efa9c9!important;
+}
+#app [id^="quick-order-"] .nf-edit-chudi .nf-chudi-field:nth-child(5) {
+  background:linear-gradient(135deg,#fff8e8,#ffffff)!important;
+  border-color:#efc86f!important;
+}
+#app [id^="quick-order-"] .nf-edit-chudi .nf-chudi-field label,
+#app [id^="quick-order-"] .nf-edit-chudi .nf-chudi-field label span {
+  color:#211a2d!important;
+  font-weight:950!important;
+  line-height:1.3!important;
+}
+#app [id^="quick-order-"] .nf-edit-chudi .nf-chudi-field label small {
+  color:#5c5368!important;
+  font-weight:800!important;
+}
+#app [id^="quick-order-"] .nf-edit-chudi .nf-chudi-field input,
+#app [id^="quick-order-"] .nf-edit-chudi .nf-chudi-field select {
+  color:#111018!important;
+  background:#ffffff!important;
+  border:2px solid #cfc7dd!important;
+  border-radius:11px!important;
+  font-size:16px!important;
+  font-weight:950!important;
+  min-height:42px!important;
+}
+#app [id^="quick-order-"] .nf-edit-chudi .nf-chudi-field input:focus,
+#app [id^="quick-order-"] .nf-edit-chudi .nf-chudi-field select:focus {
+  border-color:#7351ed!important;
+  box-shadow:0 0 0 3px rgba(115,81,237,.14)!important;
+}
+#app [id^="quick-order-"] .nf-edit-chudi .nf-chudi-rate-wrap {
+  border-radius:11px!important;
+}
+#app [id^="quick-order-"] .nf-edit-chudi .nf-chudi-rupee {
+  color:#6d3e00!important;
+  font-weight:950!important;
+}
+@media (max-width:560px){
+  #app [id^="quick-order-"] .nf-edit-chudi .nf-chudi-field {
+    min-height:82px!important;
+  }
+}
+</style>
+
+<script id="nf-v2039-chudi-order-script">
+(function(){
+  "use strict";
+
+  function reorderChudiBeforeLining(id){
+    var root=document.getElementById("quick-order-"+id);
+    if(!root) return;
+    var chudi=root.querySelector(".nf-edit-chudi.nf-quick-chudi, .nf-edit-chudi");
+    var lining=root.querySelector(".nf-edit-lining-cloth");
+    if(!chudi || !lining || chudi===lining) return;
+    if(lining.parentNode===root && chudi.parentNode===root){
+      if(chudi.compareDocumentPosition(lining) & Node.DOCUMENT_POSITION_FOLLOWING){
+        root.insertBefore(chudi,lining);
+      }
+    }
+  }
+
+  function apply(id){
+    try{ reorderChudiBeforeLining(id); }catch(e){}
+  }
+
+  function scan(){
+    document.querySelectorAll('[id^="quick-order-"]').forEach(function(root){
+      apply(root.id.slice("quick-order-".length));
+    });
+  }
+
+  var oldUpdate=window.updateQuickGarment;
+  if(typeof oldUpdate==="function" && !oldUpdate.__nfV2039){
+    var wrapped=function(id){
+      var r=oldUpdate.apply(this,arguments);
+      setTimeout(function(){apply(id)},0);
+      return r;
+    };
+    wrapped.__nfV2039=true;
+    window.updateQuickGarment=wrapped;
+  }
+
+  if(document.readyState==="loading"){
+    document.addEventListener("DOMContentLoaded",scan,{once:true});
+  }else{
+    scan();
+  }
+
+  new MutationObserver(function(){
+    clearTimeout(window.__nfV2039Timer);
+    window.__nfV2039Timer=setTimeout(scan,40);
+  }).observe(document.body,{childList:true,subtree:true});
+})();
+</script>
