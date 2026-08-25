@@ -1,0 +1,29 @@
+{
+  "name": "illustrious-pudding-de2fe6",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\""
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ruthra407/illustrious-pudding-de2fe6.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/ruthra407/illustrious-pudding-de2fe6/issues"
+  },
+  "homepage": "https://github.com/ruthra407/illustrious-pudding-de2fe6#readme",
+  "dependencies": {
+    "@capacitor/android": "^8.5.0",
+    "@capacitor/core": "^8.5.0",
+    "@capacitor/app": "^8.1.1",
+    "@capacitor/local-notifications": "^8.2.1"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.5.0"
+  }
+}
