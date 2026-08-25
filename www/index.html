@@ -4787,6 +4787,51 @@ function nfFormatPaymentDate(v){return v?dateText(v):"—";}
 })();
 </script>
 
+
+<style id="v2036-final-customer-card-actions">
+/* V203.6: one authoritative customer-card action layout */
+.customerCard .nf-customer-head{align-items:flex-start!important;gap:10px!important}
+.customerCard .nf-customer-head .customerIdentity{min-width:0!important;flex:1 1 auto!important}
+.customerCard .nf-customer-name-row{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:10px!important;width:100%!important;margin:0!important}
+.customerCard .nf-customer-name-row h3{flex:1 1 auto!important;min-width:0!important;margin:0!important}
+.customerCard .nf-customer-compact-actions{display:flex!important;align-items:center!important;gap:8px!important;flex:0 0 auto!important}
+.customerCard .nf-customer-compact-actions .nf-compact-action{width:54px!important;height:54px!important;min-width:54px!important;min-height:54px!important;padding:0!important;border-radius:15px!important;display:grid!important;place-items:center!important;font-size:28px!important;line-height:1!important;box-shadow:0 7px 16px rgba(45,25,90,.16)!important}
+.customerCard .nf-customer-compact-actions .nf-edit-order{background:linear-gradient(135deg,#2196f3,#00a7d8)!important;color:#fff!important}
+.customerCard .nf-customer-compact-actions .nf-order-full-details{background:linear-gradient(135deg,#7048e8,#d13a9b)!important;color:#fff!important}
+.customerCard .nf-customer-avatar-column{width:76px!important;flex:0 0 76px!important;display:flex!important;flex-direction:column!important;align-items:center!important;gap:7px!important}
+.customerCard .nf-customer-avatar-column .customerAvatar{width:60px!important;height:60px!important;flex:none!important}
+.customerCard .nf-customer-avatar-actions{display:flex!important;flex-direction:column!important;gap:5px!important;width:100%!important}
+.customerCard .nf-customer-avatar-actions button{width:100%!important;min-height:34px!important;padding:4px 3px!important;border:0!important;border-radius:10px!important;font-size:12px!important;font-weight:900!important;line-height:1.05!important;white-space:nowrap!important;box-shadow:0 4px 10px rgba(45,25,90,.12)!important;cursor:pointer!important}
+.customerCard .nf-customer-avatar-actions .nf-edit-customer{background:#f0e9ff!important;color:#4f2c9b!important}
+.customerCard .nf-customer-avatar-actions .nf-delete-customer{background:#ffe9ec!important;color:#b4233c!important}
+@media(max-width:560px){
+ .customerCard .nf-customer-compact-actions .nf-compact-action{width:50px!important;height:50px!important;min-width:50px!important;min-height:50px!important;font-size:26px!important}
+ .customerCard .nf-customer-avatar-column{width:70px!important;flex-basis:70px!important}
+ .customerCard .nf-customer-avatar-column .customerAvatar{width:56px!important;height:56px!important}
+ .customerCard .nf-customer-avatar-actions button{font-size:11px!important;min-height:32px!important}
+}
+</style>
+<script id="v2036-final-customer-card-actions-js">
+(function(){
+  "use strict";
+  var base=window.customerCard;
+  if(typeof base!=="function" || base.__nfV2036Final)return;
+  window.customerCard=function(id){
+    var html=base.apply(this,arguments);
+    var safeId=String(id).replace(/`/g,"\\`");
+    html=html.replace(/<button[^>]*class="[^"]*nf-customer-order-full-btn[^"]*"[^>]*>[\s\S]*?<\/button>/gi,"");
+    html=html.replace(/<div class="nf-customer-compact-actions"[^>]*>[\s\S]*?<\/div>/gi,"");
+    html=html.replace(/<div class="nf-customer-avatar-column"[^>]*>[\s\S]*?<\/div>\s*<div class="customerIdentity"/gi,'<div class="customerAvatar">👤</div><div class="customerIdentity"');
+    var avatarActions=`<div class="nf-customer-avatar-column"><div class="customerAvatar">👤</div><div class="nf-customer-avatar-actions"><button type="button" class="nf-edit-customer" onclick="event.stopPropagation();openModal('customer','${safeId}')" title="Edit Customer" aria-label="Edit Customer">✏️ Edit</button><button type="button" class="nf-delete-customer" onclick="event.stopPropagation();removeRow('customers','${safeId}')" title="Delete Customer" aria-label="Delete Customer">🗑️ Delete</button></div></div><div class="customerIdentity">`;
+    html=html.replace('<div class="customerAvatar">👤</div><div class="customerIdentity">',avatarActions);
+    var actions=`<div class="nf-customer-compact-actions" aria-label="Order actions"><button type="button" class="nf-compact-action nf-edit-order" onclick="event.stopPropagation();openLatestCustomerOrderEdit('${safeId}')" title="Edit Order" aria-label="Edit Order">✏️</button><button type="button" class="nf-compact-action nf-order-full-details" onclick="event.stopPropagation();openLatestCustomerOrderFullDetails('${safeId}')" title="Order Full Details" aria-label="Order Full Details">📋</button></div>`;
+    html=html.replace(/(<div class="nf-customer-name-row"[^>]*>\s*<h3>[\s\S]*?<\/h3>)(\s*<\/div>)/i,'$1'+actions+'$2');
+    return html;
+  };
+  window.customerCard.__nfV2036Final=true;
+})();
+</script>
+
 </body><style>.nf-blouse-collection .nfBlouseStatusGrid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important;padding:10px 16px 0!important;margin:0!important}.nf-blouse-collection .nfBlouseStatusGrid .moneyStat{min-height:70px!important;padding:12px 14px!important;border:2px solid #d7c6f1!important;border-radius:14px!important;background:#fffaff!important;display:flex!important;align-items:center!important;justify-content:space-between!important;gap:10px!important}.nf-blouse-collection .nfBlouseStatusGrid .moneyStat:first-child{border-color:#bca4ef!important;background:linear-gradient(145deg,#f5f0ff,#fff8fd)!important}.nf-blouse-collection .nfBlouseStatusGrid .moneyStat:last-child{border-color:#e0c477!important;background:linear-gradient(145deg,#fff9e8,#f1fbf8)!important}.nf-blouse-collection .nfBlouseStatusGrid .moneyStat span{order:1!important;margin:0!important;color:#4d2b82!important;font-size:15px!important;font-weight:950!important;line-height:1.3!important}.nf-blouse-collection .nfBlouseStatusGrid .moneyStat b{order:2!important;display:block!important;margin:0!important;color:#17131d!important;font-size:21px!important;font-weight:950!important;line-height:1.2!important;text-align:right!important;white-space:nowrap!important}.nf-blouse-collection .nfBlouseHandoverGrid{padding-top:10px!important}.nf-blouse-collection .nfBlouseHandoverBox .nfSareeRow{border-bottom:0!important}.nf-blouse-collection .nfBlouseHandoverBox .nfSareeRow span,.nf-blouse-collection .nfBlouseHandoverBox .nfSareeRow b{color:#7b3f9f!important}.nfChudiTotalBox{margin:10px 16px 0!important;padding:13px 14px!important;border:2px solid #b9a2ee!important;border-radius:14px!important;background:linear-gradient(145deg,#f4efff,#fff8fd)!important;display:flex!important;align-items:center!important;justify-content:space-between!important;gap:10px!important}.nfChudiTotalBox span{color:#4d2b82!important;font-size:15px!important;font-weight:950!important}.nfChudiTotalBox b{color:#17131d!important;font-size:21px!important;font-weight:950!important}.nfChudiHandoverGrid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important;padding:10px 16px 8px!important}.nfChudiHandoverGrid .nfBlouseHandoverBox{margin:0!important}.nfChudiHandoverGrid .nfBlouseHandoverRow{border-bottom:0!important}@media(max-width:560px){.nf-blouse-collection .nfBlouseStatusGrid{gap:7px!important;padding-left:10px!important;padding-right:10px!important}.nf-blouse-collection .nfBlouseStatusGrid .moneyStat{padding:10px 9px!important;min-height:62px!important}.nf-blouse-collection .nfBlouseStatusGrid .moneyStat span{font-size:13px!important}.nf-blouse-collection .nfBlouseStatusGrid .moneyStat b{font-size:18px!important}.nfChudiTotalBox{margin-left:10px!important;margin-right:10px!important}.nfChudiHandoverGrid{gap:7px!important;padding-left:10px!important;padding-right:10px!important}}</style>
 \n<style>.customerCard .nf-blouse-collection{margin:12px 0!important;border:2px solid #8b6cf0!important;border-radius:20px!important;background:linear-gradient(145deg,#faf7ff,#fff1fb)!important;box-shadow:0 10px 26px rgba(91,63,160,.12)!important;overflow:hidden!important}.customerCard .nf-blouse-collection>.nf-collection-title{margin:0!important;padding:12px 15px!important;border:0!important;border-bottom:2px solid #a56ee8!important;border-radius:0!important;background:linear-gradient(135deg,#6542e8 0%,#b13fd4 52%,#e84c92 100%)!important;color:#fff!important}.customerCard .nf-blouse-collection>.nf-collection-title h4,.customerCard .nf-blouse-collection>.nf-collection-title small{color:#fff!important}.customerCard .nf-blouse-collection>.nf-collection-title small{opacity:.95!important}.customerCard .nf-blouse-collection .nfBlouseStatusGrid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important;padding:12px 14px 8px!important;background:linear-gradient(180deg,#fff,#fbf8ff)!important}.customerCard .nf-blouse-collection .nfBlouseStatusGrid .moneyStat{min-height:72px!important;padding:12px 14px!important;border:2px solid #b9a4f3!important;border-radius:15px!important;background:linear-gradient(145deg,#f3eeff,#fff)!important;display:flex!important;align-items:center!important;justify-content:space-between!important;box-shadow:0 5px 14px rgba(90,65,145,.07)!important}.customerCard .nf-blouse-collection .nfBlouseStatusGrid .moneyStat:first-child{border-color:#8f73ea!important;background:linear-gradient(145deg,#eee8ff,#fff)!important}.customerCard .nf-blouse-collection .nfBlouseStatusGrid .moneyStat:last-child{border-color:#e1b74e!important;background:linear-gradient(145deg,#fff7df,#f7fff5)!important}.customerCard .nf-blouse-collection .nfBlouseStatusGrid .moneyStat span{color:#4d2b82!important;font-size:14px!important;font-weight:950!important;line-height:1.25!important}.customerCard .nf-blouse-collection .nfBlouseStatusGrid .moneyStat b{color:#18131f!important;font-size:22px!important;font-weight:950!important}.customerCard .nf-blouse-collection .nfBlouseHandoverGrid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important;padding:8px 14px 10px!important}.customerCard .nf-blouse-collection .nfBlouseHandoverBox{margin:0!important;padding:10px!important;border:2px solid #a995ef!important;border-radius:15px!important;background:linear-gradient(145deg,#f7f3ff,#fff)!important}.customerCard .nf-blouse-collection .nfBlouseHandoverGiven{border-color:#9b82eb!important;background:linear-gradient(145deg,#f4efff,#fff)!important}.customerCard .nf-blouse-collection .nfBlouseHandoverPending{border-color:#e1bf5d!important;background:linear-gradient(145deg,#fff9e8,#fff)!important}.customerCard .nf-blouse-collection .nfBlouseHandoverTitle{font-size:15px!important;font-weight:950!important;color:#4b2b83!important;padding-bottom:6px!important;border-bottom:2px solid #ded4f5!important}.customerCard .nf-blouse-collection .nfBlouseHandoverPending .nfBlouseHandoverTitle{color:#8a6410!important;border-bottom-color:#f0dfac!important}.customerCard .nf-blouse-collection .nfBlouseHandoverRow{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:8px!important;padding:7px 2px!important;border-bottom:1px solid #e4def0!important}.customerCard .nf-blouse-collection .nfBlouseHandoverRow span{color:#31283b!important;font-weight:850!important}.customerCard .nf-blouse-collection .nfBlouseHandoverRow b{color:#5a36a0!important;font-weight:950!important}.customerCard .nf-blouse-collection .nfBlouseHandoverPending .nfBlouseHandoverRow b{color:#9b6d08!important}.customerCard .nf-blouse-collection .nfSareeRow span,.customerCard .nf-blouse-collection .nfSareeRow b{color:#a33c83!important}.customerCard .nf-blouse-collection .nf-garment-subtitle{margin:8px 14px 0!important;padding:9px 12px!important;border:2px solid #26a9a0!important;border-radius:13px!important;background:linear-gradient(135deg,#dffaf5,#f5ffff)!important;color:#08786f!important;font-size:16px!important;font-weight:950!important}.customerCard .nf-blouse-collection .nfChudiTotalBox{margin:10px 14px 0!important;padding:12px 14px!important;border:2px solid #7d62e8!important;border-radius:15px!important;background:linear-gradient(145deg,#eee9ff,#fff)!important}.customerCard .nf-blouse-collection .nfChudiTotalBox span{color:#4d2b82!important;font-size:15px!important;font-weight:950!important}.customerCard .nf-blouse-collection .nfChudiTotalBox b{color:#20172d!important;font-size:21px!important;font-weight:950!important}.customerCard .nf-blouse-collection .nfChudiHandoverGrid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important;padding:10px 14px 14px!important}.customerCard .nf-blouse-collection .nfChudiHandoverGrid .nfBlouseHandoverBox{margin:0!important}@media(max-width:560px){.customerCard .nf-blouse-collection .nfBlouseStatusGrid,.customerCard .nf-blouse-collection .nfBlouseHandoverGrid,.customerCard .nf-blouse-collection .nfChudiHandoverGrid{gap:7px!important;padding-left:9px!important;padding-right:9px!important}.customerCard .nf-blouse-collection .nfBlouseStatusGrid .moneyStat{min-height:62px!important;padding:10px!important}.customerCard .nf-blouse-collection .nfBlouseStatusGrid .moneyStat span{font-size:12px!important}.customerCard .nf-blouse-collection .nfBlouseStatusGrid .moneyStat b{font-size:18px!important}.customerCard .nf-blouse-collection .nfBlouseHandoverBox{padding:8px!important}.customerCard .nf-blouse-collection .nf-garment-subtitle{margin-left:9px!important;margin-right:9px!important}.customerCard .nf-blouse-collection .nfChudiTotalBox{margin-left:9px!important;margin-right:9px!important}}</style>
 <!-- V201.0 targeted fixes: cloth-date display, in-app photo zoom, customer action buttons -->
@@ -6219,48 +6264,6 @@ function nfFormatPaymentDate(v){return v?dateText(v):"—";}
   background:#faf8ff!important;
   font-weight:900!important;
 }
-
-/* V203.6 — Customer card header action sizing/placement */
-.customer-card .customer-header .header-actions,
-.customer-card .customer-header-actions {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-}
-.customer-card .customer-header .header-actions button,
-.customer-card .customer-header-actions button {
-  min-width: 64px;
-  min-height: 64px;
-  width: 64px;
-  height: 64px;
-  font-size: 30px;
-  border-radius: 16px;
-}
-.customer-card .customer-header .header-actions button .icon,
-.customer-card .customer-header-actions button .icon {
-  font-size: 30px;
-}
-
-/* Dedicated customer actions under the avatar */
-.customer-card .customer-avatar-wrap {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-}
-.customer-card .customer-avatar-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-  width: 100%;
-}
-.customer-card .customer-avatar-actions button {
-  width: 100%;
-  min-height: 44px;
-  font-size: 16px;
-  border-radius: 12px;
-}
-
 </style>
 <script id="nf-v202-final-fixes">
 (function(){
