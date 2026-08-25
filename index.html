@@ -297,7 +297,20 @@
   #app [id^="quick-order-"] .nf-edit-chudi .nf-chudi-field select{font-size:19px!important;min-height:52px!important}
 }
 </style>
-</head><body><div id="loginPage" class="loginpage"><section class="loginbox"><div class="brand">NEW FASHION</div><div class="gold">TAILORING INDUSTRY</div><div class="sub">Online Tailoring Management Software</div><form id="loginForm"><div class="field"><label>Email</label><input id="loginEmail" class="input" type="email" autocomplete="email" required placeholder="உங்கள் Email"></div><div class="field"><label>Password</label><input id="loginPassword" class="input" type="password" autocomplete="current-password" required placeholder="Password"></div><button class="btn primary" id="loginBtn" type="submit">🔐 LOGIN</button><div id="loginMsg" class="msg"></div></form><button id="forgotBtn" class="btn secondary" style="width:100%;margin-top:10px">Forgot password?</button><div class="passkeyPanel"><button id="passkeyLoginBtn" class="btn secondary" type="button">🔐 Sign in with Passkey</button><div id="passkeyLoginHint" class="passkeyHint">முதலில் ஒருமுறை Email + Password மூலம் Login செய்து Passkey உருவாக்குங்கள். அதன் பிறகு இந்த சாதனத்தின் Fingerprint / Face / Screen Lock மூலம் unlock செய்யலாம்.</div></div></section></div><div id="app" class="hidden"><header class="topbar"><button id="menuBtn" class="iconbtn mobileOnly">☰</button><div class="brandBlock"><h1>NEW FASHION TAILORING</h1><small>ONLINE MANAGEMENT · <span id="liveClock">--:--:--</span></small></div><button id="backBtn" class="iconbtn" title="Back" aria-label="Back">‹</button><div class="spacer"></div><div id="userChip" class="userchip"></div><button id="passkeySetupBtn" class="iconbtn" title="Passkey" aria-label="Passkey">🔑</button><button id="reloadBtn" class="iconbtn" title="Refresh">↻</button><button id="logoutBtn" class="iconbtn" title="Logout">⎋</button></header><div class="layout"><aside id="sidebar" class="sidebar"><button class="navbtn dashboardNav active nf-sidebar-hidden-nav" data-view="dashboard" aria-hidden="true" tabindex="-1">📊 <span>Dashboard</span></button><div id="nfSidebarCustomerListWrap" aria-label="Customer list"><div class="nfSidebarCustomerListHead">👥 Customer List</div><div id="nfSidebarCustomerList" class="nfSidebarCustomerList"></div></div><button class="navbtn" data-view="orders">🧾 Orders</button><button class="navbtn" data-view="customers">👥 Customers</button><button class="navbtn logout" id="sideLogout">⎋ Logout</button></aside><main class="main"><section id="view-dashboard" class="view active"><div class="nf-dashboard-collection-card" role="button" tabindex="0" onclick="goView('payments')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();goView('payments')}"><div class="nf-dashboard-collection-head"><div class="nf-dashboard-collection-title">💰 Collections</div><div class="nf-dashboard-collection-sync">Today + Monthly · calculation sync</div></div><div class="nf-dashboard-collection-grid"><div class="nf-dashboard-collection-item"><div class="nf-dashboard-collection-label">💰 Today Collection</div><div id="kpiToday" class="nf-dashboard-collection-value">₹0</div><div class="nf-dashboard-collection-small">இன்று பெற்ற payment</div></div><div class="nf-dashboard-collection-item"><div class="nf-dashboard-collection-label">📅 Monthly Collection</div><div id="kpiMonthly" class="nf-dashboard-collection-value">₹0</div><div id="kpiMonthlySmall" class="nf-dashboard-collection-small">இந்த மாதம்</div></div></div></div><div class="stats nf-dashboard-hidden-stats" aria-hidden="true"><div class="stat"><div class="label">Customers</div><div id="statCustomers" class="num">0</div></div><div class="stat"><div class="label">Orders</div><div id="statOrders" class="num">0</div></div><div class="stat"><div class="label">Today Collection</div><div id="statTodayCollection" class="num">₹0</div></div><div class="stat"><div class="label">Pending Balance</div><div id="statBalance" class="num">₹0</div></div></div><div class="card dashboardCustomersCard nf-dashboard-customer-hub"><div class="nf-dch-head nf-my-customers-head"><div class="nf-my-customers-title-wrap"><button class="nf-left-customer-menu-btn" type="button" onclick="toggleMyCustomersSlideMenu(event)" aria-label="Open customer names" title="Customer names">☰</button><div class="nf-dch-title">My Customers</div></div><div class="nf-my-customers-actions"><button class="btn primary nf-dashboard-add-customer-btn" type="button" onclick="openModal('customer')" aria-label="Add Customer" title="Add Customer">＋</button><button class="nf-dashboard-daily-btn" type="button" onclick="goView('daily-update')" aria-label="Daily Update" title="Daily Update">📊</button><button class="nf-my-customers-menu-btn" type="button" onclick="toggleMyCustomersMenu(event)" aria-label="Customer filter" title="Customer filter">☷</button><div id="myCustomersMenu" class="nf-my-customers-menu" hidden><button type="button" class="active" data-my-filter="all" onclick="setDashboardCustomerTab('all');closeMyCustomersMenu()">All Customers <span id="dchCountAll">0</span></button><button type="button" data-my-filter="new" onclick="setDashboardCustomerTab('new');closeMyCustomersMenu()">New Customers <span id="dchCountNew">0</span></button><button type="button" data-my-filter="delivered" onclick="setDashboardCustomerTab('delivered');closeMyCustomersMenu()">Delivered Customers <span id="dchCountDelivered">0</span></button></div></div></div><div id="dashboardCustomersList" class="nf-dch-list"></div></div><div id="nfCustomerSlideBackdrop" class="nf-customer-slide-backdrop" hidden onclick="closeMyCustomersSlideMenu()"></div><aside id="nfCustomerSlideMenu" class="nf-customer-slide-menu" aria-hidden="true" aria-label="Customer names menu"><div class="nf-customer-slide-head"><div><div class="nf-customer-slide-title">👥 Customer List</div><div class="nf-customer-slide-sub">Existing Customers · Synced</div></div><button type="button" class="nf-customer-slide-close" onclick="closeMyCustomersSlideMenu()" aria-label="Close customer list">×</button></div><div id="nfCustomerSlideList" class="nf-customer-slide-list"></div></aside><div class="nf-dashboard-compat" aria-hidden="true"><span id="kpiReminder"></span><span id="kpiPending"></span><span id="kpiPendingSmall"></span><span id="kpiPendingDetails"></span><span id="kpiDelivery"></span><span id="kpiDeliveryDetails"></span><span id="dueSoonCount"></span><span id="dueSoonList"></span></div><div class="nf-dashboard-compat" aria-hidden="true"><span id="recentOrders"></span></div></section><section id="view-daily-update" class="view"><div class="nf-daily-page-head"><button type="button" class="nf-daily-back" onclick="goView('dashboard')" aria-label="Back to Home">‹</button><div><h2>📊 Daily Update</h2><p>இன்றைய நிலவரம்</p></div></div><div id="nfDailySummaryCard" aria-label="Daily Update Summary"><div class="nfDailySummaryHead"><b>📊 Daily Update</b><span>இன்றைய நிலவரம்</span></div><div id="dailyUpdate"></div></div></section><section id="view-customers" class="view"><div class="pagehead nf-search-pagehead nf-customer-cards-head"><button class="nf-customer-cards-menu-btn" type="button" onclick="toggleMyCustomersSlideMenu(event)" aria-label="Open customer names" title="Customer names">☰</button><div class="nf-customer-cards-title"><h2>Customer Cards</h2></div><div class="nf-customer-cards-right"><button class="btn secondary nf-search-icon-btn" type="button" onclick="toggleCompactSearch('customer')" aria-label="Search customers" title="Search">🔍</button></div></div><div class="nf-customer-cards-add-wrap"><button class="btn primary nf-customer-cards-add-btn" onclick="openModal('customer')">＋ Add Customer</button></div><div id="customerSearchPanel" class="nf-compact-search-panel" hidden><div class="nf-compact-search-row"><span class="nf-compact-search-icon">🔍</span><input id="customerSearch" class="input search" placeholder="Search name / phone / address / village" autocomplete="off"><button class="btn secondary nf-compact-close" type="button" onclick="toggleCompactSearch('customer',false)" aria-label="Close search">✕</button><button class="btn secondary nf-compact-refresh" type="button" onclick="loadAll()" title="Refresh">↻</button></div></div><div id="customersTable" class="customerCards"></div></section><section id="view-measurements" class="view"><div class="pagehead"><div><h2>Measurements</h2><p>Customer-wise measurements.</p></div><div class="spacer"></div><button class="btn primary" onclick="openModal('measurement')">＋ Add Measurement</button></div><div class="card"><div class="toolbar"><input id="measurementSearch" class="input search" placeholder="Search customer / garment"><button class="btn secondary" onclick="loadAll()">↻ Refresh</button></div><div id="measurementsTable"></div></div></section><section id="view-orders" class="view"><div class="pagehead nf-search-pagehead"><div><h2>Orders</h2><p>Customer Card-ல் எடுத்த New Order-கள் மட்டும் இங்கே வரும்.</p></div><div class="spacer"></div><button class="btn secondary nf-search-icon-btn" type="button" onclick="toggleCompactSearch('orders')" aria-label="Search orders" title="Search">🔍</button></div><div id="ordersSearchPanel" class="nf-compact-search-panel" hidden><div class="nf-compact-search-row nf-orders-search-row"><span class="nf-compact-search-icon">🔍</span><input id="orderSearch" class="input search" placeholder="Search order / customer / garment" autocomplete="off"><select id="orderStatusFilter" class="input nf-order-status-select"><option value="">All status</option><option>Pending</option><option>In Progress</option><option>Ready</option><option>Delivered</option><option>Cancelled</option></select><button class="btn secondary nf-compact-close" type="button" onclick="toggleCompactSearch('orders',false)" aria-label="Close search">✕</button><button class="btn secondary nf-compact-refresh" type="button" onclick="loadAll()" title="Refresh">↻</button></div></div><div class="card nf-section-card"><div id="ordersTable"></div></div></section><section id="view-alterations" class="view"><div class="pagehead"><div><h2>Alterations</h2><p>Alteration work and delivery tracking.</p></div><div class="spacer"></div><button class="btn primary" onclick="openModal('alteration')">＋ Add Alteration</button></div><div class="card"><div class="toolbar"><input id="alterationSearch" class="input search" placeholder="Search customer / details"><button class="btn secondary" onclick="loadAll()">↻ Refresh</button></div><div id="alterationsTable"></div></div></section><section id="view-payments" class="view"><div class="pagehead"><div><h2>Payments</h2><p>Today collection மற்றும் payment history.</p></div><div class="spacer"></div></div><div class="card nf-section-card"><div class="toolbar"><input id="paymentSearch" class="input search" placeholder="Search order / payment method / reference"><button class="btn secondary" onclick="loadAll()">↻ Refresh</button></div><div id="paymentsTable"></div></div></section><section id="view-designs" class="view"><div class="pagehead"><div><h2>🎨 Blouse Design Studio</h2><p>Online-ல் design தேடி, பிடித்த design-ஐ இங்கே save செய்து customer-க்கு காட்டலாம்.</p></div><div class="spacer"></div><button class="btn primary" onclick="openModal('design')">＋ Add Design</button></div><div class="card"><div class="designTools"><input id="onlineDesignQuery" class="input" placeholder="எ.கா. bridal blouse design / simple blouse design"><button class="btn primary" id="onlineDesignBtn">🔎 Search Designs</button><button class="btn secondary" id="googleDesignBtn">🌐 Google Images</button></div><div class="mini">Google Images முழு results-ஐ Google-ல் திறக்கலாம். கீழே preview results-ல் save செய்யக்கூடிய படங்களும் வரும்.</div><div id="onlineDesignResults" class="designSearchResults"></div></div><div class="card" style="margin-top:14px"><div class="pagehead"><div><h3 style="margin:0">💾 Saved Designs</h3><p>உங்கள் design catalogue</p></div></div><div id="designGallery" class="designGallery"></div></div><div class="card" style="margin-top:14px"><div class="toolbar"><input id="designSearch" class="input search" placeholder="Search saved design no / name / category"><button class="btn secondary" onclick="loadAll()">↻ Refresh</button></div><div id="designsTable"></div></div></section></main></div></div><div id="ordersNewOrderScreen" class="modal nf-orders-new-order-screen" aria-hidden="true"><div class="modalbox nf-orders-new-order-box"><div class="modalhead"><h3 id="ordersNewOrderScreenTitle">🧾 New Order</h3><button class="close" type="button" onclick="closeOrdersQuickAdd()">✕</button></div><div id="ordersNewOrderContent"></div></div></div><button id="p4Fab" class="p4FabButton" type="button" aria-label="Add">＋</button><nav id="p4MobileNav" aria-label="Quick navigation"><button data-p4-view="dashboard"><span class="p4Icon">⌂</span><span>Home</span></button><button data-p4-view="customers"><span class="p4Icon">👥</span><span>Customers</span></button><button data-p4-view="orders"><span class="p4Icon">🧾</span><span>Orders</span></button><button data-p4-view="payments"><span class="p4Icon">₹</span><span>Payments</span></button></nav><div id="nfOrderFullDetails" class="modal nf-order-full-details" aria-hidden="true"><div class="modalbox nf-order-full-details-box"><div class="modalhead nf-order-full-details-head"><h3 id="nfOrderFullDetailsTitle">Order Full Details</h3><button class="close" type="button" onclick="closeOrderFullDetails()">✕</button></div><div id="nfOrderFullDetailsContent"></div></div></div><div id="modal" class="modal"><div class="modalbox"><div class="modalhead"><h3 id="modalTitle">Add</h3><button class="close" onclick="closeModal()">✕</button></div><form id="dataForm"><div id="formFields" class="formgrid"></div><div class="modalfoot"><button type="button" class="btn secondary" onclick="closeModal()">Cancel</button><button id="nfModalDeletePayment" type="button" class="btn danger hidden" title="Delete Payment">🗑️ Delete Payment</button><button id="saveBtn" type="submit" class="btn primary">Save</button></div><div id="formMsg" class="msg"></div></form></div></div><div id="toast" class="toast"></div><div id="passkeyGate" class="passkeyGate" aria-hidden="true"><section class="passkeyGateBox"><div class="passkeyIcon">🔐</div><h3>NEW FASHION</h3><p>இந்த சாதனத்தின் Fingerprint / Face / Screen Lock மூலம் App-ஐ unlock செய்யுங்கள்.</p><button id="passkeyUnlockBtn" class="btn primary" type="button">Unlock with Passkey</button><div id="passkeyGateMsg" class="passkeyGateMsg"></div></section></div><script>
+<style id="nf-canonical-blouse-saree-edit-css">
+.nf-modal-blouse-saree-inline{grid-column:1/-1;margin:8px 0 2px;padding:12px;border:2px solid #f0b84b;border-radius:16px;background:linear-gradient(135deg,#fff9df,#fff4f8);box-shadow:0 8px 20px rgba(80,55,110,.08)}
+.nf-modal-blouse-saree-inline .nf-modal-category-head{display:flex;align-items:center;gap:9px;margin-bottom:9px}
+.nf-modal-blouse-saree-inline .nf-modal-category-head>span{font-size:24px}
+.nf-modal-blouse-saree-inline .nf-modal-category-head strong{display:block;font-size:16px;font-weight:950}
+.nf-modal-blouse-saree-inline .nf-modal-category-head small{display:block;margin-top:2px;color:#6f6670;font-size:11px;font-weight:750}
+.nf-modal-blouse-saree-inline .nf-modal-blouse-saree-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.nf-modal-blouse-saree-inline .nf-modal-blouse-saree-cell{padding:9px;border:1px solid #eadfb9;border-radius:11px;background:#fff}
+.nf-modal-blouse-saree-inline .nf-modal-blouse-saree-cell label{display:block;font-size:11px;color:#6f6670;font-weight:850;margin-bottom:5px}
+.nf-modal-blouse-saree-inline .nf-modal-blouse-saree-cell input{width:100%;min-height:42px}
+.nf-modal-blouse-saree-inline .nf-modal-blouse-saree-total{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-top:9px;padding:9px 10px;border-radius:10px;background:linear-gradient(135deg,#6c4df6,#ef4f8a);color:#fff;font-weight:900}
+@media(max-width:700px){.nf-modal-blouse-saree-inline .nf-modal-blouse-saree-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:560px){.nf-modal-blouse-saree-inline .nf-modal-blouse-saree-grid{grid-template-columns:1fr}}
+</style></head><body><div id="loginPage" class="loginpage"><section class="loginbox"><div class="brand">NEW FASHION</div><div class="gold">TAILORING INDUSTRY</div><div class="sub">Online Tailoring Management Software</div><form id="loginForm"><div class="field"><label>Email</label><input id="loginEmail" class="input" type="email" autocomplete="email" required placeholder="உங்கள் Email"></div><div class="field"><label>Password</label><input id="loginPassword" class="input" type="password" autocomplete="current-password" required placeholder="Password"></div><button class="btn primary" id="loginBtn" type="submit">🔐 LOGIN</button><div id="loginMsg" class="msg"></div></form><button id="forgotBtn" class="btn secondary" style="width:100%;margin-top:10px">Forgot password?</button><div class="passkeyPanel"><button id="passkeyLoginBtn" class="btn secondary" type="button">🔐 Sign in with Passkey</button><div id="passkeyLoginHint" class="passkeyHint">முதலில் ஒருமுறை Email + Password மூலம் Login செய்து Passkey உருவாக்குங்கள். அதன் பிறகு இந்த சாதனத்தின் Fingerprint / Face / Screen Lock மூலம் unlock செய்யலாம்.</div></div></section></div><div id="app" class="hidden"><header class="topbar"><button id="menuBtn" class="iconbtn mobileOnly">☰</button><div class="brandBlock"><h1>NEW FASHION TAILORING</h1><small>ONLINE MANAGEMENT · <span id="liveClock">--:--:--</span></small></div><button id="backBtn" class="iconbtn" title="Back" aria-label="Back">‹</button><div class="spacer"></div><div id="userChip" class="userchip"></div><button id="passkeySetupBtn" class="iconbtn" title="Passkey" aria-label="Passkey">🔑</button><button id="reloadBtn" class="iconbtn" title="Refresh">↻</button><button id="logoutBtn" class="iconbtn" title="Logout">⎋</button></header><div class="layout"><aside id="sidebar" class="sidebar"><button class="navbtn dashboardNav active nf-sidebar-hidden-nav" data-view="dashboard" aria-hidden="true" tabindex="-1">📊 <span>Dashboard</span></button><div id="nfSidebarCustomerListWrap" aria-label="Customer list"><div class="nfSidebarCustomerListHead">👥 Customer List</div><div id="nfSidebarCustomerList" class="nfSidebarCustomerList"></div></div><button class="navbtn" data-view="orders">🧾 Orders</button><button class="navbtn" data-view="customers">👥 Customers</button><button class="navbtn logout" id="sideLogout">⎋ Logout</button></aside><main class="main"><section id="view-dashboard" class="view active"><div class="nf-dashboard-collection-card" role="button" tabindex="0" onclick="goView('payments')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();goView('payments')}"><div class="nf-dashboard-collection-head"><div class="nf-dashboard-collection-title">💰 Collections</div><div class="nf-dashboard-collection-sync">Today + Monthly · calculation sync</div></div><div class="nf-dashboard-collection-grid"><div class="nf-dashboard-collection-item"><div class="nf-dashboard-collection-label">💰 Today Collection</div><div id="kpiToday" class="nf-dashboard-collection-value">₹0</div><div class="nf-dashboard-collection-small">இன்று பெற்ற payment</div></div><div class="nf-dashboard-collection-item"><div class="nf-dashboard-collection-label">📅 Monthly Collection</div><div id="kpiMonthly" class="nf-dashboard-collection-value">₹0</div><div id="kpiMonthlySmall" class="nf-dashboard-collection-small">இந்த மாதம்</div></div></div></div><div class="stats nf-dashboard-hidden-stats" aria-hidden="true"><div class="stat"><div class="label">Customers</div><div id="statCustomers" class="num">0</div></div><div class="stat"><div class="label">Orders</div><div id="statOrders" class="num">0</div></div><div class="stat"><div class="label">Today Collection</div><div id="statTodayCollection" class="num">₹0</div></div><div class="stat"><div class="label">Pending Balance</div><div id="statBalance" class="num">₹0</div></div></div><div class="card dashboardCustomersCard nf-dashboard-customer-hub"><div class="nf-dch-head nf-my-customers-head"><div class="nf-my-customers-title-wrap"><button class="nf-left-customer-menu-btn" type="button" onclick="toggleMyCustomersSlideMenu(event)" aria-label="Open customer names" title="Customer names">☰</button><div class="nf-dch-title">My Customers</div></div><div class="nf-my-customers-actions"><button class="btn primary nf-dashboard-add-customer-btn" type="button" onclick="openModal('customer')" aria-label="Add Customer" title="Add Customer">＋</button><button class="nf-dashboard-daily-btn" type="button" onclick="goView('daily-update')" aria-label="Daily Update" title="Daily Update">📊</button><button class="nf-my-customers-menu-btn" type="button" onclick="toggleMyCustomersMenu(event)" aria-label="Customer filter" title="Customer filter">☷</button><div id="myCustomersMenu" class="nf-my-customers-menu" hidden><button type="button" class="active" data-my-filter="all" onclick="setDashboardCustomerTab('all');closeMyCustomersMenu()">All Customers <span id="dchCountAll">0</span></button><button type="button" data-my-filter="new" onclick="setDashboardCustomerTab('new');closeMyCustomersMenu()">New Customers <span id="dchCountNew">0</span></button><button type="button" data-my-filter="delivered" onclick="setDashboardCustomerTab('delivered');closeMyCustomersMenu()">Delivered Customers <span id="dchCountDelivered">0</span></button></div></div></div><div id="dashboardCustomersList" class="nf-dch-list"></div></div><div id="nfCustomerSlideBackdrop" class="nf-customer-slide-backdrop" hidden onclick="closeMyCustomersSlideMenu()"></div><aside id="nfCustomerSlideMenu" class="nf-customer-slide-menu" aria-hidden="true" aria-label="Customer names menu"><div class="nf-customer-slide-head"><div><div class="nf-customer-slide-title">👥 Customer List</div><div class="nf-customer-slide-sub">Existing Customers · Synced</div></div><button type="button" class="nf-customer-slide-close" onclick="closeMyCustomersSlideMenu()" aria-label="Close customer list">×</button></div><div id="nfCustomerSlideList" class="nf-customer-slide-list"></div></aside><div class="nf-dashboard-compat" aria-hidden="true"><span id="kpiReminder"></span><span id="kpiPending"></span><span id="kpiPendingSmall"></span><span id="kpiPendingDetails"></span><span id="kpiDelivery"></span><span id="kpiDeliveryDetails"></span><span id="dueSoonCount"></span><span id="dueSoonList"></span></div><div class="nf-dashboard-compat" aria-hidden="true"><span id="recentOrders"></span></div></section><section id="view-daily-update" class="view"><div class="nf-daily-page-head"><button type="button" class="nf-daily-back" onclick="goView('dashboard')" aria-label="Back to Home">‹</button><div><h2>📊 Daily Update</h2><p>இன்றைய நிலவரம்</p></div></div><div id="nfDailySummaryCard" aria-label="Daily Update Summary"><div class="nfDailySummaryHead"><b>📊 Daily Update</b><span>இன்றைய நிலவரம்</span></div><div id="dailyUpdate"></div></div></section><section id="view-customers" class="view"><div class="pagehead nf-search-pagehead nf-customer-cards-head"><button class="nf-customer-cards-menu-btn" type="button" onclick="toggleMyCustomersSlideMenu(event)" aria-label="Open customer names" title="Customer names">☰</button><div class="nf-customer-cards-title"><h2>Customer Cards</h2></div><div class="nf-customer-cards-right"><button class="btn secondary nf-search-icon-btn" type="button" onclick="toggleCompactSearch('customer')" aria-label="Search customers" title="Search">🔍</button></div></div><div class="nf-customer-cards-add-wrap"><button class="btn primary nf-customer-cards-add-btn" onclick="openModal('customer')">＋ Add Customer</button></div><div id="customerSearchPanel" class="nf-compact-search-panel" hidden><div class="nf-compact-search-row"><span class="nf-compact-search-icon">🔍</span><input id="customerSearch" class="input search" placeholder="Search name / phone / address / village" autocomplete="off"><button class="btn secondary nf-compact-close" type="button" onclick="toggleCompactSearch('customer',false)" aria-label="Close search">✕</button><button class="btn secondary nf-compact-refresh" type="button" onclick="loadAll()" title="Refresh">↻</button></div></div><div id="customersTable" class="customerCards"></div></section><section id="view-measurements" class="view"><div class="pagehead"><div><h2>Measurements</h2><p>Customer-wise measurements.</p></div><div class="spacer"></div><button class="btn primary" onclick="openModal('measurement')">＋ Add Measurement</button></div><div class="card"><div class="toolbar"><input id="measurementSearch" class="input search" placeholder="Search customer / garment"><button class="btn secondary" onclick="loadAll()">↻ Refresh</button></div><div id="measurementsTable"></div></div></section><section id="view-orders" class="view"><div class="pagehead nf-search-pagehead"><div><h2>Orders</h2><p>Customer Card-ல் எடுத்த New Order-கள் மட்டும் இங்கே வரும்.</p></div><div class="spacer"></div><button class="btn secondary nf-search-icon-btn" type="button" onclick="toggleCompactSearch('orders')" aria-label="Search orders" title="Search">🔍</button></div><div id="ordersSearchPanel" class="nf-compact-search-panel" hidden><div class="nf-compact-search-row nf-orders-search-row"><span class="nf-compact-search-icon">🔍</span><input id="orderSearch" class="input search" placeholder="Search order / customer / garment" autocomplete="off"><select id="orderStatusFilter" class="input nf-order-status-select"><option value="">All status</option><option>Pending</option><option>In Progress</option><option>Ready</option><option>Delivered</option><option>Cancelled</option></select><button class="btn secondary nf-compact-close" type="button" onclick="toggleCompactSearch('orders',false)" aria-label="Close search">✕</button><button class="btn secondary nf-compact-refresh" type="button" onclick="loadAll()" title="Refresh">↻</button></div></div><div class="card nf-section-card"><div id="ordersTable"></div></div></section><section id="view-alterations" class="view"><div class="pagehead"><div><h2>Alterations</h2><p>Alteration work and delivery tracking.</p></div><div class="spacer"></div><button class="btn primary" onclick="openModal('alteration')">＋ Add Alteration</button></div><div class="card"><div class="toolbar"><input id="alterationSearch" class="input search" placeholder="Search customer / details"><button class="btn secondary" onclick="loadAll()">↻ Refresh</button></div><div id="alterationsTable"></div></div></section><section id="view-payments" class="view"><div class="pagehead"><div><h2>Payments</h2><p>Today collection மற்றும் payment history.</p></div><div class="spacer"></div></div><div class="card nf-section-card"><div class="toolbar"><input id="paymentSearch" class="input search" placeholder="Search order / payment method / reference"><button class="btn secondary" onclick="loadAll()">↻ Refresh</button></div><div id="paymentsTable"></div></div></section><section id="view-designs" class="view"><div class="pagehead"><div><h2>🎨 Blouse Design Studio</h2><p>Online-ல் design தேடி, பிடித்த design-ஐ இங்கே save செய்து customer-க்கு காட்டலாம்.</p></div><div class="spacer"></div><button class="btn primary" onclick="openModal('design')">＋ Add Design</button></div><div class="card"><div class="designTools"><input id="onlineDesignQuery" class="input" placeholder="எ.கா. bridal blouse design / simple blouse design"><button class="btn primary" id="onlineDesignBtn">🔎 Search Designs</button><button class="btn secondary" id="googleDesignBtn">🌐 Google Images</button></div><div class="mini">Google Images முழு results-ஐ Google-ல் திறக்கலாம். கீழே preview results-ல் save செய்யக்கூடிய படங்களும் வரும்.</div><div id="onlineDesignResults" class="designSearchResults"></div></div><div class="card" style="margin-top:14px"><div class="pagehead"><div><h3 style="margin:0">💾 Saved Designs</h3><p>உங்கள் design catalogue</p></div></div><div id="designGallery" class="designGallery"></div></div><div class="card" style="margin-top:14px"><div class="toolbar"><input id="designSearch" class="input search" placeholder="Search saved design no / name / category"><button class="btn secondary" onclick="loadAll()">↻ Refresh</button></div><div id="designsTable"></div></div></section></main></div></div><div id="ordersNewOrderScreen" class="modal nf-orders-new-order-screen" aria-hidden="true"><div class="modalbox nf-orders-new-order-box"><div class="modalhead"><h3 id="ordersNewOrderScreenTitle">🧾 New Order</h3><button class="close" type="button" onclick="closeOrdersQuickAdd()">✕</button></div><div id="ordersNewOrderContent"></div></div></div><button id="p4Fab" class="p4FabButton" type="button" aria-label="Add">＋</button><nav id="p4MobileNav" aria-label="Quick navigation"><button data-p4-view="dashboard"><span class="p4Icon">⌂</span><span>Home</span></button><button data-p4-view="customers"><span class="p4Icon">👥</span><span>Customers</span></button><button data-p4-view="orders"><span class="p4Icon">🧾</span><span>Orders</span></button><button data-p4-view="payments"><span class="p4Icon">₹</span><span>Payments</span></button></nav><div id="nfOrderFullDetails" class="modal nf-order-full-details" aria-hidden="true"><div class="modalbox nf-order-full-details-box"><div class="modalhead nf-order-full-details-head"><h3 id="nfOrderFullDetailsTitle">Order Full Details</h3><button class="close" type="button" onclick="closeOrderFullDetails()">✕</button></div><div id="nfOrderFullDetailsContent"></div></div></div><div id="modal" class="modal"><div class="modalbox"><div class="modalhead"><h3 id="modalTitle">Add</h3><button class="close" onclick="closeModal()">✕</button></div><form id="dataForm"><div id="formFields" class="formgrid"></div><div class="modalfoot"><button type="button" class="btn secondary" onclick="closeModal()">Cancel</button><button id="nfModalDeletePayment" type="button" class="btn danger hidden" title="Delete Payment">🗑️ Delete Payment</button><button id="saveBtn" type="submit" class="btn primary">Save</button></div><div id="formMsg" class="msg"></div></form></div></div><div id="toast" class="toast"></div><div id="passkeyGate" class="passkeyGate" aria-hidden="true"><section class="passkeyGateBox"><div class="passkeyIcon">🔐</div><h3>NEW FASHION</h3><p>இந்த சாதனத்தின் Fingerprint / Face / Screen Lock மூலம் App-ஐ unlock செய்யுங்கள்.</p><button id="passkeyUnlockBtn" class="btn primary" type="button">Unlock with Passkey</button><div id="passkeyGateMsg" class="passkeyGateMsg"></div></section></div><script>
 const SUPABASE_URL="https://pdlsicwzfmartkwcwozx.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY="sb_publishable_eCKne6Tzs6-QYSXpJb-aSQ_6AHe8n9O";
 const supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
@@ -1030,7 +1043,7 @@ function clearQuickOrderEditor(id){
 
 function populateQuickOrderEditor(id,o){
  const rawGarment=String(o.garment_type||"Blouse");
- const g=rawGarment;
+ const g=rawGarment==="Saree"?"Blouse":rawGarment;
  const set=(key,val)=>{const e=$(key+id);if(e)e.value=val==null?"":val};
  set("qo-garment-",g);
  set("qo-cloth-",o.cloth_received_date||o.order_date||localDate());
@@ -1058,10 +1071,9 @@ function populateQuickOrderEditor(id,o){
 function makeOrderNo(){return "ORD-"+Date.now().toString().slice(-10)}
 function updateQuickGarment(id){
  const g=$("qo-garment-"+id)?.value||"Blouse";
- const isBlouse=g==="Blouse",isChudi=g==="Chudi",isSaree=g==="Saree";
- document.querySelectorAll("#quick-order-"+id+" .nf-quick-blouse").forEach(x=>x.classList.toggle("nf-field-hidden",!isBlouse));
- document.querySelectorAll("#quick-order-"+id+" .nf-quick-chudi").forEach(x=>x.classList.toggle("nf-field-hidden",!isChudi));
- document.querySelectorAll("#quick-order-"+id+" .nf-quick-saree").forEach(x=>x.classList.toggle("nf-field-hidden",!isSaree));
+ document.querySelectorAll("#quick-order-"+id+" .nf-quick-blouse").forEach(x=>x.classList.toggle("nf-field-hidden",g!=="Blouse"));
+ document.querySelectorAll("#quick-order-"+id+" .nf-quick-chudi").forEach(x=>x.classList.toggle("nf-field-hidden",g!=="Chudi"));
+ document.querySelectorAll("#quick-order-"+id+" .nf-quick-saree").forEach(x=>x.classList.add("nf-field-hidden"));
  updateQuickOrderCalc(id);
 }
 function updateChudiLiningLabel(id){
@@ -3072,92 +3084,6 @@ function nfBlouseSplit(o){
 }
 
 (function(){
-  if(window.__nfOpenModalChudiGuard)return;
-  window.__nfOpenModalChudiGuard=true;
-  var originalOpen=window.openModal;
-  if(typeof originalOpen!=="function")return;
-
-  window.openModal=function(type,id){
-    originalOpen.apply(this,arguments);
-    if(type!=="order")return;
-
-    var form=document.getElementById("formFields");
-    if(!form || form.querySelector(".nf-extra-garment-box"))return;
-
-    var garment=form.querySelector('[name="garment_type"]');
-    if(garment){
-      var select=document.createElement("select");
-      select.className=garment.className||"input";
-      select.name="garment_type";
-      ["Blouse","Chudi","Saree"].forEach(function(v){
-        var op=document.createElement("option");
-        op.value=v;op.textContent=v;
-        if(String(garment.value||"Blouse").toLowerCase()===v.toLowerCase())op.selected=true;
-        select.appendChild(op);
-      });
-      garment.replaceWith(select);
-
-      var syncGarmentFields=function(){
-        var g=String(select.value||"Blouse").toLowerCase();
-        var isChudi=g==="chudi", isSaree=g==="saree";
-        var field=function(n){return form.querySelector('[name="'+n+'"]')};
-        var wrap=function(n){var el=field(n);return el&&el.closest(".field")};
-        var setVisible=function(n,visible){
-          var el=field(n),w=wrap(n);
-          if(el){el.disabled=!visible;el.required=false}
-          if(w)w.classList.toggle("nf-field-hidden",!visible);
-        };
-        ["normal_qty","lining_qty","design_qty"].forEach(function(n){setVisible(n,!isChudi&&!isSaree)});
-        ["chudi_qty","chudi_handover","chudi_lining","chudi_lining_qty","chudi_rate"].forEach(function(n){setVisible(n,isChudi)});
-        ["saree_qty","saree_handover","saree_rate"].forEach(function(n){setVisible(n,isSaree)});
-
-        var n=isChudi||isSaree?0:Number(field("normal_qty")?.value||0);
-        var l=isChudi||isSaree?0:Number(field("lining_qty")?.value||0);
-        var d=isChudi||isSaree?0:Number(field("design_qty")?.value||0);
-        var cq=isChudi?Math.max(0,Number(field("chudi_qty")?.value||0)):0;
-        var sq=isSaree?Math.max(0,Number(field("saree_qty")?.value||0)):0;
-        var rates=typeof getRates==="function"?getRates():{};
-        var cr=isChudi?Math.max(0,Number(field("chudi_rate")?.value||rates.chudi||0)):0;
-        var sr=isSaree?Math.max(0,Number(field("saree_rate")?.value||rates.saree||0)):0;
-        var totalQty=isChudi?cq:isSaree?sq:n+l+d;
-        var total=isChudi?cq*cr:isSaree?sq*sr:n*Number(rates.normal||0)+l*Number(rates.lining||0)+d*Number(rates.design||0);
-        var q=field("quantity"),u=field("unit_price"),t=field("total_amount"),rt=field("rate_type");
-        if(q){q.value=totalQty;q.readOnly=true}
-        if(u){u.value=(totalQty?total/totalQty:0).toFixed(2);u.readOnly=true}
-        if(t){t.value=total.toFixed(2);t.readOnly=true}
-        if(rt)rt.value="normal";
-        var a=field("advance_amount"),live=document.getElementById("liveBalance");
-        if(live)live.textContent=typeof money==="function"?money(Math.max(0,total-Number(a?.value||0))):String(Math.max(0,total-Number(a?.value||0)));
-      };
-      select.addEventListener("change",syncGarmentFields);
-      ["normal_qty","lining_qty","design_qty","chudi_qty","chudi_lining","chudi_lining_qty","saree_qty","chudi_rate","saree_rate"].forEach(function(n){
-        var el=form.querySelector('[name="'+n+'"]');
-        if(el)el.addEventListener("input",syncGarmentFields);
-        if(el)el.addEventListener("change",syncGarmentFields);
-      });
-      syncGarmentFields();
-    }
-
-    var row=(id && window.state && state.orders||[]).find(function(o){return o.id===id;});
-    var x=nfGarmentExtra(row||{});
-    var box=document.createElement("div");
-    box.className="nf-extra-garment-box";
-    box.innerHTML=
-      '<h4>👚 Chudi + 🥻 Saree — புதிய எண்ணிக்கை</h4>'+
-      '<div class="hint" style="margin-bottom:8px">பழைய blouse கணக்கீடு மாறாது. Chudi மற்றும் Saree எண்ணிக்கை தனியாக சேமிக்கப்படும்.</div>'+
-      '<div class="nf-extra-grid">'+
-        '<div class="nf-extra-field"><label>👚 எத்தனை Chudi / சுடிதார்</label><input name="nf_chudi_qty" type="number" min="0" step="1" value="'+Number(x.chudi||0)+'"></div>'+
-        '<div class="nf-extra-field"><label>🧵 Chudi-க்கு lining கொடுத்தாரா?</label><select name="nf_chudi_lining"><option value="no" '+(x.chudiLining!=="yes"?"selected":"")+'>இல்லை</option><option value="yes" '+(x.chudiLining==="yes"?"selected":"")+'>ஆம்</option></select></div>'+
-        '<div class="nf-extra-field"><label>🧵 Chudi lining எத்தனை</label><input name="nf_chudi_lining_qty" type="number" min="0" step="1" value="'+Number(x.chudiLiningQty||0)+'"></div>'+
-        '<div class="nf-extra-field"><label>🥻 எத்தனை Saree / சேலை</label><input name="nf_saree_qty" type="number" min="0" step="1" value="'+Number(x.saree||0)+'"></div>'+
-      '</div>';
-    form.appendChild(box);
-
-    if(!id)box.classList.add("nf-field-hidden");
-  };
-})();
-
-(function(){
   var form=document.getElementById("dataForm");
   if(!form)return;
   form.addEventListener("submit",function(){
@@ -3166,11 +3092,12 @@ function nfBlouseSplit(o){
     var notes=form.querySelector('[name="notes"]');
     if(!notes)return;
 
+    var pick=function(a,b){var v=get(a);return v!==""?v:get(b)};
     var extra={
-      chudi:Math.max(0,Number(get("nf_chudi_qty")||0)),
-      chudiLining:get("nf_chudi_lining")==="yes"?"yes":"no",
-      chudiLiningQty:Math.max(0,Number(get("nf_chudi_lining_qty")||0)),
-      saree:Math.max(0,Number(get("nf_saree_qty")||0))
+      chudi:Math.max(0,Number(pick("nf_chudi_qty","chudi_qty")||0)),
+      chudiLining:pick("nf_chudi_lining","chudi_lining")==="yes"?"yes":"no",
+      chudiLiningQty:Math.max(0,Number(pick("nf_chudi_lining_qty","chudi_lining_qty")||0)),
+      saree:Math.max(0,Number(pick("nf_saree_qty","saree_qty")||0))
     };
     var clean=String(notes.value||"").replace(/GARMENT_SPLIT:\{[^}]+\}\s*\|?\s*/,"").trim();
     notes.value="GARMENT_SPLIT:"+JSON.stringify(extra)+(clean?" | "+clean:"");
@@ -3841,49 +3768,175 @@ if(typeof oldSave==="function"){
 }
 
 const oldOpen=window.openModal;
-if(typeof oldOpen==="function" && !window.__nfOpenModalDesignSlots){
-  window.__nfOpenModalDesignSlots=true;
+if(typeof oldOpen==="function" && !window.__nfOpenModalCanonicalOrderEditor){
+  window.__nfOpenModalCanonicalOrderEditor=true;
+
+  function extraFor(row){
+    return typeof window.nfGarmentExtra==="function"
+      ? window.nfGarmentExtra(row||{})
+      : {chudi:0,chudiLining:"no",chudiLiningQty:0,saree:0};
+  }
+  function ratesFor(row){
+    return typeof window.nfOrderRates==="function"
+      ? window.nfOrderRates(row||{})
+      : (typeof getRates==="function"?getRates():{});
+  }
+  function nval(form,name){
+    return N(form.querySelector('[name="'+name+'"]')?.value);
+  }
+  function setField(form,name,value){
+    const el=form.querySelector('[name="'+name+'"]');
+    if(el)el.value=value;
+    return el;
+  }
+  function toggleField(form,name,visible,disabled){
+    const el=form.querySelector('[name="'+name+'"]');
+    const wrap=el?.closest(".field");
+    if(wrap)wrap.classList.toggle("nf-field-hidden",!visible);
+    if(el)el.disabled=!!disabled;
+  }
+
   window.openModal=function(type,id){
-    oldOpen.apply(this,arguments);
-    if(type!=="order")return;
-    setTimeout(()=>{
-      const form=document.getElementById("formFields"),dq=form?.querySelector('[name="design_qty"]');
-      if(!form||!dq||form.querySelector(".nf-modal-design-3slot"))return;
-      const row=id?(state.orders||[]).find(x=>x.id===id):null;
-      const holder=document.createElement("div");holder.className="field full nf-modal-design-3slot";
-      holder.innerHTML=slotMarkup(designItemsFromOrder(row||{}));
-      const wrap=dq.closest(".field");
-      (wrap?.parentNode||form).insertBefore(holder,wrap?.nextSibling||null);
-      const box=holder.querySelector(".nf-design-3slot"),fields=n=>form.querySelector(`[name="${n}"]`);
-      const recalc=()=>{
-        const g=String(fields("garment_type")?.value||"Blouse").toLowerCase();
-        holder.classList.toggle("nf-field-hidden",g!=="blouse");
-        if(g!=="blouse")return;
-        const r=recalcBox(box),n=N(fields("normal_qty")?.value),l=N(fields("lining_qty")?.value),rates=getRates();
-        const qty=n+l+r.qty,total=n*rates.normal+l*rates.lining+r.total;
-        dq.value=qty;dq.readOnly=true;
-        const t=fields("total_amount"),u=fields("unit_price");
-        if(t)t.value=total.toFixed(2);
-        if(u)u.value=(qty?total/qty:0).toFixed(2);
-      };
-      box.querySelectorAll("input").forEach(el=>el.addEventListener("input",recalc));
-      ["garment_type","normal_qty","lining_qty"].forEach(n=>fields(n)?.addEventListener("input",recalc));
-      fields("garment_type")?.addEventListener("change",recalc);
-      recalc();
-      form.addEventListener("submit",()=>{
-        if(String(fields("garment_type")?.value||"Blouse").toLowerCase()!=="blouse")return;
-        const items=recalcBox(box).items.filter(x=>x.qty>0).slice(0,3);
-        const notes=fields("notes");
-        if(notes){
-          let clean=String(notes.value||"").replace(/\s*\|\s*DESIGN_ITEMS:\[[^\]]*\]/,"").replace(/\s*\|\s*DESIGN_RATES:\[[^\]]*\]/,"").trim();
-          if(items.length)clean+=(clean?" | ":"")+"DESIGN_ITEMS:"+JSON.stringify(items);
-          notes.value=clean;
+    const result=oldOpen.apply(this,arguments);
+    if(type!=="order")return result;
+
+    setTimeout(function(){
+      const form=document.getElementById("formFields");
+      const sel=form?.querySelector('[name="garment_type"]');
+      if(!form||!sel)return;
+
+      const row=id?(state.orders||[]).find(o=>String(o.id)===String(id)):null;
+      const x=extraFor(row), rates=ratesFor(row);
+
+      // One authoritative garment selector. Saree is not a garment type;
+      // it belongs to the Blouse order section.
+      const current=String(sel.value||"Blouse").trim().toLowerCase().replace(/\s+/g,"");
+      const values=["Blouse","Chudi","Blouse+Chudi"];
+      const normalized=current==="both"||current==="blousechudi"?"blouse+chudi":
+        current==="saree"?"blouse":current;
+      sel.innerHTML=values.map(v=>{
+        const key=v.toLowerCase();
+        return '<option value="'+v+'" '+(normalized===key?"selected":"")+'>'+
+          (v==="Blouse+Chudi"?"Blouse + Chudi / பிளவுஸ் + சுடிதார்":v)+'</option>';
+      }).join("");
+      if(!sel.value)sel.value="Blouse";
+
+      // Restore persisted extra garment values into the standard order fields.
+      setField(form,"chudi_qty",N(x.chudi));
+      setField(form,"chudi_lining",x.chudiLining||"no");
+      setField(form,"chudi_lining_qty",N(x.chudiLiningQty));
+      setField(form,"saree_qty",N(x.saree));
+      setField(form,"saree_handover",N((typeof garmentHandover==="function"?garmentHandover(row||{}):{}).saree));
+      const defaultRates=typeof getRates==="function"?getRates():{};
+      const sareeRate=N(rates.saree||defaultRates.saree||0);
+      setField(form,"saree_rate",sareeRate);
+
+      // The old raw Saree category is hidden so there can be only one Saree UI.
+      form.querySelectorAll(".nf-modal-saree").forEach(el=>el.classList.add("nf-field-hidden"));
+
+      // Build/restore the existing 3-slot Design section once.
+      let holder=form.querySelector(".nf-modal-design-3slot");
+      const dq=form.querySelector('[name="design_qty"]');
+      if(!holder && dq){
+        holder=document.createElement("div");
+        holder.className="field full nf-modal-design-3slot";
+        holder.innerHTML=slotMarkup(designItemsFromOrder(row||{}));
+        const wrap=dq.closest(".field");
+        (wrap?.parentNode||form).insertBefore(holder,wrap?.nextSibling||null);
+        const box=holder.querySelector(".nf-design-3slot");
+      }
+
+      // Saree is an inline subsection of Blouse, never a separate garment.
+      let sareeBox=form.querySelector(".nf-modal-blouse-saree-inline");
+      if(!sareeBox){
+        sareeBox=document.createElement("section");
+        sareeBox.className="nf-modal-blouse-saree-inline";
+        sareeBox.innerHTML=
+          '<div class="nf-modal-category-head"><span>🥻</span><div><strong>Saree / சேலை</strong><small>Blouse order-ன் ஒரு பகுதி · எண்ணிக்கை · வாங்கிச் சென்றது · விலை</small></div></div>'+
+          '<div class="nf-modal-blouse-saree-grid">'+
+          '<div class="nf-modal-blouse-saree-cell"><label>Saree / சேலை — எத்தனை</label><input id="nf-modal-saree-qty" class="input" type="number" min="0" step="1"></div>'+
+          '<div class="nf-modal-blouse-saree-cell"><label>வாங்கிச் சென்ற சேலை</label><input id="nf-modal-saree-handover" class="input" type="number" min="0" step="1"></div>'+
+          '<div class="nf-modal-blouse-saree-cell"><label>Saree — ஒன்றுக்கு விலை</label><input id="nf-modal-saree-rate" class="input" type="number" min="0" step="0.01"></div>'+
+          '<div class="nf-modal-blouse-saree-cell"><label>Saree மொத்தம்</label><div id="nf-modal-saree-total" class="autoTotal">₹0.00</div></div>'+
+          '</div>'+
+          '<div class="nf-modal-blouse-saree-total"><span>Blouse + Saree Total</span><b id="nf-modal-blouse-saree-grand">₹0.00</b></div>';
+        (holder?.parentNode||dq?.parentNode||form).insertBefore(sareeBox,(holder||dq?.closest(".field"))?.nextSibling||null);
+      }
+
+      const visQty=sareeBox.querySelector("#nf-modal-saree-qty");
+      const visHand=sareeBox.querySelector("#nf-modal-saree-handover");
+      const visRate=sareeBox.querySelector("#nf-modal-saree-rate");
+      if(visQty)visQty.value=nval(form,"saree_qty");
+      if(visHand)visHand.value=nval(form,"saree_handover");
+      if(visRate)visRate.value=nval(form,"saree_rate");
+
+      const sync=function(){
+        const v=String(sel.value||"Blouse").toLowerCase().replace(/\s+/g,"");
+        const combo=v==="blouse+chudi"||v==="both"||v==="blousechudi";
+        const blouse=combo||v==="blouse";
+        const chudi=combo||v==="chudi";
+
+        ["normal_qty","normal_handover","lining_qty","lining_handover","design_qty","design_handover"].forEach(n=>toggleField(form,n,blouse,false));
+        ["chudi_qty","chudi_handover","chudi_lining","chudi_lining_qty","chudi_rate"].forEach(n=>toggleField(form,n,chudi,false));
+        ["saree_qty","saree_handover","saree_rate"].forEach(n=>toggleField(form,n,false,false));
+        form.querySelectorAll(".nf-modal-saree").forEach(el=>el.classList.add("nf-field-hidden"));
+
+        if(visQty&&blouse)setField(form,"saree_qty",Math.floor(N(visQty.value)));
+        if(visHand&&blouse)setField(form,"saree_handover",Math.floor(N(visHand.value)));
+        if(visRate&&blouse)setField(form,"saree_rate",N(visRate.value));
+
+        sareeBox.classList.toggle("nf-field-hidden",!blouse);
+        holder?.classList.toggle("nf-field-hidden",!blouse);
+
+        const b=typeof blouseSplit==="function"?blouseSplit(row||{}):{
+          normal:nval(form,"normal_qty"),lining:nval(form,"lining_qty"),design:nval(form,"design_qty")
+        };
+        const n=blouse?nval(form,"normal_qty"):0;
+        const l=blouse?nval(form,"lining_qty"):0;
+        const d=blouse?nval(form,"design_qty"):0;
+        const cq=chudi?nval(form,"chudi_qty"):0;
+        const sq=blouse?nval(form,"saree_qty"):0;
+        const cr=chudi?N(form.querySelector('[name="chudi_rate"]')?.value||rates.chudi||0):0;
+        const sr=blouse?N(form.querySelector('[name="saree_rate"]')?.value||rates.saree||0):0;
+
+        let designTotal=d*N(rates.design||0);
+        const designBox=holder?.querySelector(".nf-design-3slot");
+        if(blouse&&designBox){
+          const rd=recalcBox(designBox);
+          designTotal=rd.total;
+          if(dq){dq.value=rd.qty;dq.readOnly=true;}
         }
-      },true);
-    },30);
+
+        const liningSource=form.querySelector('[name="lining_cloth_source"]')?.value||"";
+        const liningQty=nval(form,"lining_cloth_qty");
+        const liningInfo=typeof window.nfLiningCost==="function"?window.nfLiningCost(row||{}):{};
+        const liningTotal=liningSource==="shop"?liningQty*N(liningInfo.rate):0;
+        const total=(blouse?(n*N(rates.normal||0)+l*N(rates.lining||0)+designTotal+sq*sr):0)+(chudi?cq*cr:0)+liningTotal;
+        const qty=(blouse?(n+l+d+sq):0)+(chudi?cq:0);
+
+        const q=form.querySelector('[name="quantity"]'),u=form.querySelector('[name="unit_price"]'),t=form.querySelector('[name="total_amount"]');
+        if(q){q.value=qty;q.readOnly=true}
+        if(u){u.value=(qty?total/qty:0).toFixed(2);u.readOnly=true}
+        if(t){t.value=total.toFixed(2);t.readOnly=true}
+        const st=document.getElementById("nf-modal-saree-total"),sg=document.getElementById("nf-modal-blouse-saree-grand");
+        if(st)st.textContent=money(sq*sr);
+        if(sg)sg.textContent=money(total);
+        const live=document.getElementById("liveBalance"),adv=nval(form,"advance_amount");
+        if(live)live.textContent=money(Math.max(0,total-adv));
+      };
+
+      [visQty,visHand,visRate].forEach(el=>el?.addEventListener("input",sync));
+      sel.addEventListener("change",sync);
+      holder?.querySelectorAll(".nf-design-3slot input").forEach(el=>el.addEventListener("input",sync));
+      ["normal_qty","lining_qty","design_qty","normal_handover","lining_handover","design_handover","chudi_qty","chudi_handover","chudi_lining","chudi_lining_qty","chudi_rate","lining_cloth_source","lining_cloth_qty","advance_amount"].forEach(n=>{
+        form.querySelector('[name="'+n+'"]')?.addEventListener("input",sync);
+        form.querySelector('[name="'+n+'"]')?.addEventListener("change",sync);
+      });
+      sync();
+    },50);
+    return result;
   };
 }
-
 const oldSummary=window.nfCustomerWorkSummaryHTML;
 if(typeof oldSummary==="function"){
   window.nfCustomerWorkSummaryHTML=function(st){
@@ -3945,116 +3998,6 @@ function nfFormatPaymentDate(v){return v?dateText(v):"—";}
     return {qty:num(x.saree),rate:num(r.saree)};
   }
 
-  var baseOpen=window.openModal;
-  if(typeof baseOpen==="function" && !baseOpen.__nfBlouseSareeFinal){
-    function patchedOpenModal(type,id){
-      baseOpen.apply(this,arguments);
-      if(type!=="order")return;
-
-      setTimeout(function(){
-        var form=document.getElementById("formFields");
-        if(!form)return;
-        var get=fields();
-        var garment=get("garment_type");
-        var row=garmentRow(id);
-
-        if(garment && garment.tagName==="SELECT"){
-          var current=String(garment.value||"").toLowerCase();
-          var opts=["Blouse","Chudi","Saree"];
-          garment.innerHTML=opts.map(function(v){
-            return '<option value="'+v+'" '+(current===v.toLowerCase()?"selected":"")+'>'+v+'</option>';
-          }).join("");
-          if(!garment.value)garment.value="Blouse";
-        }
-
-        form.querySelectorAll(".nf-extra-garment-box").forEach(function(el){el.remove();});
-
-        var sq=get("saree_qty"),sr=get("saree_rate");
-        if(!sq||!sr)return;
-
-        var saved=sareeData(row);
-        if(row){
-          sq.value=saved.qty;
-          sr.value=saved.rate;
-        }else{
-          if(!sq.value)sq.value=0;
-          if(!sr.value)sr.value=(typeof getRates==="function"?num(getRates().saree):0);
-        }
-
-        var sqWrap=sq.closest(".field"),srWrap=sr.closest(".field");
-        if(!sqWrap||!srWrap)return;
-        sqWrap.classList.add("nf-field-hidden");
-        srWrap.classList.add("nf-field-hidden");
-        sq.disabled=false;sr.disabled=false;
-
-        var box=form.querySelector(".nf-modal-blouse-saree-box");
-        if(!box){
-          box=document.createElement("div");
-          box.className="nf-modal-blouse-saree-box";
-          var anchor=form.querySelector(".nf-modal-design-3slot") || get("design_qty")?.closest(".field") || get("normal_qty")?.closest(".field");
-          (anchor?.parentNode||form).insertBefore(box,anchor?.nextSibling||null);
-        }
-        box.innerHTML=
-          '<h4>🥻 Saree Details — Blouse order-உடன் ஒரே கணக்கு</h4>'+
-          '<div class="nf-modal-blouse-saree-grid">'+
-            '<div class="nf-modal-blouse-saree-cell"><label>Saree / சேலை — எத்தனை</label><input id="nf-modal-saree-qty" class="input" type="number" min="0" step="1" value="'+num(sq.value)+'"></div>'+
-            '<div class="nf-modal-blouse-saree-cell"><label>Saree — ஒன்றுக்கு விலை</label><input id="nf-modal-saree-rate" class="input" type="number" min="0" step="0.01" value="'+num(sr.value)+'"></div>'+
-            '<div class="nf-modal-blouse-saree-cell"><label>Saree மொத்தம்</label><div id="nf-modal-saree-total" class="autoTotal">₹0.00</div></div>'+
-          '</div>'+
-          '<div class="nf-modal-blouse-saree-total"><span>Blouse + Saree Total</span><b id="nf-modal-blouse-saree-grand">₹0.00</b></div>'+
-          '<div class="nf-modal-blouse-saree-note">Blouse Normal / Lining / Design count + Saree count அனைத்தும் இந்த ஒரே Order-ன் calculation-ல் சேரும்.</div>';
-
-        var visQty=document.getElementById("nf-modal-saree-qty"),visRate=document.getElementById("nf-modal-saree-rate");
-        var recalc=function(){
-          var g=String(garment?.value||"Blouse").toLowerCase();
-          var isBlouse=g==="blouse",isChudi=g==="chudi",isSaree=g==="saree";
-          box.classList.toggle("nf-field-hidden",!(isBlouse||isSaree));
-          if(isBlouse){
-            sq.disabled=false;sr.disabled=false;
-            sq.value=Math.floor(num(visQty?.value));
-            sr.value=num(visRate?.value);
-          }else{
-
-            sq.disabled=false;sr.disabled=false;
-          }
-
-          var n=isBlouse?num(get("normal_qty")?.value):0;
-          var l=isBlouse?num(get("lining_qty")?.value):0;
-          var d=isBlouse?num(get("design_qty")?.value):0;
-
-          var blouseTotal=isBlouse?num(get("total_amount")?.value):0;
-          var sareeTotal=(isBlouse||isSaree)?num(sq.value)*num(sr.value):0;
-          var grand=blouseTotal+sareeTotal;
-          if(document.getElementById("nf-modal-saree-total"))document.getElementById("nf-modal-saree-total").textContent=money(sareeTotal);
-          if(document.getElementById("nf-modal-blouse-saree-grand"))document.getElementById("nf-modal-blouse-saree-grand").textContent=money(grand);
-
-          var q=get("quantity"),u=get("unit_price"),t=get("total_amount"),rt=get("rate_type");
-          if(isBlouse){
-            var qty=n+l+d+num(sq.value);
-            if(q){q.value=qty;q.readOnly=true;}
-            if(u){u.value=(qty?grand/qty:0).toFixed(2);u.readOnly=true;}
-            if(t){t.value=grand.toFixed(2);t.readOnly=true;}
-            if(rt){
-              var active=[n>0?"normal":null,l>0?"lining":null,d>0?"design":null].filter(Boolean);
-              rt.value=active[0]||"normal";
-            }
-          }else if(isSaree){
-            if(q){q.value=num(sq.value);q.readOnly=true;}
-            if(u){u.value=num(sr.value).toFixed(2);u.readOnly=true;}
-            if(t){t.value=sareeTotal.toFixed(2);t.readOnly=true;}
-            if(rt)rt.value="normal";
-          }
-        };
-
-        [visQty,visRate].forEach(function(el){el?.addEventListener("input",recalc);el?.addEventListener("change",recalc);});
-        ["normal_qty","lining_qty","design_qty","garment_type","advance_amount"].forEach(function(n){get(n)?.addEventListener("input",recalc);get(n)?.addEventListener("change",recalc);});
-        recalc();
-      },60);
-    }
-    patchedOpenModal.__nfBlouseSareeFinal=true;
-    window.openModal=patchedOpenModal;
-  }
-
   var oldPopulate=window.populateQuickOrderEditor;
   if(typeof oldPopulate==="function" && !oldPopulate.__nfBlouseSareeFinal){
     function patchedPopulate(id,o){
@@ -4062,7 +4005,7 @@ function nfFormatPaymentDate(v){return v?dateText(v):"—";}
       setTimeout(function(){
         var g=document.getElementById("qo-garment-"+id);
         if(!g)return;
-        if(String(g.value||"").toLowerCase()==="saree")g.value="Saree";
+        if(String(g.value||"").toLowerCase()==="saree")g.value="Blouse";
         updateQuickGarment(id);
         updateQuickOrderCalc(id);
       },0);
@@ -4410,40 +4353,26 @@ function nfFormatPaymentDate(v){return v?dateText(v):"—";}
     if(!sel.querySelector('option[value="Blouse+Chudi"]')){
       const op=document.createElement("option");op.value="Blouse+Chudi";op.textContent="Blouse + Chudi / பிளவுஸ் + சுடிதார்";sel.appendChild(op);
     }
-
   }
-
-  const baseUpdateQuickGarment=window.updateQuickGarment;
-  window.updateQuickGarment=function(id){
-    ensureQuickSelector(id);
-    const sel=document.getElementById("qo-garment-"+id); if(!sel)return;
-    const g=String(sel.value||"Blouse");
-    const combined=isCombinedValue(g), blouse=combined||g==="Blouse", chudi=combined||g==="Chudi", saree=blouse;
-    document.querySelectorAll("#quick-order-"+id+" .nf-quick-blouse").forEach(x=>x.classList.toggle("nf-field-hidden",!blouse));
-    document.querySelectorAll("#quick-order-"+id+" .nf-quick-chudi").forEach(x=>x.classList.toggle("nf-field-hidden",!chudi));
-    document.querySelectorAll("#quick-order-"+id+" .nf-quick-saree").forEach(x=>x.classList.toggle("nf-field-hidden",!saree));
-    updateQuickOrderCalcV314(id);
-  };
 
   function updateQuickOrderCalcV314(id){
     const sel=document.getElementById("qo-garment-"+id);if(!sel)return;
-    const g=String(sel.value||"Blouse"),combined=isCombinedValue(g),blouse=combined||g==="Blouse",chudi=combined||g==="Chudi",saree=blouse;
+    const g=String(sel.value||"Blouse"),combined=isCombinedValue(g),blouse=combined||g==="Blouse",chudi=combined||g==="Chudi";
     const br=typeof window.getQuickBlouseRates==="function"?window.getQuickBlouseRates(id):(typeof getRates==="function"?getRates():{});
     const n=N(document.getElementById("qo-normal-"+id)?.value),l=N(document.getElementById("qo-lining-"+id)?.value),d=N(document.getElementById("qo-design-"+id)?.value);
     const dr=typeof window.getQuickDesignRates==="function"?window.getQuickDesignRates(id,d,br.design||0):Array.from({length:d},()=>N(br.design));
     const designTotal=dr.reduce((s,v)=>s+N(v),0);
     const cq=N(document.getElementById("qo-chudi-"+id)?.value),cr=N(document.getElementById("qo-chudi-rate-"+id)?.value);
     const sq=N(document.getElementById("qo-saree-"+id)?.value),sr=N(document.getElementById("qo-saree-rate-"+id)?.value);
-    const blouseTotal=blouse?(n*N(br.normal)+l*N(br.lining)+designTotal+(combined?sq*sr:0)):0;
+    const blouseTotal=blouse?(n*N(br.normal)+l*N(br.lining)+designTotal+sq*sr):0;
     const chudiTotal=chudi?cq*cr:0;
-    const sareeTotal=saree?sq*sr:0;
     const ls=document.getElementById("qo-lining-source-"+id)?.value||"",lq=N(document.getElementById("qo-lining-qty-"+id)?.value),lr=N(document.getElementById("qo-lining-cost-rate-"+id)?.value);
     const liningTotal=ls==="shop"?lq*lr:0;
-    const total=blouseTotal+chudiTotal+sareeTotal+liningTotal;
-    const qty=(blouse?(n+l+d+(combined?sq:0)):0)+(chudi?cq:0)+(saree&&!blouse?sq:0);
+    const total=blouseTotal+chudiTotal+liningTotal;
+    const qty=(blouse?(n+l+d+sq):0)+(chudi?cq:0);
     const q=document.getElementById("qo-qty-"+id);if(q)q.value=qty;
     const set=(x,v)=>{const e=document.getElementById(x+id);if(e)e.textContent=money(v)};
-    set("qo-lining-total-",liningTotal);set("qo-lining-total-display-",liningTotal);set("qo-garment-total-",blouseTotal+chudiTotal+sareeTotal);set("qo-saree-total-",sareeTotal);set("qo-total-",total);
+    set("qo-lining-total-",liningTotal);set("qo-lining-total-display-",liningTotal);set("qo-garment-total-",blouseTotal+chudiTotal);set("qo-saree-total-",sq*sr);set("qo-total-",total);
     const old=document.getElementById("nf-combined-calc-"+id);
     if(old)old.remove();
     const anchor=document.getElementById("qo-total-"+id)?.closest(".field")||document.getElementById("qo-total-"+id)?.parentElement;
@@ -4456,7 +4385,7 @@ function nfFormatPaymentDate(v){return v?dateText(v):"—";}
       if(cq>0)rows.push(`<div class="nf-combined-calc-row"><span class="label">👚 Chudi / சுடிதார்</span><span class="math">${cq} × ${money(cr)} = <b>${money(chudiTotal)}</b></span></div>`);
       if(sq>0)rows.push(`<div class="nf-combined-calc-row"><span class="label">🥻 Saree</span><span class="math">${sq} × ${money(sr)} = <b>${money(sq*sr)}</b></span></div>`);
       if(liningTotal>0)rows.push(`<div class="nf-combined-calc-row"><span class="label">🧵 Lining cloth</span><span class="math"><b>${money(liningTotal)}</b></span></div>`);
-      box.innerHTML=rows.join("")+`<div class="nf-combined-grand"><span>Blouse + Chudi + Saree Total</span><b>${money(total)}</b></div>`;
+      box.innerHTML=rows.join("")+`<div class="nf-combined-grand"><span>Blouse + Chudi Total</span><b>${money(total)}</b></div>`;
       anchor.appendChild(box);
     }
   }
@@ -4468,11 +4397,8 @@ function nfFormatPaymentDate(v){return v?dateText(v):"—";}
       basePopulate.apply(this,arguments);
       const sel=document.getElementById("qo-garment-"+id);if(!sel)return;
       ensureQuickSelector(id);
-      const b=blouseOf(o),x=extraOf(o),savedGarment=String(o.garment_type||"").trim();
-      if(N(x.chudi)>0 && (N(b.normal)+N(b.lining)+N(b.design)>0 || savedGarment.toLowerCase()==="blouse"))sel.value="Blouse+Chudi";
-      else if(savedGarment.toLowerCase()==="saree")sel.value="Blouse";
-      else if(savedGarment.toLowerCase()==="chudi")sel.value="Chudi";
-      else sel.value="Blouse";
+      const b=blouseOf(o),x=extraOf(o);
+      if(N(x.chudi)>0 && (N(b.normal)+N(b.lining)+N(b.design)>0 || String(o.garment_type||"").toLowerCase()==="blouse"))sel.value="Blouse+Chudi";
       updateQuickGarment(id);
     };
   }
@@ -4482,7 +4408,7 @@ function nfFormatPaymentDate(v){return v?dateText(v):"—";}
     const box=document.getElementById("quick-order-"+id),editOrderId=String(box?.dataset.editOrderId||"").trim(),existing=editOrderId?(state.orders||[]).find(x=>String(x.id)===editOrderId):null;
     if(editOrderId&&!existing){toast("இந்த Order data கிடைக்கவில்லை. மீண்டும் Edit Order திறக்கவும்.",true);return;}
     const isOrdersEditor=String(id||"").indexOf("orders_")===0;
-    const garment=document.getElementById("qo-garment-"+id)?.value||"Blouse",combined=isCombinedValue(garment),isBlouse=combined||garment==="Blouse",isChudi=combined||garment==="Chudi",isSaree=combined||garment==="Saree";
+    const garment=document.getElementById("qo-garment-"+id)?.value||"Blouse",combined=isCombinedValue(garment),isBlouse=combined||garment==="Blouse",isChudi=combined||garment==="Chudi";
     const cloth=document.getElementById("qo-cloth-"+id)?.value||null,delivery=document.getElementById("qo-delivery-"+id)?.value||null;
     const r=typeof getQuickBlouseRates==="function"?getQuickBlouseRates(id):(typeof getRates==="function"?getRates():{});
     const s={normal:N(document.getElementById("qo-normal-"+id)?.value),lining:N(document.getElementById("qo-lining-"+id)?.value),design:N(document.getElementById("qo-design-"+id)?.value)};
@@ -4492,20 +4418,19 @@ function nfFormatPaymentDate(v){return v?dateText(v):"—";}
     const cq=isChudi?N(document.getElementById("qo-chudi-"+id)?.value):0,cl=document.getElementById("qo-chudi-lining-"+id)?.value==="yes"?"yes":"no",clq=isChudi?N(document.getElementById("qo-chudi-lining-qty-"+id)?.value):0,cr=isChudi?N(document.getElementById("qo-chudi-rate-"+id)?.value||r.chudi):0;
 
     const ch=isChudi?Math.min(cq,N(document.getElementById("qo-chudi-handover-"+id)?.value)):0;
-    const sq=(isBlouse||isSaree)?N(document.getElementById("qo-saree-"+id)?.value):0,sr=(isBlouse||isSaree)?N(document.getElementById("qo-saree-rate-"+id)?.value||r.saree):0;
-    const sh=(isBlouse||isSaree)?Math.min(sq,N(document.getElementById("qo-saree-handover-"+id)?.value)):0;
-    const blouseTotal=isBlouse?(s.normal*N(r.normal)+s.lining*N(r.lining)+designTotal+(combined?sq*sr:0)):0;
-    const sareeTotal=isSaree?sq*sr:0;
+    const sq=isBlouse?N(document.getElementById("qo-saree-"+id)?.value):0,sr=isBlouse?N(document.getElementById("qo-saree-rate-"+id)?.value||r.saree):0;
+    const sh=isBlouse?Math.min(sq,N(document.getElementById("qo-saree-handover-"+id)?.value)):0;
+    const blouseTotal=isBlouse?(s.normal*N(r.normal)+s.lining*N(r.lining)+designTotal+sq*sr):0;
     const chudiTotal=isChudi?cq*cr:0;
     const ls=document.getElementById("qo-lining-source-"+id)?.value||"",lq=N(document.getElementById("qo-lining-qty-"+id)?.value),lr=N(document.getElementById("qo-lining-cost-rate-"+id)?.value),liningTotal=ls==="shop"?lq*lr:0;
-    const total=blouseTotal+chudiTotal+sareeTotal+liningTotal,qty=(isBlouse?(s.normal+s.lining+s.design+(combined?sq:0)):0)+(isChudi?cq:0)+(isSaree&&!isBlouse?sq:0);
+    const total=blouseTotal+chudiTotal+liningTotal,qty=(isBlouse?(s.normal+s.lining+s.design+sq):0)+(isChudi?cq:0);
     const advance=N(document.getElementById("qo-advance-"+id)?.value);
     const advanceDate=advance>0
       ? String(document.getElementById("qo-advance-date-"+id)?.value||"").trim()
       : "";
     const status=document.getElementById("qo-status-"+id)?.value||"Pending";
     if(!delivery){toast("Delivery Date தேர்வு செய்யுங்கள்.",true);return}
-    if(qty<=0){toast(combined?"குறைந்தது 1 blouse அல்லது 1 Chudi எண்ணிக்கை கொடுக்க வேண்டும்.":isChudi?"குறைந்தது 1 Chudi கொடுக்க வேண்டும்.":isSaree?"குறைந்தது 1 Saree எண்ணிக்கை கொடுக்க வேண்டும்.":"குறைந்தது 1 blouse கொடுக்க வேண்டும்.",true);return}
+    if(qty<=0){toast(combined?"குறைந்தது 1 blouse அல்லது 1 Chudi எண்ணிக்கை கொடுக்க வேண்டும்.":isChudi?"குறைந்தது 1 Chudi கொடுக்க வேண்டும்.":"குறைந்தது 1 blouse கொடுக்க வேண்டும்.",true);return}
     if(ls==="shop"&&lq>0&&lr<=0){toast("நாம் வாங்கிய Lining-க்கு விலை கொடுக்க வேண்டும்.",true);return}
     if(ls==="shop"&&lq<=0&&lr>0){toast("நாம் வாங்கிய Lining எத்தனை என்று கொடுக்க வேண்டும்.",true);return}
     const userNotes=typeof cleanOrderNotes==="function"?cleanOrderNotes(document.getElementById("qo-notes-"+id)?.value||""):String(document.getElementById("qo-notes-"+id)?.value||"").trim();
@@ -4523,7 +4448,7 @@ function nfFormatPaymentDate(v){return v?dateText(v):"—";}
       .replace(/^\s*\|\s*|\s*\|\s*$/g,"")
       .trim();
     if(advanceDate) notes+=(notes?" | ":"")+`ADVANCE_DATE:${advanceDate}`;
-    const storedGarment=isSaree&&!isBlouse?"Saree":(isBlouse?"Blouse":"Chudi");
+    const storedGarment=isBlouse?"Blouse":"Chudi";
     const payload={customer_id:customerId,order_no:existing?.order_no||makeOrderNo(),garment_type:storedGarment,order_date:existing?.order_date||localDate(),cloth_received_date:cloth,delivery_date:delivery,quantity:qty,unit_price:qty?total/qty:0,total_amount:total,advance_amount:advance,balance_amount:Math.max(0,total-advance),status,rate_type:isBlouse?(s.normal>0?"normal":s.lining>0?"lining":s.design>0?"design":"normal"):"normal",lining_cloth_source:ls||null,lining_cloth_qty:lq,notes};
     try{
       const result=existing
@@ -4651,32 +4576,6 @@ function nfFormatPaymentDate(v){return v?dateText(v):"—";}
 
   const baseDashboardText=window.dashboardOrderGarmentText;
   window.dashboardOrderGarmentText=function(o){return combinedLabel(o)==="Blouse + Chudi"?`👗 ${N(blouseOf(o).normal)+N(blouseOf(o).lining)+N(blouseOf(o).design)} blouse + 👚 ${N(extraOf(o).chudi)} Chudi`:typeof baseDashboardText==="function"?baseDashboardText(o):combinedLabel(o)};
-
-  const baseOpenModalV314=window.openModal;
-  if(typeof baseOpenModalV314==="function" && !window.__nfOpenModalV314){
-    window.__nfOpenModalV314=true;
-    window.openModal=function(type,id){
-    baseOpenModalV314.apply(this,arguments);
-    if(type!=="order")return;
-    setTimeout(function(){
-      const form=$("formFields"),sel=form?.querySelector('[name="garment_type"]');if(!form||!sel)return;
-      if(!sel.querySelector('option[value="Blouse+Chudi"]')){const op=document.createElement("option");op.value="Blouse+Chudi";op.textContent="Blouse + Chudi / பிளவுஸ் + சுடிதார்";sel.appendChild(op);}
-      const row=id?(state.orders||[]).find(o=>String(o.id)===String(id)):null,x=extraOf(row||{}),b=blouseOf(row||{});
-      if(N(x.chudi)>0&&(N(b.normal)+N(b.lining)+N(b.design)>0||String(row?.garment_type||"").toLowerCase()==="blouse"))sel.value="Blouse+Chudi";
-      const sync=function(){
-        const v=String(sel.value||"Blouse"),combo=isCombinedValue(v),bl=combo||v==="Blouse",ch=combo||v==="Chudi";
-        ["normal_qty","lining_qty","design_qty"].forEach(n=>{const e=form.querySelector('[name="'+n+'"]'),w=e?.closest(".field");if(w)w.classList.toggle("nf-field-hidden",!bl);if(e)e.disabled=!bl});
-        ["chudi_qty","chudi_handover","chudi_lining","chudi_lining_qty","chudi_rate"].forEach(n=>{const e=form.querySelector('[name="'+n+'"]'),w=e?.closest(".field");if(w)w.classList.toggle("nf-field-hidden",!ch);if(e)e.disabled=!ch});
-        ["saree_qty","saree_handover","saree_rate"].forEach(n=>{const e=form.querySelector('[name="'+n+'"]'),w=e?.closest(".field");if(w)w.classList.toggle("nf-field-hidden",!bl);if(e)e.disabled=!bl});
-        const n=N(form.querySelector('[name="normal_qty"]')?.value),l=N(form.querySelector('[name="lining_qty"]')?.value),d=N(form.querySelector('[name="design_qty"]')?.value),cq=N(form.querySelector('[name="chudi_qty"]')?.value),sq=N(form.querySelector('[name="saree_qty"]')?.value),r=getRates(),cr=N(form.querySelector('[name="chudi_rate"]')?.value||r.chudi),sr=N(form.querySelector('[name="saree_rate"]')?.value||r.saree),ls=form.querySelector('[name="lining_cloth_source"]')?.value||"",lq=N(form.querySelector('[name="lining_cloth_qty"]')?.value),liningInfo=typeof window.nfLiningCost==="function"?window.nfLiningCost(row||{}):{};
-        const liningCost=ls==="shop"?lq*N(liningInfo.rate):0;
-        const qty=(bl?(n+l+d+sq):0)+(ch?cq:0),total=(bl?(n*N(r.normal)+l*N(r.lining)+d*N(r.design)+sq*sr):0)+(ch?cq*cr:0)+liningCost;
-        const q=form.querySelector('[name="quantity"]'),u=form.querySelector('[name="unit_price"]'),tt=form.querySelector('[name="total_amount"]');if(q){q.value=qty;q.readOnly=true}if(u){u.value=(qty?total/qty:0).toFixed(2);u.readOnly=true}if(tt){tt.value=total.toFixed(2);tt.readOnly=true}
-      };
-      if(!sel.dataset.nfV314Bound){sel.addEventListener("change",sync);sel.dataset.nfV314Bound="1";} sync();
-    },30);
-    };
-  }
 
   function refresh(){(state.customers||[]).forEach(c=>{const sel=$("qo-garment-"+c.id);if(sel)ensureQuickSelector(c.id)});}
   const oldRenderAll=window.renderAll;
@@ -5036,7 +4935,7 @@ function nfFormatPaymentDate(v){return v?dateText(v):"—";}
     var combined=(g==="blouse+chudi"||g==="both"||g==="blousechudi");
     var blouse=(g==="blouse"||combined||g==="blouse+saree"||g==="blousesaree");
     var chudi=(g==="chudi"||combined||g==="chudi+saree"||g==="chudisaree");
-    var saree=(g==="saree"||g==="blouse+saree"||g==="blousesaree"||g==="chudi+saree"||g==="chudisaree");
+    var saree=blouse;
     return {blouse:blouse,chudi:chudi,saree:saree,combined:combined};
   }
   function setGroup(root,selector,show){
