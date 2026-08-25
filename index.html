@@ -6615,53 +6615,51 @@ function nfFormatPaymentDate(v){return v?dateText(v):"—";}
 }
 </style>
 
-<script id="nf-v2039-chudi-order-script">
+<script id="nf-v2040-chudi-order-authoritative">
 (function(){
   "use strict";
-
-  function reorderChudiBeforeLining(id){
+  function reorder(id){
     var root=document.getElementById("quick-order-"+id);
-    if(!root) return;
+    if(!root)return;
     var chudi=root.querySelector(".nf-edit-chudi.nf-quick-chudi, .nf-edit-chudi");
     var lining=root.querySelector(".nf-edit-lining-cloth");
-    if(!chudi || !lining || chudi===lining) return;
-    if(lining.parentNode===root && chudi.parentNode===root){
-      if(chudi.compareDocumentPosition(lining) & Node.DOCUMENT_POSITION_FOLLOWING){
+    if(chudi && lining && chudi.parentNode===root && lining.parentNode===root){
+      if(chudi.compareDocumentPosition(lining) & Node.DOCUMENT_POSITION_PRECEDING){
         root.insertBefore(chudi,lining);
       }
     }
   }
-
   function apply(id){
-    try{ reorderChudiBeforeLining(id); }catch(e){}
+    reorder(id);
+    if(typeof window.nfV2038ApplyGarmentVisibility==="function")window.nfV2038ApplyGarmentVisibility(id);
+    else if(typeof window.updateQuickGarment==="function")window.updateQuickGarment(id);
+    reorder(id);
   }
-
   function scan(){
-    document.querySelectorAll('[id^="quick-order-"]').forEach(function(root){
-      apply(root.id.slice("quick-order-".length));
-    });
+    document.querySelectorAll('[id^="quick-order-"]').forEach(function(root){apply(root.id.slice("quick-order-".length));});
   }
-
   var oldUpdate=window.updateQuickGarment;
-  if(typeof oldUpdate==="function" && !oldUpdate.__nfV2039){
-    var wrapped=function(id){
+  if(typeof oldUpdate==="function" && !oldUpdate.__nfV2040){
+    function wrapped(id){
       var r=oldUpdate.apply(this,arguments);
-      setTimeout(function(){apply(id)},0);
+      setTimeout(function(){apply(id);},0);
+      setTimeout(function(){apply(id);},80);
       return r;
-    };
-    wrapped.__nfV2039=true;
+    }
+    wrapped.__nfV2040=true;
     window.updateQuickGarment=wrapped;
   }
-
-  if(document.readyState==="loading"){
-    document.addEventListener("DOMContentLoaded",scan,{once:true});
-  }else{
-    scan();
+  var oldOpen=window.openOrdersEditOrder;
+  if(typeof oldOpen==="function" && !oldOpen.__nfV2040){
+    function openWrapped(){
+      var args=arguments,r=oldOpen.apply(this,args),id=args[0];
+      [0,100,350,700].forEach(function(ms){setTimeout(function(){apply("orders_edit_"+String(id||"").replace(/[^a-zA-Z0-9_-]/g,"_"));},ms);});
+      return r;
+    }
+    openWrapped.__nfV2040=true;
+    window.openOrdersEditOrder=openWrapped;
   }
-
-  new MutationObserver(function(){
-    clearTimeout(window.__nfV2039Timer);
-    window.__nfV2039Timer=setTimeout(scan,40);
-  }).observe(document.body,{childList:true,subtree:true});
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",scan,{once:true});else scan();
+  new MutationObserver(function(){clearTimeout(window.__nfV2040Timer);window.__nfV2040Timer=setTimeout(scan,60);}).observe(document.body,{childList:true,subtree:true});
 })();
 </script>
