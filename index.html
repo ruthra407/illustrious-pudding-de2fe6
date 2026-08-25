@@ -5751,16 +5751,45 @@ function nfWacSvg(data){
     return out+'</text>';
   }
   function colorChars(text,x,y,size,weight,anchor,colors){
-    var chars=Array.from(String(text||""));
+    /* Keep each grapheme cluster together. Tamil letters are often stored as
+       multiple Unicode code points (base + vowel/sign); coloring each code
+       point separately can visually stack/overlap the glyphs. */
+    var raw=String(text||"");
+    var chars=typeof Intl!=="undefined"&&Intl.Segmenter
+      ? Array.from(new Intl.Segmenter("ta",{granularity:"grapheme"}).segment(raw),function(x){return x.segment;})
+      : Array.from(raw);
     if(!chars.length)return "";
     var out='<text x="'+x+'" y="'+y+'" text-anchor="'+(anchor||"start")+'" font-size="'+size+'" font-weight="'+weight+'">';
     chars.forEach(function(ch,i){
-      if(ch===" ")out+='<tspan dx="'+Math.max(5,size*.22)+'"> </tspan>';
+      if(ch===" ")out+='<tspan dx="'+Math.max(6,size*.22)+'"> </tspan>';
       else out+='<tspan fill="'+colors[i%colors.length]+'">'+escSvg(ch)+'</tspan>';
     });
     return out+'</text>';
   }
   function colorLine(text,x,y,size,weight,colors,dx){return colorWords(text,x,y,size,weight,"start",colors,dx);}
+  function colorWrapped(text,x,y,maxW,size,weight,colors,lineGap){
+    var words=String(text||"").trim().split(/\s+/).filter(Boolean);
+    if(!words.length)return "";
+    var approx=Math.max(1,Math.floor(maxW/(size*.56)));
+    var lines=[],line="";
+    words.forEach(function(w){
+      var test=line?line+" "+w:w;
+      if(line && test.length>approx){lines.push(line);line=w;}else line=test;
+    });
+    if(line)lines.push(line);
+    return lines.map(function(t,i){return colorLine(t,x,y+i*(lineGap||size*1.18),size,weight,colors,7);}).join("");
+  }
+  function colorWrappedChars(text,x,y,maxW,size,weight,colors,lineGap){
+    var chars=Array.from(String(text||""));
+    if(!chars.length)return "";
+    var approx=Math.max(1,Math.floor(maxW/(size*.58))),lines=[],line="";
+    chars.forEach(function(ch){
+      var test=line+ch;
+      if(line && test.length>approx){lines.push(line);line=ch;}else line=test;
+    });
+    if(line)lines.push(line);
+    return lines.map(function(t,i){return colorChars(t,x,y+i*(lineGap||size*1.2),size,weight,"start",colors);}).join("");
+  }
 
   /* Layout is calculated from actual section heights. The previous version
      placed Grand Total outside calcH, which made it collide with payment. */
@@ -5768,7 +5797,7 @@ function nfWacSvg(data){
   var calcHeaderH=55, calcColsH=42, calcRowsH=rows.length*rowH, totalH=74, calcPad=8;
   var calcH=calcHeaderH+calcColsH+calcRowsH+totalH+calcPad;
   var photosH=photos.length?286:0;
-  var customerY=205, customerH=300;
+  var customerY=205, customerH=320;
   var datesY=customerY+customerH+16, datesH=116;
   var photosY=datesY+datesH+16;
   var calcY=photosY+photosH+16;
@@ -5788,8 +5817,8 @@ function nfWacSvg(data){
 
   var mainPhoto=photos[0];
   var mainPhotoSvg=mainPhoto
-    ? '<rect x="535" y="225" width="475" height="245" rx="22" fill="#f0ebf6" stroke="#7b2cbf" stroke-width="5"/><image href="'+escHref(mainPhoto.src)+'" x="535" y="225" width="475" height="245" preserveAspectRatio="xMidYMid slice" clip-path="url(#mainPhotoClip)"/>'
-    : '<rect x="535" y="225" width="475" height="245" rx="22" fill="#f7f0ff" stroke="#7b2cbf" stroke-width="5"/><text x="772" y="355" text-anchor="middle" font-size="27" font-weight="900" fill="#7b2cbf">Customer Given Cloth Photo</text>';
+    ? '<rect x="535" y="225" width="475" height="265" rx="22" fill="#f0ebf6" stroke="#7b2cbf" stroke-width="5"/><image href="'+escHref(mainPhoto.src)+'" x="535" y="225" width="475" height="265" preserveAspectRatio="xMidYMid slice" clip-path="url(#mainPhotoClip)"/>'
+    : '<rect x="535" y="225" width="475" height="265" rx="22" fill="#f7f0ff" stroke="#7b2cbf" stroke-width="5"/><text x="772" y="355" text-anchor="middle" font-size="27" font-weight="900" fill="#7b2cbf">Customer Given Cloth Photo</text>';
 
   var body=rows.map(function(x,i){
     var yy=calcY+calcHeaderH+calcColsH+37+i*rowH;
@@ -5805,7 +5834,7 @@ function nfWacSvg(data){
     '<defs><linearGradient id="wacBrand" x1="0" x2="1"><stop stop-color="#35137a"/><stop offset=".35" stop-color="#7025b8"/><stop offset=".68" stop-color="#b52aa1"/><stop offset="1" stop-color="#e11d63"/></linearGradient>'+
     '<linearGradient id="wacTotal" x1="0" x2="1"><stop stop-color="#5b2bd8"/><stop offset=".5" stop-color="#a52cc7"/><stop offset="1" stop-color="#e52b79"/></linearGradient>'+
     '<linearGradient id="wacFooter" x1="0" x2="1"><stop stop-color="#24104f"/><stop offset=".5" stop-color="#55208f"/><stop offset="1" stop-color="#8b1d67"/></linearGradient>'+
-    '<clipPath id="mainPhotoClip"><rect x="535" y="225" width="475" height="245" rx="22"/></clipPath>'+photoDefs+'</defs>'+ 
+    '<clipPath id="mainPhotoClip"><rect x="535" y="225" width="475" height="265" rx="22"/></clipPath>'+photoDefs+'</defs>'+ 
     '<rect width="'+W+'" height="'+H+'" fill="#fffdfd"/>'+ 
     '<rect x="0" y="0" width="1080" height="180" fill="url(#wacBrand)"/>'+ 
     '<text x="540" y="68" text-anchor="middle" font-size="43" font-weight="950" fill="#ffffff">NEW FASHION TAILORING</text>'+ 
@@ -5814,12 +5843,12 @@ function nfWacSvg(data){
     '<rect x="55" y="'+customerY+'" width="970" height="'+customerH+'" rx="26" fill="#fff" stroke="#d9c6f4" stroke-width="4"/>'+ 
     '<rect x="75" y="225" width="430" height="245" rx="22" fill="#fbf7ff" stroke="#cdb9ee" stroke-width="4"/>'+ 
     '<circle cx="108" cy="258" r="17" fill="#5b2bd8"/><text x="108" y="266" text-anchor="middle" font-size="18" fill="#fff">●</text>'+ 
-    colorLine("Customer Name",140,260,19,900,["#5b2bd8","#0089c9","#00a878"],9)+
-    colorChars(c.name||"Customer",95,304,34,950,"start",palette)+
-    colorLine("📍 ஊர்",95,343,19,900,["#e85d04","#c2185b","#5b2bd8"],8)+
-    colorChars(village,95,382,26,950,"start",["#0089c9","#00a878","#e85d04","#7b2cbf"])+
-    (c.phone?colorLine("📞 "+c.phone,95,418,18,900,["#c2185b","#0089c9","#00a878"],7):"")+ 
-    (c.address?colorLine("🏠 "+String(c.address).slice(0,36),95,448,16,800,["#7b2cbf","#e85d04","#0089c9"],7):"")+ 
+    colorLine("Customer Name",95,260,20,900,["#5b2bd8","#0089c9","#00a878"],8)+
+    colorWrappedChars(c.name||"Customer",95,304,385,32,950,palette,38)+
+    colorLine("📍 ஊர்",95,348,20,900,["#e85d04","#c2185b","#5b2bd8"],7)+
+    colorWrappedChars(village,95,385,385,27,950,["#0089c9","#00a878","#e85d04","#7b2cbf"],34)+
+    (c.phone?colorWrapped("📞 "+c.phone,95,430,385,22,900,["#c2185b","#0089c9","#00a878"],27):"")+ 
+    (c.address?colorWrapped("🏠 "+String(c.address),95,465,385,18,850,["#7b2cbf","#e85d04","#0089c9"],23):"")+ 
     mainPhotoSvg+
     '<rect x="55" y="'+datesY+'" width="970" height="'+datesH+'" rx="22" fill="#fff" stroke="#ddd2e8" stroke-width="3"/>'+ 
     '<rect x="70" y="'+(datesY+14)+'" width="455" height="88" rx="18" fill="#eaf8ff" stroke="#1e9bd1" stroke-width="4"/>'+ 
