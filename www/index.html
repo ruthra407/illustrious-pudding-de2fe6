@@ -4768,7 +4768,7 @@ function nfFormatPaymentDate(v){return v?dateText(v):"—";}
       },80);
       return true;
     }catch(e){
-      console.error("V203.6 dedicated Edit Order routing:",e);
+      console.error("V203.7 dedicated Edit Order routing:",e);
       toast("Dedicated Edit Order screen திறக்க முடியவில்லை.",true);
       return false;
     }
@@ -4789,7 +4789,7 @@ function nfFormatPaymentDate(v){return v?dateText(v):"—";}
 
 
 <style id="v2036-final-customer-card-actions">
-/* V203.6: one authoritative customer-card action layout */
+/* V203.7: one authoritative customer-card action layout */
 .customerCard .nf-customer-head{align-items:flex-start!important;gap:10px!important}
 .customerCard .nf-customer-head .customerIdentity{min-width:0!important;flex:1 1 auto!important}
 .customerCard .nf-customer-name-row{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:10px!important;width:100%!important;margin:0!important}
@@ -6429,5 +6429,64 @@ function nfFormatPaymentDate(v){return v?dateText(v):"—";}
     },120);
   });
   if(document.body) observer.observe(document.body,{childList:true,subtree:true});
+})();
+</script>
+
+
+<style id="nf-v2037-garment-visibility-fix">
+/* V203.7: Chudidhar category must stay hidden for a Blouse-only order.
+   This overrides older duplicate patches that forced .nf-edit-chudi to display:block!important. */
+#app [id^="quick-order-"] .nf-edit-chudi.nf-field-hidden,
+#app [id^="quick-order-"] .nf-quick-chudi.nf-field-hidden {
+  display: none !important;
+}
+</style>
+<script id="nf-v2037-garment-visibility-fix-script">
+(function(){
+  "use strict";
+  function applyGarmentVisibility(id){
+    var root=document.getElementById("quick-order-"+id);
+    var sel=document.getElementById("qo-garment-"+id);
+    if(!root || !sel) return;
+    var g=String(sel.value||"Blouse").trim().toLowerCase();
+    var combined=(g==="blouse+chudi" || g==="both" || g==="blousechudi");
+    var showChudi=(g==="chudi" || combined);
+    root.querySelectorAll(".nf-edit-chudi, .nf-quick-chudi").forEach(function(el){
+      if(showChudi){
+        el.classList.remove("nf-field-hidden");
+        el.style.removeProperty("display");
+      }else{
+        el.classList.add("nf-field-hidden");
+        el.style.setProperty("display","none","important");
+      }
+    });
+  }
+  function fix(id){
+    try{
+      if(typeof window.updateQuickGarment==="function"){
+        window.updateQuickGarment(id);
+      }
+    }catch(e){}
+    applyGarmentVisibility(id);
+  }
+  window.nfV2037ApplyGarmentVisibility=fix;
+
+  document.addEventListener("change",function(e){
+    var t=e.target;
+    if(t && t.id && t.id.indexOf("qo-garment-")===0){
+      fix(t.id.slice("qo-garment-".length));
+    }
+  },true);
+
+  function scan(){
+    document.querySelectorAll('[id^="quick-order-"]').forEach(function(root){
+      var id=root.id.slice("quick-order-".length);
+      applyGarmentVisibility(id);
+    });
+  }
+  if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",scan,{once:true});
+  else scan();
+
+  new MutationObserver(function(){ scan(); }).observe(document.body,{childList:true,subtree:true});
 })();
 </script>
