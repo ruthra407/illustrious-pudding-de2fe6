@@ -30,14 +30,10 @@ public class ReminderReceiver extends BroadcastReceiver {
     private static final int DEFAULT_NOTIFICATION_ID = 1001;
 
     /*
-     * Backend deploy செய்த பிறகு இங்கே
-     * உங்கள் actual TTS server URL போட வேண்டும்.
-     *
-     * Example:
-     * https://your-server.example.com/tts
+     * ElevenLabs TTS backend
      */
     private static final String TTS_URL =
-            "https://YOUR-BACKEND-URL/tts";
+            "https://new-fashion-voice-tts.onrender.com/tts";
 
     @Override
     public void onReceive(
@@ -119,8 +115,8 @@ public class ReminderReceiver extends BroadcastReceiver {
         /*
          * Notification
          *
-         * Sound OFF here.
-         * TTS voice is played separately.
+         * Normal notification sound is disabled.
+         * ElevenLabs voice is played separately.
          */
         NotificationCompat.Builder builder =
                 new NotificationCompat.Builder(
@@ -172,14 +168,13 @@ public class ReminderReceiver extends BroadcastReceiver {
         new Thread(() -> {
 
             File audioFile = null;
-
             MediaPlayer player = null;
 
             try {
 
                 /*
-                 * Send the EXACT notification message
-                 * to our TTS backend.
+                 * Send the exact notification message
+                 * to the TTS backend.
                  */
                 audioFile =
                         generateTts(
@@ -340,20 +335,20 @@ public class ReminderReceiver extends BroadcastReceiver {
 
             if (errorStream != null) {
 
-                byte[] buffer =
+                byte[] errorBuffer =
                         new byte[1024];
 
-                int length;
+                int errorLength;
 
-                while ((length =
-                        errorStream.read(buffer))
+                while ((errorLength =
+                        errorStream.read(errorBuffer))
                         != -1) {
 
                     errorMessage.append(
                             new String(
-                                    buffer,
+                                    errorBuffer,
                                     0,
-                                    length,
+                                    errorLength,
                                     "UTF-8"
                             )
                     );
@@ -371,7 +366,8 @@ public class ReminderReceiver extends BroadcastReceiver {
         }
 
         /*
-         * Unique MP3 file for this notification
+         * Save generated MP3
+         * into app cache.
          */
         File audioFile =
                 new File(
@@ -407,6 +403,7 @@ public class ReminderReceiver extends BroadcastReceiver {
 
         outputFile.flush();
         outputFile.close();
+
         input.close();
 
         connection.disconnect();
@@ -480,7 +477,7 @@ public class ReminderReceiver extends BroadcastReceiver {
 
         /*
          * Disable normal notification sound.
-         * ElevenLabs MP3 will be played separately.
+         * ElevenLabs generated voice will play separately.
          */
         channel.setSound(
                 null,
