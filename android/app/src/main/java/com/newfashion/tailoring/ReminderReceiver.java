@@ -1,10 +1,10 @@
 package com.newfashion.tailoring;
 
 import android.Manifest;
-import android.app.BroadcastReceiver;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -24,64 +24,104 @@ import java.net.URL;
 
 public class ReminderReceiver extends BroadcastReceiver {
 
-    private static final String CHANNEL_ID = "reminder_voice_channel_v3";
+    private static final String CHANNEL_ID =
+            "reminder_voice_channel_v3";
+
     private static final int DEFAULT_NOTIFICATION_ID = 1001;
 
-    // இங்கே உங்கள் deployed TTS server URL போட வேண்டும்
+    /*
+     * Backend deploy செய்த பிறகு இங்கே
+     * உங்கள் actual TTS server URL போட வேண்டும்.
+     *
+     * Example:
+     * https://your-server.example.com/tts
+     */
     private static final String TTS_URL =
             "https://YOUR-BACKEND-URL/tts";
 
     @Override
-    public void onReceive(Context context, Intent intent) {
+    public void onReceive(
+            Context context,
+            Intent intent
+    ) {
 
-        String title = intent.getStringExtra("title");
-        String message = intent.getStringExtra("message");
+        String title =
+                intent.getStringExtra("title");
 
-        if (title == null || title.trim().isEmpty()) {
+        String message =
+                intent.getStringExtra("message");
+
+        if (title == null ||
+                title.trim().isEmpty()) {
+
             title = "நினைவூட்டல்";
         }
 
-        if (message == null || message.trim().isEmpty()) {
-            message = "உங்களுக்கு ஒரு நினைவூட்டல் உள்ளது.";
+        if (message == null ||
+                message.trim().isEmpty()) {
+
+            message =
+                    "உங்களுக்கு ஒரு நினைவூட்டல் உள்ளது.";
         }
 
         final String finalTitle = title;
         final String finalMessage = message;
 
-        int notificationId = intent.getIntExtra(
-                "requestCode",
-                DEFAULT_NOTIFICATION_ID
-        );
+        int notificationId =
+                intent.getIntExtra(
+                        "requestCode",
+                        DEFAULT_NOTIFICATION_ID
+                );
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        /*
+         * Android 13+ notification permission
+         */
+        if (Build.VERSION.SDK_INT >=
+                Build.VERSION_CODES.TIRAMISU) {
+
             if (ContextCompat.checkSelfPermission(
                     context,
                     Manifest.permission.POST_NOTIFICATIONS
             ) != PackageManager.PERMISSION_GRANTED) {
+
                 return;
             }
         }
 
+        /*
+         * Notification channel
+         */
         createNotificationChannel(context);
 
-        Intent openIntent = new Intent(
-                context,
-                MainActivity.class
-        );
+        /*
+         * Open MainActivity when notification is tapped
+         */
+        Intent openIntent =
+                new Intent(
+                        context,
+                        MainActivity.class
+                );
 
         openIntent.setFlags(
-                Intent.FLAG_ACTIVITY_NEW_TASK
-                        | Intent.FLAG_ACTIVITY_CLEAR_TOP
+                Intent.FLAG_ACTIVITY_NEW_TASK |
+                        Intent.FLAG_ACTIVITY_CLEAR_TOP
         );
 
-        PendingIntent pendingIntent = PendingIntent.getActivity(
-                context,
-                notificationId,
-                openIntent,
-                PendingIntent.FLAG_UPDATE_CURRENT
-                        | PendingIntent.FLAG_IMMUTABLE
-        );
+        PendingIntent pendingIntent =
+                PendingIntent.getActivity(
+                        context,
+                        notificationId,
+                        openIntent,
+                        PendingIntent.FLAG_UPDATE_CURRENT |
+                                PendingIntent.FLAG_IMMUTABLE
+                );
 
+        /*
+         * Notification
+         *
+         * Sound OFF here.
+         * TTS voice is played separately.
+         */
         NotificationCompat.Builder builder =
                 new NotificationCompat.Builder(
                         context,
@@ -90,8 +130,12 @@ public class ReminderReceiver extends BroadcastReceiver {
                         .setSmallIcon(
                                 android.R.drawable.ic_popup_reminder
                         )
-                        .setContentTitle(finalTitle)
-                        .setContentText(finalMessage)
+                        .setContentTitle(
+                                finalTitle
+                        )
+                        .setContentText(
+                                finalMessage
+                        )
                         .setStyle(
                                 new NotificationCompat.BigTextStyle()
                                         .bigText(finalMessage)
@@ -100,38 +144,54 @@ public class ReminderReceiver extends BroadcastReceiver {
                                 NotificationCompat.PRIORITY_HIGH
                         )
                         .setAutoCancel(true)
-                        .setContentIntent(pendingIntent)
+                        .setContentIntent(
+                                pendingIntent
+                        )
                         .setSilent(true);
 
-        NotificationManager manager =
+        NotificationManager notificationManager =
                 (NotificationManager)
                         context.getSystemService(
                                 Context.NOTIFICATION_SERVICE
                         );
 
-        if (manager != null) {
-            manager.notify(
+        if (notificationManager != null) {
+
+            notificationManager.notify(
                     notificationId,
                     builder.build()
             );
         }
 
-        android.content.BroadcastReceiver.PendingResult pendingResult =
+        /*
+         * Generate and play ElevenLabs voice
+         */
+        final BroadcastReceiver.PendingResult pendingResult =
                 goAsync();
 
         new Thread(() -> {
 
             File audioFile = null;
+
             MediaPlayer player = null;
 
             try {
 
-                audioFile = generateTts(
-                        finalMessage,
-                        context
-                );
+                /*
+                 * Send the EXACT notification message
+                 * to our TTS backend.
+                 */
+                audioFile =
+                        generateTts(
+                                finalMessage,
+                                context
+                        );
 
-                player = new MediaPlayer();
+                /*
+                 * Play returned MP3
+                 */
+                player =
+                        new MediaPlayer();
 
                 player.setAudioAttributes(
                         new AudioAttributes.Builder()
@@ -148,33 +208,56 @@ public class ReminderReceiver extends BroadcastReceiver {
                         audioFile.getAbsolutePath()
                 );
 
-                MediaPlayer finalPlayer = player;
+                final File finalAudioFile =
+                        audioFile;
 
-                player.setOnCompletionListener(mp -> {
-                    mp.release();
+                player.setOnCompletionListener(
+                        mp -> {
 
-                    if (audioFile != null) {
-                        audioFile.delete();
-                    }
+                            mp.release();
 
-                    pendingResult.finish();
-                });
+                            if (finalAudioFile.exists()) {
+                                finalAudioFile.delete();
+                            }
+
+                            pendingResult.finish();
+                        }
+                );
+
+                player.setOnErrorListener(
+                        (mp, what, extra) -> {
+
+                            mp.release();
+
+                            if (finalAudioFile.exists()) {
+                                finalAudioFile.delete();
+                            }
+
+                            pendingResult.finish();
+
+                            return true;
+                        }
+                );
 
                 player.prepare();
+
                 player.start();
 
-            } catch (Exception e) {
+            } catch (Exception error) {
 
-                e.printStackTrace();
+                error.printStackTrace();
 
                 if (player != null) {
+
                     try {
                         player.release();
                     } catch (Exception ignored) {
                     }
                 }
 
-                if (audioFile != null) {
+                if (audioFile != null &&
+                        audioFile.exists()) {
+
                     audioFile.delete();
                 }
 
@@ -184,26 +267,50 @@ public class ReminderReceiver extends BroadcastReceiver {
         }).start();
     }
 
+    /*
+     * Send notification text to backend
+     * and receive MP3 audio.
+     */
     private File generateTts(
             String text,
             Context context
     ) throws Exception {
 
-        URL url = new URL(TTS_URL);
+        URL url =
+                new URL(TTS_URL);
 
         HttpURLConnection connection =
-                (HttpURLConnection) url.openConnection();
+                (HttpURLConnection)
+                        url.openConnection();
 
-        connection.setRequestMethod("POST");
-        connection.setDoOutput(true);
-        connection.setConnectTimeout(15000);
-        connection.setReadTimeout(30000);
+        connection.setRequestMethod(
+                "POST"
+        );
+
+        connection.setDoOutput(
+                true
+        );
+
+        connection.setConnectTimeout(
+                15000
+        );
+
+        connection.setReadTimeout(
+                30000
+        );
 
         connection.setRequestProperty(
                 "Content-Type",
-                "application/json"
+                "application/json; charset=UTF-8"
         );
 
+        /*
+         * JSON body:
+         *
+         * {
+         *   "text": "notification message"
+         * }
+         */
         String json =
                 "{\"text\":\""
                         + escapeJson(text)
@@ -219,29 +326,78 @@ public class ReminderReceiver extends BroadcastReceiver {
         output.flush();
         output.close();
 
-        if (connection.getResponseCode() != 200) {
+        int responseCode =
+                connection.getResponseCode();
+
+        if (responseCode !=
+                HttpURLConnection.HTTP_OK) {
+
+            InputStream errorStream =
+                    connection.getErrorStream();
+
+            StringBuilder errorMessage =
+                    new StringBuilder();
+
+            if (errorStream != null) {
+
+                byte[] buffer =
+                        new byte[1024];
+
+                int length;
+
+                while ((length =
+                        errorStream.read(buffer))
+                        != -1) {
+
+                    errorMessage.append(
+                            new String(
+                                    buffer,
+                                    0,
+                                    length,
+                                    "UTF-8"
+                            )
+                    );
+                }
+
+                errorStream.close();
+            }
+
             throw new Exception(
-                    "TTS server error: "
-                            + connection.getResponseCode()
+                    "TTS server error "
+                            + responseCode
+                            + ": "
+                            + errorMessage
             );
         }
 
-        File file = new File(
-                context.getCacheDir(),
-                "notification_voice.mp3"
-        );
+        /*
+         * Unique MP3 file for this notification
+         */
+        File audioFile =
+                new File(
+                        context.getCacheDir(),
+                        "notification_voice_"
+                                + System.currentTimeMillis()
+                                + ".mp3"
+                );
 
         InputStream input =
                 connection.getInputStream();
 
         FileOutputStream outputFile =
-                new FileOutputStream(file);
+                new FileOutputStream(
+                        audioFile
+                );
 
-        byte[] buffer = new byte[8192];
+        byte[] buffer =
+                new byte[8192];
 
         int length;
 
-        while ((length = input.read(buffer)) != -1) {
+        while ((length =
+                input.read(buffer))
+                != -1) {
+
             outputFile.write(
                     buffer,
                     0,
@@ -255,23 +411,50 @@ public class ReminderReceiver extends BroadcastReceiver {
 
         connection.disconnect();
 
-        return file;
+        return audioFile;
     }
 
-    private String escapeJson(String value) {
+    /*
+     * Escape special characters
+     * before putting text into JSON.
+     */
+    private String escapeJson(
+            String value
+    ) {
 
         return value
-                .replace("\\", "\\\\")
-                .replace("\"", "\\\"")
-                .replace("\n", "\\n")
-                .replace("\r", "\\r");
+                .replace(
+                        "\\",
+                        "\\\\"
+                )
+                .replace(
+                        "\"",
+                        "\\\""
+                )
+                .replace(
+                        "\n",
+                        "\\n"
+                )
+                .replace(
+                        "\r",
+                        "\\r"
+                )
+                .replace(
+                        "\t",
+                        "\\t"
+                );
     }
 
+    /*
+     * Notification channel
+     */
     private void createNotificationChannel(
             Context context
     ) {
 
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+        if (Build.VERSION.SDK_INT <
+                Build.VERSION_CODES.O) {
+
             return;
         }
 
@@ -292,13 +475,20 @@ public class ReminderReceiver extends BroadcastReceiver {
                 );
 
         channel.setDescription(
-                "Tailoring reminder notifications"
+                "Tailoring reminder notifications with voice"
         );
 
-        // Notification sound OFF.
-        // TTS voice தனியாக MediaPlayer மூலம் play ஆகும்.
-        channel.setSound(null, null);
+        /*
+         * Disable normal notification sound.
+         * ElevenLabs MP3 will be played separately.
+         */
+        channel.setSound(
+                null,
+                null
+        );
 
-        manager.createNotificationChannel(channel);
+        manager.createNotificationChannel(
+                channel
+        );
     }
 }
