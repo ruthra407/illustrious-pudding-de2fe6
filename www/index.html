@@ -2816,7 +2816,7 @@ function pickNFVoice(){
    The ElevenLabs API key stays on the Render backend; this page only sends
    the notification text and the selected Voice ID to the same-origin /tts endpoint. */
 const NF_ELEVENLABS_VOICE_ID = "nJPQW86B3xSFcIV4aV5H";
-const NF_ELEVENLABS_TTS_ENDPOINT = "/tts";
+const NF_ELEVENLABS_TTS_ENDPOINT = "https://new-fashion-voice-tts.onrender.com/tts";
 let nfVoiceAudio = null;
 
 async function playNFElevenLabsVoice(text){
