@@ -41,7 +41,7 @@ public class ReminderVoiceService extends Service {
             "nJPQW86B3xSFcIV4aV5H";
 
     private static final String SERVICE_CHANNEL_ID =
-            "reminder_voice_service_v1";
+            "reminder_voice_service_v2";
 
     private static final int SERVICE_NOTIFICATION_ID = 91001;
 
@@ -55,17 +55,21 @@ public class ReminderVoiceService extends Service {
     public void onCreate() {
         super.onCreate();
 
+        Log.d(TAG, "========================================");
+        Log.d(TAG, "ReminderVoiceService ON CREATE");
+        Log.d(TAG, "========================================");
+
         executor = Executors.newSingleThreadExecutor();
 
-        audioManager =
-                (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+        audioManager = (AudioManager)
+                getSystemService(Context.AUDIO_SERVICE);
 
         createServiceNotificationChannel();
 
         Notification notification =
                 createServiceNotification(
-                        "🔊 குரல் தயாராகிறது",
-                        "நினைவூட்டல் குரல் தயாராகிறது..."
+                        "🔊 நினைவூட்டல்",
+                        "குரல் நினைவூட்டல் தயாராகிறது..."
                 );
 
         try {
@@ -83,10 +87,10 @@ public class ReminderVoiceService extends Service {
                 );
             }
 
-            Log.d(TAG, "Foreground service started");
+            Log.d(TAG, "FOREGROUND SERVICE STARTED");
 
-        } catch (Exception error) {
-            Log.e(TAG, "Could not start foreground service", error);
+        } catch (Exception e) {
+            Log.e(TAG, "FOREGROUND SERVICE START FAILED", e);
             stopSelf();
         }
     }
@@ -97,68 +101,77 @@ public class ReminderVoiceService extends Service {
             int flags,
             int startId
     ) {
+        Log.d(TAG, "========================================");
+        Log.d(TAG, "ReminderVoiceService ON START COMMAND");
+        Log.d(TAG, "startId = " + startId);
+        Log.d(TAG, "========================================");
+
         if (intent == null) {
+            Log.e(TAG, "Intent is NULL");
             stopSelf(startId);
             return START_NOT_STICKY;
         }
 
-        final String message =
-                intent.getStringExtra("message");
+        String title = intent.getStringExtra("title");
+        String message = intent.getStringExtra("message");
 
-        if (message == null ||
-                message.trim().isEmpty()) {
+        int requestCode = intent.getIntExtra(
+                "requestCode",
+                -1
+        );
 
-            Log.e(TAG, "Empty TTS message");
+        Log.d(TAG, "requestCode = " + requestCode);
+        Log.d(TAG, "title = " + title);
+        Log.d(TAG, "message = " + message);
+
+        if (message == null || message.trim().isEmpty()) {
+            Log.e(TAG, "TTS message is EMPTY");
             stopSelf(startId);
             return START_NOT_STICKY;
         }
-
-        Log.d(TAG, "TTS service received message");
-        Log.d(TAG, "Voice ID: " + ELEVENLABS_VOICE_ID);
 
         stopCurrentPlayback();
 
         updateServiceNotification(
                 "🔊 குரல் தயாராகிறது",
-                "ElevenLabs குரல் உருவாக்கப்படுகிறது..."
+                "தமிழ் நினைவூட்டல் குரல் உருவாக்கப்படுகிறது..."
         );
 
-        executor.execute(() -> {
+        final String finalMessage = message;
 
+        executor.execute(() -> {
             File audioFile = null;
 
             try {
-                Log.d(TAG, "TTS process started");
+                Log.d(TAG, "TTS PROCESS STARTED");
 
-                audioFile = generateTts(message);
+                audioFile = generateTts(finalMessage);
                 currentAudioFile = audioFile;
 
-                Log.d(
-                        TAG,
-                        "MP3 received: " +
-                                audioFile.length() +
-                                " bytes"
-                );
+                Log.d(TAG, "TTS MP3 CREATED");
+                Log.d(TAG, "MP3 SIZE = " +
+                        audioFile.length() + " bytes");
 
                 updateServiceNotification(
                         "🔊 குரல் கிடைத்தது",
-                        "நினைவூட்டல் குரல் play ஆகிறது..."
+                        "நினைவூட்டல் பேசப்படுகிறது..."
                 );
 
                 playAudio(audioFile, startId);
 
-            } catch (Exception error) {
+            } catch (Exception e) {
+                Log.e(TAG, "TTS / PLAYBACK FAILED", e);
 
-                Log.e(TAG, "TTS FAILED", error);
-
-                if (audioFile != null &&
-                        audioFile.exists()) {
-                    audioFile.delete();
+                if (audioFile != null && audioFile.exists()) {
+                    try {
+                        audioFile.delete();
+                    } catch (Exception ignored) {
+                    }
                 }
 
                 updateServiceNotification(
                         "❌ குரல் வரவில்லை",
-                        getSafeErrorMessage(error)
+                        getSafeErrorMessage(e)
                 );
 
                 stopServiceAfterError(startId);
@@ -171,6 +184,8 @@ public class ReminderVoiceService extends Service {
     private File generateTts(String originalText) throws Exception {
 
         String text = prepareTtsText(originalText);
+
+        Log.d(TAG, "Prepared TTS text = " + text);
 
         URL url = new URL(TTS_URL);
 
@@ -190,7 +205,7 @@ public class ReminderVoiceService extends Service {
 
             connection.setRequestProperty(
                     "Accept",
-                    "audio/mpeg, audio/*, application/json"
+                    "audio/mpeg, audio/*"
             );
 
             String json =
@@ -203,8 +218,7 @@ public class ReminderVoiceService extends Service {
                             + "\""
                             + "}";
 
-            Log.d(TAG, "Sending POST /tts");
-            Log.d(TAG, "Voice ID: " + ELEVENLABS_VOICE_ID);
+            Log.d(TAG, "Sending TTS POST request...");
 
             OutputStream output =
                     connection.getOutputStream();
@@ -219,13 +233,12 @@ public class ReminderVoiceService extends Service {
             int responseCode =
                     connection.getResponseCode();
 
-            Log.d(
-                    TAG,
-                    "TTS response code: " +
-                            responseCode
-            );
+            Log.d(TAG, "TTS RESPONSE CODE = " +
+                    responseCode);
 
-            if (responseCode != HttpURLConnection.HTTP_OK) {
+            if (responseCode !=
+                    HttpURLConnection.HTTP_OK) {
+
                 throw new Exception(
                         "TTS server error " +
                                 responseCode +
@@ -237,7 +250,7 @@ public class ReminderVoiceService extends Service {
             File audioFile =
                     new File(
                             getCacheDir(),
-                            "notification_voice_" +
+                            "reminder_voice_" +
                                     System.currentTimeMillis() +
                                     ".mp3"
                     );
@@ -249,7 +262,6 @@ public class ReminderVoiceService extends Service {
                     new FileOutputStream(audioFile);
 
             byte[] buffer = new byte[8192];
-
             int length;
 
             while ((length = input.read(buffer)) != -1) {
@@ -284,6 +296,7 @@ public class ReminderVoiceService extends Service {
             int startId
     ) {
         try {
+            Log.d(TAG, "STARTING AUDIO PLAYBACK");
 
             AudioAttributes audioAttributes =
                     new AudioAttributes.Builder()
@@ -302,64 +315,70 @@ public class ReminderVoiceService extends Service {
             }
 
             MediaPlayer player = new MediaPlayer();
-
             mediaPlayer = player;
 
             player.setAudioAttributes(audioAttributes);
+
+            player.setVolume(1.0f, 1.0f);
 
             player.setDataSource(
                     audioFile.getAbsolutePath()
             );
 
             player.setOnPreparedListener(mp -> {
-                Log.d(TAG, "MediaPlayer prepared");
+                Log.d(TAG, "MEDIAPLAYER PREPARED");
 
-                mp.start();
+                try {
+                    mp.setVolume(1.0f, 1.0f);
+                    mp.start();
 
-                Log.d(
-                        TAG,
-                        "Voice playback STARTED"
-                );
+                    Log.d(TAG, "========================================");
+                    Log.d(TAG, "VOICE PLAYBACK STARTED");
+                    Log.d(TAG, "========================================");
+
+                } catch (Exception e) {
+                    Log.e(
+                            TAG,
+                            "Could not start MediaPlayer",
+                            e
+                    );
+
+                    cleanupPlayback(audioFile);
+                    stopForegroundService(startId);
+                }
             });
 
             player.setOnCompletionListener(mp -> {
-
-                Log.d(
-                        TAG,
-                        "Voice playback completed"
-                );
+                Log.d(TAG, "VOICE PLAYBACK COMPLETED");
 
                 cleanupPlayback(audioFile);
                 stopForegroundService(startId);
             });
 
-            player.setOnErrorListener(
-                    (mp, what, extra) -> {
+            player.setOnErrorListener((mp, what, extra) -> {
+                Log.e(
+                        TAG,
+                        "MEDIAPLAYER ERROR: " +
+                                what +
+                                " / " +
+                                extra
+                );
 
-                        Log.e(
-                                TAG,
-                                "MediaPlayer error: " +
-                                        what +
-                                        " / " +
-                                        extra
-                        );
+                cleanupPlayback(audioFile);
+                stopForegroundService(startId);
 
-                        cleanupPlayback(audioFile);
-                        stopForegroundService(startId);
-
-                        return true;
-                    }
-            );
+                return true;
+            });
 
             player.prepareAsync();
 
-        } catch (Exception error) {
-
-            Log.e(
+            Log.d(
                     TAG,
-                    "Playback failed",
-                    error
+                    "MediaPlayer prepareAsync() called"
             );
+
+        } catch (Exception e) {
+            Log.e(TAG, "PLAYBACK FAILED", e);
 
             cleanupPlayback(audioFile);
             stopForegroundService(startId);
@@ -374,7 +393,6 @@ public class ReminderVoiceService extends Service {
         }
 
         try {
-
             if (Build.VERSION.SDK_INT >=
                     Build.VERSION_CODES.O) {
 
@@ -390,6 +408,11 @@ public class ReminderVoiceService extends Service {
                         audioManager.requestAudioFocus(
                                 audioFocusRequest
                         );
+
+                Log.d(
+                        TAG,
+                        "Audio focus result = " + result
+                );
 
                 return result ==
                         AudioManager.AUDIOFOCUS_REQUEST_GRANTED;
@@ -407,14 +430,8 @@ public class ReminderVoiceService extends Service {
                         AudioManager.AUDIOFOCUS_REQUEST_GRANTED;
             }
 
-        } catch (Exception error) {
-
-            Log.e(
-                    TAG,
-                    "Audio focus error",
-                    error
-            );
-
+        } catch (Exception e) {
+            Log.e(TAG, "AUDIO FOCUS ERROR", e);
             return false;
         }
     }
@@ -422,61 +439,63 @@ public class ReminderVoiceService extends Service {
     private void stopCurrentPlayback() {
 
         try {
-
             if (mediaPlayer != null) {
 
                 try {
                     if (mediaPlayer.isPlaying()) {
                         mediaPlayer.stop();
                     }
-                } catch (Exception ignored) {}
+                } catch (Exception ignored) {
+                }
 
                 try {
                     mediaPlayer.reset();
-                } catch (Exception ignored) {}
+                } catch (Exception ignored) {
+                }
 
                 try {
                     mediaPlayer.release();
-                } catch (Exception ignored) {}
+                } catch (Exception ignored) {
+                }
 
                 mediaPlayer = null;
             }
 
-        } catch (Exception error) {
-
+        } catch (Exception e) {
             Log.e(
                     TAG,
                     "Could not stop current playback",
-                    error
+                    e
             );
         }
 
         abandonAudioFocus();
     }
 
-    private void cleanupPlayback(File audioFile) {
-
+    private void cleanupPlayback(
+            File audioFile
+    ) {
         try {
-
             if (mediaPlayer != null) {
 
                 try {
                     mediaPlayer.reset();
-                } catch (Exception ignored) {}
+                } catch (Exception ignored) {
+                }
 
                 try {
                     mediaPlayer.release();
-                } catch (Exception ignored) {}
+                } catch (Exception ignored) {
+                }
 
                 mediaPlayer = null;
             }
 
-        } catch (Exception error) {
-
+        } catch (Exception e) {
             Log.e(
                     TAG,
                     "MediaPlayer cleanup error",
-                    error
+                    e
             );
         }
 
@@ -487,7 +506,8 @@ public class ReminderVoiceService extends Service {
 
             try {
                 audioFile.delete();
-            } catch (Exception ignored) {}
+            } catch (Exception ignored) {
+            }
         }
 
         currentAudioFile = null;
@@ -500,7 +520,6 @@ public class ReminderVoiceService extends Service {
         }
 
         try {
-
             if (Build.VERSION.SDK_INT >=
                     Build.VERSION_CODES.O) {
 
@@ -518,40 +537,63 @@ public class ReminderVoiceService extends Service {
                 audioManager.abandonAudioFocus(null);
             }
 
-        } catch (Exception error) {
-
+        } catch (Exception e) {
             Log.e(
                     TAG,
                     "Audio focus release error",
-                    error
+                    e
             );
         }
     }
 
-    private void stopForegroundService(int startId) {
-
+    private void stopForegroundService(
+            int startId
+    ) {
         try {
-            stopForeground(true);
-        } catch (Exception ignored) {}
+            if (Build.VERSION.SDK_INT >=
+                    Build.VERSION_CODES.N) {
+
+                stopForeground(
+                        Service.STOP_FOREGROUND_REMOVE
+                );
+
+            } else {
+                stopForeground(true);
+            }
+
+        } catch (Exception ignored) {
+        }
 
         stopSelf(startId);
     }
 
-    private void stopServiceAfterError(int startId) {
-
+    private void stopServiceAfterError(
+            int startId
+    ) {
         abandonAudioFocus();
 
         try {
-            stopForeground(true);
-        } catch (Exception ignored) {}
+            if (Build.VERSION.SDK_INT >=
+                    Build.VERSION_CODES.N) {
+
+                stopForeground(
+                        Service.STOP_FOREGROUND_REMOVE
+                );
+
+            } else {
+                stopForeground(true);
+            }
+
+        } catch (Exception ignored) {
+        }
 
         stopSelf(startId);
     }
 
-    private String prepareTtsText(String value) {
-
-        String s =
-                value == null ? "" : value;
+    private String prepareTtsText(
+            String value
+    ) {
+        String s = value == null ? "" : value;
 
         s = s.replaceAll(
                 "(?i)\\bBlouse\\b",
@@ -591,8 +633,9 @@ public class ReminderVoiceService extends Service {
         return convertNumbersToTamil(s);
     }
 
-    private String convertNumbersToTamil(String text) {
-
+    private String convertNumbersToTamil(
+            String text
+    ) {
         String[] numbers = {
                 "",
                 "ஒரு",
@@ -618,22 +661,21 @@ public class ReminderVoiceService extends Service {
         };
 
         for (int i = 20; i >= 1; i--) {
-
-            text =
-                    text.replaceAll(
-                            "(?<!\\d)" +
-                                    i +
-                                    "\\s*நாள்",
-                            numbers[i] +
-                                    " நாள்"
-                    );
+            text = text.replaceAll(
+                    "(?<!\\d)" +
+                            i +
+                            "\\s*நாள்",
+                    numbers[i] +
+                            " நாள்"
+            );
         }
 
         return text;
     }
 
-    private String escapeJson(String value) {
-
+    private String escapeJson(
+            String value
+    ) {
         if (value == null) {
             return "";
         }
@@ -649,9 +691,7 @@ public class ReminderVoiceService extends Service {
     private String readErrorResponse(
             HttpURLConnection connection
     ) {
-
         try {
-
             InputStream errorStream =
                     connection.getErrorStream();
 
@@ -662,9 +702,7 @@ public class ReminderVoiceService extends Service {
             StringBuilder builder =
                     new StringBuilder();
 
-            byte[] buffer =
-                    new byte[1024];
-
+            byte[] buffer = new byte[1024];
             int length;
 
             while ((length =
@@ -684,10 +722,9 @@ public class ReminderVoiceService extends Service {
 
             return builder.toString();
 
-        } catch (Exception error) {
-
-            return error.getMessage() != null
-                    ? error.getMessage()
+        } catch (Exception e) {
+            return e.getMessage() != null
+                    ? e.getMessage()
                     : "Unknown server error";
         }
     }
@@ -716,7 +753,7 @@ public class ReminderVoiceService extends Service {
                 );
 
         channel.setDescription(
-                "Voice reminder playback"
+                "Tamil voice reminder playback"
         );
 
         channel.setSound(null, null);
@@ -728,7 +765,6 @@ public class ReminderVoiceService extends Service {
             String title,
             String text
     ) {
-
         Intent openIntent =
                 new Intent(
                         this,
@@ -749,7 +785,8 @@ public class ReminderVoiceService extends Service {
                 SERVICE_CHANNEL_ID
         )
                 .setSmallIcon(
-                        android.R.drawable.ic_lock_silent_mode_off
+                        android.R.drawable
+                                .ic_lock_silent_mode_off
                 )
                 .setContentTitle(title)
                 .setContentText(text)
@@ -765,9 +802,7 @@ public class ReminderVoiceService extends Service {
             String title,
             String text
     ) {
-
         try {
-
             NotificationManager manager =
                     (NotificationManager)
                             getSystemService(
@@ -775,7 +810,6 @@ public class ReminderVoiceService extends Service {
                             );
 
             if (manager != null) {
-
                 manager.notify(
                         SERVICE_NOTIFICATION_ID,
                         createServiceNotification(
@@ -785,12 +819,11 @@ public class ReminderVoiceService extends Service {
                 );
             }
 
-        } catch (Exception error) {
-
+        } catch (Exception e) {
             Log.e(
                     TAG,
                     "Could not update service notification",
-                    error
+                    e
             );
         }
     }
@@ -798,7 +831,6 @@ public class ReminderVoiceService extends Service {
     private String getSafeErrorMessage(
             Exception error
     ) {
-
         String message = error.getMessage();
 
         if (message == null ||
@@ -817,6 +849,11 @@ public class ReminderVoiceService extends Service {
     @Override
     public void onDestroy() {
 
+        Log.d(
+                TAG,
+                "ReminderVoiceService ON DESTROY"
+        );
+
         stopCurrentPlayback();
 
         if (currentAudioFile != null &&
@@ -824,11 +861,11 @@ public class ReminderVoiceService extends Service {
 
             try {
                 currentAudioFile.delete();
-            } catch (Exception ignored) {}
+            } catch (Exception ignored) {
+            }
         }
 
         if (executor != null) {
-
             executor.shutdownNow();
             executor = null;
         }
