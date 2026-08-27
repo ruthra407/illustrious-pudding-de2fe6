@@ -2816,7 +2816,7 @@ function pickNFVoice(){
    The ElevenLabs API key stays on the Render backend; this page only sends
    the notification text and the selected Voice ID to the same-origin /tts endpoint. */
 const NF_ELEVENLABS_VOICE_ID = "nJPQW86B3xSFcIV4aV5H";
-const NF_ELEVENLABS_TTS_ENDPOINT = "https://new-fashion-voice-tts.onrender.com/tts";
+const NF_ELEVENLABS_TTS_ENDPOINT = "/tts";
 let nfVoiceAudio = null;
 
 async function playNFElevenLabsVoice(text){
@@ -2944,56 +2944,64 @@ async function ensureNFExactAlarmPermission(){
 }
 
 async function scheduleNativeDailyNotifications(){
- const LocalNotifications=await getNFLocalNotifications();
+  try{
+    const cap=window.Capacitor;
+    if(!cap){
+      toast("Android native bridge கிடைக்கவில்லை.",true);
+      return false;
+    }
 
- if(!LocalNotifications){
-   toast("Notification plugin கிடைக்கவில்லை.",true);
-   return false;
- }
+    let ReminderScheduler=null;
 
- try{
-   const exactReady=await ensureNFExactAlarmPermission();
-   if(!exactReady)return false;
+    try{
+      if(typeof cap.registerPlugin==="function"){
+        ReminderScheduler=cap.registerPlugin("ReminderScheduler");
+      }
+    }catch(e){
+      console.error("ReminderScheduler registration error:",e);
+    }
 
-   await ensureNFNotificationChannel();
+    if(!ReminderScheduler){
+      toast("ReminderScheduler plugin கிடைக்கவில்லை.",true);
+      return false;
+    }
 
-   try{
-     await LocalNotifications.cancel({
-       notifications:NF_NOTIFICATION_IDS.map(id=>({id}))
-     });
-   }catch(e){
-     console.log("Old notification cancel:",e);
-   }
+    /*
+     * The HTML remains the source of the 24 configured times.
+     * Native Java schedules the actual exact alarms.
+     */
+    const result=await ReminderScheduler.scheduleDailyReminders({
+      times: REMINDER_TIMES.slice(),
+      title: "🔔 New Fashion Tailoring",
+      body: nfReminderBody()
+    });
 
-   const notifications=REMINDER_TIMES.map((time,index)=>{
-     const [hour,minute]=time.split(":").map(Number);
+    if(!result?.success){
+      toast("Native reminder schedule அமைக்கப்படவில்லை.",true);
+      return false;
+    }
 
-     return {
-       id:NF_NOTIFICATION_IDS[index],
-       title:"🔔 New Fashion Tailoring",
-       body:nfReminderBody(),
-       channelId:"nf_daily_reminders",
-       schedule:{
-         on:{
-           hour,
-           minute
-         },
-         allowWhileIdle:true
-       },
-       autoCancel:true
-     };
-   });
+    console.log(
+      "Native ReminderScheduler scheduled:",
+      result
+    );
 
-   const result=await LocalNotifications.schedule({notifications});
+    return true;
 
-   console.log("Native daily notifications scheduled:",result);
-   return true;
+  }catch(error){
+    console.error(
+      "Native ReminderScheduler error:",
+      error
+    );
 
- }catch(error){
-   console.error("Native notification schedule error:",error);
-   toast("Notification schedule error: "+(error?.message||String(error)),true);
-   return false;
- }
+    toast(
+      "Reminder schedule error: " +
+      (error?.message || String(error)),
+      true
+    );
+
+    return false;
+  }
 }
 
 function startReminderScheduler(){
