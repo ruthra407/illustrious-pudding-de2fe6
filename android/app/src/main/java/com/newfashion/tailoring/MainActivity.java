@@ -16,35 +16,23 @@ public class MainActivity extends BridgeActivity {
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
-        /*
-         * Register the custom native reminder bridge BEFORE
-         * the WebView starts using window.Capacitor.
-         */
         registerPlugin(ReminderSchedulerPlugin.class);
-
         super.onCreate(savedInstanceState);
-
         requestNotificationPermission();
     }
 
     private void requestNotificationPermission() {
-
-        if (Build.VERSION.SDK_INT >=
-                Build.VERSION_CODES.TIRAMISU) {
-
-            if (ContextCompat.checkSelfPermission(
-                    this,
-                    Manifest.permission.POST_NOTIFICATIONS
-            ) != PackageManager.PERMISSION_GRANTED) {
-
-                ActivityCompat.requestPermissions(
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                ContextCompat.checkSelfPermission(
                         this,
-                        new String[]{
-                                Manifest.permission.POST_NOTIFICATIONS
-                        },
-                        NOTIFICATION_PERMISSION_REQUEST_CODE
-                );
-            }
+                        Manifest.permission.POST_NOTIFICATIONS
+                ) != PackageManager.PERMISSION_GRANTED) {
+
+            ActivityCompat.requestPermissions(
+                    this,
+                    new String[]{Manifest.permission.POST_NOTIFICATIONS},
+                    NOTIFICATION_PERMISSION_REQUEST_CODE
+            );
         }
     }
 }
