@@ -15,8 +15,11 @@ import java.util.List;
 
 public final class ReminderScheduler {
 
-    private static final String PREFS_NAME = "reminder_scheduler";
-    private static final String REMINDERS_KEY = "reminders";
+    private static final String PREFS_NAME =
+            "reminder_scheduler";
+
+    private static final String REMINDERS_KEY =
+            "reminders";
 
     private ReminderScheduler() {
         // Utility class
@@ -29,7 +32,9 @@ public final class ReminderScheduler {
             String title,
             String message
     ) {
-        Context appContext = context.getApplicationContext();
+
+        Context appContext =
+                context.getApplicationContext();
 
         saveReminder(
                 appContext,
@@ -55,26 +60,42 @@ public final class ReminderScheduler {
             String title,
             String message
     ) {
+
         AlarmManager alarmManager =
-                (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+                (AlarmManager)
+                        context.getSystemService(
+                                Context.ALARM_SERVICE
+                        );
 
         if (alarmManager == null) {
             return;
         }
 
-        Intent intent = new Intent(
-                context,
-                ReminderReceiver.class
+        Intent intent =
+                new Intent(
+                        context,
+                        ReminderReceiver.class
+                );
+
+        intent.putExtra(
+                "notification_id",
+                requestCode
         );
 
-        /*
-         * ReminderReceiver reads notification_id,
-         * so use the same key here.
-         */
-        intent.putExtra("notification_id", requestCode);
-        intent.putExtra("requestCode", requestCode);
-        intent.putExtra("title", title);
-        intent.putExtra("message", message);
+        intent.putExtra(
+                "requestCode",
+                requestCode
+        );
+
+        intent.putExtra(
+                "title",
+                title
+        );
+
+        intent.putExtra(
+                "message",
+                message
+        );
 
         PendingIntent pendingIntent =
                 PendingIntent.getBroadcast(
@@ -85,9 +106,40 @@ public final class ReminderScheduler {
                                 | PendingIntent.FLAG_IMMUTABLE
                 );
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+        /*
+         * EXACT ALARM
+         *
+         * Android 12+:
+         * exact alarm permission must be allowed.
+         */
+        if (Build.VERSION.SDK_INT >=
+                Build.VERSION_CODES.S) {
 
-            alarmManager.setAndAllowWhileIdle(
+            if (alarmManager.canScheduleExactAlarms()) {
+
+                alarmManager.setExactAndAllowWhileIdle(
+                        AlarmManager.RTC_WAKEUP,
+                        triggerAtMillis,
+                        pendingIntent
+                );
+
+            } else {
+
+                /*
+                 * Fallback if exact alarm permission
+                 * is not available.
+                 */
+                alarmManager.setAndAllowWhileIdle(
+                        AlarmManager.RTC_WAKEUP,
+                        triggerAtMillis,
+                        pendingIntent
+                );
+            }
+
+        } else if (Build.VERSION.SDK_INT >=
+                Build.VERSION_CODES.M) {
+
+            alarmManager.setExactAndAllowWhileIdle(
                     AlarmManager.RTC_WAKEUP,
                     triggerAtMillis,
                     pendingIntent
@@ -103,23 +155,47 @@ public final class ReminderScheduler {
         }
     }
 
+    public static boolean canScheduleExactAlarms(
+            Context context
+    ) {
+
+        if (Build.VERSION.SDK_INT <
+                Build.VERSION_CODES.S) {
+
+            return true;
+        }
+
+        AlarmManager alarmManager =
+                (AlarmManager)
+                        context.getSystemService(
+                                Context.ALARM_SERVICE
+                        );
+
+        return alarmManager != null
+                && alarmManager.canScheduleExactAlarms();
+    }
+
     public static void cancelReminder(
             Context context,
             int requestCode
     ) {
-        Context appContext = context.getApplicationContext();
+
+        Context appContext =
+                context.getApplicationContext();
 
         AlarmManager alarmManager =
-                (AlarmManager) appContext.getSystemService(
-                        Context.ALARM_SERVICE
-                );
+                (AlarmManager)
+                        appContext.getSystemService(
+                                Context.ALARM_SERVICE
+                        );
 
         if (alarmManager != null) {
 
-            Intent intent = new Intent(
-                    appContext,
-                    ReminderReceiver.class
-            );
+            Intent intent =
+                    new Intent(
+                            appContext,
+                            ReminderReceiver.class
+                    );
 
             PendingIntent pendingIntent =
                     PendingIntent.getBroadcast(
@@ -130,7 +206,10 @@ public final class ReminderScheduler {
                                     | PendingIntent.FLAG_IMMUTABLE
                     );
 
-            alarmManager.cancel(pendingIntent);
+            alarmManager.cancel(
+                    pendingIntent
+            );
+
             pendingIntent.cancel();
         }
 
@@ -140,21 +219,23 @@ public final class ReminderScheduler {
         );
     }
 
-    public static void rescheduleAll(Context context) {
+    public static void rescheduleAll(
+            Context context
+    ) {
 
-        Context appContext = context.getApplicationContext();
+        Context appContext =
+                context.getApplicationContext();
 
         List<ReminderData> reminders =
                 loadReminders(appContext);
 
-        long currentTime = System.currentTimeMillis();
+        long currentTime =
+                System.currentTimeMillis();
 
         for (ReminderData reminder : reminders) {
 
-            /*
-             * Only restore reminders that are still in the future.
-             */
-            if (reminder.triggerAtMillis > currentTime) {
+            if (reminder.triggerAtMillis >
+                    currentTime) {
 
                 scheduleAlarm(
                         appContext,
@@ -184,46 +265,74 @@ public final class ReminderScheduler {
         JSONArray oldArray;
 
         try {
-            oldArray = new JSONArray(
-                    preferences.getString(
-                            REMINDERS_KEY,
-                            "[]"
-                    )
-            );
+
+            oldArray =
+                    new JSONArray(
+                            preferences.getString(
+                                    REMINDERS_KEY,
+                                    "[]"
+                            )
+                    );
+
         } catch (Exception e) {
-            oldArray = new JSONArray();
+
+            oldArray =
+                    new JSONArray();
         }
 
-        JSONArray newArray = new JSONArray();
+        JSONArray newArray =
+                new JSONArray();
 
         try {
 
-            for (int i = 0; i < oldArray.length(); i++) {
+            for (int i = 0;
+                 i < oldArray.length();
+                 i++) {
 
                 JSONObject object =
                         oldArray.getJSONObject(i);
 
-                if (object.getInt("requestCode") != requestCode) {
+                if (object.getInt(
+                        "requestCode"
+                ) != requestCode) {
+
                     newArray.put(object);
                 }
             }
 
-            JSONObject reminder = new JSONObject();
+            JSONObject reminder =
+                    new JSONObject();
 
-            reminder.put("requestCode", requestCode);
-            reminder.put("triggerAtMillis", triggerAtMillis);
+            reminder.put(
+                    "requestCode",
+                    requestCode
+            );
+
+            reminder.put(
+                    "triggerAtMillis",
+                    triggerAtMillis
+            );
+
             reminder.put(
                     "title",
-                    title == null ? "" : title
+                    title == null
+                            ? ""
+                            : title
             );
+
             reminder.put(
                     "message",
-                    message == null ? "" : message
+                    message == null
+                            ? ""
+                            : message
             );
 
-            newArray.put(reminder);
+            newArray.put(
+                    reminder
+            );
 
         } catch (Exception e) {
+
             return;
         }
 
@@ -249,31 +358,42 @@ public final class ReminderScheduler {
         JSONArray oldArray;
 
         try {
-            oldArray = new JSONArray(
-                    preferences.getString(
-                            REMINDERS_KEY,
-                            "[]"
-                    )
-            );
+
+            oldArray =
+                    new JSONArray(
+                            preferences.getString(
+                                    REMINDERS_KEY,
+                                    "[]"
+                            )
+                    );
+
         } catch (Exception e) {
+
             return;
         }
 
-        JSONArray newArray = new JSONArray();
+        JSONArray newArray =
+                new JSONArray();
 
         try {
 
-            for (int i = 0; i < oldArray.length(); i++) {
+            for (int i = 0;
+                 i < oldArray.length();
+                 i++) {
 
                 JSONObject object =
                         oldArray.getJSONObject(i);
 
-                if (object.getInt("requestCode") != requestCode) {
+                if (object.getInt(
+                        "requestCode"
+                ) != requestCode) {
+
                     newArray.put(object);
                 }
             }
 
         } catch (Exception e) {
+
             return;
         }
 
@@ -309,20 +429,34 @@ public final class ReminderScheduler {
             JSONArray array =
                     new JSONArray(saved);
 
-            for (int i = 0; i < array.length(); i++) {
+            for (int i = 0;
+                 i < array.length();
+                 i++) {
 
                 JSONObject object =
                         array.getJSONObject(i);
 
                 ReminderData reminder =
                         new ReminderData(
-                                object.getInt("requestCode"),
-                                object.getLong("triggerAtMillis"),
-                                object.optString("title", ""),
-                                object.optString("message", "")
+                                object.getInt(
+                                        "requestCode"
+                                ),
+                                object.getLong(
+                                        "triggerAtMillis"
+                                ),
+                                object.optString(
+                                        "title",
+                                        ""
+                                ),
+                                object.optString(
+                                        "message",
+                                        ""
+                                )
                         );
 
-                reminders.add(reminder);
+                reminders.add(
+                        reminder
+                );
             }
 
         } catch (Exception ignored) {
@@ -345,10 +479,18 @@ public final class ReminderScheduler {
                 String title,
                 String message
         ) {
-            this.requestCode = requestCode;
-            this.triggerAtMillis = triggerAtMillis;
-            this.title = title;
-            this.message = message;
+
+            this.requestCode =
+                    requestCode;
+
+            this.triggerAtMillis =
+                    triggerAtMillis;
+
+            this.title =
+                    title;
+
+            this.message =
+                    message;
         }
     }
 }
