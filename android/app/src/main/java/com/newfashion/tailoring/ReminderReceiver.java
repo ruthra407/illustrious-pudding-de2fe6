@@ -17,7 +17,7 @@ import androidx.core.content.ContextCompat;
 
 public class ReminderReceiver extends BroadcastReceiver {
 
-    private static final String CHANNEL_ID = "reminder_voice_channel_v1";
+    private static final String CHANNEL_ID = "reminder_voice_channel_v2";
     private static final int DEFAULT_NOTIFICATION_ID = 1001;
 
     @Override
@@ -104,53 +104,52 @@ public class ReminderReceiver extends BroadcastReceiver {
 
     private void createNotificationChannel(Context context) {
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-
-            NotificationManager notificationManager =
-                    context.getSystemService(
-                            NotificationManager.class
-                    );
-
-            if (notificationManager == null) {
-                return;
-            }
-
-            Uri soundUri = Uri.parse(
-                    "android.resource://"
-                            + context.getPackageName()
-                            + "/"
-                            + R.raw.voice_for_elevenlabs
-            );
-
-            AudioAttributes audioAttributes =
-                    new AudioAttributes.Builder()
-                            .setUsage(
-                                    AudioAttributes.USAGE_NOTIFICATION
-                            )
-                            .setContentType(
-                                    AudioAttributes.CONTENT_TYPE_SPEECH
-                            )
-                            .build();
-
-            NotificationChannel channel =
-                    new NotificationChannel(
-                            CHANNEL_ID,
-                            "தமிழ் நினைவூட்டல்கள்",
-                            NotificationManager.IMPORTANCE_HIGH
-                    );
-
-            channel.setDescription(
-                    "Tailoring reminder notifications"
-            );
-
-            channel.setSound(
-                    soundUri,
-                    audioAttributes
-            );
-
-            notificationManager.createNotificationChannel(
-                    channel
-            );
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+            return;
         }
+
+        NotificationManager notificationManager =
+                context.getSystemService(
+                        NotificationManager.class
+                );
+
+        if (notificationManager == null) {
+            return;
+        }
+
+        Uri soundUri = Uri.parse(
+                "android.resource://"
+                        + context.getPackageName()
+                        + "/"
+                        + R.raw.voice_for_elevenlabs
+        );
+
+        AudioAttributes audioAttributes =
+                new AudioAttributes.Builder()
+                        .setUsage(
+                                AudioAttributes.USAGE_NOTIFICATION
+                        )
+                        .setContentType(
+                                AudioAttributes.CONTENT_TYPE_SPEECH
+                        )
+                        .build();
+
+        NotificationChannel channel =
+                new NotificationChannel(
+                        CHANNEL_ID,
+                        "தமிழ் நினைவூட்டல்கள்",
+                        NotificationManager.IMPORTANCE_HIGH
+                );
+
+        channel.setDescription(
+                "Tailoring reminder notifications with voice"
+        );
+
+        channel.setSound(
+                soundUri,
+                audioAttributes
+        );
+
+        notificationManager.createNotificationChannel(channel);
     }
 }
