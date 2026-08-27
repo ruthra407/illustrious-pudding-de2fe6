@@ -759,6 +759,9 @@ result.forEach((r,i)=>{
 });
 try{renderAll();}catch(err){console.error("Render error:",err);}
 refreshNFHomeNotificationBar();
+if(localStorage.getItem("nf_notification_enabled")==="1"){
+  scheduleNativeDailyNotifications().catch(e=>console.error("Notification refresh after data load:",e));
+}
 if(failed.length){
   console.error("Database load errors:",failed);
   toast("சில data tables load ஆகவில்லை. மற்ற data பாதுகாப்பாக காட்டப்படுகிறது.",true);
@@ -2520,130 +2523,6 @@ $("ownerCameraInput")?.addEventListener("change",e=>savePhoto("owner",e.target.f
 $("shopPhotoInput")?.addEventListener("change",e=>savePhoto("shop",e.target.files[0]));
 $("shopCameraInput")?.addEventListener("change",e=>savePhoto("shop",e.target.files[0]));
 
-
-function renderNFNotificationTimes(){
-  const grids=document.querySelectorAll("#nfNotificationTimesGrid");
-  if(!grids.length)return;
-  const html=REMINDER_TIMES.map((t,i)=>
-    `<div class="nf-notification-time-item"><label>நேரம் ${i+1}</label><input class="input" type="time" data-reminder-time="${i}" value="${t}"></div>`
-  ).join("");
-  grids.forEach(grid=>{grid.innerHTML=html;});
-}
-function refreshNFHomeNotificationBar(){
-  const on=localStorage.getItem("nf_notification_enabled")==="1";
-  const summaryText=nfReminderBody();
-  document.querySelectorAll("#nfHomeNotificationSummary,#nfV600NotificationSummary").forEach(x=>x.textContent=summaryText);
-  const st=document.getElementById("nfHomeNotificationStatus");
-  if(st){st.textContent=on?"ON":"OFF";st.className="nf-home-notification-button-status "+(on?"on":"off");}
-  const ss=document.getElementById("nfNotificationScheduleStatus");
-  if(ss){
-    ss.className="nf-v600-schedule-status "+(on?"on":"off");
-    ss.innerHTML=on
-      ? '<span class="nf-v600-status-icon">🔔</span><div><b>Notifications ON</b><small>24 notification schedule active</small></div>'
-      : '<span class="nf-v600-status-icon">🔕</span><div><b>Notifications OFF</b><small>தற்போது notification schedule இல்லை</small></div>';
-  }
-  renderNFNotificationTimes();
-}
-async function saveReminderTimesFrom(button){
-  const box=button?.closest?.(".nf-notification-times-settings,.nf-v600-notification-card");
-  if(!box)return;
-  const values=[...box.querySelectorAll("input[data-reminder-time]")].map(x=>x.value);
-  if(values.length!==24 || !values.every(t=>/^([01]\d|2[0-3]):[0-5]\d$/.test(String(t)))){
-    toast("24 சரியான நேரங்களை தேர்வு செய்யுங்கள்.",true); return;
-  }
-  if(new Set(values).size!==24){
-    toast("ஒரே நேரத்தை இரண்டு முறை வைக்க முடியாது.",true); return;
-  }
-  REMINDER_TIMES=values.slice();
-  localStorage.setItem("nf_reminder_times",JSON.stringify(REMINDER_TIMES));
-  if(localStorage.getItem("nf_notification_enabled")==="1"){
-    const ok=await scheduleNativeDailyNotifications();
-    if(!ok){toast("⚠️ நேரங்கள் சேமிக்கப்பட்டது; schedule மீண்டும் அமைக்கப்படவில்லை.",true);return;}
-  }
-  refreshNFHomeNotificationBar();
-  toast("✅ Notification நேரங்கள் சேமிக்கப்பட்டது.");
-}
-function resetReminderTimes(button){
-  REMINDER_TIMES=DEFAULT_REMINDER_TIMES.slice();
-  localStorage.setItem("nf_reminder_times",JSON.stringify(REMINDER_TIMES));
-  const box=button?.closest?.(".nf-notification-times-settings,.nf-v600-notification-card");
-  if(box)[...box.querySelectorAll("input[data-reminder-time]")].forEach((x,i)=>x.value=REMINDER_TIMES[i]);
-  if(localStorage.getItem("nf_notification_enabled")==="1")
-    scheduleNativeDailyNotifications().catch(e=>console.error("Reset reminder schedule:",e));
-  refreshNFHomeNotificationBar();
-  renderNFNotificationTimes();
-  toast("↩️ Default 24 notification நேரங்கள் அமைக்கப்பட்டன.");
-}
-function nfReminderBody(){
-  const orders=(state.orders||[]).filter(o=>!isFinished(o));
-  const withDelivery=orders.filter(o=>o.delivery_date);
-  const late=withDelivery.filter(o=>dueInfo(o)?.kind==="late");
-  const today=withDelivery.filter(o=>dueInfo(o)?.kind==="today");
-  const soon=withDelivery.filter(o=>dueInfo(o)?.kind==="soon");
-  const todayWork=orders.filter(o=>String(o.order_date||o.created_at||"").slice(0,10)===localDate());
-  const workOrders=[...todayWork,...today,...late,...soon].filter((o,i,a)=>a.findIndex(x=>String(x.id)===String(o.id))===i);
-  const lines=[];
-  if(today.length)lines.push(`📦 இன்று கொடுக்க: ${today.length} customer`);
-  if(todayWork.length)lines.push(`🧵 இன்று செய்ய: ${todayWork.length} order`);
-  if(late.length)lines.push(`🚨 Late: ${late.length} customer`);
-  if(soon.length)lines.push(`⏳ அடுத்த நாட்கள்: ${soon.length} customer`);
-  workOrders.forEach(o=>{
-    const c=(state.customers||[]).find(x=>String(x.id)===String(o.customer_id))||{};
-    const d=dueInfo(o);
-    const tag=d?.kind==="late"?`${d.days} நாள் late`:d?.kind==="today"?"இன்று கொடுக்க வேண்டும்":d?.kind==="soon"?`${d.days} நாள் உள்ளது`:"இன்று செய்ய வேண்டும்";
-    lines.push(`• ${c.name||"Customer"} — ${o.garment_type||"வேலை"}${Number(o.quantity||0)?` ${Number(o.quantity)} பீசஸ்`:""} — ${tag}`);
-  });
-  if(!lines.length)lines.push("✅ இப்போது pending customer வேலை இல்லை.");
-  return `🔔 இன்றைய வேலை நிலவரம்\n${lines.join("\n")}`;
-}
-function nfSpeechText(){
-  const orders=(state.orders||[]).filter(o=>!isFinished(o));
-  const withDelivery=orders.filter(o=>o.delivery_date);
-  const late=withDelivery.filter(o=>dueInfo(o)?.kind==="late");
-  const today=withDelivery.filter(o=>dueInfo(o)?.kind==="today");
-  const todayWork=orders.filter(o=>String(o.order_date||o.created_at||"").slice(0,10)===localDate());
-  const lines=["ருத்ரா, இன்றைய வேலை நிலவரம்."];
-  if(todayWork.length)lines.push(`இன்று ${todayWork.length} வேலை தைக்க வேண்டும்.`);
-  if(today.length)lines.push(`இன்று ${today.length} customer-க்கு கொடுக்க வேண்டும்.`);
-  if(late.length)lines.push(`${late.length} customer வேலை late ஆகியிருக்கிறது.`);
-  return lines.join(" ");
-}
-function nfTtsPronunciationText(text){
-  const nums={"1":"ஒரு","2":"இரண்டு","3":"மூன்று","4":"நான்கு","5":"ஐந்து","6":"ஆறு","7":"ஏழு","8":"எட்டு","9":"ஒன்பது","10":"பத்து","11":"பதினொன்று","12":"பன்னிரண்டு","13":"பதின்மூன்று","14":"பதினான்கு","15":"பதினைந்து","16":"பதினாறு","17":"பதினேழு","18":"பதினெட்டு","19":"பத்தொன்பது","20":"இருபது"};
-  let s=String(text||"");
-  s=s.replace(/\b(20|1[0-9]|[1-9])\s*நாள்\b/g,(m,n)=>`${nums[n]||n} நாள்`);
-  return s.replace(/\b(20|1[0-9]|[1-9])\s*(customer|customers|பீசஸ்|pieces)\b/gi,(m,n,w)=>`${nums[n]||n} ${w}`);
-}
-const NF_ELEVENLABS_VOICE_ID="nJPQW86B3xSFcIV4aV5H";
-const NF_ELEVENLABS_TTS_ENDPOINT="https://new-fashion-voice-tts.onrender.com/tts";
-let nfVoiceAudio=null;
-async function playNFElevenLabsVoice(text){
-  try{
-    const response=await fetch(NF_ELEVENLABS_TTS_ENDPOINT,{method:"POST",headers:{"Content-Type":"application/json","Accept":"audio/mpeg, audio/*, application/json"},body:JSON.stringify({text:nfTtsPronunciationText(text),voice_id:NF_ELEVENLABS_VOICE_ID})});
-    if(!response.ok)throw new Error("/tts "+response.status);
-    const ct=(response.headers.get("content-type")||"").toLowerCase();
-    let audioUrl="";
-    if(ct.includes("audio/"))audioUrl=URL.createObjectURL(await response.blob());
-    else{
-      const data=await response.json();
-      audioUrl=data?.audio_url||data?.audioUrl||data?.url||"";
-      if(!audioUrl&&data?.audio_base64){
-        const binary=atob(data.audio_base64),bytes=new Uint8Array(binary.length);
-        for(let i=0;i<binary.length;i++)bytes[i]=binary.charCodeAt(i);
-        audioUrl=URL.createObjectURL(new Blob([bytes],{type:"audio/mpeg"}));
-      }
-    }
-    if(!audioUrl)throw new Error("Audio missing");
-    if(nfVoiceAudio){try{nfVoiceAudio.pause();}catch(e){}}
-    const audio=new Audio(audioUrl);audio.volume=1;audio.preload="auto";nfVoiceAudio=audio;
-    await audio.play();return true;
-  }catch(e){console.error("ElevenLabs voice playback error:",e);return false;}
-}
-function speakNFCurrentSummary(){
-  const text=nfSpeechText();
-  if(!text){toast("இன்றைய notification text இல்லை.",true);return;}
-  playNFElevenLabsVoice(text).then(ok=>{if(!ok)toast("ElevenLabs voice play செய்ய முடியவில்லை.",true);});
-}
 /* V601 — Exact Android reminder bridge.
    IMPORTANT: reminder scheduling is now delegated to the native
    ReminderScheduler plugin so notification + ElevenLabs voice are fired
