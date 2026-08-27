@@ -2944,62 +2944,64 @@ async function ensureNFExactAlarmPermission(){
 }
 
 async function scheduleNativeDailyNotifications(){
+  const LocalNotifications = await getNFLocalNotifications();
+
+  if(!LocalNotifications){
+    toast("Notification plugin கிடைக்கவில்லை.",true);
+    return false;
+  }
+
   try{
-    const cap=window.Capacitor;
-    if(!cap){
-      toast("Android native bridge கிடைக்கவில்லை.",true);
+    const exactReady = await ensureNFExactAlarmPermission();
+    if(!exactReady){
       return false;
     }
 
-    let ReminderScheduler=null;
+    await ensureNFNotificationChannel();
 
+    /* Cancel the previous 24 schedules before creating the new ones. */
     try{
-      if(typeof cap.registerPlugin==="function"){
-        ReminderScheduler=cap.registerPlugin("ReminderScheduler");
-      }
+      await LocalNotifications.cancel({
+        notifications: NF_NOTIFICATION_IDS.map(id => ({id}))
+      });
     }catch(e){
-      console.error("ReminderScheduler registration error:",e);
+      console.log("Old notification cancel:",e);
     }
 
-    if(!ReminderScheduler){
-      toast("ReminderScheduler plugin கிடைக்கவில்லை.",true);
-      return false;
-    }
+    /* Schedule all 24 configured daily reminder times natively. */
+    const notifications = REMINDER_TIMES.map((time,index)=>{
+      const [hour,minute] = time.split(":").map(Number);
 
-    /*
-     * The HTML remains the source of the 24 configured times.
-     * Native Java schedules the actual exact alarms.
-     */
-    const result=await ReminderScheduler.scheduleDailyReminders({
-      times: REMINDER_TIMES.slice(),
-      title: "🔔 New Fashion Tailoring",
-      body: nfReminderBody()
+      return {
+        id: NF_NOTIFICATION_IDS[index],
+        title: "🔔 New Fashion Tailoring",
+        body: nfReminderBody(),
+        channelId: "nf_daily_reminders",
+        schedule: {
+          on: {
+            hour,
+            minute
+          },
+          allowWhileIdle: true
+        },
+        autoCancel: true
+      };
     });
 
-    if(!result?.success){
-      toast("Native reminder schedule அமைக்கப்படவில்லை.",true);
-      return false;
-    }
+    const result = await LocalNotifications.schedule({
+      notifications
+    });
 
-    console.log(
-      "Native ReminderScheduler scheduled:",
-      result
-    );
-
+    console.log("Native daily notifications scheduled:",result);
     return true;
 
   }catch(error){
-    console.error(
-      "Native ReminderScheduler error:",
-      error
-    );
-
+    console.error("Native notification schedule error:",error);
     toast(
-      "Reminder schedule error: " +
+      "Notification schedule error: " +
       (error?.message || String(error)),
       true
     );
-
     return false;
   }
 }
