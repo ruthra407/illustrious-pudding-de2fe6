@@ -24,52 +24,71 @@ public class ReminderReceiver extends BroadcastReceiver {
     private static final int DEFAULT_NOTIFICATION_ID = 1001;
 
     @Override
-    public void onReceive(
-            Context context,
-            Intent intent
-    ) {
+    public void onReceive(Context context, Intent intent) {
 
-        String title = intent.getStringExtra("title");
-        String message = intent.getStringExtra("message");
+        final Context appContext =
+                context.getApplicationContext();
 
-        if (title == null || title.trim().isEmpty()) {
+        String title =
+                intent.getStringExtra("title");
+
+        String message =
+                intent.getStringExtra("message");
+
+        if (title == null ||
+                title.trim().isEmpty()) {
+
             title = "நினைவூட்டல்";
         }
 
-        if (message == null || message.trim().isEmpty()) {
-            message = "உங்களுக்கு ஒரு நினைவூட்டல் உள்ளது.";
+        if (message == null ||
+                message.trim().isEmpty()) {
+
+            message =
+                    "உங்களுக்கு ஒரு நினைவூட்டல் உள்ளது.";
         }
 
         final String finalTitle = title;
         final String finalMessage = message;
 
-        int notificationId = intent.getIntExtra(
-                "requestCode",
-                DEFAULT_NOTIFICATION_ID
-        );
+        int notificationId =
+                intent.getIntExtra(
+                        "requestCode",
+                        intent.getIntExtra(
+                                "notification_id",
+                                DEFAULT_NOTIFICATION_ID
+                        )
+                );
 
-        Log.d(TAG, "Reminder received");
+        Log.d(TAG, "================================");
+        Log.d(TAG, "REMINDER RECEIVED");
         Log.d(TAG, "Title: " + finalTitle);
         Log.d(TAG, "Message: " + finalMessage);
+        Log.d(TAG, "Notification ID: " + notificationId);
 
-        createNotificationChannel(context);
+        createNotificationChannel(appContext);
 
         /*
          * Notification tap -> MainActivity.
          *
-         * Voice playback does NOT depend on this tap.
+         * Voice playback does NOT depend
+         * on notification tap.
          */
         Intent openIntent =
-                new Intent(context, MainActivity.class);
+                new Intent(
+                        appContext,
+                        MainActivity.class
+                );
 
         openIntent.setFlags(
                 Intent.FLAG_ACTIVITY_NEW_TASK |
-                        Intent.FLAG_ACTIVITY_CLEAR_TOP
+                        Intent.FLAG_ACTIVITY_CLEAR_TOP |
+                        Intent.FLAG_ACTIVITY_SINGLE_TOP
         );
 
         PendingIntent pendingIntent =
                 PendingIntent.getActivity(
-                        context,
+                        appContext,
                         notificationId,
                         openIntent,
                         PendingIntent.FLAG_UPDATE_CURRENT |
@@ -81,7 +100,7 @@ public class ReminderReceiver extends BroadcastReceiver {
          */
         NotificationCompat.Builder builder =
                 new NotificationCompat.Builder(
-                        context,
+                        appContext,
                         CHANNEL_ID
                 )
                         .setSmallIcon(
@@ -100,6 +119,9 @@ public class ReminderReceiver extends BroadcastReceiver {
                         .setPriority(
                                 NotificationCompat.PRIORITY_HIGH
                         )
+                        .setCategory(
+                                NotificationCompat.CATEGORY_REMINDER
+                        )
                         .setAutoCancel(true)
                         .setContentIntent(
                                 pendingIntent
@@ -108,28 +130,49 @@ public class ReminderReceiver extends BroadcastReceiver {
 
         NotificationManager manager =
                 (NotificationManager)
-                        context.getSystemService(
+                        appContext.getSystemService(
                                 Context.NOTIFICATION_SERVICE
                         );
 
         if (manager != null) {
-            manager.notify(
-                    notificationId,
-                    builder.build()
-            );
+
+            if (Build.VERSION.SDK_INT <
+                    Build.VERSION_CODES.TIRAMISU ||
+                    ContextCompat.checkSelfPermission(
+                            appContext,
+                            Manifest.permission.POST_NOTIFICATIONS
+                    ) == PackageManager.PERMISSION_GRANTED) {
+
+                manager.notify(
+                        notificationId,
+                        builder.build()
+                );
+
+                Log.d(
+                        TAG,
+                        "REMINDER NOTIFICATION SHOWN"
+                );
+
+            } else {
+
+                Log.e(
+                        TAG,
+                        "POST_NOTIFICATIONS permission missing"
+                );
+            }
         }
 
         /*
          * IMPORTANT:
          *
-         * Do NOT do the long TTS request inside
-         * BroadcastReceiver/goAsync().
+         * Start ReminderVoiceService immediately.
          *
-         * Start a foreground service immediately.
+         * User does NOT need to tap
+         * the notification.
          */
         Intent voiceIntent =
                 new Intent(
-                        context,
+                        appContext,
                         ReminderVoiceService.class
                 );
 
@@ -150,34 +193,49 @@ public class ReminderReceiver extends BroadcastReceiver {
 
         try {
 
+            Log.d(
+                    TAG,
+                    "STARTING ReminderVoiceService NOW"
+            );
+
             if (Build.VERSION.SDK_INT >=
                     Build.VERSION_CODES.O) {
 
                 ContextCompat.startForegroundService(
-                        context,
+                        appContext,
                         voiceIntent
                 );
 
             } else {
 
-                context.startService(
+                appContext.startService(
                         voiceIntent
                 );
             }
 
             Log.d(
                     TAG,
-                    "ReminderVoiceService started"
+                    "ReminderVoiceService START COMMAND SENT"
             );
 
         } catch (Exception error) {
 
             Log.e(
                     TAG,
-                    "Could not start voice service",
+                    "FAILED TO START ReminderVoiceService",
                     error
             );
         }
+
+        Log.d(
+                TAG,
+                "REMINDER RECEIVER FINISHED"
+        );
+
+        Log.d(
+                TAG,
+                "================================"
+        );
     }
 
     private void createNotificationChannel(
@@ -211,8 +269,9 @@ public class ReminderReceiver extends BroadcastReceiver {
         );
 
         /*
-         * Notification sound itself is disabled.
-         * The female TTS voice is played separately
+         * Notification sound is disabled.
+         *
+         * Female voice is played separately
          * by ReminderVoiceService.
          */
         channel.setSound(
