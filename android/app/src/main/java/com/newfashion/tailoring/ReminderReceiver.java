@@ -1,24 +1,35 @@
 package com.newfashion.tailoring;
 
 import android.Manifest;
+import android.app.BroadcastReceiver;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
-import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.media.AudioAttributes;
-import android.net.Uri;
+import android.media.MediaPlayer;
 import android.os.Build;
 
 import androidx.core.app.NotificationCompat;
 import androidx.core.content.ContextCompat;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+
 public class ReminderReceiver extends BroadcastReceiver {
 
-    private static final String CHANNEL_ID = "reminder_voice_channel_v2";
+    private static final String CHANNEL_ID = "reminder_voice_channel_v3";
     private static final int DEFAULT_NOTIFICATION_ID = 1001;
+
+    // இங்கே உங்கள் deployed TTS server URL போட வேண்டும்
+    private static final String TTS_URL =
+            "https://YOUR-BACKEND-URL/tts";
 
     @Override
     public void onReceive(Context context, Intent intent) {
@@ -33,6 +44,9 @@ public class ReminderReceiver extends BroadcastReceiver {
         if (message == null || message.trim().isEmpty()) {
             message = "உங்களுக்கு ஒரு நினைவூட்டல் உள்ளது.";
         }
+
+        final String finalTitle = title;
+        final String finalMessage = message;
 
         int notificationId = intent.getIntExtra(
                 "requestCode",
@@ -76,63 +90,199 @@ public class ReminderReceiver extends BroadcastReceiver {
                         .setSmallIcon(
                                 android.R.drawable.ic_popup_reminder
                         )
-                        .setContentTitle(title)
-                        .setContentText(message)
+                        .setContentTitle(finalTitle)
+                        .setContentText(finalMessage)
                         .setStyle(
                                 new NotificationCompat.BigTextStyle()
-                                        .bigText(message)
+                                        .bigText(finalMessage)
                         )
                         .setPriority(
                                 NotificationCompat.PRIORITY_HIGH
                         )
                         .setAutoCancel(true)
-                        .setContentIntent(pendingIntent);
+                        .setContentIntent(pendingIntent)
+                        .setSilent(true);
 
-        NotificationManager notificationManager =
+        NotificationManager manager =
                 (NotificationManager)
                         context.getSystemService(
                                 Context.NOTIFICATION_SERVICE
                         );
 
-        if (notificationManager != null) {
-            notificationManager.notify(
+        if (manager != null) {
+            manager.notify(
                     notificationId,
                     builder.build()
             );
         }
+
+        android.content.BroadcastReceiver.PendingResult pendingResult =
+                goAsync();
+
+        new Thread(() -> {
+
+            File audioFile = null;
+            MediaPlayer player = null;
+
+            try {
+
+                audioFile = generateTts(
+                        finalMessage,
+                        context
+                );
+
+                player = new MediaPlayer();
+
+                player.setAudioAttributes(
+                        new AudioAttributes.Builder()
+                                .setUsage(
+                                        AudioAttributes.USAGE_NOTIFICATION
+                                )
+                                .setContentType(
+                                        AudioAttributes.CONTENT_TYPE_SPEECH
+                                )
+                                .build()
+                );
+
+                player.setDataSource(
+                        audioFile.getAbsolutePath()
+                );
+
+                MediaPlayer finalPlayer = player;
+
+                player.setOnCompletionListener(mp -> {
+                    mp.release();
+
+                    if (audioFile != null) {
+                        audioFile.delete();
+                    }
+
+                    pendingResult.finish();
+                });
+
+                player.prepare();
+                player.start();
+
+            } catch (Exception e) {
+
+                e.printStackTrace();
+
+                if (player != null) {
+                    try {
+                        player.release();
+                    } catch (Exception ignored) {
+                    }
+                }
+
+                if (audioFile != null) {
+                    audioFile.delete();
+                }
+
+                pendingResult.finish();
+            }
+
+        }).start();
     }
 
-    private void createNotificationChannel(Context context) {
+    private File generateTts(
+            String text,
+            Context context
+    ) throws Exception {
+
+        URL url = new URL(TTS_URL);
+
+        HttpURLConnection connection =
+                (HttpURLConnection) url.openConnection();
+
+        connection.setRequestMethod("POST");
+        connection.setDoOutput(true);
+        connection.setConnectTimeout(15000);
+        connection.setReadTimeout(30000);
+
+        connection.setRequestProperty(
+                "Content-Type",
+                "application/json"
+        );
+
+        String json =
+                "{\"text\":\""
+                        + escapeJson(text)
+                        + "\"}";
+
+        OutputStream output =
+                connection.getOutputStream();
+
+        output.write(
+                json.getBytes("UTF-8")
+        );
+
+        output.flush();
+        output.close();
+
+        if (connection.getResponseCode() != 200) {
+            throw new Exception(
+                    "TTS server error: "
+                            + connection.getResponseCode()
+            );
+        }
+
+        File file = new File(
+                context.getCacheDir(),
+                "notification_voice.mp3"
+        );
+
+        InputStream input =
+                connection.getInputStream();
+
+        FileOutputStream outputFile =
+                new FileOutputStream(file);
+
+        byte[] buffer = new byte[8192];
+
+        int length;
+
+        while ((length = input.read(buffer)) != -1) {
+            outputFile.write(
+                    buffer,
+                    0,
+                    length
+            );
+        }
+
+        outputFile.flush();
+        outputFile.close();
+        input.close();
+
+        connection.disconnect();
+
+        return file;
+    }
+
+    private String escapeJson(String value) {
+
+        return value
+                .replace("\\", "\\\\")
+                .replace("\"", "\\\"")
+                .replace("\n", "\\n")
+                .replace("\r", "\\r");
+    }
+
+    private void createNotificationChannel(
+            Context context
+    ) {
 
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
             return;
         }
 
-        NotificationManager notificationManager =
+        NotificationManager manager =
                 context.getSystemService(
                         NotificationManager.class
                 );
 
-        if (notificationManager == null) {
+        if (manager == null) {
             return;
         }
-
-        Uri soundUri = Uri.parse(
-                "android.resource://"
-                        + context.getPackageName()
-                        + "/"
-                        + R.raw.voice_for_elevenlabs
-        );
-
-        AudioAttributes audioAttributes =
-                new AudioAttributes.Builder()
-                        .setUsage(
-                                AudioAttributes.USAGE_NOTIFICATION
-                        )
-                        .setContentType(
-                                AudioAttributes.CONTENT_TYPE_SPEECH
-                        )
-                        .build();
 
         NotificationChannel channel =
                 new NotificationChannel(
@@ -142,14 +292,13 @@ public class ReminderReceiver extends BroadcastReceiver {
                 );
 
         channel.setDescription(
-                "Tailoring reminder notifications with voice"
+                "Tailoring reminder notifications"
         );
 
-        channel.setSound(
-                soundUri,
-                audioAttributes
-        );
+        // Notification sound OFF.
+        // TTS voice தனியாக MediaPlayer மூலம் play ஆகும்.
+        channel.setSound(null, null);
 
-        notificationManager.createNotificationChannel(channel);
+        manager.createNotificationChannel(channel);
     }
 }
