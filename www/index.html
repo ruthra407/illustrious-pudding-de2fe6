@@ -2815,6 +2815,34 @@ function pickNFVoice(){
 /* V600 ElevenLabs notification voice via Render /tts.
    The ElevenLabs API key stays on the Render backend; this page only sends
    the notification text and the selected Voice ID to the same-origin /tts endpoint. */
+
+/* TTS pronunciation corrections: affects ElevenLabs text only. */
+function nfTtsPronunciationText(text){
+  let s = String(text || "");
+  const replacements = [
+    [/\bBlouse\b/gi, "ப்ளவுஸ்"],
+    [/\bChudi\b/gi, "சுடிதார்"],
+    [/\bSaree\b/gi, "சாரி"],
+    [/\bShirt\b/gi, "சர்ட்"],
+    [/\bcustomer\b/gi, "கஸ்டமர்"],
+    [/\bNagaraj\b/gi, "நாகராஜ்"],
+    [/\bBritannia\b/gi, "பிரிட்டானியா"]
+  ];
+  replacements.forEach(([p,v]) => { s = s.replace(p,v); });
+
+  const nums = {"1":"ஒரு","2":"இரண்டு","3":"மூன்று","4":"நான்கு","5":"ஐந்து",
+    "6":"ஆறு","7":"ஏழு","8":"எட்டு","9":"ஒன்பது","10":"பத்து",
+    "11":"பதினொன்று","12":"பன்னிரண்டு","13":"பதின்மூன்று","14":"பதினான்கு",
+    "15":"பதினைந்து","16":"பதினாறு","17":"பதினேழு","18":"பதினெட்டு",
+    "19":"பத்தொன்பது","20":"இருபது"};
+
+  s = s.replace(/\b(20|1[0-9]|[1-9])\s*நாள்\b/g,
+    (m,n) => `${nums[n] || n} நாள்`);
+  s = s.replace(/\b(20|1[0-9]|[1-9])\s*(customer|customers|பீசஸ்|pieces)\b/gi,
+    (m,n,w) => `${nums[n] || n} ${w}`);
+  return s;
+}
+
 const NF_ELEVENLABS_VOICE_ID = "nJPQW86B3xSFcIV4aV5H";
 const NF_ELEVENLABS_TTS_ENDPOINT = "https://new-fashion-voice-tts.onrender.com/tts";
 let nfVoiceAudio = null;
@@ -2828,9 +2856,9 @@ async function playNFElevenLabsVoice(text){
         "Accept": "audio/mpeg, audio/*, application/json"
       },
       body: JSON.stringify({
-        text: String(text || ""),
-        voice_id: NF_ELEVENLABS_VOICE_ID
-      })
+         text: nfTtsPronunciationText(text),
+         voice_id: NF_ELEVENLABS_VOICE_ID
+       })
     });
 
     if(!response.ok){
