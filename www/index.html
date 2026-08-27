@@ -618,7 +618,7 @@ body.nf-photo-preview-scroll-locked{
       <button type="button" class="btn secondary" onclick="refreshNFHomeNotificationBar()">↻ Refresh</button>
     </div>
     <div class="nf-notification-times-settings">
-      <div class="nf-notification-times-head"><div><b>⏰ 24 Notification நேரங்கள்</b><small>ஒரு மணி நேரத்திற்கு 2 notification · ஒவ்வொரு 30 நிமிடத்திற்கு ஒருமுறை</small></div><span>4 × 6</span></div>
+      <div class="nf-notification-times-head"><div><b>⏰ 24 Notification நேரங்கள்</b><small>ஒரு மணி நேரத்திற்கு 2 exact reminder · ஒவ்வொரு 30 நிமிடத்திற்கு ஒருமுறை</small></div><span>4 × 6</span></div>
       <div id="nfNotificationTimesGrid" class="nf-notification-times-grid"></div>
       <div class="nf-home-notification-actions">
         <button class="btn primary" type="button" onclick="saveReminderTimesFrom(this)">💾 நேரங்களை சேமி</button>
@@ -626,7 +626,7 @@ body.nf-photo-preview-scroll-locked{
         <button class="btn warning" type="button" onclick="enableDailyNotifications()">🔔 ON</button>
         <button class="btn secondary" type="button" onclick="disableDailyNotifications()">🔕 OFF</button>
       </div>
-      <div class="nf-notification-times-hint">ON செய்தால் இந்த 24 நேரங்களிலும் Android native notification schedule செய்யப்படும். OFF செய்தால் 24 schedule-களும் cancel ஆகும்.</div>
+      <div class="nf-notification-times-hint">ON செய்தால் 24 exact Android alarms அமைக்கப்படும்; notification மற்றும் ElevenLabs voice ஒரே native alarm trigger-ல் வரும். OFF செய்தால் அனைத்தும் cancel ஆகும்.</div>
     </div>
   </div>
 </div><div class="nf-dashboard-collection-card" role="button" tabindex="0" onclick="goView('payments')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();goView('payments')}"><div class="nf-dashboard-collection-head"><div class="nf-dashboard-collection-title">💰 Collections</div><div class="nf-dashboard-collection-sync">Today + Monthly · calculation sync</div></div><div class="nf-dashboard-collection-grid"><div class="nf-dashboard-collection-item"><div class="nf-dashboard-collection-label">💰 Today Collection</div><div id="kpiToday" class="nf-dashboard-collection-value">₹0</div><div class="nf-dashboard-collection-small">இன்று பெற்ற payment</div></div><div class="nf-dashboard-collection-item"><div class="nf-dashboard-collection-label">📅 Monthly Collection</div><div id="kpiMonthly" class="nf-dashboard-collection-value">₹0</div><div id="kpiMonthlySmall" class="nf-dashboard-collection-small">இந்த மாதம்</div></div></div></div><div class="stats nf-dashboard-hidden-stats" aria-hidden="true"><div class="stat"><div class="label">Customers</div><div id="statCustomers" class="num">0</div></div><div class="stat"><div class="label">Orders</div><div id="statOrders" class="num">0</div></div><div class="stat"><div class="label">Today Collection</div><div id="statTodayCollection" class="num">₹0</div></div><div class="stat"><div class="label">Pending Balance</div><div id="statBalance" class="num">₹0</div></div></div><div class="card dashboardCustomersCard nf-dashboard-customer-hub"><div class="nf-dch-head nf-my-customers-head"><div class="nf-my-customers-title-wrap"><button class="nf-left-customer-menu-btn" type="button" onclick="toggleMyCustomersSlideMenu(event)" aria-label="Open customer names" title="Customer names">☰</button><div class="nf-dch-title">My Customers</div></div><div class="nf-my-customers-actions"><button class="btn primary nf-dashboard-add-customer-btn" type="button" onclick="openModal('customer')" aria-label="Add Customer" title="Add Customer">＋</button><button type="button" id="nfHomeNotificationButton" class="nf-dashboard-notification-btn" onclick="goView('notifications')" aria-label="Open Notification Center" title="Notifications"><span class="nf-dashboard-notification-icon">🔔</span><span id="nfHomeNotificationStatus" class="nf-home-notification-button-status off">OFF</span></button><button class="nf-dashboard-daily-btn" type="button" onclick="goView('daily-update')" aria-label="Daily Update" title="Daily Update">📊</button><button class="nf-my-customers-menu-btn" type="button" onclick="toggleMyCustomersMenu(event)" aria-label="Customer filter" title="Customer filter">☷</button><div id="myCustomersMenu" class="nf-my-customers-menu" hidden><button type="button" class="active" data-my-filter="all" onclick="setDashboardCustomerTab('all');closeMyCustomersMenu()">All Customers <span id="dchCountAll">0</span></button><button type="button" data-my-filter="new" onclick="setDashboardCustomerTab('new');closeMyCustomersMenu()">New Customers <span id="dchCountNew">0</span></button><button type="button" data-my-filter="delivered" onclick="setDashboardCustomerTab('delivered');closeMyCustomersMenu()">Delivered Customers <span id="dchCountDelivered">0</span></button></div></div></div><div id="dashboardCustomersList" class="nf-dch-list"></div></div><div id="nfCustomerSlideBackdrop" class="nf-customer-slide-backdrop" hidden onclick="closeMyCustomersSlideMenu()"></div><aside id="nfCustomerSlideMenu" class="nf-customer-slide-menu" aria-hidden="true" aria-label="Customer names menu"><div class="nf-customer-slide-head"><div><div class="nf-customer-slide-title">👥 Customer List</div><div class="nf-customer-slide-sub">Existing Customers · Synced</div></div><button type="button" class="nf-customer-slide-close" onclick="closeMyCustomersSlideMenu()" aria-label="Close customer list">×</button></div><div id="nfCustomerSlideList" class="nf-customer-slide-list"></div></aside><div class="nf-dashboard-compat" aria-hidden="true"><span id="kpiReminder"></span><span id="kpiPending"></span><span id="kpiPendingSmall"></span><span id="kpiPendingDetails"></span><span id="kpiDelivery"></span><span id="kpiDeliveryDetails"></span><span id="dueSoonCount"></span><span id="dueSoonList"></span></div><div class="nf-dashboard-compat" aria-hidden="true"><span id="recentOrders"></span></div></section><section id="view-notifications" class="view nf-v600-notification-view">
@@ -644,7 +644,7 @@ body.nf-photo-preview-scroll-locked{
     </div>
     <div class="nf-v600-times-section">
       <div class="nf-v600-times-head">
-        <div><div class="nf-v600-times-title">⏰ 24 Notification நேரங்கள்</div><div class="nf-v600-times-sub">ஒரு மணி நேரத்திற்கு 2 notification · ஒவ்வொரு 30 நிமிடத்திற்கு ஒருமுறை</div></div>
+        <div><div class="nf-v600-times-title">⏰ 24 Notification நேரங்கள்</div><div class="nf-v600-times-sub">ஒரு மணி நேரத்திற்கு 2 exact reminder · ஒவ்வொரு 30 நிமிடத்திற்கு ஒருமுறை</div></div>
         <span class="nf-v600-4x6">4 × 6</span>
       </div>
       <div id="nfNotificationTimesGrid" class="nf-notification-times-grid nf-v600-grid"></div>
@@ -657,7 +657,7 @@ body.nf-photo-preview-scroll-locked{
       <div id="nfNotificationScheduleStatus" class="nf-v600-schedule-status off">
         <span class="nf-v600-status-icon">🔕</span><div><b>Notifications OFF</b><small>தற்போது notification schedule இல்லை</small></div>
       </div>
-      <div class="nf-v600-hint">ON செய்தால் Android native notification schedule செய்யப்படும். OFF செய்தால் 24 schedule-களும் cancel ஆகும்.</div>
+      <div class="nf-v600-hint">ON செய்தால் 24 exact Android alarms அமைக்கப்படும்; notification மற்றும் ElevenLabs voice ஒரே native alarm trigger-ல் வரும். OFF செய்தால் அனைத்தும் cancel ஆகும்.</div>
     </div>
   </div>
 </section></section><section id="view-daily-update" class="view"><div class="nf-daily-page-head"><button type="button" class="nf-daily-back" onclick="goView('dashboard')" aria-label="Back to Home">‹</button><div><h2>📊 Daily Update</h2><p>இன்றைய நிலவரம்</p></div></div><div id="nfDailySummaryCard" aria-label="Daily Update Summary"><div class="nfDailySummaryHead"><b>📊 Daily Update</b><span>இன்றைய நிலவரம்</span></div><div id="dailyUpdate"></div></div></section><section id="view-customers" class="view"><div class="pagehead nf-search-pagehead nf-customer-cards-head"><button class="nf-customer-cards-menu-btn" type="button" onclick="toggleMyCustomersSlideMenu(event)" aria-label="Open customer names" title="Customer names">☰</button><div class="nf-customer-cards-title"><h2>Customer Cards</h2></div><div class="nf-customer-cards-right"><button class="btn secondary nf-search-icon-btn" type="button" onclick="toggleCompactSearch('customer')" aria-label="Search customers" title="Search">🔍</button></div></div><div class="nf-customer-cards-add-wrap"><button class="btn primary nf-customer-cards-add-btn" onclick="openModal('customer')">＋ Add Customer</button></div><div id="customerSearchPanel" class="nf-compact-search-panel" hidden><div class="nf-compact-search-row"><span class="nf-compact-search-icon">🔍</span><input id="customerSearch" class="input search" placeholder="Search name / phone / address / village" autocomplete="off"><button class="btn secondary nf-compact-close" type="button" onclick="toggleCompactSearch('customer',false)" aria-label="Close search">✕</button><button class="btn secondary nf-compact-refresh" type="button" onclick="loadAll()" title="Refresh">↻</button></div></div><div id="customersTable" class="customerCards"></div></section><section id="view-measurements" class="view"><div class="pagehead"><div><h2>Measurements</h2><p>Customer-wise measurements.</p></div><div class="spacer"></div><button class="btn primary" onclick="openModal('measurement')">＋ Add Measurement</button></div><div class="card"><div class="toolbar"><input id="measurementSearch" class="input search" placeholder="Search customer / garment"><button class="btn secondary" onclick="loadAll()">↻ Refresh</button></div><div id="measurementsTable"></div></div></section><section id="view-orders" class="view"><div class="pagehead nf-search-pagehead"><div><h2>Orders</h2><p>Customer Card-ல் எடுத்த New Order-கள் மட்டும் இங்கே வரும்.</p></div><div class="spacer"></div><button class="btn secondary nf-search-icon-btn" type="button" onclick="toggleCompactSearch('orders')" aria-label="Search orders" title="Search">🔍</button></div><div id="ordersSearchPanel" class="nf-compact-search-panel" hidden><div class="nf-compact-search-row nf-orders-search-row"><span class="nf-compact-search-icon">🔍</span><input id="orderSearch" class="input search" placeholder="Search order / customer / garment" autocomplete="off"><select id="orderStatusFilter" class="input nf-order-status-select"><option value="">All status</option><option>Pending</option><option>In Progress</option><option>Ready</option><option>Delivered</option><option>Cancelled</option></select><button class="btn secondary nf-compact-close" type="button" onclick="toggleCompactSearch('orders',false)" aria-label="Close search">✕</button><button class="btn secondary nf-compact-refresh" type="button" onclick="loadAll()" title="Refresh">↻</button></div></div><div class="card nf-section-card"><div id="ordersTable"></div></div></section><section id="view-alterations" class="view"><div class="pagehead"><div><h2>Alterations</h2><p>Alteration work and delivery tracking.</p></div><div class="spacer"></div><button class="btn primary" onclick="openModal('alteration')">＋ Add Alteration</button></div><div class="card"><div class="toolbar"><input id="alterationSearch" class="input search" placeholder="Search customer / details"><button class="btn secondary" onclick="loadAll()">↻ Refresh</button></div><div id="alterationsTable"></div></div></section><section id="view-payments" class="view"><div class="pagehead"><div><h2>Payments</h2><p>Today collection மற்றும் payment history.</p></div><div class="spacer"></div></div><div class="card nf-section-card"><div class="toolbar"><input id="paymentSearch" class="input search" placeholder="Search order / payment method / reference"><button class="btn secondary" onclick="loadAll()">↻ Refresh</button></div><div id="paymentsTable"></div></div></section><section id="view-designs" class="view"><div class="pagehead"><div><h2>🎨 Blouse Design Studio</h2><p>Online-ல் design தேடி, பிடித்த design-ஐ இங்கே save செய்து customer-க்கு காட்டலாம்.</p></div><div class="spacer"></div><button class="btn primary" onclick="openModal('design')">＋ Add Design</button></div><div class="card"><div class="designTools"><input id="onlineDesignQuery" class="input" placeholder="எ.கா. bridal blouse design / simple blouse design"><button class="btn primary" id="onlineDesignBtn">🔎 Search Designs</button><button class="btn secondary" id="googleDesignBtn">🌐 Google Images</button></div><div class="mini">Google Images முழு results-ஐ Google-ல் திறக்கலாம். கீழே preview results-ல் save செய்யக்கூடிய படங்களும் வரும்.</div><div id="onlineDesignResults" class="designSearchResults"></div></div><div class="card" style="margin-top:14px"><div class="pagehead"><div><h3 style="margin:0">💾 Saved Designs</h3><p>உங்கள் design catalogue</p></div></div><div id="designGallery" class="designGallery"></div></div><div class="card" style="margin-top:14px"><div class="toolbar"><input id="designSearch" class="input search" placeholder="Search saved design no / name / category"><button class="btn secondary" onclick="loadAll()">↻ Refresh</button></div><div id="designsTable"></div></div></section></main></div></div><div id="ordersNewOrderScreen" class="modal nf-orders-new-order-screen" aria-hidden="true"><div class="modalbox nf-orders-new-order-box"><div class="modalhead"><h3 id="ordersNewOrderScreenTitle">🧾 New Order</h3><button class="close" type="button" onclick="closeOrdersQuickAdd()">✕</button></div><div id="ordersNewOrderContent"></div></div></div><button id="p4Fab" class="p4FabButton" type="button" aria-label="Add">＋</button><nav id="p4MobileNav" aria-label="Quick navigation"><button data-p4-view="dashboard"><span class="p4Icon">⌂</span><span>Home</span></button><button data-p4-view="customers"><span class="p4Icon">👥</span><span>Customers</span></button><button data-p4-view="orders"><span class="p4Icon">🧾</span><span>Orders</span></button><button data-p4-view="payments"><span class="p4Icon">₹</span><span>Payments</span></button></nav><div id="nfOrderFullDetails" class="modal nf-order-full-details" aria-hidden="true"><div class="modalbox nf-order-full-details-box"><div class="modalhead nf-order-full-details-head"><h3 id="nfOrderFullDetailsTitle">Order Full Details</h3><button class="close" type="button" onclick="closeOrderFullDetails()">✕</button></div><div id="nfOrderFullDetailsContent"></div></div></div><div id="modal" class="modal"><div class="modalbox"><div class="modalhead"><h3 id="modalTitle">Add</h3><button class="close" onclick="closeModal()">✕</button></div><form id="dataForm"><div id="formFields" class="formgrid"></div><div class="modalfoot"><button type="button" class="btn secondary" onclick="closeModal()">Cancel</button><button id="nfModalDeletePayment" type="button" class="btn danger hidden" title="Delete Payment">🗑️ Delete Payment</button><button id="saveBtn" type="submit" class="btn primary">Save</button></div><div id="formMsg" class="msg"></div></form></div></div><div id="toast" class="toast"></div><div id="passkeyGate" class="passkeyGate" aria-hidden="true"><section class="passkeyGateBox"><div class="passkeyIcon">🔐</div><h3>NEW FASHION</h3><p>இந்த சாதனத்தின் Fingerprint / Face / Screen Lock மூலம் App-ஐ unlock செய்யுங்கள்.</p><button id="passkeyUnlockBtn" class="btn primary" type="button">Unlock with Passkey</button><div id="passkeyGateMsg" class="passkeyGateMsg"></div></section></div><script>
@@ -759,9 +759,6 @@ result.forEach((r,i)=>{
 });
 try{renderAll();}catch(err){console.error("Render error:",err);}
 refreshNFHomeNotificationBar();
-if(localStorage.getItem("nf_notification_enabled")==="1"){
-  scheduleNativeDailyNotifications().catch(e=>console.error("Notification refresh after data load:",e));
-}
 if(failed.length){
   console.error("Database load errors:",failed);
   toast("சில data tables load ஆகவில்லை. மற்ற data பாதுகாப்பாக காட்டப்படுகிறது.",true);
@@ -960,7 +957,7 @@ const delivered=state.orders.filter(o=>String(o.status)==="Delivered").length;
 $("dailyUpdate").innerHTML=`<p>📅 இன்று: <b>${dateText(localDate())}</b></p><p>💰 Today collection: <b>${money(todayCollection())}</b></p><p>📅 This month collection: <b>${money(monthlyCollection())}</b></p><p>👗 மொத்த pieces: <b>${totalPieces()}</b> &nbsp; | &nbsp; மொத்த order value: <b>${money(totalSales())}</b></p><p>💳 Customers கொடுக்க வேண்டிய balance: <b>${money(totalBalance())}</b></p><p>🚨 Late orders: <b>${late.length}</b> &nbsp; | &nbsp; ✅ Delivered: <b>${delivered}</b></p>`;
 const recent=state.orders.slice().sort((a,b)=>String(b.created_at||"").localeCompare(String(a.created_at||""))).slice(0,8);
 $("recentOrders").innerHTML=recent.length?`<div class="tablewrap"><table class="table"><thead><tr><th>Order</th><th>Customer</th><th>Garment</th><th>Qty</th><th>Delivery</th><th>Total</th><th>Balance</th><th>Status</th></tr></thead><tbody>${recent.map(o=>`<tr><td><b>${esc(o.order_no)}</b></td><td>${esc(customerName(o.customer_id))}</td><td>${esc(o.garment_type)}</td><td>${Number(o.quantity||0)}</td><td>${dateText(o.delivery_date)}</td><td>${money(orderTotal(o))}</td><td>${money(nfOrderBalance(o))}</td><td>${statusPill(o.status)}</td></tr>`).join("")}</tbody></table></div>`:`<div class="empty">No orders yet.</div>`;
-if(localStorage.getItem("nf_notification_enabled")==="1")startReminderScheduler();
+if(localStorage.getItem("nf_notification_enabled")==="1"){}
 }
 function smallOrderList(list,label){
  if(!list.length)return `<div class="mini" style="margin-top:8px">எதுவும் இல்லை.</div>`;
@@ -2523,539 +2520,272 @@ $("ownerCameraInput")?.addEventListener("change",e=>savePhoto("owner",e.target.f
 $("shopPhotoInput")?.addEventListener("change",e=>savePhoto("shop",e.target.files[0]));
 $("shopCameraInput")?.addEventListener("change",e=>savePhoto("shop",e.target.files[0]));
 
-let nfLocalNotificationsPromise=null;
-
-async function getNFLocalNotifications(){
- const cap=window.Capacitor;
- if(!cap)return null;
-
- if(nfLocalNotificationsPromise){
-   return nfLocalNotificationsPromise;
- }
-
- nfLocalNotificationsPromise=(async()=>{
-   try{
-
-     if(typeof cap.registerPlugin==="function"){
-       const plugin=cap.registerPlugin("LocalNotifications");
-       if(plugin)return plugin;
-     }
-
-     if(cap.Plugins && cap.Plugins.LocalNotifications){
-       return cap.Plugins.LocalNotifications;
-     }
-   }catch(e){
-     console.error("LocalNotifications registration error:",e);
-   }
-
-   return null;
- })();
-
- return nfLocalNotificationsPromise;
-}
-
-async function ensureNFNotificationChannel(){
- const LocalNotifications=await getNFLocalNotifications();
- if(!LocalNotifications)return false;
-
- try{
-   if(typeof LocalNotifications.createChannel==="function"){
-     await LocalNotifications.createChannel({
-       id:"nf_daily_reminders",
-       name:"Daily Tailoring Reminders",
-       description:"New Fashion Tailoring delivery reminders",
-       importance:4,
-       visibility:1,
-       sound:"default",
-       vibration:true
-     });
-   }
- }catch(e){
-   console.log("Notification channel:",e);
- }
- return true;
-}
-
-function nfDelay(ms){
- return new Promise(resolve=>setTimeout(resolve,ms));
-}
-
-async function requestNotificationPermission(){
- const LocalNotifications=await getNFLocalNotifications();
-
- if(!LocalNotifications){
-   toast("Notification plugin கிடைக்கவில்லை. APK-ல் Local Notifications plugin register ஆகவில்லை.",true);
-   return "denied";
- }
-
- try{
-
-   let current=await LocalNotifications.checkPermissions();
-
-   if(current?.display==="granted"){
-     await ensureNFNotificationChannel();
-     return "granted";
-   }
-
-   let result=await LocalNotifications.requestPermissions();
-
-   await nfDelay(350);
-
-   current=await LocalNotifications.checkPermissions();
-
-   if(current?.display==="granted"){
-     await ensureNFNotificationChannel();
-     return "granted";
-   }
-
-   if(result?.display==="granted"){
-     await ensureNFNotificationChannel();
-     return "granted";
-   }
-
-   await nfDelay(500);
-   current=await LocalNotifications.checkPermissions();
-
-   if(current?.display==="granted"){
-     await ensureNFNotificationChannel();
-     return "granted";
-   }
-
-   console.warn("Notification permission state:",current,result);
-   return current?.display || result?.display || "denied";
- }catch(error){
-   console.error("Native notification permission error:",error);
-   toast("Notification permission error: "+(error?.message||String(error)),true);
-   return "denied";
- }
-}
-
-const DEFAULT_REMINDER_TIMES=[
- "07:00","07:30","08:00","08:30","09:00","09:30",
- "10:00","10:30","11:00","11:30","12:00","12:30",
- "13:00","13:30","14:00","14:30","15:00","15:30",
- "16:00","16:30","17:00","17:30","18:00","18:30"
-];
-
-function loadReminderTimes(){
- try{
-  const saved=JSON.parse(localStorage.getItem("nf_reminder_times")||"null");
-  if(Array.isArray(saved) && saved.length===24 && saved.every(t=>/^([01]\d|2[0-3]):[0-5]\d$/.test(String(t)))) return saved;
- }catch(e){}
- return DEFAULT_REMINDER_TIMES.slice();
-}
-
-let REMINDER_TIMES=loadReminderTimes();
-
-const NF_NOTIFICATION_IDS=Array.from({length:24},(_,i)=>8001+i);
-
-async function saveReminderTimesFrom(button){
- const box=button?.closest?.(".nf-notification-times-settings,.nf-v600-notification-card");
- if(!box)return;
-
- const values=[...box.querySelectorAll("input[data-reminder-time]")].map(x=>x.value);
-
- if(values.length!==24 || !values.every(t=>/^([01]\d|2[0-3]):[0-5]\d$/.test(String(t)))){
-  toast("24 சரியான நேரங்களை தேர்வு செய்யுங்கள்.",true);
-  return;
- }
-
- if(new Set(values).size!==24){
-  toast("ஒரே நேரத்தை இரண்டு முறை வைக்க முடியாது.",true);
-  return;
- }
-
- REMINDER_TIMES=values.slice();
- localStorage.setItem("nf_reminder_times",JSON.stringify(REMINDER_TIMES));
-
- const enabled=localStorage.getItem("nf_notification_enabled")==="1";
-
- if(enabled){
-   const scheduled=await scheduleNativeDailyNotifications();
-   if(!scheduled){
-     toast("⚠️ நேரங்கள் சேமிக்கப்பட்டது. ஆனால் notification schedule மீண்டும் அமைக்கப்படவில்லை.",true);
-     return;
-   }
- }
-
- refreshNFHomeNotificationBar();
- toast(enabled
-   ? "✅ நேரங்கள் சேமிக்கப்பட்டது. புதிய notification schedule அமைக்கப்பட்டது."
-   : "✅ Notification நேரங்கள் சேமிக்கப்பட்டது.");
-}
-
-function resetReminderTimes(button){
- REMINDER_TIMES=DEFAULT_REMINDER_TIMES.slice();
- localStorage.setItem("nf_reminder_times",JSON.stringify(REMINDER_TIMES));
- const box=button?.closest?.(".nf-notification-times-settings,.nf-v600-notification-card");
- if(box)[...box.querySelectorAll("input[data-reminder-time]")].forEach((x,i)=>x.value=REMINDER_TIMES[i]);
- if(localStorage.getItem("nf_notification_enabled")==="1") scheduleNativeDailyNotifications();
- refreshNFHomeNotificationBar();
- renderNFNotificationTimes();
- toast("↩️ Default 24 notification நேரங்கள் அமைக்கப்பட்டன.");
-}
-
-async function disableDailyNotifications(){
- try{
-  const LocalNotifications=await getNFLocalNotifications();
-  if(LocalNotifications){
-   await LocalNotifications.cancel({notifications:NF_NOTIFICATION_IDS.map(id=>({id}))});
-  }
- }catch(error){
-  console.error("Notification cancel error:",error);
- }
- localStorage.removeItem("nf_notification_enabled");
- refreshNFHomeNotificationBar();
- toast("🔕 Notifications OFF. அனைத்து daily notifications cancel செய்யப்பட்டது.");
-}
-
-let reminderTimer=null;
-
-function nfReminderBody(){
- const orders=(state.orders||[]).filter(o=>!isFinished(o));
- const withDelivery=orders.filter(o=>o.delivery_date);
- const late=withDelivery.filter(o=>dueInfo(o)?.kind==="late");
- const today=withDelivery.filter(o=>dueInfo(o)?.kind==="today");
- const soon=withDelivery.filter(o=>dueInfo(o)?.kind==="soon");
- const todayWork=orders.filter(o=>String(o.order_date||o.created_at||"").slice(0,10)===localDate());
- const workOrders=[...todayWork,...today,...late,...soon].filter((o,i,a)=>a.findIndex(x=>String(x.id)===String(o.id))===i);
- const lines=[];
- if(today.length) lines.push(`📦 இன்று கொடுக்க: ${today.length} customer`);
- if(todayWork.length) lines.push(`🧵 இன்று செய்ய: ${todayWork.length} order`);
- if(late.length) lines.push(`🚨 Late: ${late.length} customer`);
- if(soon.length) lines.push(`⏳ அடுத்த நாட்கள்: ${soon.length} customer`);
- workOrders.forEach(o=>{
-   const c=(state.customers||[]).find(x=>String(x.id)===String(o.customer_id))||{};
-   const d=dueInfo(o);
-   const tag=d?.kind==="late"?`${d.days} நாள் late`:d?.kind==="today"?"இன்று கொடுக்க வேண்டும்":d?.kind==="soon"?`${d.days} நாள் உள்ளது`:"இன்று செய்ய வேண்டும்";
-   const garment=o.garment_type||"வேலை";
-   const qty=Number(o.quantity||0);
-   lines.push(`• ${c.name||"Customer"} — ${garment}${qty?` ${qty} பீசஸ்`:""} — ${tag}`);
- });
- if(!lines.length) lines.push("✅ இப்போது pending customer வேலை இல்லை.");
- return `🔔 இன்றைய வேலை நிலவரம்\n${lines.join("\n")}`;
-}
-
-function openNFNotificationPanel(){
- const p=document.getElementById("nfHomeNotificationPanel");
- if(!p)return;
- p.hidden=false;
- refreshNFHomeNotificationBar();
- renderNFNotificationTimes();
-}
-function closeNFNotificationPanel(){
- const p=document.getElementById("nfHomeNotificationPanel");
- if(p)p.hidden=true;
-}
 
 function renderNFNotificationTimes(){
- const grids=document.querySelectorAll("#nfNotificationTimesGrid");
- if(!grids.length)return;
- const html=REMINDER_TIMES.map((t,i)=>`<div class="nf-notification-time-item"><label>நேரம் ${i+1}</label><input class="input" type="time" data-reminder-time="${i}" value="${t}"></div>`).join("");
- grids.forEach(grid=>{ grid.innerHTML=html; });
+  const grids=document.querySelectorAll("#nfNotificationTimesGrid");
+  if(!grids.length)return;
+  const html=REMINDER_TIMES.map((t,i)=>
+    `<div class="nf-notification-time-item"><label>நேரம் ${i+1}</label><input class="input" type="time" data-reminder-time="${i}" value="${t}"></div>`
+  ).join("");
+  grids.forEach(grid=>{grid.innerHTML=html;});
 }
-
 function refreshNFHomeNotificationBar(){
   const on=localStorage.getItem("nf_notification_enabled")==="1";
   const summaryText=nfReminderBody();
-  document.querySelectorAll("#nfHomeNotificationSummary,#nfV600NotificationSummary").forEach(sum=>{sum.textContent=summaryText;});
+  document.querySelectorAll("#nfHomeNotificationSummary,#nfV600NotificationSummary").forEach(x=>x.textContent=summaryText);
   const st=document.getElementById("nfHomeNotificationStatus");
-  if(st){
-    st.textContent=on?"ON":"OFF";
-    st.className="nf-home-notification-button-status "+(on?"on":"off");
-  }
-  const scheduleStatus=document.getElementById("nfNotificationScheduleStatus");
-  if(scheduleStatus){
-    scheduleStatus.className="nf-v600-schedule-status "+(on?"on":"off");
-    scheduleStatus.innerHTML=on
+  if(st){st.textContent=on?"ON":"OFF";st.className="nf-home-notification-button-status "+(on?"on":"off");}
+  const ss=document.getElementById("nfNotificationScheduleStatus");
+  if(ss){
+    ss.className="nf-v600-schedule-status "+(on?"on":"off");
+    ss.innerHTML=on
       ? '<span class="nf-v600-status-icon">🔔</span><div><b>Notifications ON</b><small>24 notification schedule active</small></div>'
       : '<span class="nf-v600-status-icon">🔕</span><div><b>Notifications OFF</b><small>தற்போது notification schedule இல்லை</small></div>';
   }
   renderNFNotificationTimes();
 }
-
+async function saveReminderTimesFrom(button){
+  const box=button?.closest?.(".nf-notification-times-settings,.nf-v600-notification-card");
+  if(!box)return;
+  const values=[...box.querySelectorAll("input[data-reminder-time]")].map(x=>x.value);
+  if(values.length!==24 || !values.every(t=>/^([01]\d|2[0-3]):[0-5]\d$/.test(String(t)))){
+    toast("24 சரியான நேரங்களை தேர்வு செய்யுங்கள்.",true); return;
+  }
+  if(new Set(values).size!==24){
+    toast("ஒரே நேரத்தை இரண்டு முறை வைக்க முடியாது.",true); return;
+  }
+  REMINDER_TIMES=values.slice();
+  localStorage.setItem("nf_reminder_times",JSON.stringify(REMINDER_TIMES));
+  if(localStorage.getItem("nf_notification_enabled")==="1"){
+    const ok=await scheduleNativeDailyNotifications();
+    if(!ok){toast("⚠️ நேரங்கள் சேமிக்கப்பட்டது; schedule மீண்டும் அமைக்கப்படவில்லை.",true);return;}
+  }
+  refreshNFHomeNotificationBar();
+  toast("✅ Notification நேரங்கள் சேமிக்கப்பட்டது.");
+}
+function resetReminderTimes(button){
+  REMINDER_TIMES=DEFAULT_REMINDER_TIMES.slice();
+  localStorage.setItem("nf_reminder_times",JSON.stringify(REMINDER_TIMES));
+  const box=button?.closest?.(".nf-notification-times-settings,.nf-v600-notification-card");
+  if(box)[...box.querySelectorAll("input[data-reminder-time]")].forEach((x,i)=>x.value=REMINDER_TIMES[i]);
+  if(localStorage.getItem("nf_notification_enabled")==="1")
+    scheduleNativeDailyNotifications().catch(e=>console.error("Reset reminder schedule:",e));
+  refreshNFHomeNotificationBar();
+  renderNFNotificationTimes();
+  toast("↩️ Default 24 notification நேரங்கள் அமைக்கப்பட்டன.");
+}
+function nfReminderBody(){
+  const orders=(state.orders||[]).filter(o=>!isFinished(o));
+  const withDelivery=orders.filter(o=>o.delivery_date);
+  const late=withDelivery.filter(o=>dueInfo(o)?.kind==="late");
+  const today=withDelivery.filter(o=>dueInfo(o)?.kind==="today");
+  const soon=withDelivery.filter(o=>dueInfo(o)?.kind==="soon");
+  const todayWork=orders.filter(o=>String(o.order_date||o.created_at||"").slice(0,10)===localDate());
+  const workOrders=[...todayWork,...today,...late,...soon].filter((o,i,a)=>a.findIndex(x=>String(x.id)===String(o.id))===i);
+  const lines=[];
+  if(today.length)lines.push(`📦 இன்று கொடுக்க: ${today.length} customer`);
+  if(todayWork.length)lines.push(`🧵 இன்று செய்ய: ${todayWork.length} order`);
+  if(late.length)lines.push(`🚨 Late: ${late.length} customer`);
+  if(soon.length)lines.push(`⏳ அடுத்த நாட்கள்: ${soon.length} customer`);
+  workOrders.forEach(o=>{
+    const c=(state.customers||[]).find(x=>String(x.id)===String(o.customer_id))||{};
+    const d=dueInfo(o);
+    const tag=d?.kind==="late"?`${d.days} நாள் late`:d?.kind==="today"?"இன்று கொடுக்க வேண்டும்":d?.kind==="soon"?`${d.days} நாள் உள்ளது`:"இன்று செய்ய வேண்டும்";
+    lines.push(`• ${c.name||"Customer"} — ${o.garment_type||"வேலை"}${Number(o.quantity||0)?` ${Number(o.quantity)} பீசஸ்`:""} — ${tag}`);
+  });
+  if(!lines.length)lines.push("✅ இப்போது pending customer வேலை இல்லை.");
+  return `🔔 இன்றைய வேலை நிலவரம்\n${lines.join("\n")}`;
+}
 function nfSpeechText(){
- const orders=(state.orders||[]).filter(o=>!isFinished(o));
- const withDelivery=orders.filter(o=>o.delivery_date);
- const late=withDelivery.filter(o=>dueInfo(o)?.kind==="late");
- const today=withDelivery.filter(o=>dueInfo(o)?.kind==="today");
- const todayWork=orders.filter(o=>String(o.order_date||o.created_at||"").slice(0,10)===localDate());
- const lines=[];
- lines.push("ருத்ரா, இன்றைய வேலை நிலவரம்.");
- if(todayWork.length) lines.push(`இன்று ${todayWork.length} வேலை தைக்க வேண்டும்.`);
- if(today.length) lines.push(`இன்று ${today.length} customer-க்கு கொடுக்க வேண்டும்.`);
- if(late.length) lines.push(`${late.length} customer வேலை late ஆகியிருக்கிறது.`);
- const work=[...todayWork,...today,...late].filter((o,i,a)=>a.findIndex(x=>String(x.id)===String(o.id))===i);
- work.forEach(o=>{
-   const c=(state.customers||[]).find(x=>String(x.id)===String(o.customer_id))||{};
-   const d=dueInfo(o);
-   const name=c.name||"customer";
-   const garment=String(o.garment_type||"வேலை").replace(/Blouse/gi,"பிளவுஸ்").replace(/Chudi/gi,"சுடிதார்").replace(/Saree/gi,"சாரி").replace(/Shirt/gi,"சட்டை");
-   const qty=Number(o.quantity||0);
-   const qtyText=qty?`${qty} பீசஸ்`:"";
-   let tag="இன்று வேலை பார்க்க வேண்டும்";
-   if(d?.kind==="late") tag=`${d.days} நாள் late ஆகியிருக்கிறது`;
-   else if(d?.kind==="today") tag="இன்று கொடுக்க வேண்டும்";
-   lines.push(`${name}. ${garment}${qtyText?` ${qtyText}`:""}. ${tag}.`);
- });
- if(!work.length) lines.push("இப்போது pending வேலை இல்லை.");
- return lines.join(" ");
+  const orders=(state.orders||[]).filter(o=>!isFinished(o));
+  const withDelivery=orders.filter(o=>o.delivery_date);
+  const late=withDelivery.filter(o=>dueInfo(o)?.kind==="late");
+  const today=withDelivery.filter(o=>dueInfo(o)?.kind==="today");
+  const todayWork=orders.filter(o=>String(o.order_date||o.created_at||"").slice(0,10)===localDate());
+  const lines=["ருத்ரா, இன்றைய வேலை நிலவரம்."];
+  if(todayWork.length)lines.push(`இன்று ${todayWork.length} வேலை தைக்க வேண்டும்.`);
+  if(today.length)lines.push(`இன்று ${today.length} customer-க்கு கொடுக்க வேண்டும்.`);
+  if(late.length)lines.push(`${late.length} customer வேலை late ஆகியிருக்கிறது.`);
+  return lines.join(" ");
 }
-
-function pickNFVoice(){
- try{
-   const voices=window.speechSynthesis?.getVoices?.()||[];
-   const tamil=voices.filter(v=>/^ta([-_]|$)/i.test(v.lang||""));
-   const female=tamil.find(v=>/female|woman|girl|kalpana|veena|lekha|heera/i.test(v.name||""));
-   return female||tamil[0]||voices.find(v=>/female|woman|girl/i.test(v.name||""))||voices[0]||null;
- }catch(e){return null}
-}
-
-
-/* V600 ElevenLabs notification voice via Render /tts.
-   The ElevenLabs API key stays on the Render backend; this page only sends
-   the notification text and the selected Voice ID to the same-origin /tts endpoint. */
-
-/* TTS pronunciation corrections: affects ElevenLabs text only. */
 function nfTtsPronunciationText(text){
-  let s = String(text || "");
-  const replacements = [
-    [/\bBlouse\b/gi, "ப்ளவுஸ்"],
-    [/\bChudi\b/gi, "சுடிதார்"],
-    [/\bSaree\b/gi, "சாரி"],
-    [/\bShirt\b/gi, "சர்ட்"],
-    [/\bcustomer\b/gi, "கஸ்டமர்"],
-    [/\bNagaraj\b/gi, "நாகராஜ்"],
-    [/\bBritannia\b/gi, "பிரிட்டானியா"]
-  ];
-  replacements.forEach(([p,v]) => { s = s.replace(p,v); });
-
-  const nums = {"1":"ஒரு","2":"இரண்டு","3":"மூன்று","4":"நான்கு","5":"ஐந்து",
-    "6":"ஆறு","7":"ஏழு","8":"எட்டு","9":"ஒன்பது","10":"பத்து",
-    "11":"பதினொன்று","12":"பன்னிரண்டு","13":"பதின்மூன்று","14":"பதினான்கு",
-    "15":"பதினைந்து","16":"பதினாறு","17":"பதினேழு","18":"பதினெட்டு",
-    "19":"பத்தொன்பது","20":"இருபது"};
-
-  s = s.replace(/\b(20|1[0-9]|[1-9])\s*நாள்\b/g,
-    (m,n) => `${nums[n] || n} நாள்`);
-  s = s.replace(/\b(20|1[0-9]|[1-9])\s*(customer|customers|பீசஸ்|pieces)\b/gi,
-    (m,n,w) => `${nums[n] || n} ${w}`);
-  return s;
+  const nums={"1":"ஒரு","2":"இரண்டு","3":"மூன்று","4":"நான்கு","5":"ஐந்து","6":"ஆறு","7":"ஏழு","8":"எட்டு","9":"ஒன்பது","10":"பத்து","11":"பதினொன்று","12":"பன்னிரண்டு","13":"பதின்மூன்று","14":"பதினான்கு","15":"பதினைந்து","16":"பதினாறு","17":"பதினேழு","18":"பதினெட்டு","19":"பத்தொன்பது","20":"இருபது"};
+  let s=String(text||"");
+  s=s.replace(/\b(20|1[0-9]|[1-9])\s*நாள்\b/g,(m,n)=>`${nums[n]||n} நாள்`);
+  return s.replace(/\b(20|1[0-9]|[1-9])\s*(customer|customers|பீசஸ்|pieces)\b/gi,(m,n,w)=>`${nums[n]||n} ${w}`);
 }
-
-const NF_ELEVENLABS_VOICE_ID = "nJPQW86B3xSFcIV4aV5H";
-const NF_ELEVENLABS_TTS_ENDPOINT = "https://new-fashion-voice-tts.onrender.com/tts";
-let nfVoiceAudio = null;
-
+const NF_ELEVENLABS_VOICE_ID="nJPQW86B3xSFcIV4aV5H";
+const NF_ELEVENLABS_TTS_ENDPOINT="https://new-fashion-voice-tts.onrender.com/tts";
+let nfVoiceAudio=null;
 async function playNFElevenLabsVoice(text){
   try{
-    const response = await fetch(NF_ELEVENLABS_TTS_ENDPOINT, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Accept": "audio/mpeg, audio/*, application/json"
-      },
-      body: JSON.stringify({
-         text: nfTtsPronunciationText(text),
-         voice_id: NF_ELEVENLABS_VOICE_ID
-       })
-    });
-
-    if(!response.ok){
-      let detail = "";
-      try{ detail = await response.text(); }catch(e){}
-      throw new Error("/tts " + response.status + (detail ? ": " + detail.slice(0,180) : ""));
-    }
-
-    const contentType = (response.headers.get("content-type") || "").toLowerCase();
-    let audioUrl = "";
-
-    /* Support a Render endpoint that returns raw audio bytes. */
-    if(contentType.includes("audio/")){
-      const blob = await response.blob();
-      audioUrl = URL.createObjectURL(blob);
-    }else{
-      /* Also support JSON responses such as { audio_url: "..." }. */
-      const data = await response.json();
-      audioUrl = data?.audio_url || data?.audioUrl || data?.url || "";
-      if(!audioUrl && data?.audio_base64){
-        const binary = atob(data.audio_base64);
-        const bytes = new Uint8Array(binary.length);
+    const response=await fetch(NF_ELEVENLABS_TTS_ENDPOINT,{method:"POST",headers:{"Content-Type":"application/json","Accept":"audio/mpeg, audio/*, application/json"},body:JSON.stringify({text:nfTtsPronunciationText(text),voice_id:NF_ELEVENLABS_VOICE_ID})});
+    if(!response.ok)throw new Error("/tts "+response.status);
+    const ct=(response.headers.get("content-type")||"").toLowerCase();
+    let audioUrl="";
+    if(ct.includes("audio/"))audioUrl=URL.createObjectURL(await response.blob());
+    else{
+      const data=await response.json();
+      audioUrl=data?.audio_url||data?.audioUrl||data?.url||"";
+      if(!audioUrl&&data?.audio_base64){
+        const binary=atob(data.audio_base64),bytes=new Uint8Array(binary.length);
         for(let i=0;i<binary.length;i++)bytes[i]=binary.charCodeAt(i);
-        audioUrl = URL.createObjectURL(new Blob([bytes],{type:"audio/mpeg"}));
+        audioUrl=URL.createObjectURL(new Blob([bytes],{type:"audio/mpeg"}));
       }
     }
+    if(!audioUrl)throw new Error("Audio missing");
+    if(nfVoiceAudio){try{nfVoiceAudio.pause();}catch(e){}}
+    const audio=new Audio(audioUrl);audio.volume=1;audio.preload="auto";nfVoiceAudio=audio;
+    await audio.play();return true;
+  }catch(e){console.error("ElevenLabs voice playback error:",e);return false;}
+}
+function speakNFCurrentSummary(){
+  const text=nfSpeechText();
+  if(!text){toast("இன்றைய notification text இல்லை.",true);return;}
+  playNFElevenLabsVoice(text).then(ok=>{if(!ok)toast("ElevenLabs voice play செய்ய முடியவில்லை.",true);});
+}
+/* V601 — Exact Android reminder bridge.
+   IMPORTANT: reminder scheduling is now delegated to the native
+   ReminderScheduler plugin so notification + ElevenLabs voice are fired
+   from the same Android alarm. Capacitor LocalNotifications is NOT used
+   for the daily reminder schedule anymore. */
+let nfReminderPluginPromise=null;
 
-    if(!audioUrl) throw new Error("/tts response-ல் audio கிடைக்கவில்லை.");
-
-    if(nfVoiceAudio){
-      try{
-        nfVoiceAudio.pause();
-        if(nfVoiceAudio.dataset?.objectUrl) URL.revokeObjectURL(nfVoiceAudio.dataset.objectUrl);
-      }catch(e){}
-    }
-
-    const audio = new Audio(audioUrl);
-    audio.volume = 1;
-    audio.preload = "auto";
-    if(audioUrl.startsWith("blob:")) audio.dataset.objectUrl = audioUrl;
-    nfVoiceAudio = audio;
-
-    audio.addEventListener("ended",()=>{
-      if(audio.dataset?.objectUrl){
-        try{URL.revokeObjectURL(audio.dataset.objectUrl);}catch(e){}
-        delete audio.dataset.objectUrl;
+async function getNFReminderScheduler(){
+  const cap=window.Capacitor;
+  if(!cap)return null;
+  if(nfReminderPluginPromise)return nfReminderPluginPromise;
+  nfReminderPluginPromise=(async()=>{
+    try{
+      if(typeof cap.registerPlugin==='function'){
+        const plugin=cap.registerPlugin('ReminderScheduler');
+        if(plugin)return plugin;
       }
-    },{once:true});
+      if(cap.Plugins && cap.Plugins.ReminderScheduler) return cap.Plugins.ReminderScheduler;
+    }catch(e){
+      console.error('ReminderScheduler registration error:',e);
+    }
+    return null;
+  })();
+  return nfReminderPluginPromise;
+}
 
-    await audio.play();
-    return true;
-  }catch(e){
-    console.error("ElevenLabs /tts voice playback error:", e);
+async function requestNotificationPermission(){
+  const plugin=await getNFReminderScheduler();
+  if(!plugin){
+    toast('ReminderScheduler native plugin APK-ல் register ஆகவில்லை.',true);
+    return 'denied';
+  }
+  try{
+    if(typeof plugin.requestPermissions==='function'){
+      const result=await plugin.requestPermissions();
+      return result?.display || result?.notification || 'granted';
+    }
+    return 'granted';
+  }catch(error){
+    console.error('Native notification permission error:',error);
+    toast('Notification permission error: '+(error?.message||String(error)),true);
+    return 'denied';
+  }
+}
+
+async function ensureNFExactAlarmPermission(){
+  const plugin=await getNFReminderScheduler();
+  if(!plugin)return false;
+  try{
+    if(typeof plugin.checkExactAlarmPermission==='function'){
+      const result=await plugin.checkExactAlarmPermission();
+      if(result?.granted===true || result?.exact_alarm==='granted')return true;
+    }else{
+      return true;
+    }
+    if(typeof plugin.requestExactAlarmPermission==='function'){
+      await plugin.requestExactAlarmPermission();
+      toast('⏰ Exact alarm permission ON செய்து, app-க்கு திரும்பி மீண்டும் Notifications ON அழுத்துங்கள்.');
+    }else{
+      toast('⏰ Phone Settings-ல் Exact Alarm permission ON செய்யுங்கள்.',true);
+    }
+    return false;
+  }catch(error){
+    console.error('Exact alarm permission error:',error);
+    toast('⏰ Exact alarm permission check செய்ய முடியவில்லை.',true);
     return false;
   }
 }
 
-function speakNFCurrentSummary(){
+async function scheduleNativeDailyNotifications(){
+  const plugin=await getNFReminderScheduler();
+  if(!plugin){
+    toast('ReminderScheduler native plugin கிடைக்கவில்லை.',true);
+    return false;
+  }
   try{
-    const text=nfSpeechText();
-    if(!text){
-      toast("இன்றைய notification text இல்லை.",true);
-      return;
-    }
+    const exactReady=await ensureNFExactAlarmPermission();
+    if(!exactReady)return false;
 
-    /* Generate the current notification text using the configured ElevenLabs Voice ID. */
-    playNFElevenLabsVoice(text).then(ok=>{
-      if(!ok){
-        toast("ElevenLabs /tts voice-ஐ play செய்ய முடியவில்லை.",true);
-      }
-    });
-  }catch(e){
-    console.error("Voice reminder error:",e);
-    toast("Voice reminder தொடங்க முடியவில்லை.",true);
+    const body=nfReminderBody();
+    const payload={
+      times:REMINDER_TIMES.slice(),
+      body,
+      title:'🔔 New Fashion Tailoring',
+      channelId:'nf_daily_reminders',
+      speak:true,
+      voice:'elevenlabs'
+    };
+
+    if(typeof plugin.scheduleDailyReminders!=='function'){
+      throw new Error('ReminderScheduler.scheduleDailyReminders() native method இல்லை.');
+    }
+    const result=await plugin.scheduleDailyReminders(payload);
+    console.log('Native exact reminder schedule:',result);
+    return result?.success!==false;
+  }catch(error){
+    console.error('Native reminder schedule error:',error);
+    toast('Reminder schedule error: '+(error?.message||String(error)),true);
+    return false;
   }
 }
 
-if(window.speechSynthesis){window.speechSynthesis.onvoiceschanged=()=>{};}
-document.addEventListener("keydown",e=>{if(e.key==="Escape")closeNFNotificationPanel()});
-
-
-async function ensureNFExactAlarmPermission(){
- const LocalNotifications=await getNFLocalNotifications();
- if(!LocalNotifications)return false;
-
- try{
-   if(typeof LocalNotifications.checkExactNotificationSetting!=="function"){
-     return true;
-   }
-
-   let setting=await LocalNotifications.checkExactNotificationSetting();
-
-   if(setting?.exact_alarm==="granted"){
-     return true;
-   }
-
-   if(typeof LocalNotifications.changeExactNotificationSetting==="function"){
-     await LocalNotifications.changeExactNotificationSetting();
-
-     toast("⏰ Exact alarm permission ON செய்து, app-க்கு திரும்பி மீண்டும் Notifications ON அழுத்துங்கள்.");
-     return false;
-   }
-
-   toast("⏰ Exact alarm permission கிடைக்கவில்லை. Phone Settings-ல் Allow செய்யுங்கள்.",true);
-   return false;
- }catch(error){
-   console.error("Exact alarm permission error:",error);
-   toast("⏰ Exact alarm permission check செய்ய முடியவில்லை.",true);
-   return false;
- }
-}
-
-async function scheduleNativeDailyNotifications(){
- const LocalNotifications=await getNFLocalNotifications();
-
- if(!LocalNotifications){
-   toast("Notification plugin கிடைக்கவில்லை.",true);
-   return false;
- }
-
- try{
-   const exactReady=await ensureNFExactAlarmPermission();
-   if(!exactReady)return false;
-
-   await ensureNFNotificationChannel();
-
-   try{
-     await LocalNotifications.cancel({
-       notifications:NF_NOTIFICATION_IDS.map(id=>({id}))
-     });
-   }catch(e){
-     console.log("Old notification cancel:",e);
-   }
-
-   const notifications=REMINDER_TIMES.map((time,index)=>{
-     const [hour,minute]=time.split(":").map(Number);
-
-     return {
-       id:NF_NOTIFICATION_IDS[index],
-       title:"🔔 New Fashion Tailoring",
-       body:nfReminderBody(),
-       channelId:"nf_daily_reminders",
-       schedule:{
-         on:{
-           hour,
-           minute
-         },
-         allowWhileIdle:true
-       },
-       autoCancel:true
-     };
-   });
-
-   const result=await LocalNotifications.schedule({notifications});
-
-   console.log("Native daily notifications scheduled:",result);
-   return true;
-
- }catch(error){
-   console.error("Native notification schedule error:",error);
-   toast("Notification schedule error: "+(error?.message||String(error)),true);
-   return false;
- }
-}
-
 function startReminderScheduler(){
- if(reminderTimer){
-   clearInterval(reminderTimer);
-   reminderTimer=null;
- }
-
- if(localStorage.getItem("nf_notification_enabled")!=="1")return;
-
- scheduleNativeDailyNotifications().catch(e=>{
-   console.error("Native reminder scheduler:",e);
- });
+  if(reminderTimer){
+    clearInterval(reminderTimer);
+    reminderTimer=null;
+  }
+  if(localStorage.getItem('nf_notification_enabled')!=='1')return;
+  scheduleNativeDailyNotifications().catch(e=>console.error('Native reminder scheduler:',e));
 }
 
 async function enableDailyNotifications(){
- const permission=await requestNotificationPermission();
+  const permission=await requestNotificationPermission();
+  if(permission!=='granted' && permission!=='authorized'){
+    toast('Notification permission கிடைக்கவில்லை.',true);
+    return;
+  }
 
- if(permission!=="granted"){
-   toast("Notification permission கிடைக்கவில்லை.",true);
-   return;
- }
+  const scheduled=await scheduleNativeDailyNotifications();
+  if(!scheduled)return;
 
- const scheduled=await scheduleNativeDailyNotifications();
-
- if(!scheduled){
-   return;
- }
-
- localStorage.setItem("nf_notification_enabled","1");
- refreshNFHomeNotificationBar();
-
- toast(`✅ 24 Daily Notifications ON. 30 நிமிடத்திற்கு ஒருமுறை நீங்கள் அமைத்த நேரங்களில் notification வரும்.`);
+  localStorage.setItem('nf_notification_enabled','1');
+  refreshNFHomeNotificationBar();
+  toast('✅ 24 Exact Daily Notifications ON. ஒவ்வொரு நேரத்திலும் notification + ElevenLabs voice native alarm மூலம் வரும்.');
 }
+
+async function disableDailyNotifications(){
+  try{
+    const plugin=await getNFReminderScheduler();
+    if(plugin && typeof plugin.cancelDailyReminders==='function'){
+      await plugin.cancelDailyReminders({ids:Array.from({length:24},(_,i)=>8001+i)});
+    }
+  }catch(error){
+    console.error('Native reminder cancel error:',error);
+  }
+  localStorage.removeItem('nf_notification_enabled');
+  refreshNFHomeNotificationBar();
+  toast('🔕 Notifications OFF. அனைத்து exact daily reminders cancel செய்யப்பட்டன.');
+}
+
+/* Existing UI uses this variable to clear any legacy JS timer. */
+let reminderTimer=null;
 
 updateBackButton();
 refreshNFHomeNotificationBar();
