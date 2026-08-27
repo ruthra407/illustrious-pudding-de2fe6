@@ -24,17 +24,23 @@ public class ReminderSchedulerPlugin extends Plugin {
 
         JSObject result = new JSObject();
 
-        result.put("display", "granted");
+        result.put(
+                "display",
+                "granted"
+        );
 
         call.resolve(result);
     }
 
     @PluginMethod
-    public void checkExactAlarmPermission(PluginCall call) {
+    public void checkExactAlarmPermission(
+            PluginCall call
+    ) {
 
         boolean granted = true;
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        if (Build.VERSION.SDK_INT >=
+                Build.VERSION_CODES.S) {
 
             AlarmManager manager =
                     (AlarmManager)
@@ -47,22 +53,31 @@ public class ReminderSchedulerPlugin extends Plugin {
                     manager.canScheduleExactAlarms();
         }
 
-        JSObject result = new JSObject();
+        JSObject result =
+                new JSObject();
 
-        result.put("granted", granted);
+        result.put(
+                "granted",
+                granted
+        );
 
         result.put(
                 "exact_alarm",
-                granted ? "granted" : "denied"
+                granted
+                        ? "granted"
+                        : "denied"
         );
 
         call.resolve(result);
     }
 
     @PluginMethod
-    public void requestExactAlarmPermission(PluginCall call) {
+    public void requestExactAlarmPermission(
+            PluginCall call
+    ) {
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        if (Build.VERSION.SDK_INT >=
+                Build.VERSION_CODES.S) {
 
             try {
 
@@ -71,7 +86,8 @@ public class ReminderSchedulerPlugin extends Plugin {
                                 Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM,
                                 Uri.parse(
                                         "package:" +
-                                        getContext().getPackageName()
+                                        getContext()
+                                                .getPackageName()
                                 )
                         );
 
@@ -86,7 +102,9 @@ public class ReminderSchedulerPlugin extends Plugin {
     }
 
     @PluginMethod
-    public void scheduleDailyReminders(PluginCall call) {
+    public void scheduleDailyReminders(
+            PluginCall call
+    ) {
 
         try {
 
@@ -115,8 +133,14 @@ public class ReminderSchedulerPlugin extends Plugin {
                 return;
             }
 
+            /*
+             * Remove previous native alarms.
+             */
             cancelAll();
 
+            /*
+             * Schedule all 24 reminders.
+             */
             for (int i = 0;
                  i < times.length();
                  i++) {
@@ -127,13 +151,14 @@ public class ReminderSchedulerPlugin extends Plugin {
                 int requestCode =
                         FIRST_REMINDER_ID + i;
 
-                ReminderScheduler.scheduleDailyReminder(
-                        getContext(),
-                        requestCode,
-                        time,
-                        title,
-                        body
-                );
+                ReminderScheduler
+                        .scheduleDailyReminder(
+                                getContext(),
+                                requestCode,
+                                time,
+                                title,
+                                body
+                        );
             }
 
             JSObject result =
@@ -162,7 +187,9 @@ public class ReminderSchedulerPlugin extends Plugin {
     }
 
     @PluginMethod
-    public void cancelDailyReminders(PluginCall call) {
+    public void cancelDailyReminders(
+            PluginCall call
+    ) {
 
         cancelAll();
 
