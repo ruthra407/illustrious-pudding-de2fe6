@@ -11,6 +11,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
 
 public final class ReminderScheduler {
@@ -25,6 +26,9 @@ public final class ReminderScheduler {
         // Utility class
     }
 
+    /*
+     * Schedule one reminder at an exact millisecond.
+     */
     public static void scheduleReminder(
             Context context,
             int requestCode,
@@ -53,6 +57,93 @@ public final class ReminderScheduler {
         );
     }
 
+    /*
+     * Schedule a daily reminder from HH:mm.
+     *
+     * Example:
+     * "14:00" -> next 2:00 PM.
+     *
+     * The alarm itself is exact.
+     */
+    public static void scheduleDailyReminder(
+            Context context,
+            int requestCode,
+            String time,
+            String title,
+            String message
+    ) {
+
+        if (time == null ||
+                !time.matches(
+                        "^([01]\\d|2[0-3]):[0-5]\\d$"
+                )) {
+
+            return;
+        }
+
+        try {
+
+            String[] parts =
+                    time.split(":");
+
+            int hour =
+                    Integer.parseInt(parts[0]);
+
+            int minute =
+                    Integer.parseInt(parts[1]);
+
+            Calendar calendar =
+                    Calendar.getInstance();
+
+            calendar.set(
+                    Calendar.HOUR_OF_DAY,
+                    hour
+            );
+
+            calendar.set(
+                    Calendar.MINUTE,
+                    minute
+            );
+
+            calendar.set(
+                    Calendar.SECOND,
+                    0
+            );
+
+            calendar.set(
+                    Calendar.MILLISECOND,
+                    0
+            );
+
+            /*
+             * If today's exact time has already passed,
+             * schedule tomorrow.
+             */
+            if (calendar.getTimeInMillis()
+                    <= System.currentTimeMillis()) {
+
+                calendar.add(
+                        Calendar.DAY_OF_YEAR,
+                        1
+                );
+            }
+
+            scheduleReminder(
+                    context,
+                    requestCode,
+                    calendar.getTimeInMillis(),
+                    title,
+                    message
+            );
+
+        } catch (Exception ignored) {
+            // Invalid time.
+        }
+    }
+
+    /*
+     * Schedule the exact alarm.
+     */
     private static void scheduleAlarm(
             Context context,
             int requestCode,
@@ -102,15 +193,13 @@ public final class ReminderScheduler {
                         context,
                         requestCode,
                         intent,
-                        PendingIntent.FLAG_UPDATE_CURRENT
-                                | PendingIntent.FLAG_IMMUTABLE
+                        PendingIntent.FLAG_UPDATE_CURRENT |
+                                PendingIntent.FLAG_IMMUTABLE
                 );
 
         /*
-         * EXACT ALARM
-         *
-         * Android 12+:
-         * exact alarm permission must be allowed.
+         * Android 12+
+         * Use exact alarm when permission is available.
          */
         if (Build.VERSION.SDK_INT >=
                 Build.VERSION_CODES.S) {
@@ -126,8 +215,8 @@ public final class ReminderScheduler {
             } else {
 
                 /*
-                 * Fallback if exact alarm permission
-                 * is not available.
+                 * No exact-alarm permission.
+                 * This fallback may be delayed by Android.
                  */
                 alarmManager.setAndAllowWhileIdle(
                         AlarmManager.RTC_WAKEUP,
@@ -155,6 +244,9 @@ public final class ReminderScheduler {
         }
     }
 
+    /*
+     * Check exact-alarm permission.
+     */
     public static boolean canScheduleExactAlarms(
             Context context
     ) {
@@ -171,10 +263,13 @@ public final class ReminderScheduler {
                                 Context.ALARM_SERVICE
                         );
 
-        return alarmManager != null
-                && alarmManager.canScheduleExactAlarms();
+        return alarmManager != null &&
+                alarmManager.canScheduleExactAlarms();
     }
 
+    /*
+     * Cancel one reminder.
+     */
     public static void cancelReminder(
             Context context,
             int requestCode
@@ -202,8 +297,8 @@ public final class ReminderScheduler {
                             appContext,
                             requestCode,
                             intent,
-                            PendingIntent.FLAG_UPDATE_CURRENT
-                                    | PendingIntent.FLAG_IMMUTABLE
+                            PendingIntent.FLAG_UPDATE_CURRENT |
+                                    PendingIntent.FLAG_IMMUTABLE
                     );
 
             alarmManager.cancel(
@@ -219,6 +314,9 @@ public final class ReminderScheduler {
         );
     }
 
+    /*
+     * Restore all future reminders.
+     */
     public static void rescheduleAll(
             Context context
     ) {
@@ -232,7 +330,8 @@ public final class ReminderScheduler {
         long currentTime =
                 System.currentTimeMillis();
 
-        for (ReminderData reminder : reminders) {
+        for (ReminderData reminder :
+                reminders) {
 
             if (reminder.triggerAtMillis >
                     currentTime) {
@@ -248,6 +347,9 @@ public final class ReminderScheduler {
         }
     }
 
+    /*
+     * Save reminder.
+     */
     private static void saveReminder(
             Context context,
             int requestCode,
@@ -286,8 +388,8 @@ public final class ReminderScheduler {
         try {
 
             for (int i = 0;
-                 i < oldArray.length();
-                 i++) {
+                    i < oldArray.length();
+                    i++) {
 
                 JSONObject object =
                         oldArray.getJSONObject(i);
@@ -296,7 +398,9 @@ public final class ReminderScheduler {
                         "requestCode"
                 ) != requestCode) {
 
-                    newArray.put(object);
+                    newArray.put(
+                            object
+                    );
                 }
             }
 
@@ -344,6 +448,9 @@ public final class ReminderScheduler {
                 .apply();
     }
 
+    /*
+     * Remove reminder from storage.
+     */
     private static void removeReminder(
             Context context,
             int requestCode
@@ -378,8 +485,8 @@ public final class ReminderScheduler {
         try {
 
             for (int i = 0;
-                 i < oldArray.length();
-                 i++) {
+                    i < oldArray.length();
+                    i++) {
 
                 JSONObject object =
                         oldArray.getJSONObject(i);
@@ -388,7 +495,9 @@ public final class ReminderScheduler {
                         "requestCode"
                 ) != requestCode) {
 
-                    newArray.put(object);
+                    newArray.put(
+                            object
+                    );
                 }
             }
 
@@ -405,6 +514,9 @@ public final class ReminderScheduler {
                 .apply();
     }
 
+    /*
+     * Load saved reminders.
+     */
     private static List<ReminderData> loadReminders(
             Context context
     ) {
@@ -430,8 +542,8 @@ public final class ReminderScheduler {
                     new JSONArray(saved);
 
             for (int i = 0;
-                 i < array.length();
-                 i++) {
+                    i < array.length();
+                    i++) {
 
                 JSONObject object =
                         array.getJSONObject(i);
@@ -460,7 +572,7 @@ public final class ReminderScheduler {
             }
 
         } catch (Exception ignored) {
-            // Ignore invalid saved reminder data.
+            // Invalid saved data.
         }
 
         return reminders;
@@ -493,4 +605,4 @@ public final class ReminderScheduler {
                     message;
         }
     }
-}
+            }
