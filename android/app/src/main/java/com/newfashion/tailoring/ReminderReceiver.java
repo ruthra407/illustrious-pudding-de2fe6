@@ -15,214 +15,52 @@ import androidx.core.app.NotificationCompat;
 import androidx.core.content.ContextCompat;
 
 public class ReminderReceiver extends BroadcastReceiver {
+    private static final String TAG="ReminderReceiver";
+    private static final String CHANNEL_ID="reminder_voice_channel_v3";
+    private static final int DEFAULT_NOTIFICATION_ID=1001;
 
-    private static final String TAG = "ReminderReceiver";
-    private static final String CHANNEL_ID = "reminder_voice_channel_v3";
-    private static final int DEFAULT_NOTIFICATION_ID = 1001;
+    @Override public void onReceive(Context context,Intent intent){
+        Context app=context.getApplicationContext();
+        String title=intent.getStringExtra("title");
+        String message=intent.getStringExtra("message");
+        if(title==null||title.trim().isEmpty())title="நினைவூட்டல்";
+        if(message==null||message.trim().isEmpty())message="உங்களுக்கு ஒரு நினைவூட்டல் உள்ளது.";
+        final String finalTitle=title, finalMessage=message;
+        int id=intent.getIntExtra("requestCode",intent.getIntExtra("notification_id",DEFAULT_NOTIFICATION_ID));
 
-    @Override
-    public void onReceive(Context context, Intent intent) {
+        long receivedAt=System.currentTimeMillis();
+        Log.d(TAG,"REMINDER RECEIVED id="+id+" at="+receivedAt);
 
-        final Context appContext =
-                context.getApplicationContext();
-
-        String title = intent.getStringExtra("title");
-        String message = intent.getStringExtra("message");
-
-        if (title == null || title.trim().isEmpty()) {
-            title = "நினைவூட்டல்";
+        createNotificationChannel(app);
+        Intent open=new Intent(app,MainActivity.class).setFlags(Intent.FLAG_ACTIVITY_NEW_TASK|Intent.FLAG_ACTIVITY_CLEAR_TOP|Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        PendingIntent pi=PendingIntent.getActivity(app,id,open,PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
+        NotificationCompat.Builder b=new NotificationCompat.Builder(app,CHANNEL_ID)
+                .setSmallIcon(android.R.drawable.ic_popup_reminder)
+                .setContentTitle(finalTitle).setContentText(finalMessage)
+                .setStyle(new NotificationCompat.BigTextStyle().bigText(finalMessage))
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setCategory(NotificationCompat.CATEGORY_REMINDER)
+                .setAutoCancel(true).setContentIntent(pi).setSilent(true);
+        NotificationManager nm=(NotificationManager)app.getSystemService(Context.NOTIFICATION_SERVICE);
+        if(nm!=null && (Build.VERSION.SDK_INT<Build.VERSION_CODES.TIRAMISU || ContextCompat.checkSelfPermission(app,Manifest.permission.POST_NOTIFICATIONS)==PackageManager.PERMISSION_GRANTED)){
+            nm.notify(id,b.build());
         }
 
-        if (message == null || message.trim().isEmpty()) {
-            message = "உங்களுக்கு ஒரு நினைவூட்டல் உள்ளது.";
-        }
+        /* Schedule tomorrow before starting voice so daily reminders never stop after day one. */
+        try{ReminderScheduler.rescheduleNextDailyReminder(app,id);}catch(Exception e){Log.e(TAG,"Next daily reminder reschedule failed",e);}
 
-        final String finalTitle = title;
-        final String finalMessage = message;
-
-        int notificationId =
-                intent.getIntExtra(
-                        "requestCode",
-                        intent.getIntExtra(
-                                "notification_id",
-                                DEFAULT_NOTIFICATION_ID
-                        )
-                );
-
-        Log.d(TAG, "REMINDER RECEIVED id=" + notificationId);
-        Log.d(TAG, "Title=" + finalTitle);
-        Log.d(TAG, "Message=" + finalMessage);
-
-        /*
-         * Start native voice immediately.
-         * Voice does not depend on tapping the notification.
-         */
-        Intent voiceIntent =
-                new Intent(
-                        appContext,
-                        ReminderVoiceService.class
-                );
-
-        voiceIntent.putExtra("title", finalTitle);
-        voiceIntent.putExtra("message", finalMessage);
-        voiceIntent.putExtra("requestCode", notificationId);
-
-        try {
-
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-
-                ContextCompat.startForegroundService(
-                        appContext,
-                        voiceIntent
-                );
-
-            } else {
-
-                appContext.startService(voiceIntent);
-            }
-
-            Log.d(TAG, "ReminderVoiceService start requested");
-
-        } catch (Exception error) {
-
-            Log.e(
-                    TAG,
-                    "ReminderVoiceService start failed",
-                    error
-            );
-        }
-
-        createNotificationChannel(appContext);
-
-        Intent openIntent =
-                new Intent(
-                        appContext,
-                        MainActivity.class
-                );
-
-        openIntent.setFlags(
-                Intent.FLAG_ACTIVITY_NEW_TASK |
-                        Intent.FLAG_ACTIVITY_CLEAR_TOP |
-                        Intent.FLAG_ACTIVITY_SINGLE_TOP
-        );
-
-        PendingIntent pendingIntent =
-                PendingIntent.getActivity(
-                        appContext,
-                        notificationId,
-                        openIntent,
-                        PendingIntent.FLAG_UPDATE_CURRENT |
-                                PendingIntent.FLAG_IMMUTABLE
-                );
-
-        NotificationCompat.Builder builder =
-                new NotificationCompat.Builder(
-                        appContext,
-                        CHANNEL_ID
-                )
-                        .setSmallIcon(
-                                android.R.drawable.ic_popup_reminder
-                        )
-                        .setContentTitle(finalTitle)
-                        .setContentText(finalMessage)
-                        .setStyle(
-                                new NotificationCompat.BigTextStyle()
-                                        .bigText(finalMessage)
-                        )
-                        .setPriority(
-                                NotificationCompat.PRIORITY_HIGH
-                        )
-                        .setCategory(
-                                NotificationCompat.CATEGORY_REMINDER
-                        )
-                        .setAutoCancel(true)
-                        .setContentIntent(pendingIntent)
-                        .setSilent(true);
-
-        NotificationManager manager =
-                (NotificationManager)
-                        appContext.getSystemService(
-                                Context.NOTIFICATION_SERVICE
-                        );
-
-        if (manager != null) {
-
-            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
-                    ContextCompat.checkSelfPermission(
-                            appContext,
-                            Manifest.permission.POST_NOTIFICATIONS
-                    ) == PackageManager.PERMISSION_GRANTED) {
-
-                manager.notify(
-                        notificationId,
-                        builder.build()
-                );
-
-                Log.d(TAG, "REMINDER NOTIFICATION SHOWN");
-
-            } else {
-
-                Log.e(
-                        TAG,
-                        "POST_NOTIFICATIONS permission missing"
-                );
-            }
-        }
-
-        /*
-         * One exact alarm fires only once.
-         * Schedule the same reminder for the next day.
-         */
-        try {
-
-            ReminderScheduler.scheduleNextDay(
-                    appContext,
-                    notificationId
-            );
-
-            Log.d(
-                    TAG,
-                    "NEXT DAY REMINDER SCHEDULED"
-            );
-
-        } catch (Exception error) {
-
-            Log.e(
-                    TAG,
-                    "Could not schedule next day reminder",
-                    error
-            );
-        }
+        Intent voice=new Intent(app,ReminderVoiceService.class);
+        voice.putExtra("title",finalTitle);voice.putExtra("message",finalMessage);voice.putExtra("requestCode",id);
+        try{
+            if(Build.VERSION.SDK_INT>=Build.VERSION_CODES.O)ContextCompat.startForegroundService(app,voice);else app.startService(voice);
+            Log.d(TAG,"ReminderVoiceService START COMMAND SENT at="+System.currentTimeMillis());
+        }catch(Exception e){Log.e(TAG,"ReminderVoiceService start failed",e);}
     }
 
-    private void createNotificationChannel(Context context) {
-
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
-            return;
-        }
-
-        NotificationManager manager =
-                context.getSystemService(
-                        NotificationManager.class
-                );
-
-        if (manager == null) {
-            return;
-        }
-
-        NotificationChannel channel =
-                new NotificationChannel(
-                        CHANNEL_ID,
-                        "தமிழ் நினைவூட்டல்கள்",
-                        NotificationManager.IMPORTANCE_HIGH
-                );
-
-        channel.setDescription(
-                "Tailoring reminder notifications with voice"
-        );
-
-        channel.setSound(null, null);
-
-        manager.createNotificationChannel(channel);
+    private void createNotificationChannel(Context c){
+        if(Build.VERSION.SDK_INT<Build.VERSION_CODES.O)return;
+        NotificationManager m=c.getSystemService(NotificationManager.class);if(m==null)return;
+        NotificationChannel ch=new NotificationChannel(CHANNEL_ID,"தமிழ் நினைவூட்டல்கள்",NotificationManager.IMPORTANCE_HIGH);
+        ch.setDescription("Tailoring reminder notifications with Android Tamil voice");ch.setSound(null,null);m.createNotificationChannel(ch);
     }
 }
