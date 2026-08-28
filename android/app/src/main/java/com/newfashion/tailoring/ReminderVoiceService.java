@@ -11,31 +11,25 @@ import android.content.pm.ServiceInfo;
 import android.media.AudioAttributes;
 import android.media.AudioFocusRequest;
 import android.media.AudioManager;
-import android.media.MediaPlayer;
 import android.os.Build;
 import android.os.IBinder;
+import android.speech.tts.TextToSpeech;
+import android.speech.tts.Voice;
 import android.util.Log;
 
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.ServiceCompat;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.nio.charset.StandardCharsets;
+import java.util.Locale;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-public class ReminderVoiceService extends Service {
+public class ReminderVoiceService extends Service
+        implements TextToSpeech.OnInitListener {
 
     private static final String TAG = "ReminderVoiceService";
-
-    private static final String TTS_URL =
-            "https://new-fashion-voice-tts.onrender.com/tts";
 
     private static final String SERVICE_CHANNEL_ID =
             "reminder_voice_service_v2";
@@ -43,10 +37,12 @@ public class ReminderVoiceService extends Service {
     private static final int SERVICE_NOTIFICATION_ID = 91001;
 
     private ExecutorService executor;
-    private MediaPlayer mediaPlayer;
     private AudioManager audioManager;
     private AudioFocusRequest audioFocusRequest;
-    private File currentAudioFile;
+    private TextToSpeech textToSpeech;
+
+    private volatile boolean ttsReady = false;
+    private volatile int currentStartId = -1;
 
     @Override
     public void onCreate() {
@@ -54,6 +50,7 @@ public class ReminderVoiceService extends Service {
 
         Log.d(TAG, "========================================");
         Log.d(TAG, "ReminderVoiceService ON CREATE");
+        Log.d(TAG, "ANDROID NATIVE TTS MODE");
         Log.d(TAG, "========================================");
 
         executor = Executors.newSingleThreadExecutor();
@@ -89,7 +86,161 @@ public class ReminderVoiceService extends Service {
         } catch (Exception e) {
             Log.e(TAG, "FOREGROUND SERVICE START FAILED", e);
             stopSelf();
+            return;
         }
+
+        textToSpeech = new TextToSpeech(
+                getApplicationContext(),
+                this
+        );
+    }
+
+    @Override
+    public void onInit(int status) {
+        if (status != TextToSpeech.SUCCESS) {
+            ttsReady = false;
+            Log.e(TAG, "ANDROID TTS INITIALIZATION FAILED: " + status);
+            return;
+        }
+
+        int languageResult =
+                textToSpeech.setLanguage(new Locale("ta", "IN"));
+
+        Log.d(
+                TAG,
+                "Tamil language result = " + languageResult
+        );
+
+        if (languageResult == TextToSpeech.LANG_MISSING_DATA ||
+                languageResult == TextToSpeech.LANG_NOT_SUPPORTED) {
+
+            ttsReady = false;
+
+            Log.e(
+                    TAG,
+                    "Tamil TTS language is unavailable on this phone"
+            );
+
+            return;
+        }
+
+        boolean femaleSelected = selectTamilFemaleVoice();
+
+        if (femaleSelected) {
+            Log.d(TAG, "Tamil FEMALE voice selected");
+        } else {
+            Log.w(
+                    TAG,
+                    "Tamil female voice not exposed by installed TTS engine; " +
+                            "using installed Tamil voice"
+            );
+        }
+
+        ttsReady = true;
+
+        Log.d(TAG, "ANDROID TTS READY");
+    }
+
+    private boolean selectTamilFemaleVoice() {
+
+        if (textToSpeech == null ||
+                Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) {
+            return false;
+        }
+
+        try {
+            Set<Voice> voices =
+                    textToSpeech.getVoices();
+
+            if (voices == null || voices.isEmpty()) {
+                return false;
+            }
+
+            Voice fallbackTamilVoice = null;
+
+            for (Voice voice : voices) {
+
+                if (voice == null ||
+                        voice.getLocale() == null) {
+                    continue;
+                }
+
+                Locale locale = voice.getLocale();
+
+                boolean tamil =
+                        "ta".equalsIgnoreCase(
+                                locale.getLanguage()
+                        );
+
+                if (!tamil) {
+                    continue;
+                }
+
+                if (fallbackTamilVoice == null) {
+                    fallbackTamilVoice = voice;
+                }
+
+                String name =
+                        voice.getName() == null
+                                ? ""
+                                : voice.getName().toLowerCase(Locale.ROOT);
+
+                String features =
+                        voice.getFeatures() == null
+                                ? ""
+                                : voice.getFeatures().toString()
+                                .toLowerCase(Locale.ROOT);
+
+                boolean female =
+                        name.contains("female") ||
+                        name.contains("woman") ||
+                        name.contains("feminine") ||
+                        features.contains("female") ||
+                        features.contains("woman") ||
+                        features.contains("feminine");
+
+                boolean networkOnly =
+                        features.contains("network");
+
+                if (female && !networkOnly) {
+                    int result =
+                            textToSpeech.setVoice(voice);
+
+                    if (result == TextToSpeech.SUCCESS) {
+                        Log.d(
+                                TAG,
+                                "Selected Tamil female voice = " +
+                                        voice.getName()
+                        );
+                        return true;
+                    }
+                }
+            }
+
+            if (fallbackTamilVoice != null) {
+
+                int result =
+                        textToSpeech.setVoice(
+                                fallbackTamilVoice
+                        );
+
+                Log.d(
+                        TAG,
+                        "Selected installed Tamil fallback voice = " +
+                                fallbackTamilVoice.getName() +
+                                ", result = " + result
+                );
+            }
+
+        } catch (Exception e) {
+            Log.e(
+                    TAG,
+                    "Could not inspect/select Tamil voice",
+                    e
+            );
+        }
+
+        return false;
     }
 
     @Override
@@ -102,6 +253,8 @@ public class ReminderVoiceService extends Service {
         Log.d(TAG, "ReminderVoiceService ON START COMMAND");
         Log.d(TAG, "startId = " + startId);
         Log.d(TAG, "========================================");
+
+        currentStartId = startId;
 
         if (intent == null) {
             Log.e(TAG, "Intent is NULL");
@@ -127,258 +280,204 @@ public class ReminderVoiceService extends Service {
             return START_NOT_STICKY;
         }
 
-        stopCurrentPlayback();
+        final String finalMessage =
+                prepareTtsText(message);
 
         updateServiceNotification(
                 "🔊 குரல் தயாராகிறது",
-                "தமிழ் நினைவூட்டல் குரல் உருவாக்கப்படுகிறது..."
+                "தமிழ் நினைவூட்டல் பேச தயாராகிறது..."
         );
 
-        final String finalMessage = message;
-
-        executor.execute(() -> {
-            File audioFile = null;
-
-            try {
-                Log.d(TAG, "TTS PROCESS STARTED");
-
-                audioFile = generateTts(finalMessage);
-                currentAudioFile = audioFile;
-
-                Log.d(TAG, "TTS MP3 CREATED");
-                Log.d(TAG, "MP3 SIZE = " +
-                        audioFile.length() + " bytes");
-
-                updateServiceNotification(
-                        "🔊 குரல் கிடைத்தது",
-                        "நினைவூட்டல் பேசப்படுகிறது..."
-                );
-
-                playAudio(audioFile, startId);
-
-            } catch (Exception e) {
-                Log.e(TAG, "TTS / PLAYBACK FAILED", e);
-
-                if (audioFile != null && audioFile.exists()) {
-                    try {
-                        audioFile.delete();
-                    } catch (Exception ignored) {
-                    }
-                }
-
-                updateServiceNotification(
-                        "❌ குரல் வரவில்லை",
-                        getSafeErrorMessage(e)
-                );
-
-                stopServiceAfterError(startId);
-            }
-        });
+        executor.execute(() -> speakWhenReady(
+                finalMessage,
+                startId
+        ));
 
         return START_NOT_STICKY;
     }
 
-    private File generateTts(String originalText) throws Exception {
-
-        String text = prepareTtsText(originalText);
-
-        Log.d(TAG, "Prepared TTS text = " + text);
-
-        URL url = new URL(TTS_URL);
-
-        HttpURLConnection connection =
-                (HttpURLConnection) url.openConnection();
-
-        try {
-            connection.setRequestMethod("POST");
-            connection.setDoOutput(true);
-            connection.setConnectTimeout(30000);
-            connection.setReadTimeout(90000);
-
-            connection.setRequestProperty(
-                    "Content-Type",
-                    "application/json; charset=UTF-8"
-            );
-
-            connection.setRequestProperty(
-                    "Accept",
-                    "audio/mpeg, audio/wav, audio/*"
-            );
-
-            // Gemini TTS is selected on the Render server.
-            // Android sends only the Tamil text; no ElevenLabs voice_id is used.
-            String json =
-                    "{"
-                            + "\"text\":\""
-                            + escapeJson(text)
-                            + "\""
-                            + "}";
-
-            Log.d(TAG, "Sending TTS POST request...");
-
-            OutputStream output =
-                    connection.getOutputStream();
-
-            output.write(
-                    json.getBytes(StandardCharsets.UTF_8)
-            );
-
-            output.flush();
-            output.close();
-
-            int responseCode =
-                    connection.getResponseCode();
-
-            Log.d(TAG, "TTS RESPONSE CODE = " +
-                    responseCode);
-
-            if (responseCode !=
-                    HttpURLConnection.HTTP_OK) {
-
-                throw new Exception(
-                        "TTS server error " +
-                                responseCode +
-                                ": " +
-                                readErrorResponse(connection)
-                );
-            }
-
-            File audioFile =
-                    new File(
-                            getCacheDir(),
-                            "reminder_voice_" +
-                                    System.currentTimeMillis() +
-                                    ".mp3"
-                    );
-
-            InputStream input =
-                    connection.getInputStream();
-
-            FileOutputStream outputFile =
-                    new FileOutputStream(audioFile);
-
-            byte[] buffer = new byte[8192];
-            int length;
-
-            while ((length = input.read(buffer)) != -1) {
-                outputFile.write(
-                        buffer,
-                        0,
-                        length
-                );
-            }
-
-            outputFile.flush();
-            outputFile.close();
-            input.close();
-
-            if (!audioFile.exists() ||
-                    audioFile.length() == 0) {
-
-                throw new Exception(
-                        "TTS server returned empty audio"
-                );
-            }
-
-            return audioFile;
-
-        } finally {
-            connection.disconnect();
-        }
-    }
-
-    private void playAudio(
-            File audioFile,
+    private void speakWhenReady(
+            String message,
             int startId
     ) {
-        try {
-            Log.d(TAG, "STARTING AUDIO PLAYBACK");
+        final long timeoutMs = 15000L;
+        final long startTime = System.currentTimeMillis();
 
-            AudioAttributes audioAttributes =
-                    new AudioAttributes.Builder()
-                            .setUsage(
-                                    AudioAttributes.USAGE_MEDIA
-                            )
-                            .setContentType(
-                                    AudioAttributes.CONTENT_TYPE_SPEECH
-                            )
-                            .build();
+        while (!ttsReady &&
+                System.currentTimeMillis() - startTime < timeoutMs) {
 
-            if (!requestAudioFocus(audioAttributes)) {
-                throw new Exception(
-                        "Audio focus unavailable"
-                );
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return;
             }
+        }
 
-            MediaPlayer player = new MediaPlayer();
-            mediaPlayer = player;
+        if (!ttsReady ||
+                textToSpeech == null) {
 
-            player.setAudioAttributes(audioAttributes);
-
-            player.setVolume(1.0f, 1.0f);
-
-            player.setDataSource(
-                    audioFile.getAbsolutePath()
+            Log.e(
+                    TAG,
+                    "Android Tamil TTS is not ready"
             );
 
-            player.setOnPreparedListener(mp -> {
-                Log.d(TAG, "MEDIAPLAYER PREPARED");
+            updateServiceNotification(
+                    "❌ குரல் வரவில்லை",
+                    "இந்த phone-ல் Tamil TTS voice கிடைக்கவில்லை."
+            );
 
-                try {
-                    mp.setVolume(1.0f, 1.0f);
-                    mp.start();
+            stopForegroundService(startId);
+            return;
+        }
 
-                    Log.d(TAG, "========================================");
-                    Log.d(TAG, "VOICE PLAYBACK STARTED");
-                    Log.d(TAG, "========================================");
+        AudioAttributes audioAttributes =
+                new AudioAttributes.Builder()
+                        .setUsage(
+                                AudioAttributes.USAGE_MEDIA
+                        )
+                        .setContentType(
+                                AudioAttributes.CONTENT_TYPE_SPEECH
+                        )
+                        .build();
 
-                } catch (Exception e) {
-                    Log.e(
-                            TAG,
-                            "Could not start MediaPlayer",
-                            e
+        if (!requestAudioFocus(audioAttributes)) {
+
+            Log.e(TAG, "Audio focus unavailable");
+
+            updateServiceNotification(
+                    "❌ குரல் வரவில்லை",
+                    "Audio focus கிடைக்கவில்லை."
+            );
+
+            stopForegroundService(startId);
+            return;
+        }
+
+        updateServiceNotification(
+                "🔊 தமிழ் குரல்",
+                "நினைவூட்டல் பேசப்படுகிறது..."
+        );
+
+        int result;
+
+        try {
+            result =
+                    textToSpeech.speak(
+                            message,
+                            TextToSpeech.QUEUE_FLUSH,
+                            null,
+                            "reminder_" + startId
                     );
 
-                    cleanupPlayback(audioFile);
-                    stopForegroundService(startId);
-                }
-            });
+        } catch (Exception e) {
 
-            player.setOnCompletionListener(mp -> {
-                Log.d(TAG, "VOICE PLAYBACK COMPLETED");
-
-                cleanupPlayback(audioFile);
-                stopForegroundService(startId);
-            });
-
-            player.setOnErrorListener((mp, what, extra) -> {
-                Log.e(
-                        TAG,
-                        "MEDIAPLAYER ERROR: " +
-                                what +
-                                " / " +
-                                extra
-                );
-
-                cleanupPlayback(audioFile);
-                stopForegroundService(startId);
-
-                return true;
-            });
-
-            player.prepareAsync();
-
-            Log.d(
+            Log.e(
                     TAG,
-                    "MediaPlayer prepareAsync() called"
+                    "ANDROID TTS SPEAK FAILED",
+                    e
             );
 
-        } catch (Exception e) {
-            Log.e(TAG, "PLAYBACK FAILED", e);
+            abandonAudioFocus();
 
-            cleanupPlayback(audioFile);
+            updateServiceNotification(
+                    "❌ குரல் வரவில்லை",
+                    getSafeErrorMessage(e)
+            );
+
             stopForegroundService(startId);
+            return;
         }
+
+        if (result != TextToSpeech.SUCCESS) {
+
+            Log.e(
+                    TAG,
+                    "ANDROID TTS SPEAK RETURNED ERROR = " +
+                            result
+            );
+
+            abandonAudioFocus();
+
+            updateServiceNotification(
+                    "❌ குரல் வரவில்லை",
+                    "Android Tamil TTS பேச முடியவில்லை."
+            );
+
+            stopForegroundService(startId);
+            return;
+        }
+
+        Log.d(TAG, "ANDROID TAMIL VOICE PLAYBACK STARTED");
+
+        attachUtteranceListener(startId);
+    }    private void attachUtteranceListener(int startId) {
+
+        if (textToSpeech == null) {
+            stopForegroundService(startId);
+            return;
+        }
+
+        textToSpeech.setOnUtteranceProgressListener(
+                new android.speech.tts.UtteranceProgressListener() {
+
+                    @Override
+                    public void onStart(String utteranceId) {
+                        Log.d(
+                                TAG,
+                                "TTS UTTERANCE STARTED: " +
+                                        utteranceId
+                        );
+                    }
+
+                    @Override
+                    public void onDone(String utteranceId) {
+                        Log.d(
+                                TAG,
+                                "TTS UTTERANCE COMPLETED: " +
+                                        utteranceId
+                        );
+
+                        abandonAudioFocus();
+                        stopForegroundService(startId);
+                    }
+
+                    @Override
+                    public void onError(String utteranceId) {
+                        Log.e(
+                                TAG,
+                                "TTS UTTERANCE ERROR: " +
+                                        utteranceId
+                        );
+
+                        abandonAudioFocus();
+
+                        updateServiceNotification(
+                                "❌ குரல் வரவில்லை",
+                                "Android Tamil TTS playback failed."
+                        );
+
+                        stopForegroundService(startId);
+                    }
+
+                    @Override
+                    public void onError(
+                            String utteranceId,
+                            int errorCode
+                    ) {
+                        Log.e(
+                                TAG,
+                                "TTS UTTERANCE ERROR: " +
+                                        utteranceId +
+                                        " / " +
+                                        errorCode
+                        );
+
+                        abandonAudioFocus();
+                        stopForegroundService(startId);
+                    }
+                }
+        );
     }
 
     private boolean requestAudioFocus(
@@ -432,83 +531,6 @@ public class ReminderVoiceService extends Service {
         }
     }
 
-    private void stopCurrentPlayback() {
-
-        try {
-            if (mediaPlayer != null) {
-
-                try {
-                    if (mediaPlayer.isPlaying()) {
-                        mediaPlayer.stop();
-                    }
-                } catch (Exception ignored) {
-                }
-
-                try {
-                    mediaPlayer.reset();
-                } catch (Exception ignored) {
-                }
-
-                try {
-                    mediaPlayer.release();
-                } catch (Exception ignored) {
-                }
-
-                mediaPlayer = null;
-            }
-
-        } catch (Exception e) {
-            Log.e(
-                    TAG,
-                    "Could not stop current playback",
-                    e
-            );
-        }
-
-        abandonAudioFocus();
-    }
-
-    private void cleanupPlayback(
-            File audioFile
-    ) {
-        try {
-            if (mediaPlayer != null) {
-
-                try {
-                    mediaPlayer.reset();
-                } catch (Exception ignored) {
-                }
-
-                try {
-                    mediaPlayer.release();
-                } catch (Exception ignored) {
-                }
-
-                mediaPlayer = null;
-            }
-
-        } catch (Exception e) {
-            Log.e(
-                    TAG,
-                    "MediaPlayer cleanup error",
-                    e
-            );
-        }
-
-        abandonAudioFocus();
-
-        if (audioFile != null &&
-                audioFile.exists()) {
-
-            try {
-                audioFile.delete();
-            } catch (Exception ignored) {
-            }
-        }
-
-        currentAudioFile = null;
-    }
-
     private void abandonAudioFocus() {
 
         if (audioManager == null) {
@@ -543,27 +565,6 @@ public class ReminderVoiceService extends Service {
     }
 
     private void stopForegroundService(
-            int startId
-    ) {
-        try {
-            if (Build.VERSION.SDK_INT >=
-                    Build.VERSION_CODES.N) {
-
-                stopForeground(
-                        Service.STOP_FOREGROUND_REMOVE
-                );
-
-            } else {
-                stopForeground(true);
-            }
-
-        } catch (Exception ignored) {
-        }
-
-        stopSelf(startId);
-    }
-
-    private void stopServiceAfterError(
             int startId
     ) {
         abandonAudioFocus();
@@ -667,62 +668,6 @@ public class ReminderVoiceService extends Service {
         }
 
         return text;
-    }
-
-    private String escapeJson(
-            String value
-    ) {
-        if (value == null) {
-            return "";
-        }
-
-        return value
-                .replace("\\", "\\\\")
-                .replace("\"", "\\\"")
-                .replace("\n", "\\n")
-                .replace("\r", "\\r")
-                .replace("\t", "\\t");
-    }
-
-    private String readErrorResponse(
-            HttpURLConnection connection
-    ) {
-        try {
-            InputStream errorStream =
-                    connection.getErrorStream();
-
-            if (errorStream == null) {
-                return "Unknown server error";
-            }
-
-            StringBuilder builder =
-                    new StringBuilder();
-
-            byte[] buffer = new byte[1024];
-            int length;
-
-            while ((length =
-                    errorStream.read(buffer)) != -1) {
-
-                builder.append(
-                        new String(
-                                buffer,
-                                0,
-                                length,
-                                StandardCharsets.UTF_8
-                        )
-                );
-            }
-
-            errorStream.close();
-
-            return builder.toString();
-
-        } catch (Exception e) {
-            return e.getMessage() != null
-                    ? e.getMessage()
-                    : "Unknown server error";
-        }
     }
 
     private void createServiceNotificationChannel() {
@@ -850,16 +795,23 @@ public class ReminderVoiceService extends Service {
                 "ReminderVoiceService ON DESTROY"
         );
 
-        stopCurrentPlayback();
-
-        if (currentAudioFile != null &&
-                currentAudioFile.exists()) {
-
-            try {
-                currentAudioFile.delete();
-            } catch (Exception ignored) {
+        try {
+            if (textToSpeech != null) {
+                textToSpeech.stop();
+                textToSpeech.shutdown();
+                textToSpeech = null;
             }
+        } catch (Exception e) {
+            Log.e(
+                    TAG,
+                    "Could not shutdown Android TTS",
+                    e
+            );
         }
+
+        ttsReady = false;
+
+        abandonAudioFocus();
 
         if (executor != null) {
             executor.shutdownNow();
@@ -874,4 +826,4 @@ public class ReminderVoiceService extends Service {
     public IBinder onBind(Intent intent) {
         return null;
     }
-}
+        }
