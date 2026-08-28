@@ -30,12 +30,14 @@ import java.util.concurrent.Executors;
 public class ReminderVoiceService extends Service
         implements TextToSpeech.OnInitListener {
 
-    private static final String TAG = "ReminderVoiceService";
+    private static final String TAG =
+            "ReminderVoiceService";
 
     private static final String SERVICE_CHANNEL_ID =
             "reminder_voice_service_v2";
 
-    private static final int SERVICE_NOTIFICATION_ID = 91001;
+    private static final int SERVICE_NOTIFICATION_ID =
+            91001;
 
     private ExecutorService executor;
     private AudioManager audioManager;
@@ -50,15 +52,23 @@ public class ReminderVoiceService extends Service
     public void onCreate() {
         super.onCreate();
 
-        Log.d(TAG, "========================================");
-        Log.d(TAG, "ReminderVoiceService ON CREATE");
-        Log.d(TAG, "ANDROID NATIVE TAMIL TTS MODE");
-        Log.d(TAG, "========================================");
+        Log.d(TAG,
+                "========================================");
+        Log.d(TAG,
+                "ReminderVoiceService ON CREATE");
+        Log.d(TAG,
+                "ANDROID NATIVE TAMIL TTS MODE");
+        Log.d(TAG,
+                "========================================");
 
-        executor = Executors.newSingleThreadExecutor();
+        executor =
+                Executors.newSingleThreadExecutor();
 
-        audioManager = (AudioManager)
-                getSystemService(Context.AUDIO_SERVICE);
+        audioManager =
+                (AudioManager)
+                        getSystemService(
+                                Context.AUDIO_SERVICE
+                        );
 
         createServiceNotificationChannel();
 
@@ -69,37 +79,49 @@ public class ReminderVoiceService extends Service
                 );
 
         try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+
+            if (Build.VERSION.SDK_INT >=
+                    Build.VERSION_CODES.Q) {
+
                 ServiceCompat.startForeground(
                         this,
                         SERVICE_NOTIFICATION_ID,
                         notification,
-                        ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK
+                        ServiceInfo
+                                .FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK
                 );
+
             } else {
+
                 startForeground(
                         SERVICE_NOTIFICATION_ID,
                         notification
                 );
             }
 
-            Log.d(TAG, "FOREGROUND SERVICE STARTED");
+            Log.d(
+                    TAG,
+                    "FOREGROUND SERVICE STARTED"
+            );
 
         } catch (Exception e) {
-            Log.e(TAG, "FOREGROUND SERVICE START FAILED", e);
+
+            Log.e(
+                    TAG,
+                    "FOREGROUND SERVICE START FAILED",
+                    e
+            );
+
             stopSelf();
             return;
         }
 
         /*
-         * Explicitly use Android's currently preferred/default TTS engine.
-         * On this phone that is:
-         * "Speech Recognition and Synthesis from Google".
+         * Use the phone's currently preferred/default
+         * Android TTS engine.
          */
         selectedEnginePackage =
-                TextToSpeech.getDefaultEngine(
-                        getApplicationContext()
-                );
+                TextToSpeech.getDefaultEngine();
 
         Log.d(
                 TAG,
@@ -108,33 +130,39 @@ public class ReminderVoiceService extends Service
         );
 
         if (selectedEnginePackage != null &&
-                !selectedEnginePackage.trim().isEmpty()) {
+                !selectedEnginePackage
+                        .trim()
+                        .isEmpty()) {
 
-            textToSpeech = new TextToSpeech(
-                    getApplicationContext(),
-                    this,
-                    selectedEnginePackage
-            );
+            textToSpeech =
+                    new TextToSpeech(
+                            getApplicationContext(),
+                            this,
+                            selectedEnginePackage
+                    );
 
         } else {
 
             Log.w(
                     TAG,
-                    "No preferred TTS engine reported; " +
-                            "using Android default constructor"
+                    "No preferred TTS engine reported"
             );
 
-            textToSpeech = new TextToSpeech(
-                    getApplicationContext(),
-                    this
-            );
+            textToSpeech =
+                    new TextToSpeech(
+                            getApplicationContext(),
+                            this
+                    );
         }
     }
 
     @Override
     public void onInit(int status) {
 
-        Log.d(TAG, "TTS onInit status = " + status);
+        Log.d(
+                TAG,
+                "TTS onInit status = " + status
+        );
 
         Log.d(
                 TAG,
@@ -142,7 +170,8 @@ public class ReminderVoiceService extends Service
                         selectedEnginePackage
         );
 
-        if (status != TextToSpeech.SUCCESS) {
+        if (status !=
+                TextToSpeech.SUCCESS) {
 
             ttsReady = false;
 
@@ -167,6 +196,8 @@ public class ReminderVoiceService extends Service
                     "ANDROID TAMIL VOICE READY"
             );
 
+            attachUtteranceListener();
+
             return;
         }
 
@@ -188,7 +219,7 @@ public class ReminderVoiceService extends Service
 
             Log.e(
                     TAG,
-                    "Tamil voice could not be selected from the installed TTS engine"
+                    "Tamil voice could not be selected"
             );
         }
 
@@ -198,7 +229,8 @@ public class ReminderVoiceService extends Service
     private boolean selectInstalledTamilVoice() {
 
         if (textToSpeech == null ||
-                Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) {
+                Build.VERSION.SDK_INT <
+                        Build.VERSION_CODES.LOLLIPOP) {
 
             return false;
         }
@@ -208,7 +240,8 @@ public class ReminderVoiceService extends Service
             Set<Voice> voices =
                     textToSpeech.getVoices();
 
-            if (voices == null || voices.isEmpty()) {
+            if (voices == null ||
+                    voices.isEmpty()) {
 
                 Log.w(
                         TAG,
@@ -229,7 +262,8 @@ public class ReminderVoiceService extends Service
                     continue;
                 }
 
-                Locale locale = voice.getLocale();
+                Locale locale =
+                        voice.getLocale();
 
                 boolean tamil =
                         "ta".equalsIgnoreCase(
@@ -260,14 +294,18 @@ public class ReminderVoiceService extends Service
                         voice.getName() == null
                                 ? ""
                                 : voice.getName()
-                                .toLowerCase(Locale.ROOT);
+                                .toLowerCase(
+                                        Locale.ROOT
+                                );
 
                 String features =
                         voice.getFeatures() == null
                                 ? ""
                                 : voice.getFeatures()
                                 .toString()
-                                .toLowerCase(Locale.ROOT);
+                                .toLowerCase(
+                                        Locale.ROOT
+                                );
 
                 boolean female =
                         name.contains("female") ||
@@ -281,7 +319,6 @@ public class ReminderVoiceService extends Service
                         features.contains("network");
 
                 if (female && !networkOnly) {
-
                     femaleTamilVoice = voice;
                 }
             }
@@ -296,7 +333,9 @@ public class ReminderVoiceService extends Service
             }
 
             int result =
-                    textToSpeech.setVoice(selected);
+                    textToSpeech.setVoice(
+                            selected
+                    );
 
             Log.d(
                     TAG,
@@ -308,7 +347,8 @@ public class ReminderVoiceService extends Service
                             result
             );
 
-            return result == TextToSpeech.SUCCESS;
+            return result ==
+                    TextToSpeech.SUCCESS;
 
         } catch (Exception e) {
 
@@ -341,8 +381,10 @@ public class ReminderVoiceService extends Service
                             result
             );
 
-            if (result != TextToSpeech.LANG_MISSING_DATA &&
-                    result != TextToSpeech.LANG_NOT_SUPPORTED) {
+            if (result !=
+                    TextToSpeech.LANG_MISSING_DATA &&
+                    result !=
+                            TextToSpeech.LANG_NOT_SUPPORTED) {
 
                 return true;
             }
@@ -358,8 +400,10 @@ public class ReminderVoiceService extends Service
                             result
             );
 
-            return result != TextToSpeech.LANG_MISSING_DATA &&
-                    result != TextToSpeech.LANG_NOT_SUPPORTED;
+            return result !=
+                    TextToSpeech.LANG_MISSING_DATA &&
+                    result !=
+                            TextToSpeech.LANG_NOT_SUPPORTED;
 
         } catch (Exception e) {
 
@@ -380,10 +424,25 @@ public class ReminderVoiceService extends Service
             int startId
     ) {
 
-        Log.d(TAG, "========================================");
-        Log.d(TAG, "ReminderVoiceService ON START COMMAND");
-        Log.d(TAG, "startId = " + startId);
-        Log.d(TAG, "========================================");
+        Log.d(
+                TAG,
+                "========================================"
+        );
+
+        Log.d(
+                TAG,
+                "ReminderVoiceService ON START COMMAND"
+        );
+
+        Log.d(
+                TAG,
+                "startId = " + startId
+        );
+
+        Log.d(
+                TAG,
+                "========================================"
+        );
 
         currentStartId = startId;
 
@@ -469,8 +528,8 @@ public class ReminderVoiceService extends Service
                 System.currentTimeMillis();
 
         while (!ttsReady &&
-                System.currentTimeMillis() -
-                        startTime <
+                System.currentTimeMillis()
+                        - startTime <
                         timeoutMs) {
 
             try {
@@ -479,7 +538,8 @@ public class ReminderVoiceService extends Service
 
             } catch (InterruptedException e) {
 
-                Thread.currentThread().interrupt();
+                Thread.currentThread()
+                        .interrupt();
 
                 return;
             }
@@ -509,7 +569,8 @@ public class ReminderVoiceService extends Service
                                 AudioAttributes.USAGE_MEDIA
                         )
                         .setContentType(
-                                AudioAttributes.CONTENT_TYPE_SPEECH
+                                AudioAttributes
+                                        .CONTENT_TYPE_SPEECH
                         )
                         .build();
 
@@ -579,9 +640,9 @@ public class ReminderVoiceService extends Service
 
             stopForegroundService(startId);
 
-            return;        }
-
-        if (result != TextToSpeech.SUCCESS) {
+            return;
+        }        if (result !=
+                TextToSpeech.SUCCESS) {
 
             Log.e(
                     TAG,
@@ -711,7 +772,8 @@ public class ReminderVoiceService extends Service
 
                 audioFocusRequest =
                         new AudioFocusRequest.Builder(
-                                AudioManager.AUDIOFOCUS_GAIN_TRANSIENT
+                                AudioManager
+                                        .AUDIOFOCUS_GAIN_TRANSIENT
                         )
                                 .setAudioAttributes(
                                         attributes
@@ -722,9 +784,10 @@ public class ReminderVoiceService extends Service
                                 .build();
 
                 int result =
-                        audioManager.requestAudioFocus(
-                                audioFocusRequest
-                        );
+                        audioManager
+                                .requestAudioFocus(
+                                        audioFocusRequest
+                                );
 
                 Log.d(
                         TAG,
@@ -733,7 +796,8 @@ public class ReminderVoiceService extends Service
                 );
 
                 return result ==
-                        AudioManager.AUDIOFOCUS_REQUEST_GRANTED;
+                        AudioManager
+                                .AUDIOFOCUS_REQUEST_GRANTED;
 
             } else {
 
@@ -741,11 +805,13 @@ public class ReminderVoiceService extends Service
                         audioManager.requestAudioFocus(
                                 null,
                                 AudioManager.STREAM_MUSIC,
-                                AudioManager.AUDIOFOCUS_GAIN_TRANSIENT
+                                AudioManager
+                                        .AUDIOFOCUS_GAIN_TRANSIENT
                         );
 
                 return result ==
-                        AudioManager.AUDIOFOCUS_REQUEST_GRANTED;
+                        AudioManager
+                                .AUDIOFOCUS_REQUEST_GRANTED;
             }
 
         } catch (Exception e) {
@@ -773,9 +839,10 @@ public class ReminderVoiceService extends Service
 
                 if (audioFocusRequest != null) {
 
-                    audioManager.abandonAudioFocusRequest(
-                            audioFocusRequest
-                    );
+                    audioManager
+                            .abandonAudioFocusRequest(
+                                    audioFocusRequest
+                            );
 
                     audioFocusRequest = null;
                 }
@@ -809,7 +876,8 @@ public class ReminderVoiceService extends Service
                     Build.VERSION_CODES.N) {
 
                 stopForeground(
-                        Service.STOP_FOREGROUND_REMOVE
+                        Service
+                                .STOP_FOREGROUND_REMOVE
                 );
 
             } else {
@@ -934,7 +1002,8 @@ public class ReminderVoiceService extends Service
                 new NotificationChannel(
                         SERVICE_CHANNEL_ID,
                         "Reminder Voice",
-                        NotificationManager.IMPORTANCE_LOW
+                        NotificationManager
+                                .IMPORTANCE_LOW
                 );
 
         channel.setDescription(
@@ -979,14 +1048,11 @@ public class ReminderVoiceService extends Service
                         android.R.drawable
                                 .ic_lock_silent_mode_off
                 )
-                .setContentTitle(
-                        title
-                )
-                .setContentText(
-                        text
-                )
+                .setContentTitle(title)
+                .setContentText(text)
                 .setPriority(
-                        NotificationCompat.PRIORITY_LOW
+                        NotificationCompat
+                                .PRIORITY_LOW
                 )
                 .setOngoing(true)
                 .setContentIntent(
