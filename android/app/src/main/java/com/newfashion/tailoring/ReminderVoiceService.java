@@ -31,6 +31,11 @@ public class ReminderVoiceService extends Service {
     private TextToSpeech textToSpeech;
     private boolean ttsReady = false;
 
+    // TTS initializes asynchronously. A scheduled alarm can start this
+    // service before onInit() finishes, so keep the reminder until TTS is ready.
+    private String pendingMessage;
+    private int pendingStartId = -1;
+
     @Override
     public void onCreate() {
         super.onCreate();
@@ -51,6 +56,15 @@ public class ReminderVoiceService extends Service {
                         textToSpeech.setSpeechRate(0.92f);
                         textToSpeech.setPitch(1.0f);
                         Log.d(TAG, "Android Tamil TTS ready = " + ttsReady);
+
+                        // A reminder may have arrived while TTS was initializing.
+                        if (ttsReady && pendingMessage != null) {
+                            String message = pendingMessage;
+                            int startId = pendingStartId;
+                            pendingMessage = null;
+                            pendingStartId = -1;
+                            speakWithAndroidTts(message, startId);
+                        }
                     } else {
                         ttsReady = false;
                         Log.e(TAG, "Android TTS initialization failed");
@@ -132,12 +146,23 @@ public class ReminderVoiceService extends Service {
             int startId
     ) {
         try {
-            if (!ttsReady || textToSpeech == null) {
+            if (textToSpeech == null) {
+                Log.w(TAG, "Android TTS object is not ready; keeping reminder pending.");
+                pendingMessage = message;
+                pendingStartId = startId;
+                return;
+            }
+
+            if (!ttsReady) {
+                // Do NOT discard the scheduled reminder. onInit() will speak it
+                // as soon as the phone's TTS engine becomes ready.
+                Log.w(TAG, "Android Tamil TTS is still initializing; keeping reminder pending.");
+                pendingMessage = message;
+                pendingStartId = startId;
                 updateServiceNotification(
-                        "❌ குரல் வரவில்லை",
-                        "Android Tamil TTS தயாராக இல்லை."
+                        "🔊 குரல் தயாராகிறது",
+                        "தமிழ் குரல் தயாரானதும் நினைவூட்டல் பேசப்படும்..."
                 );
-                stopSelf(startId);
                 return;
             }
 
@@ -344,6 +369,8 @@ public class ReminderVoiceService extends Service {
                 textToSpeech.shutdown();
                 textToSpeech = null;
             }
+            pendingMessage = null;
+            pendingStartId = -1;
         } catch (Exception ignored) {
         }
 
