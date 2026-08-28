@@ -2896,47 +2896,8 @@ function speakNFCurrentSummary(){
 }
 
 if(window.speechSynthesis){window.speechSynthesis.onvoiceschanged=()=>{};}
-
-/* Speak notifications when the native notification bridge reports delivery. */
-(function(){
-  try{
-    const LN = window.Capacitor?.Plugins?.LocalNotifications;
-    if(LN && typeof LN.addListener==="function"){
-      LN.addListener("localNotificationReceived", (notification)=>{
-        nfSpeakScheduledNotification(
-          notification?.title || "",
-          notification?.body || notification?.extra?.body || ""
-        );
-      });
-      LN.addListener("localNotificationActionPerformed", (event)=>{
-        const n=event?.notification||event?.actionId==="tap" ? event?.notification : null;
-        if(n && (n.title || n.body)){
-          nfSpeakScheduledNotification(n.title||"", n.body||"");
-        }
-      });
-    }
-  }catch(e){
-    console.warn("Native notification TTS listener unavailable.",e);
-  }
-})();
-
 document.addEventListener("keydown",e=>{if(e.key==="Escape")closeNFNotificationPanel()});
 
-
-
-/* Native Android TTS for scheduled notification speech.
-   The visible UI and notification scheduling remain unchanged.
-   When a scheduled notification is triggered through the WebView bridge,
-   this function speaks the notification text using the phone's Tamil TTS. */
-function nfSpeakScheduledNotification(title, body){
-  try{
-    const parts=[String(title||"").trim(),String(body||"").trim()].filter(Boolean);
-    const text=parts.join(". ");
-    if(text) nfSpeakWithPhoneVoice(text);
-  }catch(e){
-    console.warn("Scheduled notification TTS error:",e);
-  }
-}
 
 async function ensureNFExactAlarmPermission(){
  const LocalNotifications=await getNFLocalNotifications();
