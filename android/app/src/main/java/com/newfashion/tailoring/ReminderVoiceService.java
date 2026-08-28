@@ -301,7 +301,7 @@ public class ReminderVoiceService extends Service {
             AudioAttributes audioAttributes =
                     new AudioAttributes.Builder()
                             .setUsage(
-                                    AudioAttributes.USAGE_ALARM
+                                    AudioAttributes.USAGE_MEDIA
                             )
                             .setContentType(
                                     AudioAttributes.CONTENT_TYPE_SPEECH
@@ -422,7 +422,7 @@ public class ReminderVoiceService extends Service {
                 int result =
                         audioManager.requestAudioFocus(
                                 null,
-                                AudioManager.STREAM_ALARM,
+                                AudioManager.STREAM_MUSIC,
                                 AudioManager.AUDIOFOCUS_GAIN_TRANSIENT
                         );
 
