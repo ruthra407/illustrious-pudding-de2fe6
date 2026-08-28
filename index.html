@@ -606,13 +606,13 @@ body.nf-photo-preview-scroll-locked{
   .nf-v600-grid .nf-notification-time-item .input{height:38px!important;min-height:38px!important;font-size:12px!important;padding:4px 3px!important;min-width:0!important}
 }
 </style></style>
-<!-- V600 voice integration: ElevenLabs Voice ID via same-origin Render /tts endpoint. -->
+<!-- V600 native phone voice integration. -->
 </head><body><div id="loginPage" class="loginpage"><section class="loginbox"><div class="brand">NEW FASHION</div><div class="gold">TAILORING INDUSTRY</div><div class="sub">Online Tailoring Management Software</div><form id="loginForm"><div class="field"><label>Email</label><input id="loginEmail" class="input" type="email" autocomplete="email" required placeholder="உங்கள் Email"></div><div class="field"><label>Password</label><input id="loginPassword" class="input" type="password" autocomplete="current-password" required placeholder="Password"></div><button class="btn primary" id="loginBtn" type="submit">🔐 LOGIN</button><div id="loginMsg" class="msg"></div></form><button id="forgotBtn" class="btn secondary" style="width:100%;margin-top:10px">Forgot password?</button><div class="passkeyPanel"><button id="passkeyLoginBtn" class="btn secondary" type="button">🔐 Sign in with Passkey</button><div id="passkeyLoginHint" class="passkeyHint">முதலில் ஒருமுறை Email + Password மூலம் Login செய்து Passkey உருவாக்குங்கள். அதன் பிறகு இந்த சாதனத்தின் Fingerprint / Face / Screen Lock மூலம் unlock செய்யலாம்.</div></div></section></div><div id="app" class="hidden"><header class="topbar"><button id="menuBtn" class="iconbtn mobileOnly">☰</button><div class="brandBlock"><h1>NEW FASHION TAILORING</h1><small>ONLINE MANAGEMENT · <span id="liveClock">--:--:--</span></small></div><button id="backBtn" class="iconbtn" title="Back" aria-label="Back">‹</button><div class="spacer"></div><div id="userChip" class="userchip"></div><button id="passkeySetupBtn" class="iconbtn" title="Passkey" aria-label="Passkey">🔑</button><button id="reloadBtn" class="iconbtn" title="Refresh">↻</button><button id="logoutBtn" class="iconbtn" title="Logout">⎋</button></header><div class="layout"><aside id="sidebar" class="sidebar"><button class="navbtn dashboardNav active nf-sidebar-hidden-nav" data-view="dashboard" aria-hidden="true" tabindex="-1">📊 <span>Dashboard</span></button><div id="nfSidebarCustomerListWrap" aria-label="Customer list"><div class="nfSidebarCustomerListHead">👥 Customer List</div><div id="nfSidebarCustomerList" class="nfSidebarCustomerList"></div></div><button class="navbtn" data-view="notifications">🔔 Notifications</button><button class="navbtn" data-view="orders">🧾 Orders</button><button class="navbtn" data-view="customers">👥 Customers</button><button class="navbtn logout" id="sideLogout">⎋ Logout</button></aside><main class="main"><section id="view-dashboard" class="view active">
 <div id="nfHomeNotificationPanel" class="nf-home-notification-panel" hidden role="dialog" aria-modal="true" aria-labelledby="nfHomeNotificationPanelTitle">
   <div class="nf-home-notification-panel-box">
     <div class="nf-home-notification-panel-head"><div><h3 id="nfHomeNotificationPanelTitle">🔔 Notification Center</h3><p>எல்லா active customers-ன் இன்றைய நிலவரம்</p></div><button type="button" class="nf-home-notification-close" onclick="closeNFNotificationPanel()" aria-label="Close">×</button></div>
     <div id="nfHomeNotificationSummary" class="nf-home-notification-summary">இன்றைய customer வேலை நிலவரம் இங்கே வரும்.</div>
-    <div class="nf-home-voice-note">🔊 Voice: முதலில் ElevenLabs /tts முயற்சி செய்யப்படும்; அது கிடைக்கவில்லை என்றால் phone-ல் கிடைக்கும் Tamil voice மூலம் உடனே பேசும். <b>“pcs” → “பீசஸ்”</b> என்று speech text தனியாக உருவாக்கப்படுகிறது.</div>
+    <div class="nf-home-voice-note">🔊 Voice: இந்த phone-ல் இருக்கும் Tamil voice மூலம் உடனே பேசும். <b>“pcs” → “பீசஸ்”</b> என்று speech text தனியாக உருவாக்கப்படுகிறது.</div>
     <div class="nf-home-notification-actions">
       <button type="button" class="btn warning" onclick="speakNFCurrentSummary()">🔊 குரலில் கேள்</button>
       <button type="button" class="btn secondary" onclick="refreshNFHomeNotificationBar()">↻ Refresh</button>
@@ -2812,19 +2812,8 @@ function pickNFVoice(){
 }
 
 
-/* V600.2 voice integration.
-   1) Try the configured ElevenLabs /tts backend when it is actually available.
-   2) If /tts is unavailable (common on a static GitHub Pages build), fall back
-      to the phone's native Tamil speech engine instead of showing a red error.
-   The ElevenLabs API key is never placed in this HTML file. */
-
-const NF_ELEVENLABS_VOICE_ID = "nJPQW86B3xSFcIV4aV5H";
-
-/* Leave empty for a static GitHub Pages build.
-   If a Render /tts backend is later available, put its HTTPS endpoint here. */
-const NF_ELEVENLABS_TTS_ENDPOINT = "";
-
-let nfVoiceAudio = null;
+/* V600.2 native phone voice integration.
+   Uses the Tamil speech engine already available on the phone. */
 
 function nfSpeakWithPhoneVoice(text){
   return new Promise((resolve)=>{
@@ -2886,86 +2875,6 @@ function nfSpeakWithPhoneVoice(text){
   });
 }
 
-async function playNFElevenLabsVoice(text){
-  const speechText = String(text || "").trim();
-  if(!speechText)return false;
-
-  /* Static builds do not have /tts. Do not make a guaranteed 404 request. */
-  if(NF_ELEVENLABS_TTS_ENDPOINT){
-    try{
-      const response = await fetch(NF_ELEVENLABS_TTS_ENDPOINT, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Accept": "audio/mpeg, audio/*, application/json"
-        },
-        body: JSON.stringify({
-          text: speechText,
-          voice_id: NF_ELEVENLABS_VOICE_ID
-        })
-      });
-
-      if(!response.ok){
-        throw new Error("/tts " + response.status);
-      }
-
-      const contentType = (response.headers.get("content-type") || "").toLowerCase();
-      let audioUrl = "";
-
-      if(contentType.includes("audio/")){
-        const blob = await response.blob();
-        audioUrl = URL.createObjectURL(blob);
-      }else{
-        const data = await response.json();
-        audioUrl = data?.audio_url || data?.audioUrl || data?.url || "";
-
-        if(!audioUrl && data?.audio_base64){
-          const binary = atob(data.audio_base64);
-          const bytes = new Uint8Array(binary.length);
-          for(let i=0;i<binary.length;i++)bytes[i]=binary.charCodeAt(i);
-          audioUrl = URL.createObjectURL(
-            new Blob([bytes],{type:"audio/mpeg"})
-          );
-        }
-      }
-
-      if(!audioUrl)throw new Error("/tts response-ல் audio கிடைக்கவில்லை.");
-
-      if(nfVoiceAudio){
-        try{
-          nfVoiceAudio.pause();
-          if(nfVoiceAudio.dataset?.objectUrl){
-            URL.revokeObjectURL(nfVoiceAudio.dataset.objectUrl);
-          }
-        }catch(e){}
-      }
-
-      const audio = new Audio(audioUrl);
-      audio.volume = 1;
-      audio.preload = "auto";
-      if(audioUrl.startsWith("blob:")){
-        audio.dataset.objectUrl = audioUrl;
-      }
-      nfVoiceAudio = audio;
-
-      audio.addEventListener("ended",()=>{
-        if(audio.dataset?.objectUrl){
-          try{URL.revokeObjectURL(audio.dataset.objectUrl);}catch(e){}
-          delete audio.dataset.objectUrl;
-        }
-      },{once:true});
-
-      await audio.play();
-      return true;
-    }catch(error){
-      console.warn("ElevenLabs /tts unavailable; using phone Tamil voice.",error);
-    }
-  }
-
-  /* Guaranteed local fallback for the current APK/static build. */
-  return await nfSpeakWithPhoneVoice(speechText);
-}
-
 function speakNFCurrentSummary(){
   try{
     const text = nfSpeechText();
@@ -2975,7 +2884,7 @@ function speakNFCurrentSummary(){
       return;
     }
 
-    playNFElevenLabsVoice(text).then(ok=>{
+    nfSpeakWithPhoneVoice(text).then(ok=>{
       if(!ok){
         toast("இந்த phone-ல் Tamil voice engine கிடைக்கவில்லை.",true);
       }
@@ -2987,8 +2896,47 @@ function speakNFCurrentSummary(){
 }
 
 if(window.speechSynthesis){window.speechSynthesis.onvoiceschanged=()=>{};}
+
+/* Speak notifications when the native notification bridge reports delivery. */
+(function(){
+  try{
+    const LN = window.Capacitor?.Plugins?.LocalNotifications;
+    if(LN && typeof LN.addListener==="function"){
+      LN.addListener("localNotificationReceived", (notification)=>{
+        nfSpeakScheduledNotification(
+          notification?.title || "",
+          notification?.body || notification?.extra?.body || ""
+        );
+      });
+      LN.addListener("localNotificationActionPerformed", (event)=>{
+        const n=event?.notification||event?.actionId==="tap" ? event?.notification : null;
+        if(n && (n.title || n.body)){
+          nfSpeakScheduledNotification(n.title||"", n.body||"");
+        }
+      });
+    }
+  }catch(e){
+    console.warn("Native notification TTS listener unavailable.",e);
+  }
+})();
+
 document.addEventListener("keydown",e=>{if(e.key==="Escape")closeNFNotificationPanel()});
 
+
+
+/* Native Android TTS for scheduled notification speech.
+   The visible UI and notification scheduling remain unchanged.
+   When a scheduled notification is triggered through the WebView bridge,
+   this function speaks the notification text using the phone's Tamil TTS. */
+function nfSpeakScheduledNotification(title, body){
+  try{
+    const parts=[String(title||"").trim(),String(body||"").trim()].filter(Boolean);
+    const text=parts.join(". ");
+    if(text) nfSpeakWithPhoneVoice(text);
+  }catch(e){
+    console.warn("Scheduled notification TTS error:",e);
+  }
+}
 
 async function ensureNFExactAlarmPermission(){
  const LocalNotifications=await getNFLocalNotifications();
