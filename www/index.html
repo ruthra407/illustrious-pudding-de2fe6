@@ -627,7 +627,37 @@ body.nf-photo-preview-scroll-locked{
 .passwordResetPanel .btn{width:100%;margin-top:4px}
 .passwordResetPanel .msg{min-height:22px;margin-top:9px}
 </style>
-</head><body><div id="loginPage" class="loginpage"><section class="loginbox"><div class="brand">NEW FASHION</div><div class="gold">TAILORING INDUSTRY</div><div class="sub">Online Tailoring Management Software</div><form id="loginForm"><div class="field"><label>Email</label><input id="loginEmail" class="input" type="email" autocomplete="email" required placeholder="உங்கள் Email"></div><div class="field"><label>Password</label><input id="loginPassword" class="input" type="password" autocomplete="current-password" required placeholder="Password"></div><button class="btn primary" id="loginBtn" type="submit">🔐 LOGIN</button><div id="loginMsg" class="msg"></div></form><button id="forgotBtn" class="btn secondary" style="width:100%;margin-top:10px">Forgot password?</button>
+
+<style id="nf-reset-password-button-css">
+.nf-reset-password-btn{
+  width:100%!important;
+  margin-top:12px!important;
+  min-height:56px!important;
+  border-radius:16px!important;
+  font-size:18px!important;
+  font-weight:900!important;
+}
+.nf-forgot-row{
+  display:flex;
+  justify-content:center;
+  margin-top:8px;
+}
+.nf-forgot-btn{
+  width:auto!important;
+  min-height:38px!important;
+  padding:7px 14px!important;
+  border:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  color:#6941d8!important;
+  font-size:13px!important;
+  font-weight:800!important;
+}
+</style>
+</head><body><div id="loginPage" class="loginpage"><section class="loginbox"><div class="brand">NEW FASHION</div><div class="gold">TAILORING INDUSTRY</div><div class="sub">Online Tailoring Management Software</div><form id="loginForm"><div class="field"><label>Email</label><input id="loginEmail" class="input" type="email" autocomplete="email" required placeholder="உங்கள் Email"></div><div class="field"><label>Password</label><input id="loginPassword" class="input" type="password" autocomplete="current-password" required placeholder="Password"></div><button class="btn primary" id="loginBtn" type="submit">🔐 LOGIN</button><div id="loginMsg" class="msg"></div></form><button id="resetPasswordBtn" class="btn primary nf-reset-password-btn" type="button">🔄 RESET PASSWORD</button>
+<div class="nf-forgot-row">
+  <button id="forgotBtn" class="btn secondary nf-forgot-btn" type="button">Forgot password?</button>
+</div>
 <div id="passwordResetPanel" class="passwordResetPanel hidden" aria-hidden="true">
   <div class="passwordResetHead">
     <div>
@@ -759,7 +789,7 @@ function setPasswordResetMsg(m,error=false){
   el.textContent=m;
   el.className="msg "+(error?"error":"ok");
 }
-$("forgotBtn").addEventListener("click",async()=>{
+async function sendPasswordResetEmail(){
   const email=$("loginEmail").value.trim();
   if(!email){setLoginMsg("முதலில் Email உள்ளிடுங்கள்.",true);$("loginEmail")?.focus();return}
   const b=$("forgotBtn");
@@ -775,8 +805,16 @@ $("forgotBtn").addEventListener("click",async()=>{
   }finally{
     b.disabled=false;
     b.textContent="Forgot password?";
+    const rb=$("resetPasswordBtn");
+    if(rb) rb.disabled=false;
   }
+}
+$("resetPasswordBtn")?.addEventListener("click",async()=>{
+  const rb=$("resetPasswordBtn");
+  if(rb) rb.disabled=true;
+  await sendPasswordResetEmail();
 });
+$("forgotBtn")?.addEventListener("click",sendPasswordResetEmail);
 $("passwordResetClose")?.addEventListener("click",closePasswordResetPanel);
 $("showNewPassword")?.addEventListener("change",e=>{
   const type=e.target.checked?"text":"password";
