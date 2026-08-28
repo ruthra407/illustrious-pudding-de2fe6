@@ -2802,10 +2802,9 @@ function nfSpeechText(){
  return lines.join(" ");
 }
 
-/* V600.3 voice integration.
-   Google Gemini TTS is handled by the Render /tts backend.
-   No Gemini API key is stored in this HTML file.
-   No ElevenLabs voice ID and no local browser speech fallback are used.
+/* GEMINI TAMIL TTS — Render backend only.
+   No ElevenLabs ID and no Android/browser speech fallback.
+   The Gemini API key stays on the Render server.
 */
 
 const NF_GEMINI_TTS_ENDPOINT =
@@ -2815,13 +2814,14 @@ let nfVoiceAudio = null;
 
 async function playNFGeminiVoice(text){
   const speechText = String(text || "").trim();
-  if(!speechText)return false;
+  if(!speechText) return false;
 
   try{
     console.log("Gemini /tts request starting...");
 
     const response = await fetch(NF_GEMINI_TTS_ENDPOINT, {
       method: "POST",
+      cache: "no-store",
       headers: {
         "Content-Type": "application/json",
         "Accept": "audio/wav, audio/mpeg, audio/*, application/octet-stream"
@@ -2840,8 +2840,8 @@ async function playNFGeminiVoice(text){
       }catch(e){}
 
       throw new Error(
-        "Gemini /tts " + response.status +
-        (detail ? ": " + detail.slice(0,180) : "")
+        "Gemini /tts HTTP " + response.status +
+        (detail ? ": " + detail.slice(0, 300) : "")
       );
     }
 
@@ -2851,16 +2851,19 @@ async function playNFGeminiVoice(text){
       throw new Error("Gemini /tts returned empty audio.");
     }
 
+    console.log(
+      "Gemini audio received:",
+      blob.size,
+      "bytes"
+    );
+
     const audioUrl = URL.createObjectURL(blob);
 
     if(nfVoiceAudio){
       try{ nfVoiceAudio.pause(); }catch(e){}
-
       try{
         if(nfVoiceAudio.dataset?.objectUrl){
-          URL.revokeObjectURL(
-            nfVoiceAudio.dataset.objectUrl
-          );
+          URL.revokeObjectURL(nfVoiceAudio.dataset.objectUrl);
         }
       }catch(e){}
     }
@@ -2869,9 +2872,11 @@ async function playNFGeminiVoice(text){
 
     audio.dataset.objectUrl = audioUrl;
     audio.preload = "auto";
+    audio.volume = 1.0;
+
     nfVoiceAudio = audio;
 
-    audio.onended = ()=>{
+    const cleanup = ()=>{
       try{
         URL.revokeObjectURL(audioUrl);
       }catch(e){}
@@ -2881,15 +2886,8 @@ async function playNFGeminiVoice(text){
       }
     };
 
-    audio.onerror = ()=>{
-      try{
-        URL.revokeObjectURL(audioUrl);
-      }catch(e){}
-
-      if(nfVoiceAudio === audio){
-        nfVoiceAudio = null;
-      }
-    };
+    audio.addEventListener("ended", cleanup, {once:true});
+    audio.addEventListener("error", cleanup, {once:true});
 
     await audio.play();
 
@@ -2906,12 +2904,49 @@ async function playNFGeminiVoice(text){
       error
     );
 
+    try{
+      toast(
+        "Gemini Tamil voice வரவில்லை. Render /tts log-ஐ பார்க்கவும்.",
+        true
+      );
+    }catch(e){}
+
     return false;
   }
 }
 
 async function playNFVoice(text){
   return await playNFGeminiVoice(text);
+}
+
+function speakNFCurrentSummary(){
+  try{
+    const text = nfSpeechText();
+
+    if(!text){
+      toast(
+        "இன்றைய notification text இல்லை.",
+        true
+      );
+      return;
+    }
+
+    playNFGeminiVoice(text);
+
+  }catch(e){
+
+    console.error(
+      "Gemini voice reminder error:",
+      e
+    );
+
+    try{
+      toast(
+        "Voice reminder தொடங்க முடியவில்லை.",
+        true
+      );
+    }catch(x){}
+  }
 }
 
 
