@@ -37,9 +37,6 @@ public class ReminderVoiceService extends Service {
     private static final String TTS_URL =
             "https://new-fashion-voice-tts.onrender.com/tts";
 
-    private static final String ELEVENLABS_VOICE_ID =
-            "nJPQW86B3xSFcIV4aV5H";
-
     private static final String SERVICE_CHANNEL_ID =
             "reminder_voice_service_v2";
 
@@ -205,16 +202,15 @@ public class ReminderVoiceService extends Service {
 
             connection.setRequestProperty(
                     "Accept",
-                    "audio/mpeg, audio/*"
+                    "audio/mpeg, audio/wav, audio/*"
             );
 
+            // Gemini TTS is selected on the Render server.
+            // Android sends only the Tamil text; no ElevenLabs voice_id is used.
             String json =
                     "{"
                             + "\"text\":\""
                             + escapeJson(text)
-                            + "\","
-                            + "\"voice_id\":\""
-                            + escapeJson(ELEVENLABS_VOICE_ID)
                             + "\""
                             + "}";
 
