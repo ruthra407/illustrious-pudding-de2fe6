@@ -2974,99 +2974,128 @@ function nfSpeechText(){
 }
 
 function pickNFVoice(){
- try{
-   const voices=window.speechSynthesis?.getVoices?.()||[];
-   const tamil=voices.filter(v=>/^ta([-_]|$)/i.test(v.lang||""));
-   const female=tamil.find(v=>/female|woman|girl|kalpana|veena|lekha|heera/i.test(v.name||""));
-   return female||tamil[0]||voices.find(v=>/female|woman|girl/i.test(v.name||""))||voices[0]||null;
- }catch(e){return null}
+  try{
+    const voices=window.speechSynthesis?.getVoices?.()||[];
+    if(!voices.length)return null;
+    const tamil=voices.filter(v=>/^ta(?:[-_]|$)/i.test(String(v.lang||"")));
+    if(!tamil.length)return null;
+    return tamil.find(v=>/^ta-IN$/i.test(String(v.lang||"")))||
+           tamil.find(v=>/female|woman|girl|kalpana|veena|lekha|heera/i.test(String(v.name||"")))||
+           tamil[0];
+  }catch(e){return null}
 }
 
+/* V600.3 — stable Tamil phone voice.
+   No old server / MP3 / external TTS renderer is used here.
+   This uses the phone/WebView speech engine only. */
+function nfGetTamilVoice(){
+  try{
+    const ss=window.speechSynthesis;
+    if(!ss)return null;
+    let v=pickNFVoice();
+    if(v)return v;
+    try{ss.getVoices();}catch(e){}
+    return pickNFVoice();
+  }catch(e){return null}
+}
 
-/* V600.2 native phone voice integration.
-   Uses the Tamil speech engine already available on the phone. */
+function nfSplitSpeechText(text,maxLen=180){
+  const raw=String(text||"").replace(/\s+/g," ").trim();
+  if(!raw)return [];
+  const sentences=raw.split(/(?<=[.!?।॥])\s+/u);
+  const out=[];
+  let part="";
+  sentences.forEach(sentence=>{
+    sentence=sentence.trim();
+    if(!sentence)return;
+    if((part+" "+sentence).trim().length<=maxLen){
+      part=(part?part+" ":"")+sentence;
+      return;
+    }
+    if(part){out.push(part);part="";}
+    if(sentence.length<=maxLen){out.push(sentence);return;}
+    for(let i=0;i<sentence.length;i+=maxLen)out.push(sentence.slice(i,i+maxLen).trim());
+  });
+  if(part)out.push(part);
+  return out.filter(Boolean);
+}
 
-function nfSpeakWithPhoneVoice(text){
-  return new Promise((resolve)=>{
+function nfSpeakChunk(text,voice){
+  return new Promise(resolve=>{
+    let done=false;
+    const finish=ok=>{if(done)return;done=true;resolve(!!ok)};
     try{
-      if(!window.speechSynthesis || typeof SpeechSynthesisUtterance==="undefined"){
-        resolve(false);
-        return;
-      }
-
-      const speechText = String(text || "").trim();
-      if(!speechText){
-        resolve(false);
-        return;
-      }
-
-      try{ window.speechSynthesis.cancel(); }catch(e){}
-
-      const utterance = new SpeechSynthesisUtterance(speechText);
-      utterance.lang = "ta-IN";
-      utterance.rate = 0.92;
-      utterance.pitch = 1.0;
-      utterance.volume = 1.0;
-
-      const useVoice = ()=>{
-        try{
-          const voice = pickNFVoice();
-          if(voice) utterance.voice = voice;
-        }catch(e){}
-      };
-
-      useVoice();
-
-      let settled = false;
-      const finish = (ok)=>{
-        if(settled)return;
-        settled = true;
-        resolve(!!ok);
-      };
-
-      utterance.onend = ()=>finish(true);
-      utterance.onerror = ()=>finish(false);
-
-      /* Android WebView can populate voices a moment after page load. */
-      if(!utterance.voice){
-        try{
-          const voices = window.speechSynthesis.getVoices?.() || [];
-          if(voices.length) useVoice();
-        }catch(e){}
-      }
-
-      window.speechSynthesis.speak(utterance);
-
-      /* Some Android WebViews do not fire onerror reliably. */
-      setTimeout(()=>finish(true), 900);
-    }catch(error){
-      console.error("Phone Tamil voice error:",error);
-      resolve(false);
+      const u=new SpeechSynthesisUtterance(String(text||""));
+      u.lang="ta-IN";
+      u.rate=0.88;
+      u.pitch=1.0;
+      u.volume=1.0;
+      if(voice)u.voice=voice;
+      u.onend=()=>finish(true);
+      u.onerror=()=>finish(false);
+      window.speechSynthesis.speak(u);
+      /* Safety timeout only; do not mark success too early. */
+      setTimeout(()=>finish(false),Math.max(12000,String(text||"").length*180));
+    }catch(e){
+      console.error("Tamil speech chunk error:",e);
+      finish(false);
     }
   });
 }
 
-function speakNFCurrentSummary(){
+async function nfSpeakWithPhoneVoice(text){
   try{
-    const text = nfSpeechText();
+    if(!window.speechSynthesis || typeof SpeechSynthesisUtterance==="undefined")return false;
+    const speechText=String(text||"").trim();
+    if(!speechText)return false;
+    const ss=window.speechSynthesis;
+    try{ss.cancel();}catch(e){}
 
+    /* Give Android WebView a moment to expose installed voices. */
+    let voice=nfGetTamilVoice();
+    if(!voice){
+      await new Promise(r=>setTimeout(r,250));
+      voice=nfGetTamilVoice();
+    }
+    if(!voice){
+      toast("இந்த phone-ல் Tamil voice engine கிடைக்கவில்லை.",true);
+      return false;
+    }
+
+    const chunks=nfSplitSpeechText(speechText,180);
+    for(const chunk of chunks){
+      const ok=await nfSpeakChunk(chunk,voice);
+      if(!ok){
+        try{ss.cancel();}catch(e){}
+        return false;
+      }
+      await new Promise(r=>setTimeout(r,80));
+    }
+    return true;
+  }catch(error){
+    console.error("Phone Tamil voice error:",error);
+    return false;
+  }
+}
+
+async function speakNFCurrentSummary(){
+  try{
+    const text=nfSpeechText();
     if(!text){
       toast("இன்றைய notification text இல்லை.",true);
       return;
     }
-
-    nfSpeakWithPhoneVoice(text).then(ok=>{
-      if(!ok){
-        toast("இந்த phone-ல் Tamil voice engine கிடைக்கவில்லை.",true);
-      }
-    });
+    const ok=await nfSpeakWithPhoneVoice(text);
+    if(!ok)console.warn("Tamil voice was not started.");
   }catch(e){
     console.error("Voice reminder error:",e);
     toast("Voice reminder தொடங்க முடியவில்லை.",true);
   }
 }
 
-if(window.speechSynthesis){window.speechSynthesis.onvoiceschanged=()=>{};}
+if(window.speechSynthesis){
+  window.speechSynthesis.onvoiceschanged=()=>{try{pickNFVoice();}catch(e){}};
+}
 document.addEventListener("keydown",e=>{if(e.key==="Escape")closeNFNotificationPanel()});
 
 
