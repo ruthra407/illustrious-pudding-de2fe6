@@ -677,8 +677,40 @@ function showApp(u){state.user=u;$("loginPage").classList.add("hidden");$("app")
 function setLoginMsg(m,error=false){$("loginMsg").textContent=m;$("loginMsg").className="msg "+(error?"error":"ok")}
 
 $("loginForm").addEventListener("submit",async e=>{
-e.preventDefault();setLoginMsg("");const b=$("loginBtn");b.disabled=true;b.textContent="Logging in...";
-try{const {data,error}=await supabaseClient.auth.signInWithPassword({email:$("loginEmail").value.trim(),password:$("loginPassword").value});if(error)throw error;showApp(data.user);await loadAll();setLoginMsg("Login successful")}catch(err){setLoginMsg("Login failed: "+err.message,true)}finally{b.disabled=false;b.textContent="🔐 LOGIN"}});
+ e.preventDefault();
+ setLoginMsg("");
+ const b=$("loginBtn");
+ b.disabled=true;
+ b.textContent="Logging in...";
+ try{
+   const authPromise=supabaseClient.auth.signInWithPassword({
+     email:$("loginEmail").value.trim(),
+     password:$("loginPassword").value
+   });
+   const {data,error}=await Promise.race([
+     authPromise,
+     new Promise((_,reject)=>setTimeout(()=>reject(new Error("Login request timed out. Please check your internet connection and try again.")),15000))
+   ]);
+   if(error)throw error;
+   if(!data?.user)throw new Error("Login succeeded but user session was not returned.");
+
+   // IMPORTANT: enter the app immediately after authentication.
+   // Database loading must never keep the login button stuck on “Logging in…”.
+   showApp(data.user);
+   setLoginMsg("Login successful");
+
+   // Load application data in the background. A slow/failing table must not block login.
+   loadAll(true).catch(err=>{
+     console.error("Background data load after login:",err);
+     toast("Login successful. சில data load ஆகவில்லை. Reload செய்து மீண்டும் முயற்சிக்கலாம்.",true);
+   });
+ }catch(err){
+   setLoginMsg("Login failed: "+(err?.message||String(err)),true);
+ }finally{
+   b.disabled=false;
+   b.textContent="🔐 LOGIN";
+ }
+});
 $("forgotBtn").addEventListener("click",async()=>{const email=$("loginEmail").value.trim();if(!email){setLoginMsg("முதலில் Email உள்ளிடுங்கள்.",true);return}const {error}=await supabaseClient.auth.resetPasswordForEmail(email,{redirectTo:location.href});if(error)setLoginMsg("Reset failed: "+error.message,true);else setLoginMsg("Password reset email அனுப்பப்பட்டது. Spam/Promotions-ஐயும் பாருங்கள்.")});
 async function logout(){sessionStorage.removeItem("nf_passkey_unlocked");const {error}=await supabaseClient.auth.signOut();if(error)toast(error.message,true);else showLogin()}
 $("logoutBtn").onclick=logout;$("sideLogout").onclick=logout;$("reloadBtn").onclick=()=>loadAll(true);$("menuBtn").onclick=()=>$("sidebar").classList.toggle("open");
