@@ -31,11 +31,6 @@ public class ReminderVoiceService extends Service {
     private TextToSpeech textToSpeech;
     private boolean ttsReady = false;
 
-    // TTS initialization is asynchronous. Keep a scheduled reminder
-    // until the Android Tamil TTS engine is ready.
-    private String pendingMessage;
-    private int pendingStartId = -1;
-
     @Override
     public void onCreate() {
         super.onCreate();
@@ -56,14 +51,6 @@ public class ReminderVoiceService extends Service {
                         textToSpeech.setSpeechRate(0.92f);
                         textToSpeech.setPitch(1.0f);
                         Log.d(TAG, "Android Tamil TTS ready = " + ttsReady);
-
-                        if (ttsReady && pendingMessage != null) {
-                            String message = pendingMessage;
-                            int savedStartId = pendingStartId;
-                            pendingMessage = null;
-                            pendingStartId = -1;
-                            speakWithAndroidTts(message, savedStartId);
-                        }
                     } else {
                         ttsReady = false;
                         Log.e(TAG, "Android TTS initialization failed");
@@ -145,15 +132,12 @@ public class ReminderVoiceService extends Service {
             int startId
     ) {
         try {
-            if (textToSpeech == null || !ttsReady) {
-                pendingMessage = message;
-                pendingStartId = startId;
-                Log.d(TAG, "TTS not ready yet; reminder kept pending.");
-
+            if (!ttsReady || textToSpeech == null) {
                 updateServiceNotification(
-                        "🔊 குரல் தயாராகிறது",
-                        "தமிழ் குரல் தயாரானதும் நினைவூட்டல் பேசப்படும்..."
+                        "❌ குரல் வரவில்லை",
+                        "Android Tamil TTS தயாராக இல்லை."
                 );
+                stopSelf(startId);
                 return;
             }
 
@@ -360,9 +344,6 @@ public class ReminderVoiceService extends Service {
                 textToSpeech.shutdown();
                 textToSpeech = null;
             }
-
-            pendingMessage = null;
-            pendingStartId = -1;
         } catch (Exception ignored) {
         }
 
