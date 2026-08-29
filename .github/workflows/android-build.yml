@@ -37,7 +37,9 @@ jobs:
         run: npm install --no-save @capacitor/local-notifications@8.2.1
 
       - name: Install Capacitor Contacts
-        run: npm install --no-save @capacitor/contacts@1.0.1
+        run: |
+          npm install --save @capacitor/contacts@1.0.1
+          npx cap sync android
 
       - name: Sync root web files to www
         run: |
