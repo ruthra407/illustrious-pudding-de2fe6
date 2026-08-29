@@ -8666,54 +8666,77 @@ window.addEventListener("keydown",function(e){if(e.key==="Escape")window.closeCu
 (function(){
   "use strict";
 
+  function isOrdersContext(){
+    try{
+      var st=window.history&&window.history.state;
+      if(st && (st.view==="orders" || st.__nfOrdersNewOrder || st.__nfOrdersEditOrder)) return true;
+    }catch(e){}
+    var active=document.querySelector(".view.active");
+    if(active && active.id==="view-orders") return true;
+    return !!document.querySelector("#view-orders.active");
+  }
+
   function latestOrderForCustomer(customerId){
-    var list=(window.state&&Array.isArray(state.orders)?state.orders:[]).filter(function(o){
+    var list=(window.state&&Array.isArray(window.state.orders)?window.state.orders:[]).filter(function(o){
       return String(o&&o.customer_id||"")===String(customerId||"");
     });
     list.sort(function(a,b){
-      return String(b&&b.created_at||b&&b.order_date||"").localeCompare(
-        String(a&&a.created_at||a&&a.order_date||"")
+      return String(b&&b.created_at||b&&b.order_date||b&&b.updated_at||"").localeCompare(
+        String(a&&a.created_at||a&&a.order_date||a&&a.updated_at||"")
       );
     });
     return list[0]||null;
   }
 
-  /* The sidebar customer list is shared by views.  Preserve the current
-     context: Customers -> customer details; Orders -> that customer's
-     latest order details.  No records or calculations are changed. */
+  function openOrderForCustomerFromOrders(id){
+    var order=latestOrderForCustomer(id);
+    if(order && typeof window.openOrderFullDetails==="function"){
+      window.openOrderFullDetails(String(order.id));
+      return true;
+    }
+    return false;
+  }
+
   window.openSidebarCustomer=function(id){
-    var current=(window.history&&history.state&&history.state.view)||"dashboard";
+    var ordersContext=isOrdersContext();
     try{
-      if(current==="orders"){
-        var order=latestOrderForCustomer(id);
-        if(order && typeof window.openOrderFullDetails==="function") window.openOrderFullDetails(order.id);
-        else if(typeof window.goView==="function") window.goView("orders");
+      if(ordersContext){
+        openOrderForCustomerFromOrders(id);
       }else if(typeof window.goToCustomer==="function"){
         window.goToCustomer(id);
       }
     }finally{
       var drawer=document.getElementById("sidebar");
-      if(drawer)drawer.classList.remove("open");
+      if(drawer) drawer.classList.remove("open");
     }
   };
 
-  /* The dashboard's separate customer slide menu follows the same rule when
-     it is opened while the Orders view is active. */
   window.openCustomerFromMyCustomersMenu=function(id){
-    /* Capture the view BEFORE closing the customer slide menu.  Closing the
-       menu may update history/view state, so reading it afterwards can route
-       the selected customer to the wrong destination. */
-    var current=(window.history&&history.state&&history.state.view)||"dashboard";
-    if(current!=="orders") current=(document.querySelector(".view.active")?.id||"").replace(/^view-/ ,"");
+    var ordersContext=isOrdersContext();
     if(typeof window.closeMyCustomersSlideMenu==="function") window.closeMyCustomersSlideMenu();
     setTimeout(function(){
-      if(current==="orders"){
-        var order=latestOrderForCustomer(id);
-        if(order && typeof window.openOrderFullDetails==="function") window.openOrderFullDetails(order.id);
+      if(ordersContext){
+        openOrderForCustomerFromOrders(id);
       }else if(typeof window.goToCustomer==="function"){
         window.goToCustomer(id);
       }
     },80);
   };
+
+  /* Final delegated fallback for the two customer-list buttons.  This only
+     applies while the Orders view is active, and prevents older inline
+     handlers/overrides from routing to Customer Details or New Order. */
+  document.addEventListener("click",function(e){
+    if(!isOrdersContext()) return;
+    var el=e.target&&e.target.closest?e.target.closest("#nfCustomerSlideList .nf-customer-slide-row, #nfSidebarCustomerList .nfSidebarCustomerRow"):null;
+    if(!el) return;
+    var m=(el.getAttribute("onclick")||"").match(/(?:openCustomerFromMyCustomersMenu|openSidebarCustomer)\('([^']*)'\)/);
+    if(!m) return;
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    var id=m[1];
+    if(el.classList.contains("nf-customer-slide-row") && typeof window.closeMyCustomersSlideMenu==="function") window.closeMyCustomersSlideMenu();
+    setTimeout(function(){ openOrderForCustomerFromOrders(id); },80);
+  },true);
 })();
 </script>
