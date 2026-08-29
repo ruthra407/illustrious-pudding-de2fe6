@@ -2193,14 +2193,16 @@ function mountOrdersQuickForm(customerId){
    if(typeof window.renderQuickDesignRates==="function")window.renderQuickDesignRates(key,[]);
  }
 }
-function openOrdersQuickAdd(){
+function openOrdersQuickAdd(skipHistory=false){
  const modal=$("ordersNewOrderScreen"),panel=$("ordersNewOrderContent");
  if(!modal||!panel)return;
  const options=state.customers.map(c=>'<option value="'+esc(c.id)+'">'+esc(c.name||"Customer")+'</option>').join("");
  panel.innerHTML='<div class="field" style="margin-bottom:12px"><label>Customer</label><select id="ordersQuickCustomerStartInline" class="input" onchange="mountOrdersQuickForm(this.value)"><option value="">Select customer</option>'+options+'</select></div><div class="hint">Customer-ஐ தேர்வு செய்ததும் Customer Card-ல் இருக்கும் அதே <b>New Order</b> system இங்கே முழுமையாக வரும்.</div>';
  modal.classList.add("open");
- const base=history.state||{view:"orders"};
- if(!base.__nfOrdersNewOrder){history.pushState({...base,__nfOrdersNewOrder:true},"",location.hash||"#orders-new-order");}
+ if(!skipHistory){
+   const base=history.state||{view:"orders"};
+   if(!base.__nfOrdersNewOrder){history.pushState({...base,__nfOrdersNewOrder:true},"",location.hash||"#orders-new-order");}
+ }
  const select=$("ordersQuickCustomerStartInline");
  if(select)select.focus();
 }
@@ -8755,64 +8757,52 @@ window.addEventListener("keydown",function(e){if(e.key==="Escape")window.closeCu
      New Order entry screen creates #ordersQuickCustomerStartInline.
      This final definition is intentionally synchronous so the modal opens
      immediately and the newly saved customer is selected immediately. -->
-<script id="nf-final-customer-save-new-order-v3">
+<script id="nf-final-customer-save-new-order-v4">
 (function(){
   "use strict";
+  window.openOrdersNewOrderForCustomer=function(customerId){
+    var cid=String(customerId||"");
+    if(!cid)return false;
 
-  /*
-   * IMPORTANT:
-   * `state` is declared with `const` in this file, so it is NOT available
-   * as window.state. The previous fix incorrectly used window.state and
-   * therefore stopped before opening New Order.
-   */
-  window.openOrdersNewOrderForCustomer = function(customerId){
-    var cid = String(customerId || "");
-    if(!cid) return false;
-
-    var customers = Array.isArray(state.customers) ? state.customers : [];
-    var customer = customers.find(function(c){
-      return String(c && c.id || "") === cid;
-    });
-
+    var customers=Array.isArray(state.customers)?state.customers:[];
+    var customer=customers.find(function(c){return String(c&&c.id||"")===cid;});
     if(!customer){
-      if(typeof toast === "function"){
-        toast("Customer கிடைக்கவில்லை.", true);
-      }
+      if(typeof toast==="function")toast("Customer கிடைக்கவில்லை.",true);
       return false;
     }
 
-    // Open the Orders view only if it is not already the active view.
-    // Do not let navigation history close the New Order modal.
-    var ordersView = document.getElementById("view-orders");
-    if(!ordersView || !ordersView.classList.contains("active")){
-      if(typeof goView === "function") goView("orders", true);
-    }
-
-    if(typeof openOrdersQuickAdd !== "function"){
-      if(typeof toast === "function") toast("New Order screen கிடைக்கவில்லை.", true);
+    if(typeof openOrdersQuickAdd!=="function"){
+      if(typeof toast==="function")toast("New Order screen கிடைக்கவில்லை.",true);
       return false;
     }
 
-    // This creates #ordersQuickCustomerStartInline synchronously.
-    openOrdersQuickAdd();
+    /*
+     * App/WebView-safe auto hand-off:
+     * open the existing New Order modal without creating a new history/hash
+     * entry. This prevents the host app from interpreting #orders-new-order
+     * as a separate page.
+     */
+    openOrdersQuickAdd(true);
 
-    // Immediately mount the full form for the customer that was just saved.
-    // mountOrdersQuickForm itself creates the selected customer option and
-    // the complete New Order form, so no manual "Select customer" step remains.
-    if(typeof mountOrdersQuickForm === "function"){
+    /*
+     * mountOrdersQuickForm() uses the exact saved customer ID and builds the
+     * complete New Order form immediately, so "Select customer" is skipped.
+     */
+    if(typeof mountOrdersQuickForm==="function"){
       mountOrdersQuickForm(cid);
-      return true;
+    }else{
+      var select=document.getElementById("ordersQuickCustomerStartInline");
+      if(!select){
+        if(typeof toast==="function")toast("New Order form திறக்க முடியவில்லை.",true);
+        return false;
+      }
+      select.value=cid;
+      select.dispatchEvent(new Event("change",{bubbles:true}));
     }
 
-    // Defensive fallback: at least select the inline customer selector.
-    var select = document.getElementById("ordersQuickCustomerStartInline");
-    if(select){
-      select.value = cid;
-      select.dispatchEvent(new Event("change", {bubbles:true}));
-      return true;
-    }
-
-    return false;
+    var title=document.getElementById("ordersNewOrderScreenTitle");
+    if(title)title.textContent="🧾 New Order";
+    return true;
   };
 })();
 </script>
