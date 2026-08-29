@@ -7742,7 +7742,10 @@ window.addEventListener("keydown",function(e){if(e.key==="Escape")window.closeCu
         +'<span class="nf-customer-slide-arrow">›</span></button>';
     }).join("");
   };
-
+  window.openCustomerFromMyCustomersMenu=function(id){
+    closeMyCustomersSlideMenu();
+    setTimeout(function(){if(typeof goToCustomer === "function")goToCustomer(id)},80);
+  };
   window.toggleMyCustomersSlideMenu=function(e){
     if(e){e.preventDefault();e.stopPropagation()}
     var panel=document.getElementById("nfCustomerSlideMenu"),back=document.getElementById("nfCustomerSlideBackdrop");
@@ -8114,7 +8117,14 @@ window.addEventListener("keydown",function(e){if(e.key==="Escape")window.closeCu
     }).join("");
   };
 
-
+  window.openSidebarCustomer=function(id){
+    try{
+      if(typeof goToCustomer==="function") goToCustomer(id);
+    }finally{
+      var drawer=document.getElementById("sidebar");
+      if(drawer) drawer.classList.remove("open");
+    }
+  };
 
   function sync(){
     if(typeof renderSidebarCustomerList==="function") renderSidebarCustomerList();
@@ -8666,77 +8676,154 @@ window.addEventListener("keydown",function(e){if(e.key==="Escape")window.closeCu
 (function(){
   "use strict";
 
-  function isOrdersContext(){
-    try{
-      var st=window.history&&window.history.state;
-      if(st && (st.view==="orders" || st.__nfOrdersNewOrder || st.__nfOrdersEditOrder)) return true;
-    }catch(e){}
-    var active=document.querySelector(".view.active");
-    if(active && active.id==="view-orders") return true;
-    return !!document.querySelector("#view-orders.active");
-  }
-
   function latestOrderForCustomer(customerId){
-    var list=(window.state&&Array.isArray(window.state.orders)?window.state.orders:[]).filter(function(o){
+    var list=(window.state&&Array.isArray(state.orders)?state.orders:[]).filter(function(o){
       return String(o&&o.customer_id||"")===String(customerId||"");
     });
     list.sort(function(a,b){
-      return String(b&&b.created_at||b&&b.order_date||b&&b.updated_at||"").localeCompare(
-        String(a&&a.created_at||a&&a.order_date||a&&a.updated_at||"")
+      return String(b&&b.created_at||b&&b.order_date||"").localeCompare(
+        String(a&&a.created_at||a&&a.order_date||"")
       );
     });
     return list[0]||null;
   }
 
-  function openOrderForCustomerFromOrders(id){
-    var order=latestOrderForCustomer(id);
-    if(order && typeof window.openOrderFullDetails==="function"){
-      window.openOrderFullDetails(String(order.id));
-      return true;
-    }
-    return false;
-  }
-
+  /* The sidebar customer list is shared by views.  Preserve the current
+     context: Customers -> customer details; Orders -> that customer's
+     latest order details.  No records or calculations are changed. */
   window.openSidebarCustomer=function(id){
-    var ordersContext=isOrdersContext();
+    var current=(window.history&&history.state&&history.state.view)||"dashboard";
     try{
-      if(ordersContext){
-        openOrderForCustomerFromOrders(id);
-      }else if(typeof window.goToCustomer==="function"){
-        window.goToCustomer(id);
+      if(current==="orders"){
+        var order=latestOrderForCustomer(id);
+        if(order && typeof window.openOrderFullDetails==="function"){
+          window.openOrderFullDetails(order.id);
+        }else if(typeof window.openOrdersNewOrderForCustomer==="function"){
+          window.openOrdersNewOrderForCustomer(id);
+        }else{
+          window.goView("orders");
+        }
+      }else{
+        if(typeof window.goToCustomer==="function") window.goToCustomer(id);
       }
     }finally{
       var drawer=document.getElementById("sidebar");
-      if(drawer) drawer.classList.remove("open");
+      if(drawer)drawer.classList.remove("open");
     }
   };
 
+  /* The dashboard's separate customer slide menu follows the same rule when
+     it is opened while the Orders view is active. */
   window.openCustomerFromMyCustomersMenu=function(id){
-    var ordersContext=isOrdersContext();
     if(typeof window.closeMyCustomersSlideMenu==="function") window.closeMyCustomersSlideMenu();
     setTimeout(function(){
-      if(ordersContext){
-        openOrderForCustomerFromOrders(id);
+      var current=(window.history&&history.state&&history.state.view)||"dashboard";
+      if(current==="orders"){
+        var order=latestOrderForCustomer(id);
+        if(order && typeof window.openOrderFullDetails==="function") window.openOrderFullDetails(order.id);
+        else if(typeof window.openOrdersNewOrderForCustomer==="function") window.openOrdersNewOrderForCustomer(id);
       }else if(typeof window.goToCustomer==="function"){
         window.goToCustomer(id);
       }
     },80);
   };
+})();
+</script>
 
-  /* Final delegated fallback for the two customer-list buttons.  This only
-     applies while the Orders view is active, and prevents older inline
-     handlers/overrides from routing to Customer Details or New Order. */
-  document.addEventListener("click",function(e){
-    if(!isOrdersContext()) return;
-    var el=e.target&&e.target.closest?e.target.closest("#nfCustomerSlideList .nf-customer-slide-row, #nfSidebarCustomerList .nfSidebarCustomerRow"):null;
-    if(!el) return;
-    var m=(el.getAttribute("onclick")||"").match(/(?:openCustomerFromMyCustomersMenu|openSidebarCustomer)\('([^']*)'\)/);
-    if(!m) return;
-    e.preventDefault();
-    e.stopImmediatePropagation();
-    var id=m[1];
-    if(el.classList.contains("nf-customer-slide-row") && typeof window.closeMyCustomersSlideMenu==="function") window.closeMyCustomersSlideMenu();
-    setTimeout(function(){ openOrderForCustomerFromOrders(id); },80);
-  },true);
+
+<script id="nf-final-order-customer-tap-routing-fix">
+(function(){
+  "use strict";
+
+  function latestOrderForTappedCustomer(customerId){
+    var orders=(window.state && Array.isArray(state.orders)) ? state.orders : [];
+    var list=orders.filter(function(o){
+      return String(o.customer_id)===String(customerId);
+    }).slice();
+
+    list.sort(function(a,b){
+      var ad=String(a.created_at||a.order_date||"");
+      var bd=String(b.created_at||b.order_date||"");
+      return bd.localeCompare(ad);
+    });
+    return list[0]||null;
+  }
+
+  /*
+   * Customer selected from the Order Card's swipe/customer list:
+   * NEVER create/open a New Order here. Open the selected customer's
+   * existing order details instead.
+   */
+  window.nfOpenTappedCustomerOrderDetails=function(customerId){
+    var order=latestOrderForTappedCustomer(customerId);
+
+    if(!order){
+      if(typeof toast==="function"){
+        toast("இந்த customer-க்கு Order Details இல்லை.",true);
+      }
+      return false;
+    }
+
+    if(typeof openOrderFullDetails==="function"){
+      openOrderFullDetails(String(order.id));
+      return true;
+    }
+
+    if(typeof openCustomerOrderFullDetails==="function"){
+      openCustomerOrderFullDetails(String(order.id));
+      return true;
+    }
+
+    if(typeof toast==="function"){
+      toast("Order Details screen கிடைக்கவில்லை.",true);
+    }
+    return false;
+  };
+
+  /*
+   * Patch only the swipe/customer-list customer click handlers.
+   * Existing New Order buttons and the actual Order Details renderer
+   * are deliberately left unchanged.
+   */
+  function patchCustomerTapHandlers(){
+    var selectors=[
+      '[data-nf-order-customer-id]',
+      '.nf-order-customer-item',
+      '.nf-mobile-customer-item'
+    ];
+
+    selectors.forEach(function(selector){
+      document.querySelectorAll(selector).forEach(function(el){
+        if(el.__nfTappedCustomerRoutingFixed)return;
+
+        var cid=el.getAttribute("data-nf-order-customer-id") ||
+                el.getAttribute("data-customer-id");
+        if(!cid)return;
+
+        el.__nfTappedCustomerRoutingFixed=true;
+        el.addEventListener("click",function(e){
+          e.preventDefault();
+          e.stopImmediatePropagation();
+          window.nfOpenTappedCustomerOrderDetails(cid);
+        },true);
+      });
+    });
+  }
+
+  /*
+   * Also provide a safe named handler for dynamically rendered customer
+   * list items. If the existing renderer uses inline onclick, this function
+   * is the intended destination.
+   */
+  window.openOrderCustomerFromSwipe=function(customerId){
+    return window.nfOpenTappedCustomerOrderDetails(customerId);
+  };
+
+  patchCustomerTapHandlers();
+
+  var observer=new MutationObserver(function(){
+    patchCustomerTapHandlers();
+  });
+  observer.observe(document.body,{childList:true,subtree:true});
 })();
 </script>
