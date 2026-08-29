@@ -8836,3 +8836,107 @@ window.addEventListener("keydown",function(e){if(e.key==="Escape")window.closeCu
 
 })();
 </script>
+
+
+<script id="nf-final-customer-order-route-v3">
+(function(){
+  "use strict";
+
+  function sameId(a,b){
+    return String(a == null ? "" : a).trim() === String(b == null ? "" : b).trim();
+  }
+
+  function findCustomer(id){
+    var customers=(window.state && Array.isArray(state.customers)) ? state.customers : [];
+    return customers.find(function(c){ return sameId(c && c.id,id); }) || null;
+  }
+
+  function findLatestOrder(id){
+    var orders=(window.state && Array.isArray(state.orders)) ? state.orders : [];
+    var matches=orders.filter(function(o){ return sameId(o && o.customer_id,id); });
+
+    /* If the id came from a customer row, prefer the customer's actual id. */
+    var customer=findCustomer(id);
+    if(customer){
+      matches=orders.filter(function(o){ return sameId(o && o.customer_id,customer.id); });
+    }
+
+    matches.sort(function(a,b){
+      var ad=String(a && (a.created_at || a.order_date) || "");
+      var bd=String(b && (b.created_at || b.order_date) || "");
+      return bd.localeCompare(ad);
+    });
+    return matches[0] || null;
+  }
+
+  function openCustomerOrder(id){
+    var order=findLatestOrder(id);
+    if(!order){
+      /* Do not create a New Order here. If the customer really has no
+         order, simply show the customer card. */
+      if(typeof window.goToCustomer === "function"){
+        window.goToCustomer(String(id));
+      }
+      return false;
+    }
+
+    if(typeof window.openOrderFullDetails === "function"){
+      window.openOrderFullDetails(String(order.id));
+      return true;
+    }
+    if(typeof window.openCustomerOrderFullDetails === "function"){
+      window.openCustomerOrderFullDetails(String(order.id));
+      return true;
+    }
+    return false;
+  }
+
+  /* Fix the customer-card buttons too. Their older implementation used
+     customerOrders() with strict === matching, which can disagree with the
+     UUID/string value coming from the swipe list. */
+  window.openLatestCustomerOrderFullDetails=function(customerId){
+    var order=findLatestOrder(customerId);
+    if(!order){
+      if(typeof window.goToCustomer === "function") window.goToCustomer(String(customerId));
+      return;
+    }
+    if(typeof window.openOrderFullDetails === "function"){
+      window.openOrderFullDetails(String(order.id));
+    }
+  };
+
+  window.openLatestCustomerOrderEdit=function(customerId){
+    var order=findLatestOrder(customerId);
+    if(!order){
+      if(typeof window.goToCustomer === "function") window.goToCustomer(String(customerId));
+      return;
+    }
+    if(typeof window.openOrdersEditOrder === "function"){
+      window.openOrdersEditOrder(String(order.id));
+    }else if(typeof window.openCustomerOrderEditor === "function"){
+      window.openCustomerOrderEditor(String(customerId),String(order.id));
+    }
+  };
+
+  /* Global sidebar swipe -> customer tap. Existing order opens directly;
+     missing order never opens New Order and never shows a false error. */
+  window.openSidebarCustomer=function(id){
+    try{
+      openCustomerOrder(id);
+    }finally{
+      var drawer=document.getElementById("sidebar");
+      if(drawer) drawer.classList.remove("open");
+      document.body.classList.remove("drawer-open");
+    }
+  };
+
+  /* Dashboard customer slide list uses the same safe route. */
+  window.openCustomerFromMyCustomersMenu=function(id){
+    if(typeof window.closeMyCustomersSlideMenu === "function"){
+      window.closeMyCustomersSlideMenu();
+    }
+    setTimeout(function(){ openCustomerOrder(id); },80);
+  };
+
+})();
+</script>
