@@ -5397,10 +5397,30 @@ function nfFormatPaymentDate(v){return v?dateText(v):"—";}
   window.renderOrders.__nfFinalOrderSync=true;
 
   window.openOrdersNewOrderForCustomer=function(customerId){
+    /* Direct hand-off: the customer is known already, so never show an
+       unselected customer picker first.  Keep the existing New Order form
+       and data/calculation logic unchanged; only select the known customer
+       before mounting it. */
+    var modal=$("ordersNewOrderScreen"),panel=$("ordersNewOrderContent");
+    if(!modal||!panel)return;
+
+    var cid=String(customerId||"");
+    if(!cid){ openOrdersQuickAdd(); return; }
+
+    var exists=(state.customers||[]).some(function(c){return String(c.id)===cid;});
+    if(!exists){
+      toast("Customer கிடைக்கவில்லை.",true);
+      return;
+    }
+
     openOrdersQuickAdd();
     setTimeout(function(){
-      var select=$("ordersQuickCustomerStart");
-      if(select){select.value=String(customerId);mountOrdersQuickForm(customerId);}
+      var select=$("ordersQuickCustomerStartInline") || $("ordersQuickCustomerStart");
+      if(select){
+        select.value=cid;
+        /* Mount only after the correct customer has been selected. */
+        if(typeof mountOrdersQuickForm==="function") mountOrdersQuickForm(cid);
+      }
       var title=$("ordersNewOrderScreenTitle");
       if(title)title.textContent="🧾 New Order";
     },0);
@@ -7431,6 +7451,7 @@ window.addEventListener("keydown",function(e){if(e.key==="Escape")window.closeCu
 .nf-handover-date-display{display:block;margin-left:8px;margin-top:2px;padding:2px 7px;border-radius:7px;background:#f7f2ff;color:#5a4380;font-size:10px;font-weight:900;white-space:nowrap}
 .nf-design-slot-card .nf-di-handover-date{margin-bottom:2px}
 </style>
+
 </body></html><script id="nf-v52-dashboard-scroll-fix-js">
 (function(){
   "use strict";
@@ -8650,3 +8671,61 @@ window.addEventListener("keydown",function(e){if(e.key==="Escape")window.closeCu
 
 
 
+
+<script id="nf-final-context-aware-sidebar-customer-routing">
+(function(){
+  "use strict";
+
+  function latestOrderForCustomer(customerId){
+    var list=(window.state&&Array.isArray(state.orders)?state.orders:[]).filter(function(o){
+      return String(o&&o.customer_id||"")===String(customerId||"");
+    });
+    list.sort(function(a,b){
+      return String(b&&b.created_at||b&&b.order_date||"").localeCompare(
+        String(a&&a.created_at||a&&a.order_date||"")
+      );
+    });
+    return list[0]||null;
+  }
+
+  /* The sidebar customer list is shared by views.  Preserve the current
+     context: Customers -> customer details; Orders -> that customer's
+     latest order details.  No records or calculations are changed. */
+  window.openSidebarCustomer=function(id){
+    var current=(window.history&&history.state&&history.state.view)||"dashboard";
+    try{
+      if(current==="orders"){
+        var order=latestOrderForCustomer(id);
+        if(order && typeof window.openOrderFullDetails==="function"){
+          window.openOrderFullDetails(order.id);
+        }else if(typeof window.openOrdersNewOrderForCustomer==="function"){
+          window.openOrdersNewOrderForCustomer(id);
+        }else{
+          window.goView("orders");
+        }
+      }else{
+        if(typeof window.goToCustomer==="function") window.goToCustomer(id);
+      }
+    }finally{
+      var drawer=document.getElementById("sidebar");
+      if(drawer)drawer.classList.remove("open");
+    }
+  };
+
+  /* The dashboard's separate customer slide menu follows the same rule when
+     it is opened while the Orders view is active. */
+  window.openCustomerFromMyCustomersMenu=function(id){
+    if(typeof window.closeMyCustomersSlideMenu==="function") window.closeMyCustomersSlideMenu();
+    setTimeout(function(){
+      var current=(window.history&&history.state&&history.state.view)||"dashboard";
+      if(current==="orders"){
+        var order=latestOrderForCustomer(id);
+        if(order && typeof window.openOrderFullDetails==="function") window.openOrderFullDetails(order.id);
+        else if(typeof window.openOrdersNewOrderForCustomer==="function") window.openOrdersNewOrderForCustomer(id);
+      }else if(typeof window.goToCustomer==="function"){
+        window.goToCustomer(id);
+      }
+    },80);
+  };
+})();
+</script>
