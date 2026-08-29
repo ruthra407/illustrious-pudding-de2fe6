@@ -460,8 +460,9 @@ body.nf-photo-preview-scroll-locked{
 }
 </style>
 <style id="v40083-customer-card-readable-css">
-/* V400.83: one final readability layer for the customer card preview.
-   Values are intentionally scoped to the WhatsApp customer-card preview. */
+/* V400.83: final readability layer for the WhatsApp customer-card preview.
+   Word-level colour is handled by the SVG exporter; Tamil graphemes are never
+   split into separate colours. */
 .nf-wac-preview .nf-wac-live-brand strong{font-size:30px!important}
 .nf-wac-preview .nf-wac-live-brand span{font-size:17px!important}
 .nf-wac-preview .nf-wac-live-box span{font-size:14px!important}
@@ -6353,7 +6354,7 @@ html.nf-wac-page-locked,body.nf-wac-page-locked{overflow:hidden!important;height
   <div class="nf-wac-modal" role="dialog" aria-modal="true" aria-labelledby="nfWacTitle">
     <div class="nf-wac-head">
       <button class="nf-wac-back" type="button" onclick="closeCustomerWhatsAppCard()" aria-label="Back">← Back</button>
-      <strong id="nfWacTitle">📤 WhatsApp Customer Card Preview</strong>
+      <strong id="nfWacTitle">📤 HD WhatsApp Customer Card Preview</strong>
       <button class="nf-wac-close" type="button" onclick="closeCustomerWhatsAppCard()" aria-label="Close">✕</button>
     </div>
     <div id="nfWacPreview" class="nf-wac-preview" aria-label="Exact WhatsApp card preview"></div>
@@ -6427,7 +6428,7 @@ function nfWacPreviewExact(data,preview){
   var svg=nfWacSvg(data),blob=new Blob([svg],{type:"image/svg+xml"}),url=URL.createObjectURL(blob),img=new Image();
   img.className="nf-wac-preview-card-image";
   img.alt="WhatsApp Customer Card Preview";
-  img.onload=function(){URL.revokeObjectURL(url);preview.innerHTML="";preview.appendChild(img);var hint=document.createElement("div");hint.className="nf-wac-preview-hint";hint.textContent="மேலே காண்பது WhatsApp-ல் பகிரப்படும் அதே Card image.";preview.appendChild(hint);};
+  img.onload=function(){URL.revokeObjectURL(url);preview.innerHTML="";preview.appendChild(img);var hint=document.createElement("div");hint.className="nf-wac-preview-hint";hint.textContent="மேலே காண்பது WhatsApp-ல் பகிரப்படும் அதே HD Card image • Word-level colours • 3× export";preview.appendChild(hint);};
   img.onerror=function(){URL.revokeObjectURL(url);preview.innerHTML="<div style=\"padding:30px;text-align:center;font-weight:800;color:#6b6376\">Card preview உருவாக்க முடியவில்லை.</div>";};
   img.src=url;
 }
@@ -6456,6 +6457,7 @@ function nfWacText(data){var c=data.c,rows=data.rows,st=data.st,village=c.villag
 window.shareCustomerWhatsAppText=function(){if(!activeCustomerId)return;var data=nfWacSummary(activeCustomerId),text=nfWacText(data),phone=String(data.c.phone||"").replace(/\D/g,"");var url=phone?"https://wa.me/"+phone+"?text="+encodeURIComponent(text):"https://wa.me/?text="+encodeURIComponent(text);window.open(url,"_blank","noopener")};
 function nfWacSvg(data){
   var W=1080,
+      EXPORT_SCALE=3,
       rows=(data.rows||[]).slice(0,9),
       photos=(data.photos||[]).filter(function(p){return p&&p.src}).slice(0,3),
       c=data.c||{}, st=data.st||{};
@@ -6470,7 +6472,7 @@ function nfWacSvg(data){
     return String(v||"").replace(/&/g,"&amp;").replace(/"/g,"&quot;");
   }
 
-  var palette=["#5b2bd8","#0089c9","#00a878","#e85d04","#c2185b","#7b2cbf","#1565c0","#2e7d32","#d84315"];
+  var palette=["#5B35D5","#007FA8","#008A68","#D56A00","#B52C68","#7438B8","#245CB8","#277A5A","#C44A20"];
 
   /* Grapheme-safe colouring: Tamil letters can contain multiple Unicode code
      points. Array.from() splits those code points and can visually collide.
@@ -6488,32 +6490,27 @@ function nfWacSvg(data){
     return [s];
   }
 
-  function colorGraphemesFit(text,x,y,size,weight,anchor,colors,maxWidth){
-    var gs=graphemes(text);
-    if(!gs.length)return "";
+  /* Word-level colouring only.
+     IMPORTANT: never split Tamil graphemes/letters into separate colours.
+     Each whitespace-separated word receives one colour. */
+  function colorWordsFit(text,x,y,size,weight,anchor,colors,maxWidth){
+    var words=String(text||"").trim().split(/\s+/).filter(Boolean);
+    if(!words.length)return "";
+    var approx=String(text||"").length*size*.58;
+    var fitSize=size;
+    if(maxWidth && approx>maxWidth){
+      var ratio=Math.max(.72,maxWidth/approx);
+      fitSize=Math.max(Math.round(size*ratio),Math.round(size*.72));
+    }
+    var safeDx=10;
     var out='<text x="'+x+'" y="'+y+'" text-anchor="'+(anchor||"start")+
-      '" font-size="'+size+'" font-weight="'+weight+
+      '" font-size="'+fitSize+'" font-weight="'+weight+
       '" fill="'+colors[0]+'" xml:space="preserve">';
-    gs.forEach(function(g,i){
-      out+='<tspan fill="'+colors[i%colors.length]+'">'+escSvg(g)+'</tspan>';
+    words.forEach(function(w,i){
+      if(i)out+='<tspan dx="'+safeDx+'" fill="'+colors[i%colors.length]+'">'+escSvg(w)+'</tspan>';
+      else out+='<tspan fill="'+colors[i%colors.length]+'">'+escSvg(w)+'</tspan>';
     });
     out+='</text>';
-    /* textLength is only used when a known maximum is supplied and the text
-       is too long. This prevents the name/phone/address from leaving its box. */
-    if(maxWidth){
-      var approx=String(text||"").length*size*.58;
-      if(approx>maxWidth){
-        var ratio=Math.max(.72,maxWidth/approx);
-        var fitSize=Math.max(Math.round(size*ratio),Math.round(size*.72));
-        out='<text x="'+x+'" y="'+y+'" text-anchor="'+(anchor||"start")+
-          '" font-size="'+fitSize+'" font-weight="'+weight+
-          '" fill="'+colors[0]+'" xml:space="preserve">';
-        gs.forEach(function(g,i){
-          out+='<tspan fill="'+colors[i%colors.length]+'">'+escSvg(g)+'</tspan>';
-        });
-        out+='</text>';
-      }
-    }
     return out;
   }
 
@@ -6580,38 +6577,38 @@ function nfWacSvg(data){
       '<text x="992" y="'+yy+'" font-size="25" text-anchor="end" font-weight="950" fill="'+palette[(i+3)%palette.length]+'">'+escSvg(nfWacMoney(x.qty*x.rate))+'</text>';
   }).join("");
 
-  var svg='<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'">'+
+  var svg='<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="'+(W*EXPORT_SCALE)+'" height="'+(H*EXPORT_SCALE)+'" viewBox="0 0 '+W+' '+H+'">'+
     '<defs>'+
-      '<linearGradient id="wacBrand" x1="0" x2="1"><stop stop-color="#35137a"/><stop offset=".35" stop-color="#7025b8"/><stop offset=".68" stop-color="#b52aa1"/><stop offset="1" stop-color="#e11d63"/></linearGradient>'+
-      '<linearGradient id="wacTotal" x1="0" x2="1"><stop stop-color="#5b2bd8"/><stop offset=".5" stop-color="#a52cc7"/><stop offset="1" stop-color="#e52b79"/></linearGradient>'+
-      '<linearGradient id="wacFooter" x1="0" x2="1"><stop stop-color="#24104f"/><stop offset=".5" stop-color="#55208f"/><stop offset="1" stop-color="#8b1d67"/></linearGradient>'+
+      '<linearGradient id="wacBrand" x1="0" x2="1"><stop stop-color="#17152F"/><stop offset=".35" stop-color="#43309A"/><stop offset=".68" stop-color="#7B3FB2"/><stop offset="1" stop-color="#D13B78"/></linearGradient>'+
+      '<linearGradient id="wacTotal" x1="0" x2="1"><stop stop-color="#4931C8"/><stop offset=".5" stop-color="#8A3CC4"/><stop offset="1" stop-color="#D94379"/></linearGradient>'+
+      '<linearGradient id="wacFooter" x1="0" x2="1"><stop stop-color="#15152E"/><stop offset=".5" stop-color="#3E2B79"/><stop offset="1" stop-color="#7C275F"/></linearGradient>'+
       '<clipPath id="mainPhotoClip"><rect x="535" y="225" width="475" height="255" rx="22"/></clipPath>'+
       photoDefs+
     '</defs>'+
-    '<rect width="'+W+'" height="'+H+'" fill="#fffdfd"/>'+
+    '<rect width="'+W+'" height="'+H+'" fill="#F8F7FC"/>'+
     '<rect x="0" y="0" width="1080" height="180" fill="url(#wacBrand)"/>'+
     '<text x="540" y="68" text-anchor="middle" font-size="43" font-weight="950" fill="#ffffff">NEW FASHION TAILORING</text>'+
-    colorWords("CUSTOMER CARD",540,120,31,950,"middle",["#ffe66d","#ffb703","#ff8fab","#ffffff"],18)+
+    colorWords("CUSTOMER • ORDER CARD",540,120,31,950,"middle",["#ffe66d","#ffb703","#ff8fab","#ffffff"],18)+
     '<circle cx="78" cy="72" r="28" fill="#ffffff" opacity=".16"/><text x="78" y="82" text-anchor="middle" font-size="30" fill="#ffffff">✂</text>'+
 
-    '<rect x="55" y="'+customerY+'" width="970" height="'+customerH+'" rx="26" fill="#fff" stroke="#d9c6f4" stroke-width="4"/>'+
-    '<rect x="75" y="225" width="430" height="275" rx="22" fill="#fbf7ff" stroke="#cdb9ee" stroke-width="4"/>'+
+    '<rect x="55" y="'+customerY+'" width="970" height="'+customerH+'" rx="26" fill="#FFFFFF" stroke="#D9D1EE" stroke-width="4"/>'+
+    '<rect x="75" y="225" width="430" height="275" rx="22" fill="#F6F3FF" stroke="#C9B9E8" stroke-width="4"/>'+
     '<circle cx="108" cy="258" r="17" fill="#5b2bd8"/><text x="108" y="266" text-anchor="middle" font-size="18" fill="#fff">●</text>'+
     colorLine("Customer Name",140,260,21,900,["#5b2bd8","#0089c9","#00a878"],9)+
-    colorGraphemesFit(c.name||"Customer",95,316,42,950,"start",palette,390)+
+    colorWordsFit(c.name||"Customer",95,316,42,950,"start",palette,390)+
     colorLine("📍 ஊர்",95,360,21,900,["#e85d04","#c2185b","#5b2bd8"],8)+
-    colorGraphemesFit(village,95,402,34,950,"start",["#0089c9","#00a878","#e85d04","#7b2cbf"],390)+
-    (c.phone?colorGraphemesFit("📞 "+c.phone,95,443,27,900,"start",["#c2185b","#0089c9","#00a878","#5b2bd8"],390):"")+
-    (c.address?colorGraphemesFit("🏠 "+String(c.address).slice(0,42),95,480,21,850,"start",["#7b2cbf","#e85d04","#0089c9","#00a878"],390):"")+
+    colorWordsFit(village,95,402,34,950,"start",["#0089c9","#00a878","#e85d04","#7b2cbf"],390)+
+    (c.phone?colorWordsFit("📞 "+c.phone,95,443,27,900,"start",["#c2185b","#0089c9","#00a878","#5b2bd8"],390):"")+
+    (c.address?colorWordsFit("🏠 "+String(c.address).slice(0,42),95,480,21,850,"start",["#7b2cbf","#e85d04","#0089c9","#00a878"],390):"")+
     mainPhotoSvg+
 
     '<rect x="55" y="'+datesY+'" width="970" height="'+datesH+'" rx="22" fill="#fff" stroke="#ddd2e8" stroke-width="3"/>'+
-    '<rect x="70" y="'+(datesY+14)+'" width="455" height="94" rx="18" fill="#eaf8ff" stroke="#1e9bd1" stroke-width="4"/>'+
-    '<rect x="555" y="'+(datesY+14)+'" width="455" height="94" rx="18" fill="#edfff6" stroke="#1fa96e" stroke-width="4"/>'+
+    '<rect x="70" y="'+(datesY+14)+'" width="455" height="94" rx="18" fill="#ECF8FC" stroke="#1697BE" stroke-width="4"/>'+
+    '<rect x="555" y="'+(datesY+14)+'" width="455" height="94" rx="18" fill="#ECFBF4" stroke="#1FA06A" stroke-width="4"/>'+
     colorLine("👗 துணி கொடுத்த தேதி",95,datesY+50,22,900,["#5b2bd8","#0089c9","#e85d04"],8)+
-    colorGraphemesFit(nfWacDate(data.clothDate),95,datesY+88,34,950,"start",["#1565c0","#00a878","#7b2cbf"],400)+
+    colorWordsFit(nfWacDate(data.clothDate),95,datesY+88,34,950,"start",["#1565c0","#00a878","#7b2cbf"],400)+
     colorLine("🚚 Delivery Date",580,datesY+50,22,900,["#00a878","#0089c9","#e85d04"],8)+
-    colorGraphemesFit(nfWacDate(data.deliveryDate),580,datesY+88,34,950,"start",["#008a58","#1565c0","#c2185b"],400)+
+    colorWordsFit(nfWacDate(data.deliveryDate),580,datesY+88,34,950,"start",["#008a58","#1565c0","#c2185b"],400)+
 
     (photos.length?
       '<rect x="55" y="'+photosY+'" width="970" height="'+photosH+'" rx="22" fill="#fff8fc" stroke="#d7b7df" stroke-width="4"/>'+
@@ -6628,15 +6625,15 @@ function nfWacSvg(data){
     body+
     '<rect x="55" y="'+totalY+'" width="970" height="'+totalH+'" rx="18" fill="url(#wacTotal)"/>'+
     '<text x="85" y="'+(totalY+52)+'" font-size="31" font-weight="950" fill="#ffffff">Grand Total</text>'+
-    colorGraphemesFit(nfWacMoney(st.total),995,totalY+54,34,950,"end",["#fff","#ffe66d","#fff"],380)+
+    colorWordsFit(nfWacMoney(st.total),995,totalY+54,34,950,"end",["#fff","#ffe66d","#fff"],380)+
 
     '<rect x="55" y="'+payY+'" width="970" height="'+payH+'" rx="22" fill="#fff" stroke="#e0d9ec" stroke-width="3"/>'+
     '<text x="200" y="'+(payY+33)+'" text-anchor="middle" font-size="20" font-weight="900" fill="#5b2bd8">Total Amount</text>'+
-    colorGraphemesFit(nfWacMoney(st.total),200,payY+76,31,950,"middle",["#5b2bd8","#0089c9","#c2185b"],300)+
+    colorWordsFit(nfWacMoney(st.total),200,payY+76,31,950,"middle",["#5b2bd8","#0089c9","#c2185b"],300)+
     '<text x="540" y="'+(payY+33)+'" text-anchor="middle" font-size="20" font-weight="900" fill="#00a878">Paid Amount</text>'+
-    colorGraphemesFit(nfWacMoney(st.paid),540,payY+76,31,950,"middle",["#00a878","#1565c0","#7b2cbf"],300)+
+    colorWordsFit(nfWacMoney(st.paid),540,payY+76,31,950,"middle",["#00a878","#1565c0","#7b2cbf"],300)+
     '<text x="880" y="'+(payY+33)+'" text-anchor="middle" font-size="20" font-weight="900" fill="#e85d04">Balance Amount</text>'+
-    colorGraphemesFit(nfWacMoney(st.balance),880,payY+76,31,950,"middle",["#e85d04","#c2185b","#7b2cbf"],300)+
+    colorWordsFit(nfWacMoney(st.balance),880,payY+76,31,950,"middle",["#e85d04","#c2185b","#7b2cbf"],300)+
 
     (data.note?
       '<rect x="55" y="'+noteY+'" width="970" height="'+noteH+'" rx="18" fill="#fff8df" stroke="#efcf70" stroke-width="3"/>'+
@@ -6656,9 +6653,9 @@ window.shareCustomerWhatsAppCard=async function(){
   try{
     var svg=nfWacSvg(data),blob=new Blob([svg],{type:"image/svg+xml"}),url=URL.createObjectURL(blob),img=new Image();
     img.src=url;await new Promise(function(res,rej){img.onload=res;img.onerror=rej});
-    var canvas=document.createElement("canvas");canvas.width=1080;canvas.height=Number(svg.match(/height="([0-9]+)"/)?.[1]||1800);var ctx=canvas.getContext("2d");ctx.fillStyle="#fff";ctx.fillRect(0,0,canvas.width,canvas.height);ctx.drawImage(img,0,0);URL.revokeObjectURL(url);
+    var canvas=document.createElement("canvas");canvas.width=Number(svg.match(/width="([0-9]+)"/)?.[1]||3240);canvas.height=Number(svg.match(/height="([0-9]+)"/)?.[1]||5400);var ctx=canvas.getContext("2d");ctx.fillStyle="#fff";ctx.fillRect(0,0,canvas.width,canvas.height);ctx.drawImage(img,0,0);URL.revokeObjectURL(url);
     var png=await new Promise(function(resolve){canvas.toBlob(resolve,"image/png",.95)});if(!png)throw new Error("png-failed");
-    var file=new File([png],"NEW_FASHION_TAILORING_CUSTOMER_CARD.png",{type:"image/png"});
+    var file=new File([png],"NEW_FASHION_TAILORING_CUSTOMER_CARD_HD.png",{type:"image/png"});
     if(navigator.share&&(!navigator.canShare||navigator.canShare({files:[file]}))){await navigator.share({title:"NEW FASHION TAILORING – CUSTOMER CARD",text:text,files:[file]});return}
     var wa=phone?"https://wa.me/"+phone+"?text="+encodeURIComponent(text):"https://wa.me/?text="+encodeURIComponent(text);window.open(wa,"_blank","noopener");
   }catch(err){console.warn("WhatsApp card image share fallback",err);var wa2=phone?"https://wa.me/"+phone+"?text="+encodeURIComponent(text):"https://wa.me/?text="+encodeURIComponent(text);window.open(wa2,"_blank","noopener")}
