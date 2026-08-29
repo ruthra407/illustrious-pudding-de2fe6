@@ -2932,7 +2932,11 @@ if(type==="order"){
 }
 const wasNewCustomer=type==="customer" && !id;
 const savedCustomerId=type==="customer" ? String(result.data?.id||"") : "";
-closeModal();
+/* Customer Save → New Order is a direct hand-off. Do not trigger the modal
+   history.back() here, because it can race with openOrdersQuickAdd() and
+   immediately close the New Order screen again. All other save flows keep
+   the original closeModal() history behavior unchanged. */
+closeModal(!(wasNewCustomer && savedCustomerId));
 
 if(wasNewCustomer && savedCustomerId){
   /* SPEED FIX: do not wait for the full 6-table refresh before opening New Order.
