@@ -8688,25 +8688,21 @@ window.addEventListener("keydown",function(e){if(e.key==="Escape")window.closeCu
     return list[0]||null;
   }
 
-  function currentView(){
-    var stateView=window.history&&history.state&&history.state.view;
-    if(stateView) return String(stateView);
-    var active=document.querySelector(".view.active");
-    return active&&active.id ? String(active.id).replace(/^view-/i,"") : "dashboard";
-  }
-
-  /* Only this shared customer-list routing is context-aware.
-     Orders context: customer tap -> that customer's existing order details only.
-     Customers context: -> customer details. No data/calculation logic is changed. */
+  /* The sidebar customer list is shared by views.  Preserve the current
+     context: Customers -> customer details; Orders -> that customer's
+     latest order details.  No records or calculations are changed. */
   window.openSidebarCustomer=function(id){
-    var view=currentView();
+    var current=(window.history&&history.state&&history.state.view)||"dashboard";
     try{
-      if(view==="orders"){
+      if(current==="orders"){
         var order=latestOrderForCustomer(id);
-        if(order && typeof window.openOrderFullDetails==="function") window.openOrderFullDetails(order.id);
-        else if(!order && typeof window.toast==="function") window.toast("இந்த customer-க்கு Order இல்லை.",true);
-      }else if(typeof window.goToCustomer==="function"){
-        window.goToCustomer(id);
+        if(order && typeof window.openOrderFullDetails==="function"){
+          window.openOrderFullDetails(order.id);
+        }else{
+          window.goView("orders");
+        }
+      }else{
+        if(typeof window.goToCustomer==="function") window.goToCustomer(id);
       }
     }finally{
       var drawer=document.getElementById("sidebar");
@@ -8714,14 +8710,15 @@ window.addEventListener("keydown",function(e){if(e.key==="Escape")window.closeCu
     }
   };
 
+  /* The dashboard's separate customer slide menu follows the same rule when
+     it is opened while the Orders view is active. */
   window.openCustomerFromMyCustomersMenu=function(id){
-    var view=currentView();
     if(typeof window.closeMyCustomersSlideMenu==="function") window.closeMyCustomersSlideMenu();
     setTimeout(function(){
-      if(view==="orders"){
+      var current=(window.history&&history.state&&history.state.view)||"dashboard";
+      if(current==="orders"){
         var order=latestOrderForCustomer(id);
         if(order && typeof window.openOrderFullDetails==="function") window.openOrderFullDetails(order.id);
-        else if(!order && typeof window.openOrdersNewOrderForCustomer==="function") window.openOrdersNewOrderForCustomer(id);
       }else if(typeof window.goToCustomer==="function"){
         window.goToCustomer(id);
       }
