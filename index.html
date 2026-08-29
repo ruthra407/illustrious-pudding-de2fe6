@@ -2281,28 +2281,104 @@ $("googleDesignBtn").addEventListener("click",()=>{const q=$("onlineDesignQuery"
 $("onlineDesignQuery").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();searchOnlineDesigns()}});
 $("orderStatusFilter").addEventListener("change",renderAll);
 
+async function getNFContactsPlugin(){
+  try{
+    const cap=window.Capacitor;
+    if(!cap)return null;
+    if(cap.Plugins?.Contacts)return cap.Plugins.Contacts;
+    if(typeof cap.registerPlugin==='function'){
+      const plugin=cap.registerPlugin('Contacts');
+      if(plugin)return plugin;
+    }
+  }catch(e){console.warn('Contacts plugin registration failed:',e)}
+  return null;
+}
+
+function fillCustomerFromContact(contact){
+  if(!contact)return false;
+  const form=document.getElementById('dataForm');
+  const phoneInput=form?.querySelector('input[name="phone"]');
+  const nameInput=form?.querySelector('input[name="name"]');
+  if(!phoneInput)return false;
+
+  let name=contact.name;
+  if(Array.isArray(name))name=name[0]||'';
+  if(typeof name==='object' && name) name=name.display||name.given||name.full||'';
+  name=String(name||'').trim();
+
+  let phones=contact.tel||contact.phones||contact.phoneNumbers||contact.phone||[];
+  if(!Array.isArray(phones))phones=[phones];
+  let phone=phones.find(x=>{
+    if(typeof x==='string')return x.trim();
+    return String(x?.number||x?.value||x?.tel||'').trim();
+  });
+  if(typeof phone!=='string')phone=phone?.number||phone?.value||phone?.tel||'';
+  phone=String(phone||'').trim();
+
+  if(name && nameInput && !String(nameInput.value||'').trim())nameInput.value=name;
+  if(phone)phoneInput.value=phone;
+  phoneInput.dispatchEvent(new Event('input',{bubbles:true}));
+  phoneInput.dispatchEvent(new Event('change',{bubbles:true}));
+  if(nameInput)nameInput.dispatchEvent(new Event('input',{bubbles:true}));
+  return !!phone;
+}
+
 async function pickCustomerPhone(){
-  const phoneInput=document.querySelector('#dataForm input[name="phone"]');
+  const form=document.getElementById('dataForm');
+  const phoneInput=form?.querySelector('input[name="phone"]');
   if(!phoneInput)return;
-  if(!('contacts' in navigator) || typeof navigator.contacts.select!=="function"){
-    toast("இந்த browser-ல் Contacts தேர்வு வசதி இல்லை. Chrome Android-ல் திறந்து முயற்சி செய்யுங்கள்.",true);
+
+  /* Native Capacitor Contacts plugin — this is the APK path.
+     The Android app must register a Contacts plugin with READ_CONTACTS permission. */
+  const nativeContacts=await getNFContactsPlugin();
+  if(nativeContacts){
+    try{
+      if(typeof nativeContacts.requestPermissions==='function'){
+        const perm=await nativeContacts.requestPermissions();
+        const granted=perm?.contacts==='granted' || perm?.readContacts==='granted' || perm?.granted===true || perm?.state==='granted';
+        if(perm && !granted && (perm.contacts||perm.readContacts||perm.state)){
+          toast('Contacts permission Allow செய்யுங்கள்.',true);
+          return;
+        }
+      }
+
+      /* Support common Capacitor Contacts plugin picker method names. */
+      let picked=null;
+      if(typeof nativeContacts.pickContact==='function') picked=await nativeContacts.pickContact();
+      else if(typeof nativeContacts.chooseContact==='function') picked=await nativeContacts.chooseContact();
+      else if(typeof nativeContacts.selectContact==='function') picked=await nativeContacts.selectContact();
+      else if(typeof nativeContacts.pick==='function') picked=await nativeContacts.pick();
+
+      if(picked){
+        const contact=picked.contact||picked.data||picked;
+        if(fillCustomerFromContact(contact)){
+          toast('Contact phone number சேர்க்கப்பட்டது.');
+          return;
+        }
+        toast('இந்த contact-ல் phone number இல்லை.',true);
+        return;
+      }
+    }catch(e){
+      if(e?.name==='AbortError' || e?.code==='CANCELLED' || e?.code==='canceled')return;
+      console.warn('Native contact picker failed:',e);
+      toast('Contacts permission / picker வேலை செய்யவில்லை. மீண்டும் முயற்சி செய்யுங்கள்.',true);
+      return;
+    }
+  }
+
+  /* Browser fallback. Chrome Android supports the Contact Picker API. */
+  if(!('contacts' in navigator) || typeof navigator.contacts.select!=='function'){
+    toast('இந்த APK-ல் Contacts plugin இல்லை. Android Contacts permission + native Contacts plugin தேவை.',true);
     phoneInput.focus();
     return;
   }
   try{
-    const props=['name','tel'];
-    const opts={multiple:false};
-    const contacts=await navigator.contacts.select(props,opts);
-    if(!contacts || !contacts.length)return;
-    const c=contacts[0]||{};
-    const phones=Array.isArray(c.tel)?c.tel:[];
-    const phone=(phones[0]||'').trim();
-    if(phone) phoneInput.value=phone;
-    if(!phone && c.name && !document.querySelector('#dataForm input[name="name"]')?.value){
-      document.querySelector('#dataForm input[name="name"]').value=Array.isArray(c.name)?(c.name[0]||''):'';
-    }
+    const contacts=await navigator.contacts.select(['name','tel'],{multiple:false});
+    if(!contacts?.length)return;
+    if(fillCustomerFromContact(contacts[0]))toast('Contact phone number சேர்க்கப்பட்டது.');
+    else toast('இந்த contact-ல் phone number இல்லை.',true);
   }catch(e){
-    if(e?.name!=="AbortError")toast("Contact எடுக்க முடியவில்லை.",true);
+    if(e?.name!=='AbortError')toast('Contact எடுக்க முடியவில்லை.',true);
   }
 }
 
@@ -2333,7 +2409,7 @@ if(type==="blouseqty")return `<div class="field nf-blouse-field"><label>${label}
 if(type==="chudilining")return `<div class="field nf-chudi-field"><label>${label}</label><select class="input" name="${key}"><option value="no" ${v!=="yes"?"selected":""}>இல்லை</option><option value="yes" ${v==="yes"?"selected":""}>ஆம்</option></select></div>`;
 const opts={orderstatus:["Pending","In Progress","Ready","Delivered","Cancelled"],alterstatus:["Pending","In Progress","Ready","Completed","Cancelled"],paymentmethod:["Cash","UPI","Card","Bank Transfer","Other"],ratetype:["normal","lining","design","mixed"],liningSource:["","customer","shop"]};
 if(opts[type]){const labels={normal:"Normal blouse",lining:"Lining blouse",design:"Design blouse",mixed:"Mixed — பல வகை","":"தேவையில்லை",customer:"Customer கொடுத்தது",shop:"நாம் வாங்கியது"};return `<div class="field"><label>${label}</label><select class="input" name="${key}" ${required?"required":""}>${opts[type].map(o=>`<option value="${esc(o)}" ${v===o?"selected":""}>${esc(labels[o]??o)}</option>`).join("")}</select></div>`;}
-if(key==="phone" && type==="tel")return `<div class="field"><label>${label}</label><div style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:stretch"><input class="input" name="${key}" type="tel" inputmode="tel" autocomplete="tel" value="${esc(v)}" ${required?"required":""}><button type="button" class="btn secondary" onclick="pickCustomerPhone()" style="white-space:nowrap">📱 Contacts</button></div><div class="hint" style="margin-top:6px">Phone-ல் சேமித்த contact-லிருந்து number தேர்வு செய்யலாம்.</div></div>`;
+if(key==="phone" && type==="tel")return `<div class="field"><label>${label}</label><div style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:stretch"><input class="input" name="${key}" type="tel" inputmode="tel" autocomplete="tel" value="${esc(v)}" ${required?"required":""}><button type="button" class="btn secondary" onclick="pickCustomerPhone()" style="white-space:nowrap">📱 Contacts / Permission</button></div><div class="hint" style="margin-top:6px">Phone-ல் சேமித்த contact-லிருந்து number தேர்வு செய்யலாம்.</div></div>`;
 return `<div class="field"><label>${label}</label><input class="input" name="${key}" type="${type}" value="${esc(v)}" ${required?"required":""} ${type==="number"?'step="0.01" min="0"':''}></div>`;
 }
 
