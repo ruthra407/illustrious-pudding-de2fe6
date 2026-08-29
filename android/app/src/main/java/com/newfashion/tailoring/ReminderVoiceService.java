@@ -11,6 +11,8 @@ import android.content.pm.ServiceInfo;
 import android.media.AudioAttributes;
 import android.media.AudioFocusRequest;
 import android.media.AudioManager;
+import android.media.RingtoneManager;
+import android.net.Uri;
 import android.os.Build;
 import android.os.IBinder;
 import android.speech.tts.TextToSpeech;
@@ -34,38 +36,85 @@ public class ReminderVoiceService extends Service
     private static final String TAG =
             "ReminderVoiceService";
 
+    /*
+     * Foreground-service channel.
+     * This is intentionally quiet.
+     */
     private static final String SERVICE_CHANNEL_ID =
-            "reminder_voice_service_v2";
+            "reminder_voice_service_v3";
+
+    /*
+     * IMPORTANT:
+     *
+     * This is the actual reminder alert channel.
+     *
+     * New channel ID is used because Android remembers
+     * the sound/vibration setting of an old channel.
+     */
+    private static final String ALERT_CHANNEL_ID =
+            "reminder_alert_v3";
 
     private static final int SERVICE_NOTIFICATION_ID =
             91001;
 
+    private static final int ALERT_NOTIFICATION_BASE_ID =
+            92000;
+
     private ExecutorService executor;
+
     private AudioManager audioManager;
+
     private AudioFocusRequest audioFocusRequest;
+
     private TextToSpeech textToSpeech;
 
     private String selectedEnginePackage;
 
     private List<TextToSpeech.EngineInfo> installedEngines;
+
     private int engineTryIndex = -1;
 
     private volatile boolean ttsReady = false;
+
     private volatile int currentStartId = -1;
 
     @Override
     public void onCreate() {
+
         super.onCreate();
+
+        Log.d(
+                TAG,
+                "========================================"
+        );
+
+        Log.d(
+                TAG,
+                "REMINDER VOICE SERVICE CREATED"
+        );
+
+        Log.d(
+                TAG,
+                "NOTIFICATION SOUND + VIBRATION + TAMIL TTS"
+        );
+
+        Log.d(
+                TAG,
+                "========================================"
+        );
 
         executor =
                 Executors.newSingleThreadExecutor();
 
         audioManager =
-                (AudioManager) getSystemService(
-                        Context.AUDIO_SERVICE
-                );
+                (AudioManager)
+                        getSystemService(
+                                Context.AUDIO_SERVICE
+                        );
 
         createServiceNotificationChannel();
+
+        createAlertNotificationChannel();
 
         Notification notification =
                 createServiceNotification(
@@ -94,6 +143,11 @@ public class ReminderVoiceService extends Service
                 );
             }
 
+            Log.d(
+                    TAG,
+                    "FOREGROUND SERVICE STARTED"
+            );
+
         } catch (Exception e) {
 
             Log.e(
@@ -107,11 +161,24 @@ public class ReminderVoiceService extends Service
             return;
         }
 
-        textToSpeech =
-                new TextToSpeech(
-                        getApplicationContext(),
-                        this
-                );
+        try {
+
+            textToSpeech =
+                    new TextToSpeech(
+                            getApplicationContext(),
+                            this
+                    );
+
+        } catch (Exception e) {
+
+            Log.e(
+                    TAG,
+                    "TTS OBJECT CREATION FAILED",
+                    e
+            );
+
+            ttsReady = false;
+        }
     }
 
     @Override
@@ -133,6 +200,11 @@ public class ReminderVoiceService extends Service
             Log.e(
                     TAG,
                     "TTS OBJECT = NULL"
+            );
+
+            Log.d(
+                    TAG,
+                    "========== END TTS DIAGNOSTIC =========="
             );
 
             return;
@@ -260,9 +332,11 @@ public class ReminderVoiceService extends Service
                 Log.d(
                         TAG,
                         "INSTALLED TTS ENGINE COUNT = " +
-                                (installedEngines == null
-                                        ? 0
-                                        : installedEngines.size())
+                                (
+                                        installedEngines == null
+                                                ? 0
+                                                : installedEngines.size()
+                                )
                 );
             }
 
@@ -297,6 +371,8 @@ public class ReminderVoiceService extends Service
                 );
 
                 try {
+
+                    textToSpeech.stop();
 
                     textToSpeech.shutdown();
 
@@ -439,6 +515,7 @@ public class ReminderVoiceService extends Service
             }
 
             Voice fallbackTamilVoice = null;
+
             Voice femaleTamilVoice = null;
 
             for (Voice voice : voices) {
@@ -546,15 +623,13 @@ public class ReminderVoiceService extends Service
 
             Log.e(
                     TAG,
-                    "Tamil voice inspection failed",
+                    "TAMIL VOICE SELECTION FAILED",
                     e
             );
 
             return false;
         }
-    }
-
-    private boolean tryTamilLanguageFallback() {
+                        }    private boolean tryTamilLanguageFallback() {
 
         if (textToSpeech == null) {
 
@@ -573,7 +648,26 @@ public class ReminderVoiceService extends Service
 
             Log.d(
                     TAG,
-                    "SET LANGUAGE TA-IN RESULT = " +
+                    "TA-IN SET LANGUAGE RESULT = " +
+                            result
+            );
+
+            if (result !=
+                    TextToSpeech.LANG_MISSING_DATA &&
+                    result !=
+                    TextToSpeech.LANG_NOT_SUPPORTED) {
+
+                return true;
+            }
+
+            result =
+                    textToSpeech.setLanguage(
+                            new Locale("ta")
+                    );
+
+            Log.d(
+                    TAG,
+                    "TA SET LANGUAGE RESULT = " +
                             result
             );
 
@@ -586,7 +680,7 @@ public class ReminderVoiceService extends Service
 
             Log.e(
                     TAG,
-                    "Tamil language fallback failed",
+                    "TAMIL LANGUAGE FALLBACK FAILED",
                     e
             );
 
@@ -603,20 +697,64 @@ public class ReminderVoiceService extends Service
 
         currentStartId = startId;
 
+        Log.d(
+                TAG,
+                "========================================"
+        );
+
+        Log.d(
+                TAG,
+                "REMINDER RECEIVED"
+        );
+
+        Log.d(
+                TAG,
+                "START ID = " +
+                        startId
+        );
+
         if (intent == null) {
+
+            Log.e(
+                    TAG,
+                    "REMINDER INTENT = NULL"
+            );
 
             stopSelf(startId);
 
             return START_NOT_STICKY;
         }
 
+        String title =
+                intent.getStringExtra(
+                        "title"
+                );
+
         String message =
                 intent.getStringExtra(
                         "message"
                 );
 
+        int requestCode =
+                intent.getIntExtra(
+                        "requestCode",
+                        startId
+                );
+
+        if (title == null ||
+                title.trim().isEmpty()) {
+
+            title =
+                    "🔔 New Fashion Tailoring";
+        }
+
         if (message == null ||
                 message.trim().isEmpty()) {
+
+            Log.e(
+                    TAG,
+                    "REMINDER MESSAGE = EMPTY"
+            );
 
             stopSelf(startId);
 
@@ -628,6 +766,32 @@ public class ReminderVoiceService extends Service
                         message
                 );
 
+        /*
+         * VERY IMPORTANT:
+         *
+         * First send the actual reminder notification.
+         *
+         * Therefore:
+         *
+         * Notification sound
+         * +
+         * vibration
+         * +
+         * full prompt
+         *
+         * do NOT depend on TTS.
+         */
+        postReminderNotification(
+                title,
+                message,
+                requestCode,
+                startId
+        );
+
+        /*
+         * Only the foreground-service notification
+         * is updated here.
+         */
         updateServiceNotification(
                 "🔊 குரல் தயாராகிறது",
                 "தமிழ் நினைவூட்டல் பேச தயாராகிறது..."
@@ -646,8 +810,15 @@ public class ReminderVoiceService extends Service
                 )
         );
 
+        Log.d(
+                TAG,
+                "REMINDER NOTIFICATION POSTED"
+        );
+
         return START_NOT_STICKY;
-    }    private void speakWhenReady(
+    }
+
+    private void speakWhenReady(
             String message,
             int startId
     ) {
@@ -676,12 +847,19 @@ public class ReminderVoiceService extends Service
             }
         }
 
+        /*
+         * TTS failure MUST NOT create another
+         * warning notification.
+         *
+         * The actual reminder notification
+         * has already been delivered.
+         */
         if (!ttsReady ||
                 textToSpeech == null) {
 
             Log.e(
                     TAG,
-                    "Android Tamil TTS is not ready"
+                    "ANDROID TAMIL TTS IS NOT READY"
             );
 
             stopForegroundService(
@@ -694,22 +872,16 @@ public class ReminderVoiceService extends Service
         AudioAttributes audioAttributes =
                 new AudioAttributes.Builder()
                         .setUsage(
-                                AudioAttributes.USAGE_MEDIA
+                                AudioAttributes
+                                        .USAGE_MEDIA
                         )
                         .setContentType(
-                                AudioAttributes.CONTENT_TYPE_SPEECH
+                                AudioAttributes
+                                        .CONTENT_TYPE_SPEECH
                         )
                         .build();
 
         try {
-
-            if (Build.VERSION.SDK_INT >=
-                    Build.VERSION_CODES.LOLLIPOP) {
-
-                textToSpeech.setAudioAttributes(
-                        audioAttributes
-                );
-            }
 
             textToSpeech.setPitch(
                     1.08f
@@ -723,7 +895,7 @@ public class ReminderVoiceService extends Service
 
             Log.w(
                     TAG,
-                    "Could not set TTS audio/voice properties",
+                    "COULD NOT SET TTS PROPERTIES",
                     e
             );
         }
@@ -734,9 +906,12 @@ public class ReminderVoiceService extends Service
 
             Log.e(
                     TAG,
-                    "Audio focus unavailable"
+                    "AUDIO FOCUS UNAVAILABLE"
             );
 
+            /*
+             * No warning notification.
+             */
             stopForegroundService(
                     startId
             );
@@ -753,16 +928,11 @@ public class ReminderVoiceService extends Service
 
         try {
 
-            Log.d(
-                    TAG,
-                    "TTS SPEAK REQUEST = " +
-                            message
-            );
-
             result =
                     textToSpeech.speak(
                             message,
-                            TextToSpeech.QUEUE_FLUSH,
+                            TextToSpeech
+                                    .QUEUE_FLUSH,
                             null,
                             "reminder_" +
                                     startId
@@ -778,18 +948,16 @@ public class ReminderVoiceService extends Service
 
             abandonAudioFocus();
 
+            /*
+             * Notification has already sounded.
+             * Do not replace it with an error notification.
+             */
             stopForegroundService(
                     startId
             );
 
             return;
         }
-
-        Log.d(
-                TAG,
-                "TTS SPEAK RESULT = " +
-                        result
-        );
 
         if (result !=
                 TextToSpeech.SUCCESS) {
@@ -811,7 +979,7 @@ public class ReminderVoiceService extends Service
 
         Log.d(
                 TAG,
-                "ANDROID TAMIL VOICE PLAYBACK REQUESTED"
+                "ANDROID TAMIL VOICE PLAYBACK STARTED"
         );
     }
 
@@ -910,6 +1078,11 @@ public class ReminderVoiceService extends Service
                 );
     }
 
+    /*
+     * ONLY ONE requestAudioFocus METHOD.
+     *
+     * No duplicate override.
+     */
     private boolean requestAudioFocus(
             AudioAttributes attributes
     ) {
@@ -945,7 +1118,7 @@ public class ReminderVoiceService extends Service
 
                 Log.d(
                         TAG,
-                        "Audio focus result = " +
+                        "AUDIO FOCUS RESULT = " +
                                 result
                 );
 
@@ -962,12 +1135,6 @@ public class ReminderVoiceService extends Service
                                 AudioManager
                                         .AUDIOFOCUS_GAIN_TRANSIENT
                         );
-
-                Log.d(
-                        TAG,
-                        "Audio focus result = " +
-                                result
-                );
 
                 return result ==
                         AudioManager
@@ -998,8 +1165,7 @@ public class ReminderVoiceService extends Service
             if (Build.VERSION.SDK_INT >=
                     Build.VERSION_CODES.O) {
 
-                if (audioFocusRequest !=
-                        null) {
+                if (audioFocusRequest != null) {
 
                     audioManager
                             .abandonAudioFocusRequest(
@@ -1022,7 +1188,7 @@ public class ReminderVoiceService extends Service
 
             Log.e(
                     TAG,
-                    "Audio focus release error",
+                    "AUDIO FOCUS RELEASE ERROR",
                     e
             );
         }
@@ -1046,18 +1212,14 @@ public class ReminderVoiceService extends Service
 
             } else {
 
-                stopForeground(
-                        true
-                );
+                stopForeground(true);
             }
 
         } catch (Exception ignored) {
         }
 
         stopSelf(startId);
-    }
-
-    private String prepareTtsText(
+    }    private String prepareTtsText(
             String value
     ) {
 
@@ -1172,17 +1334,55 @@ public class ReminderVoiceService extends Service
         NotificationChannel channel =
                 new NotificationChannel(
                         SERVICE_CHANNEL_ID,
-                        "Reminder Voice",
+                        "Reminder Voice Service",
                         NotificationManager
-                                .IMPORTANCE_DEFAULT
+                                .IMPORTANCE_LOW
                 );
 
         channel.setDescription(
-                "Tamil voice reminder playback"
+                "Tamil voice reminder service"
         );
 
-        AudioAttributes
-                notificationAudioAttributes =
+        /*
+         * Foreground service status remains quiet.
+         *
+         * This is NOT the actual reminder alert.
+         */
+        channel.setSound(
+                null,
+                null
+        );
+
+        manager.createNotificationChannel(
+                channel
+        );
+    }
+
+    private void createAlertNotificationChannel() {
+
+        if (Build.VERSION.SDK_INT <
+                Build.VERSION_CODES.O) {
+
+            return;
+        }
+
+        NotificationManager manager =
+                getSystemService(
+                        NotificationManager.class
+                );
+
+        if (manager == null) {
+
+            return;
+        }
+
+        Uri soundUri =
+                RingtoneManager.getDefaultUri(
+                        RingtoneManager
+                                .TYPE_NOTIFICATION
+                );
+
+        AudioAttributes audioAttributes =
                 new AudioAttributes.Builder()
                         .setUsage(
                                 AudioAttributes
@@ -1194,15 +1394,241 @@ public class ReminderVoiceService extends Service
                         )
                         .build();
 
+        NotificationChannel channel =
+                new NotificationChannel(
+                        ALERT_CHANNEL_ID,
+                        "Reminder Alerts",
+                        NotificationManager
+                                .IMPORTANCE_HIGH
+                );
+
+        channel.setDescription(
+                "Reminder alerts with sound and vibration"
+        );
+
+        /*
+         * NOT SILENT.
+         */
         channel.setSound(
-                android.provider.Settings.System
-                        .DEFAULT_NOTIFICATION_URI,
-                notificationAudioAttributes
+                soundUri,
+                audioAttributes
+        );
+
+        channel.enableVibration(
+                true
+        );
+
+        channel.setVibrationPattern(
+                new long[] {
+                        0,
+                        400,
+                        200,
+                        400
+                }
         );
 
         manager.createNotificationChannel(
                 channel
         );
+    }
+
+    private void postReminderNotification(
+            String title,
+            String fullMessage,
+            int requestCode,
+            int startId
+    ) {
+
+        try {
+
+            NotificationManager manager =
+                    (NotificationManager)
+                            getSystemService(
+                                    Context
+                                            .NOTIFICATION_SERVICE
+                            );
+
+            if (manager == null) {
+
+                Log.e(
+                        TAG,
+                        "NOTIFICATION MANAGER = NULL"
+                );
+
+                return;
+            }
+
+            Intent openIntent =
+                    new Intent(
+                            this,
+                            MainActivity.class
+                    );
+
+            openIntent.setFlags(
+                    Intent.FLAG_ACTIVITY_NEW_TASK |
+                            Intent.FLAG_ACTIVITY_CLEAR_TOP
+            );
+
+            PendingIntent pendingIntent =
+                    PendingIntent.getActivity(
+                            this,
+                            requestCode,
+                            openIntent,
+                            PendingIntent
+                                    .FLAG_UPDATE_CURRENT |
+                                    PendingIntent
+                                            .FLAG_IMMUTABLE
+                    );
+
+            int safeRequestCode =
+                    requestCode;
+
+            if (safeRequestCode < 0) {
+
+                safeRequestCode =
+                        startId;
+            }
+
+            int notificationId =
+                    ALERT_NOTIFICATION_BASE_ID +
+                            (
+                                    safeRequestCode %
+                                            1000
+                            );
+
+            NotificationCompat.BigTextStyle
+                    bigTextStyle =
+                    new NotificationCompat
+                            .BigTextStyle()
+                            .bigText(
+                                    fullMessage
+                            )
+                            .setBigContentTitle(
+                                    title
+                            );
+
+            Uri soundUri =
+                    RingtoneManager
+                            .getDefaultUri(
+                                    RingtoneManager
+                                            .TYPE_NOTIFICATION
+                            );
+
+            NotificationCompat.Builder builder =
+                    new NotificationCompat.Builder(
+                            this,
+                            ALERT_CHANNEL_ID
+                    )
+                            .setSmallIcon(
+                                    android.R.drawable
+                                            .ic_dialog_info
+                            )
+                            .setContentTitle(
+                                    title
+                            )
+                            .setContentText(
+                                    fullMessage
+                            )
+                            .setStyle(
+                                    bigTextStyle
+                            )
+                            .setContentIntent(
+                                    pendingIntent
+                            )
+                            .setPriority(
+                                    NotificationCompat
+                                            .PRIORITY_HIGH
+                            )
+                            .setCategory(
+                                    NotificationCompat
+                                            .CATEGORY_REMINDER
+                            )
+                            .setAutoCancel(
+                                    true
+                            )
+                            .setOngoing(
+                                    false
+                            )
+                            .setOnlyAlertOnce(
+                                    false
+                            );
+
+            /*
+             * Android O+:
+             * channel controls sound + vibration.
+             *
+             * Below Android O:
+             * notification itself controls them.
+             */
+            if (Build.VERSION.SDK_INT <
+                    Build.VERSION_CODES.O) {
+
+                builder.setSound(
+                        soundUri
+                );
+
+                builder.setVibrate(
+                        new long[] {
+                                0,
+                                400,
+                                200,
+                                400
+                        }
+                );
+            }
+
+            Notification notification =
+                    builder.build();
+
+            manager.notify(
+                    notificationId,
+                    notification
+            );
+
+            Log.d(
+                    TAG,
+                    "========================================"
+            );
+
+            Log.d(
+                    TAG,
+                    "REMINDER ALERT SENT"
+            );
+
+            Log.d(
+                    TAG,
+                    "SOUND = ENABLED"
+            );
+
+            Log.d(
+                    TAG,
+                    "VIBRATION = ENABLED"
+            );
+
+            Log.d(
+                    TAG,
+                    "FULL PROMPT = BIG TEXT"
+            );
+
+            Log.d(
+                    TAG,
+                    "NOTIFICATION ID = " +
+                            notificationId
+            );
+
+            Log.d(
+                    TAG,
+                    "========================================"
+            );
+
+        } catch (Exception e) {
+
+            Log.e(
+                    TAG,
+                    "REMINDER NOTIFICATION FAILED",
+                    e
+            );
+        }
     }
 
     private Notification createServiceNotification(
@@ -1243,7 +1669,7 @@ public class ReminderVoiceService extends Service
                 )
                 .setPriority(
                         NotificationCompat
-                                .PRIORITY_DEFAULT
+                                .PRIORITY_LOW
                 )
                 .setOngoing(
                         true
@@ -1283,7 +1709,7 @@ public class ReminderVoiceService extends Service
 
             Log.e(
                     TAG,
-                    "Could not update service notification",
+                    "SERVICE NOTIFICATION UPDATE FAILED",
                     e
             );
         }
@@ -1294,7 +1720,7 @@ public class ReminderVoiceService extends Service
 
         Log.d(
                 TAG,
-                "ReminderVoiceService ON DESTROY"
+                "REMINDER VOICE SERVICE DESTROY"
         );
 
         try {
@@ -1312,7 +1738,7 @@ public class ReminderVoiceService extends Service
 
             Log.e(
                     TAG,
-                    "Could not shutdown Android TTS",
+                    "TTS SHUTDOWN FAILED",
                     e
             );
         }
