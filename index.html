@@ -7742,10 +7742,7 @@ window.addEventListener("keydown",function(e){if(e.key==="Escape")window.closeCu
         +'<span class="nf-customer-slide-arrow">›</span></button>';
     }).join("");
   };
-  window.openCustomerFromMyCustomersMenu=function(id){
-    closeMyCustomersSlideMenu();
-    setTimeout(function(){if(typeof goToCustomer === "function")goToCustomer(id)},80);
-  };
+
   window.toggleMyCustomersSlideMenu=function(e){
     if(e){e.preventDefault();e.stopPropagation()}
     var panel=document.getElementById("nfCustomerSlideMenu"),back=document.getElementById("nfCustomerSlideBackdrop");
@@ -8117,14 +8114,7 @@ window.addEventListener("keydown",function(e){if(e.key==="Escape")window.closeCu
     }).join("");
   };
 
-  window.openSidebarCustomer=function(id){
-    try{
-      if(typeof goToCustomer==="function") goToCustomer(id);
-    }finally{
-      var drawer=document.getElementById("sidebar");
-      if(drawer) drawer.classList.remove("open");
-    }
-  };
+
 
   function sync(){
     if(typeof renderSidebarCustomerList==="function") renderSidebarCustomerList();
@@ -8696,13 +8686,10 @@ window.addEventListener("keydown",function(e){if(e.key==="Escape")window.closeCu
     try{
       if(current==="orders"){
         var order=latestOrderForCustomer(id);
-        if(order && typeof window.openOrderFullDetails==="function"){
-          window.openOrderFullDetails(order.id);
-        }else{
-          window.goView("orders");
-        }
-      }else{
-        if(typeof window.goToCustomer==="function") window.goToCustomer(id);
+        if(order && typeof window.openOrderFullDetails==="function") window.openOrderFullDetails(order.id);
+        else if(typeof window.goView==="function") window.goView("orders");
+      }else if(typeof window.goToCustomer==="function"){
+        window.goToCustomer(id);
       }
     }finally{
       var drawer=document.getElementById("sidebar");
@@ -8713,9 +8700,13 @@ window.addEventListener("keydown",function(e){if(e.key==="Escape")window.closeCu
   /* The dashboard's separate customer slide menu follows the same rule when
      it is opened while the Orders view is active. */
   window.openCustomerFromMyCustomersMenu=function(id){
+    /* Capture the view BEFORE closing the customer slide menu.  Closing the
+       menu may update history/view state, so reading it afterwards can route
+       the selected customer to the wrong destination. */
+    var current=(window.history&&history.state&&history.state.view)||"dashboard";
+    if(current!=="orders") current=(document.querySelector(".view.active")?.id||"").replace(/^view-/ ,"");
     if(typeof window.closeMyCustomersSlideMenu==="function") window.closeMyCustomersSlideMenu();
     setTimeout(function(){
-      var current=(window.history&&history.state&&history.state.view)||"dashboard";
       if(current==="orders"){
         var order=latestOrderForCustomer(id);
         if(order && typeof window.openOrderFullDetails==="function") window.openOrderFullDetails(order.id);
