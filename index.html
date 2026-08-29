@@ -2794,7 +2794,6 @@ def.fields.forEach(f=>{
 });
 if(type==="customer"){
   const villageForCloud=String(fd.get("village")||"").trim();
-  const pendingOrderLinkId=(!id)?String(window.__nfPendingOrderCustomerLink||""):"";
   const cleanCustomerNotes=nfStripVillageMarker(payload.notes||"");
   const villageMarker=nfEncodeVillageMarker(villageForCloud);
   payload.notes=[cleanCustomerNotes,villageMarker].filter(Boolean).join(" | ")||null;
@@ -2916,18 +2915,6 @@ if(type==="customer"){
     const vr=await supabaseClient.from("customers").update({village:village}).eq("id",result.data.id);
     if(vr.error)console.warn("customers.village column unavailable; using notes marker.",vr.error.message);
   }catch(_){}
-  if(pendingOrderLinkId && result.data?.id){
-    const linkResult=await supabaseClient.from("orders")
-      .update({customer_id:result.data.id})
-      .eq("id",pendingOrderLinkId)
-      .select()
-      .single();
-    if(linkResult.error)throw linkResult.error;
-    const linkedIndex=(state.orders||[]).findIndex(o=>String(o.id)===pendingOrderLinkId);
-    if(linkedIndex>=0)state.orders[linkedIndex]={...state.orders[linkedIndex],customer_id:result.data.id};
-    window.__nfPendingOrderCustomerLinkDone=true;
-    window.__nfPendingOrderCustomerLink="";
-  }
   const linkedOrders=(state.orders||[]).filter(o=>String(o.customer_id)===String(result.data.id));
   for(const order of linkedOrders){
     const nextNotes=orderNotesWithAlteration(order.notes,alterationNotes);
@@ -5405,15 +5392,14 @@ function nfFormatPaymentDate(v){return v?dateText(v):"—";}
   };
   window.renderOrders.__nfFinalOrderSync=true;
 
-window.openOrdersNewOrderForCustomer=function(customerId){
-    customerId=String(customerId||"");
-    if(!customerId)return;
+  window.openOrdersNewOrderForCustomer=function(customerId){
     openOrdersQuickAdd();
-    var select=$("ordersQuickCustomerStartInline");
-    if(select){select.value=customerId;mountOrdersQuickForm(customerId);}
-    else mountOrdersQuickForm(customerId);
-    var title=$("ordersNewOrderScreenTitle");
-    if(title)title.textContent="🧾 New Order";
+    setTimeout(function(){
+      var select=$("ordersQuickCustomerStart");
+      if(select){select.value=String(customerId);mountOrdersQuickForm(customerId);}
+      var title=$("ordersNewOrderScreenTitle");
+      if(title)title.textContent="🧾 New Order";
+    },0);
   };
 
   window.openOrdersEditOrder=function(orderId){
@@ -5791,19 +5777,27 @@ window.openOrdersNewOrderForCustomer=function(customerId){
         const screenTitle=document.getElementById("ordersNewOrderScreenTitle");
         if(screenTitle)screenTitle.textContent="🧾 New Order";
 
-/* Navigation-only fix: remain on the page where Edit Order started.
-   Never force the user to Customers or reset the list position. */
-requestAnimationFrame(function(){
-  requestAnimationFrame(function(){window.scrollTo(0,nfReturnScrollY);});
-});
+        /* Go directly to the edited customer's card — no timeout and no smooth scroll. */
+        if(typeof goView==="function")goView("customers",true);
+        requestAnimationFrame(function(){
+          const card=document.getElementById("customer-card-"+nfReturnCustomerId);
+          if(card){
+            if(nfReturnScrollY>0)window.scrollTo(0,nfReturnScrollY);
+            else card.scrollIntoView({behavior:"auto",block:"start"});
+          }
+        });
         toast("Order details updated.");
 
-/* Full Data Sync remains unchanged and stays in the background. */
-loadAll(true).then(function(){
-  requestAnimationFrame(function(){
-    requestAnimationFrame(function(){window.scrollTo(0,nfReturnScrollY);});
-  });
-}).catch(function(err){console.error("Background data refresh after order update:",err);});
+        /* Full Data Sync remains unchanged, but runs after navigation so it cannot
+           block the user. Re-apply the exact customer position after its render. */
+        loadAll(true).then(function(){
+          requestAnimationFrame(function(){
+            const latest=document.getElementById("customer-card-"+nfReturnCustomerId);
+            if(!latest)return;
+            if(nfReturnScrollY>0)window.scrollTo(0,nfReturnScrollY);
+            else latest.scrollIntoView({behavior:"auto",block:"start"});
+          });
+        }).catch(function(err){console.error("Background data refresh after order update:",err);});
       }else{
         toast("இந்த customer-க்கு New Order சேமிக்கப்பட்டது.");
         loadAll(true).catch(function(err){console.error("Background data refresh after new order:",err);});
@@ -6187,7 +6181,7 @@ loadAll(true).then(function(){
   }
 
   window.openLatestCustomerOrderEdit=function(customerId){
-  var order=latestForCustomer(String(customerId||""));
+    var order=latestForCustomer(customerId);
     if(!order){
       toast("இந்த customer-க்கு Edit செய்ய Order இல்லை.",true);
       return;
@@ -7522,8 +7516,6 @@ window.addEventListener("keydown",function(e){if(e.key==="Escape")window.closeCu
 
     pendingOrderCustomer=String(orderId);
     pendingCustomerExistingIds=new Set((state.customers||[]).map(function(c){return String(c.id)}));
-    window.__nfPendingOrderCustomerLink=String(orderId);
-    window.__nfPendingOrderCustomerLinkDone=false;
 
     openModal("customer");
     setTimeout(function(){
@@ -7553,11 +7545,6 @@ window.addEventListener("keydown",function(e){if(e.key==="Escape")window.closeCu
   if(dataForm){
     dataForm.addEventListener("submit",function(){
       if(!pendingOrderCustomer)return;
-      if(window.__nfPendingOrderCustomerLinkDone){
-        pendingOrderCustomer=null;
-        pendingCustomerExistingIds=new Set();
-        return;
-      }
       if(!state.editing || state.editing.type!=="customer" || state.editing.id)return;
 
       var orderId=pendingOrderCustomer;
@@ -8639,97 +8626,3 @@ window.addEventListener("keydown",function(e){if(e.key==="Escape")window.closeCu
 
 
 
-
-<script id="nf-v205-order-sidebar-customer-target-fix">
-(function(){
-  "use strict";
-  if(window.__nfV205OrderSidebarCustomerTargetFix) return;
-  window.__nfV205OrderSidebarCustomerTargetFix=true;
-
-  function currentView(){
-    return (history.state && history.state.view) || "dashboard";
-  }
-
-  function closeSidebar(){
-    var drawer=document.getElementById("sidebar");
-    if(drawer) drawer.classList.remove("open");
-    document.body.classList.remove("drawer-open");
-  }
-
-  function latestOrderForCustomer(customerId){
-    var list=(state.orders||[]).filter(function(o){
-      return String(o.customer_id)===String(customerId);
-    });
-    list.sort(function(a,b){
-      return String(b.created_at||b.order_date||b.cloth_received_date||b.id||"")
-        .localeCompare(String(a.created_at||a.order_date||a.cloth_received_date||a.id||""));
-    });
-    return list[0]||null;
-  }
-
-  function findOrderCard(order){
-    if(!order) return null;
-    var orderNo=String(order.order_no||"").trim();
-    if(!orderNo) return null;
-
-    var mobile=null;
-    document.querySelectorAll("#ordersTable .nf-mobile-order-card").forEach(function(card){
-      if(mobile) return;
-      var label=String(card.getAttribute("aria-label")||"");
-      if(label.toLowerCase()===("order "+orderNo).toLowerCase()) mobile=card;
-    });
-    if(mobile) return mobile;
-
-    var desktop=null;
-    document.querySelectorAll("#ordersTable table tbody tr").forEach(function(tr){
-      if(desktop) return;
-      var first=tr.querySelector("td");
-      if(first && String(first.textContent||"").trim()===orderNo) desktop=tr;
-    });
-    return desktop;
-  }
-
-  function focusOrderCard(card){
-    if(!card) return false;
-    document.querySelectorAll("#ordersTable .nf-v205-order-target").forEach(function(x){
-      x.classList.remove("nf-v205-order-target");
-    });
-    card.classList.add("nf-v205-order-target");
-    card.scrollIntoView({behavior:"auto",block:"center"});
-    setTimeout(function(){card.classList.remove("nf-v205-order-target");},1400);
-    return true;
-  }
-
-  window.openSidebarCustomer=function(id){
-    var targetId=String(id||"");
-    if(!targetId) return;
-
-    closeSidebar();
-
-    /* Orders page: stay in Orders and jump directly to this customer's
-       existing order card. No data reload, sync, calculation or view reset. */
-    if(currentView()==="orders"){
-      var order=latestOrderForCustomer(targetId);
-      if(!order){
-        if(typeof toast==="function") toast("இந்த customer-க்கு Order இல்லை.",true);
-        return;
-      }
-
-      if(focusOrderCard(findOrderCard(order))) return;
-
-      /* If a filter currently hides the card, open its existing full-details
-         view rather than changing filters or reloading any data. */
-      if(typeof openOrderFullDetails==="function") openOrderFullDetails(order.id);
-      return;
-    }
-
-    /* All other pages keep the existing Customer navigation unchanged. */
-    if(typeof goToCustomer==="function") goToCustomer(targetId);
-  };
-
-  var style=document.createElement("style");
-  style.textContent=".nf-v205-order-target{outline:3px solid #6c4df6!important;outline-offset:3px;box-shadow:0 0 0 6px rgba(108,77,246,.14),0 16px 36px rgba(108,77,246,.22)!important;transition:outline .12s ease,box-shadow .12s ease!important;}";
-  document.head.appendChild(style);
-})();
-</script>
-<!-- NAVIGATION SAFETY FIX: no data deletion; calculation/data-sync/storage logic retained. -->
