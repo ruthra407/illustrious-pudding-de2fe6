@@ -8688,31 +8688,31 @@ window.addEventListener("keydown",function(e){if(e.key==="Escape")window.closeCu
     return list[0]||null;
   }
 
-  /* The sidebar customer list is shared by views.  Preserve the current
-     context: Customers -> customer details; Orders -> that customer's
-     latest order details.  No records or calculations are changed. */
+  function currentView(){
+    var stateView=window.history&&history.state&&history.state.view;
+    if(stateView) return String(stateView);
+    var active=document.querySelector(".view.active");
+    return active&&active.id ? String(active.id).replace(/^view-/i,"") : "dashboard";
+  }
+
+  /* Only this shared customer-list routing is context-aware.
+     Orders context: existing order -> that order's details; no order -> New Order.
+     Customers context: -> customer details. No data/calculation logic is changed. */
   window.openSidebarCustomer=function(id){
-    var current=(window.history&&history.state&&history.state.view)||"dashboard";
+    var view=currentView();
     try{
-      if(current==="orders"){
+      if(view==="orders"){
         var order=latestOrderForCustomer(id);
-        /* Order Cards context: selecting a customer from the shared sidebar
-           must open an existing order's details only. Never create a New Order
-           from this customer-list selection. */
-        if(order && typeof window.openOrderFullDetails==="function"){
-          window.openOrderFullDetails(order.id);
-        }else{
-          /* Order Cards context: only customers without an existing order
-             should enter New Order. Reuse the existing customer-aware New
-             Order entry point so the selected customer is pre-filled. */
-          if(typeof window.openOrdersNewOrderForCustomer==="function"){
-            window.openOrdersNewOrderForCustomer(String(id));
-          }else if(typeof window.goView==="function"){
-            window.goView("orders",false);
-          }
+        if(order){
+          if(typeof window.openOrderFullDetails==="function") window.openOrderFullDetails(order.id);
+          else if(typeof window.goView==="function") window.goView("orders");
+        }else if(typeof window.openOrdersNewOrderForCustomer==="function"){
+          window.openOrdersNewOrderForCustomer(id);
+        }else if(typeof window.goView==="function"){
+          window.goView("orders");
         }
-      }else{
-        if(typeof window.goToCustomer==="function") window.goToCustomer(id);
+      }else if(typeof window.goToCustomer==="function"){
+        window.goToCustomer(id);
       }
     }finally{
       var drawer=document.getElementById("sidebar");
@@ -8720,24 +8720,14 @@ window.addEventListener("keydown",function(e){if(e.key==="Escape")window.closeCu
     }
   };
 
-  /* The dashboard's separate customer slide menu follows the same rule when
-     it is opened while the Orders view is active. */
   window.openCustomerFromMyCustomersMenu=function(id){
+    var view=currentView();
     if(typeof window.closeMyCustomersSlideMenu==="function") window.closeMyCustomersSlideMenu();
     setTimeout(function(){
-      var current=(window.history&&history.state&&history.state.view)||"dashboard";
-      if(current==="orders"){
+      if(view==="orders"){
         var order=latestOrderForCustomer(id);
-        /* Same rule for the dashboard customer slide menu when Orders is the
-           active context: open an existing order only; never start a New Order. */
         if(order && typeof window.openOrderFullDetails==="function") window.openOrderFullDetails(order.id);
-        else if(typeof window.openOrdersNewOrderForCustomer==="function"){
-          /* No existing order: this is the only case in Orders context where
-             the customer-list selection should open New Order. */
-          window.openOrdersNewOrderForCustomer(String(id));
-        }else if(typeof window.goView==="function"){
-          window.goView("orders",false);
-        }
+        else if(!order && typeof window.openOrdersNewOrderForCustomer==="function") window.openOrdersNewOrderForCustomer(id);
       }else if(typeof window.goToCustomer==="function"){
         window.goToCustomer(id);
       }
