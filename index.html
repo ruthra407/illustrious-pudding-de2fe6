@@ -8696,12 +8696,20 @@ window.addEventListener("keydown",function(e){if(e.key==="Escape")window.closeCu
     try{
       if(current==="orders"){
         var order=latestOrderForCustomer(id);
+        /* Order Cards context: selecting a customer from the shared sidebar
+           must open an existing order's details only. Never create a New Order
+           from this customer-list selection. */
         if(order && typeof window.openOrderFullDetails==="function"){
           window.openOrderFullDetails(order.id);
-        }else if(typeof window.openOrdersNewOrderForCustomer==="function"){
-          window.openOrdersNewOrderForCustomer(id);
         }else{
-          window.goView("orders");
+          /* Order Cards context: only customers without an existing order
+             should enter New Order. Reuse the existing customer-aware New
+             Order entry point so the selected customer is pre-filled. */
+          if(typeof window.openOrdersNewOrderForCustomer==="function"){
+            window.openOrdersNewOrderForCustomer(String(id));
+          }else if(typeof window.goView==="function"){
+            window.goView("orders",false);
+          }
         }
       }else{
         if(typeof window.goToCustomer==="function") window.goToCustomer(id);
@@ -8720,8 +8728,16 @@ window.addEventListener("keydown",function(e){if(e.key==="Escape")window.closeCu
       var current=(window.history&&history.state&&history.state.view)||"dashboard";
       if(current==="orders"){
         var order=latestOrderForCustomer(id);
+        /* Same rule for the dashboard customer slide menu when Orders is the
+           active context: open an existing order only; never start a New Order. */
         if(order && typeof window.openOrderFullDetails==="function") window.openOrderFullDetails(order.id);
-        else if(typeof window.openOrdersNewOrderForCustomer==="function") window.openOrdersNewOrderForCustomer(id);
+        else if(typeof window.openOrdersNewOrderForCustomer==="function"){
+          /* No existing order: this is the only case in Orders context where
+             the customer-list selection should open New Order. */
+          window.openOrdersNewOrderForCustomer(String(id));
+        }else if(typeof window.goView==="function"){
+          window.goView("orders",false);
+        }
       }else if(typeof window.goToCustomer==="function"){
         window.goToCustomer(id);
       }
