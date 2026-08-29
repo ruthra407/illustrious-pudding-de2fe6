@@ -2301,21 +2301,35 @@ function fillCustomerFromContact(contact){
   const nameInput=form?.querySelector('input[name="name"]');
   if(!phoneInput)return false;
 
-  let name=contact.name;
-  if(Array.isArray(name))name=name[0]||'';
-  if(typeof name==='object' && name) name=name.display||name.given||name.full||'';
+  /* Capacitor Contacts returns displayName + structured name. */
+  let name=contact.displayName || '';
+  if(!name && contact.name){
+    if(typeof contact.name==='string') name=contact.name;
+    else if(typeof contact.name==='object'){
+      name=[
+        contact.name.prefix,
+        contact.name.givenName,
+        contact.name.middleName,
+        contact.name.familyName,
+        contact.name.suffix
+      ].filter(Boolean).join(' ');
+      if(!name) name=contact.name.display || contact.name.given || contact.name.full || '';
+    }
+  }
   name=String(name||'').trim();
 
-  let phones=contact.tel||contact.phones||contact.phoneNumbers||contact.phone||[];
+  let phones=contact.phoneNumbers||contact.tel||contact.phones||contact.phone||[];
   if(!Array.isArray(phones))phones=[phones];
-  let phone=phones.find(x=>{
-    if(typeof x==='string')return x.trim();
-    return String(x?.number||x?.value||x?.tel||'').trim();
-  });
-  if(typeof phone!=='string')phone=phone?.number||phone?.value||phone?.tel||'';
-  phone=String(phone||'').trim();
+  let phone='';
+  for(const item of phones){
+    const value=typeof item==='string' ? item : (item?.value||item?.number||item?.tel||'');
+    if(String(value||'').trim()){
+      phone=String(value).trim();
+      break;
+    }
+  }
 
-  if(name && nameInput && !String(nameInput.value||'').trim())nameInput.value=name;
+  if(name && nameInput)nameInput.value=name;
   if(phone)phoneInput.value=phone;
   phoneInput.dispatchEvent(new Event('input',{bubbles:true}));
   phoneInput.dispatchEvent(new Event('change',{bubbles:true}));
@@ -2328,39 +2342,23 @@ async function pickCustomerPhone(){
   const phoneInput=form?.querySelector('input[name="phone"]');
   if(!phoneInput)return;
 
-  /* Native Capacitor Contacts plugin — this is the APK path.
-     The Android app must register a Contacts plugin with READ_CONTACTS permission. */
+  /* Native Capacitor Contacts plugin — required for the Android APK.
+     @capacitor/contacts opens the real Android Contacts picker and requests
+     READ_CONTACTS when pickContact() is called. */
   const nativeContacts=await getNFContactsPlugin();
-  if(nativeContacts){
+  if(nativeContacts && typeof nativeContacts.pickContact==='function'){
     try{
-      if(typeof nativeContacts.requestPermissions==='function'){
-        const perm=await nativeContacts.requestPermissions();
-        const granted=perm?.contacts==='granted' || perm?.readContacts==='granted' || perm?.granted===true || perm?.state==='granted';
-        if(perm && !granted && (perm.contacts||perm.readContacts||perm.state)){
-          toast('Contacts permission Allow செய்யுங்கள்.',true);
-          return;
-        }
-      }
-
-      /* Support common Capacitor Contacts plugin picker method names. */
-      let picked=null;
-      if(typeof nativeContacts.pickContact==='function') picked=await nativeContacts.pickContact();
-      else if(typeof nativeContacts.chooseContact==='function') picked=await nativeContacts.chooseContact();
-      else if(typeof nativeContacts.selectContact==='function') picked=await nativeContacts.selectContact();
-      else if(typeof nativeContacts.pick==='function') picked=await nativeContacts.pick();
-
-      if(picked){
-        const contact=picked.contact||picked.data||picked;
-        if(fillCustomerFromContact(contact)){
-          toast('Contact phone number சேர்க்கப்பட்டது.');
-          return;
-        }
-        toast('இந்த contact-ல் phone number இல்லை.',true);
+      const picked=await nativeContacts.pickContact();
+      const contact=picked?.contact||picked?.data||picked;
+      if(fillCustomerFromContact(contact)){
+        toast('Contact பெயர் + phone number சேர்க்கப்பட்டது.');
         return;
       }
+      toast('இந்த contact-ல் phone number இல்லை.',true);
+      return;
     }catch(e){
-      if(e?.name==='AbortError' || e?.code==='CANCELLED' || e?.code==='canceled')return;
-      console.warn('Native contact picker failed:',e);
+      if(e?.code==='OS-PLUG-CONT-0006' || e?.name==='AbortError' || e?.code==='CANCELLED' || e?.code==='canceled')return;
+      console.error('Native contact picker failed:',e);
       toast('Contacts permission / picker வேலை செய்யவில்லை. மீண்டும் முயற்சி செய்யுங்கள்.',true);
       return;
     }
