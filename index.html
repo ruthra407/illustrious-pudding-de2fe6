@@ -2794,6 +2794,7 @@ def.fields.forEach(f=>{
 });
 if(type==="customer"){
   const villageForCloud=String(fd.get("village")||"").trim();
+  const pendingOrderLinkId=(!id)?String(window.__nfPendingOrderCustomerLink||""):"";
   const cleanCustomerNotes=nfStripVillageMarker(payload.notes||"");
   const villageMarker=nfEncodeVillageMarker(villageForCloud);
   payload.notes=[cleanCustomerNotes,villageMarker].filter(Boolean).join(" | ")||null;
@@ -2915,6 +2916,18 @@ if(type==="customer"){
     const vr=await supabaseClient.from("customers").update({village:village}).eq("id",result.data.id);
     if(vr.error)console.warn("customers.village column unavailable; using notes marker.",vr.error.message);
   }catch(_){}
+  if(pendingOrderLinkId && result.data?.id){
+    const linkResult=await supabaseClient.from("orders")
+      .update({customer_id:result.data.id})
+      .eq("id",pendingOrderLinkId)
+      .select()
+      .single();
+    if(linkResult.error)throw linkResult.error;
+    const linkedIndex=(state.orders||[]).findIndex(o=>String(o.id)===pendingOrderLinkId);
+    if(linkedIndex>=0)state.orders[linkedIndex]={...state.orders[linkedIndex],customer_id:result.data.id};
+    window.__nfPendingOrderCustomerLinkDone=true;
+    window.__nfPendingOrderCustomerLink="";
+  }
   const linkedOrders=(state.orders||[]).filter(o=>String(o.customer_id)===String(result.data.id));
   for(const order of linkedOrders){
     const nextNotes=orderNotesWithAlteration(order.notes,alterationNotes);
@@ -5392,14 +5405,15 @@ function nfFormatPaymentDate(v){return v?dateText(v):"—";}
   };
   window.renderOrders.__nfFinalOrderSync=true;
 
-  window.openOrdersNewOrderForCustomer=function(customerId){
+window.openOrdersNewOrderForCustomer=function(customerId){
+    customerId=String(customerId||"");
+    if(!customerId)return;
     openOrdersQuickAdd();
-    setTimeout(function(){
-      var select=$("ordersQuickCustomerStart");
-      if(select){select.value=String(customerId);mountOrdersQuickForm(customerId);}
-      var title=$("ordersNewOrderScreenTitle");
-      if(title)title.textContent="🧾 New Order";
-    },0);
+    var select=$("ordersQuickCustomerStartInline");
+    if(select){select.value=customerId;mountOrdersQuickForm(customerId);}
+    else mountOrdersQuickForm(customerId);
+    var title=$("ordersNewOrderScreenTitle");
+    if(title)title.textContent="🧾 New Order";
   };
 
   window.openOrdersEditOrder=function(orderId){
@@ -5777,27 +5791,19 @@ function nfFormatPaymentDate(v){return v?dateText(v):"—";}
         const screenTitle=document.getElementById("ordersNewOrderScreenTitle");
         if(screenTitle)screenTitle.textContent="🧾 New Order";
 
-        /* Go directly to the edited customer's card — no timeout and no smooth scroll. */
-        if(typeof goView==="function")goView("customers",true);
-        requestAnimationFrame(function(){
-          const card=document.getElementById("customer-card-"+nfReturnCustomerId);
-          if(card){
-            if(nfReturnScrollY>0)window.scrollTo(0,nfReturnScrollY);
-            else card.scrollIntoView({behavior:"auto",block:"start"});
-          }
-        });
+/* Navigation-only fix: remain on the page where Edit Order started.
+   Never force the user to Customers or reset the list position. */
+requestAnimationFrame(function(){
+  requestAnimationFrame(function(){window.scrollTo(0,nfReturnScrollY);});
+});
         toast("Order details updated.");
 
-        /* Full Data Sync remains unchanged, but runs after navigation so it cannot
-           block the user. Re-apply the exact customer position after its render. */
-        loadAll(true).then(function(){
-          requestAnimationFrame(function(){
-            const latest=document.getElementById("customer-card-"+nfReturnCustomerId);
-            if(!latest)return;
-            if(nfReturnScrollY>0)window.scrollTo(0,nfReturnScrollY);
-            else latest.scrollIntoView({behavior:"auto",block:"start"});
-          });
-        }).catch(function(err){console.error("Background data refresh after order update:",err);});
+/* Full Data Sync remains unchanged and stays in the background. */
+loadAll(true).then(function(){
+  requestAnimationFrame(function(){
+    requestAnimationFrame(function(){window.scrollTo(0,nfReturnScrollY);});
+  });
+}).catch(function(err){console.error("Background data refresh after order update:",err);});
       }else{
         toast("இந்த customer-க்கு New Order சேமிக்கப்பட்டது.");
         loadAll(true).catch(function(err){console.error("Background data refresh after new order:",err);});
@@ -6181,7 +6187,7 @@ function nfFormatPaymentDate(v){return v?dateText(v):"—";}
   }
 
   window.openLatestCustomerOrderEdit=function(customerId){
-    var order=latestForCustomer(customerId);
+  var order=latestForCustomer(String(customerId||""));
     if(!order){
       toast("இந்த customer-க்கு Edit செய்ய Order இல்லை.",true);
       return;
@@ -7516,6 +7522,8 @@ window.addEventListener("keydown",function(e){if(e.key==="Escape")window.closeCu
 
     pendingOrderCustomer=String(orderId);
     pendingCustomerExistingIds=new Set((state.customers||[]).map(function(c){return String(c.id)}));
+    window.__nfPendingOrderCustomerLink=String(orderId);
+    window.__nfPendingOrderCustomerLinkDone=false;
 
     openModal("customer");
     setTimeout(function(){
@@ -7545,6 +7553,11 @@ window.addEventListener("keydown",function(e){if(e.key==="Escape")window.closeCu
   if(dataForm){
     dataForm.addEventListener("submit",function(){
       if(!pendingOrderCustomer)return;
+      if(window.__nfPendingOrderCustomerLinkDone){
+        pendingOrderCustomer=null;
+        pendingCustomerExistingIds=new Set();
+        return;
+      }
       if(!state.editing || state.editing.type!=="customer" || state.editing.id)return;
 
       var orderId=pendingOrderCustomer;
@@ -8719,3 +8732,4 @@ window.addEventListener("keydown",function(e){if(e.key==="Escape")window.closeCu
   document.head.appendChild(style);
 })();
 </script>
+<!-- NAVIGATION SAFETY FIX: no data deletion; calculation/data-sync/storage logic retained. -->
