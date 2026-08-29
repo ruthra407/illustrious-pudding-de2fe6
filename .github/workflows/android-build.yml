@@ -63,12 +63,6 @@ jobs:
 
           echo "Web files synchronized successfully."
 
-          echo "Root index.html:"
-          wc -c index.html
-
-          echo "www/index.html:"
-          wc -c www/index.html
-
           cmp -s index.html www/index.html
           echo "SUCCESS: root index.html and www/index.html are identical."
 
@@ -101,7 +95,7 @@ jobs:
       - name: Sync Capacitor Android
         run: npx cap sync android
 
-      - name: Add exact alarm permission
+      - name: Add Android permissions
         run: |
           python3 - <<'PY'
           from pathlib import Path
@@ -110,35 +104,92 @@ jobs:
           manifest = Path("android/app/src/main/AndroidManifest.xml")
           text = manifest.read_text()
 
-          permission = (
-              '    <uses-permission '
-              'android:name="android.permission.SCHEDULE_EXACT_ALARM" />\n'
-          )
+          permissions = [
+              "android.permission.SCHEDULE_EXACT_ALARM",
+              "android.permission.READ_CONTACTS",
+              "android.permission.WRITE_CONTACTS",
+          ]
 
-          if "android.permission.SCHEDULE_EXACT_ALARM" not in text:
-              match = re.search(
-                  r"<manifest\b[^>]*>",
-                  text,
-                  re.S
-              )
+          match = re.search(r"<manifest\b[^>]*>", text, re.S)
 
-              if not match:
-                  raise SystemExit(
-                      "ERROR: AndroidManifest.xml <manifest> tag not found."
+          if not match:
+              raise SystemExit("ERROR: manifest tag not found.")
+
+          insert = ""
+
+          for permission in permissions:
+              if permission not in text:
+                  insert += (
+                      f'\n    <uses-permission '
+                      f'android:name="{permission}" />'
                   )
 
+          if insert:
               pos = match.end()
+              text = text[:pos] + insert + "\n" + text[pos:]
 
-              text = (
-                  text[:pos]
-                  + "\n"
-                  + permission
-                  + text[pos:]
+          manifest.write_text(text)
+
+          print("Required Android permissions are present.")
+          PY
+
+      - name: Create stable signing keystore
+        run: |
+          set -e
+
+          mkdir -p android/app
+
+          if [ ! -f android/app/newfashion-debug.keystore ]; then
+            keytool -genkeypair \
+              -v \
+              -keystore android/app/newfashion-debug.keystore \
+              -storepass android \
+              -alias newfashion \
+              -keypass android \
+              -keyalg RSA \
+              -keysize 2048 \
+              -validity 10000 \
+              -dname "CN=New Fashion Tailoring, OU=App, O=New Fashion Tailoring, L=India, ST=Tamil Nadu, C=IN"
+          fi
+
+          echo "Stable signing keystore ready."
+
+      - name: Configure stable signing
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          gradle = Path("android/app/build.gradle")
+          text = gradle.read_text()
+
+          signing_block = '''
+              signingConfigs {
+                  stable {
+                      storeFile file("newfashion-debug.keystore")
+                      storePassword "android"
+                      keyAlias "newfashion"
+                      keyPassword "android"
+                  }
+              }
+          '''
+
+          if "signingConfigs {" not in text:
+              text = text.replace(
+                  "    buildTypes {",
+                  signing_block + "\n    buildTypes {",
+                  1
               )
 
-              manifest.write_text(text)
+          text = text.replace(
+              "debug {",
+              '''debug {
+            signingConfig signingConfigs.stable''',
+              1
+          )
 
-          print("SCHEDULE_EXACT_ALARM permission is present.")
+          gradle.write_text(text)
+
+          print("Stable signing configuration applied.")
           PY
 
       - name: Make Gradle Wrapper executable
