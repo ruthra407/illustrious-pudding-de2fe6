@@ -8731,46 +8731,56 @@ window.addEventListener("keydown",function(e){if(e.key==="Escape")window.closeCu
 </script>
 
 
-<script id="nf-final-order-customer-tap-routing-fix">
+<script id="nf-final-orders-swipe-customer-routing-v2">
 (function(){
   "use strict";
 
-  function latestOrderForTappedCustomer(customerId){
+  function isOrdersContext(){
+    var activeOrders=document.getElementById("view-orders");
+    if(activeOrders && activeOrders.classList.contains("active")) return true;
+
+    var current=(window.history && history.state && history.state.view) || "";
+    return current==="orders";
+  }
+
+  function latestOrderForCustomer(id){
     var orders=(window.state && Array.isArray(state.orders)) ? state.orders : [];
     var list=orders.filter(function(o){
-      return String(o.customer_id)===String(customerId);
+      return String(o && o.customer_id || "")===String(id || "");
     }).slice();
 
     list.sort(function(a,b){
-      var ad=String(a.created_at||a.order_date||"");
-      var bd=String(b.created_at||b.order_date||"");
+      var ad=String(a && (a.created_at || a.order_date) || "");
+      var bd=String(b && (b.created_at || b.order_date) || "");
       return bd.localeCompare(ad);
     });
-    return list[0]||null;
+
+    return list[0] || null;
   }
 
-  /*
-   * Customer selected from the Order Card's swipe/customer list:
-   * NEVER create/open a New Order here. Open the selected customer's
-   * existing order details instead.
-   */
-  window.nfOpenTappedCustomerOrderDetails=function(customerId){
-    var order=latestOrderForTappedCustomer(customerId);
+  function openSelectedCustomerOrder(id){
+    var order=latestOrderForCustomer(id);
 
+    /*
+     * IMPORTANT:
+     * This route is used ONLY when the user is on the Orders page.
+     * Never fall back to New Order. A missing order must remain a
+     * missing-order state rather than creating a new-order flow.
+     */
     if(!order){
       if(typeof toast==="function"){
-        toast("இந்த customer-க்கு Order Details இல்லை.",true);
+        toast("இந்த customer-க்கு ஏற்கனவே Order இல்லை.",true);
       }
       return false;
     }
 
-    if(typeof openOrderFullDetails==="function"){
-      openOrderFullDetails(String(order.id));
+    if(typeof window.openOrderFullDetails==="function"){
+      window.openOrderFullDetails(String(order.id));
       return true;
     }
 
-    if(typeof openCustomerOrderFullDetails==="function"){
-      openCustomerOrderFullDetails(String(order.id));
+    if(typeof window.openCustomerOrderFullDetails==="function"){
+      window.openCustomerOrderFullDetails(String(order.id));
       return true;
     }
 
@@ -8778,52 +8788,51 @@ window.addEventListener("keydown",function(e){if(e.key==="Escape")window.closeCu
       toast("Order Details screen கிடைக்கவில்லை.",true);
     }
     return false;
-  };
-
-  /*
-   * Patch only the swipe/customer-list customer click handlers.
-   * Existing New Order buttons and the actual Order Details renderer
-   * are deliberately left unchanged.
-   */
-  function patchCustomerTapHandlers(){
-    var selectors=[
-      '[data-nf-order-customer-id]',
-      '.nf-order-customer-item',
-      '.nf-mobile-customer-item'
-    ];
-
-    selectors.forEach(function(selector){
-      document.querySelectorAll(selector).forEach(function(el){
-        if(el.__nfTappedCustomerRoutingFixed)return;
-
-        var cid=el.getAttribute("data-nf-order-customer-id") ||
-                el.getAttribute("data-customer-id");
-        if(!cid)return;
-
-        el.__nfTappedCustomerRoutingFixed=true;
-        el.addEventListener("click",function(e){
-          e.preventDefault();
-          e.stopImmediatePropagation();
-          window.nfOpenTappedCustomerOrderDetails(cid);
-        },true);
-      });
-    });
   }
 
   /*
-   * Also provide a safe named handler for dynamically rendered customer
-   * list items. If the existing renderer uses inline onclick, this function
-   * is the intended destination.
+   * LEFT-EDGE SWIPE -> SIDEBAR -> CUSTOMER TAP
+   * On the Orders page, open that customer's existing order details.
+   * Do NOT call goToCustomer() and do NOT call New Order.
    */
-  window.openOrderCustomerFromSwipe=function(customerId){
-    return window.nfOpenTappedCustomerOrderDetails(customerId);
+  window.openSidebarCustomer=function(id){
+    var ordersContext=isOrdersContext();
+
+    try{
+      if(ordersContext){
+        openSelectedCustomerOrder(id);
+      }else if(typeof window.goToCustomer==="function"){
+        window.goToCustomer(id);
+      }
+    }finally{
+      var drawer=document.getElementById("sidebar");
+      if(drawer) drawer.classList.remove("open");
+      document.body.classList.remove("drawer-open");
+    }
   };
 
-  patchCustomerTapHandlers();
+  /*
+   * CUSTOMER SLIDE LIST -> CUSTOMER TAP
+   * Same rule: when opened from Orders, resolve the selected customer's
+   * existing order and open its details. Never open New Order.
+   */
+  window.openCustomerFromMyCustomersMenu=function(id){
+    var ordersContext=isOrdersContext();
 
-  var observer=new MutationObserver(function(){
-    patchCustomerTapHandlers();
-  });
-  observer.observe(document.body,{childList:true,subtree:true});
+    if(typeof window.closeMyCustomersSlideMenu==="function"){
+      window.closeMyCustomersSlideMenu();
+    }
+
+    if(ordersContext){
+      setTimeout(function(){
+        openSelectedCustomerOrder(id);
+      },80);
+    }else if(typeof window.goToCustomer==="function"){
+      setTimeout(function(){
+        window.goToCustomer(id);
+      },80);
+    }
+  };
+
 })();
 </script>
