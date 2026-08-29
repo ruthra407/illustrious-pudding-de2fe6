@@ -111,57 +111,78 @@ jobs:
           print("Required Android permissions are present.")
           PY
 
-      - name: Create stable signing keystore
+      - name: Restore stable signing keystore from GitHub Secret
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
         run: |
           set -e
+          test -n "$KEYSTORE_BASE64"
           mkdir -p android/app
+          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > android/app/newfashion-debug.keystore
+          test -s android/app/newfashion-debug.keystore
+          echo "Stable signing keystore restored from GitHub Secret."
 
-          if [ ! -f android/app/newfashion-debug.keystore ]; then
-            keytool -genkeypair \
-              -v \
-              -keystore android/app/newfashion-debug.keystore \
-              -storepass android \
-              -alias newfashion \
-              -keypass android \
-              -keyalg RSA \
-              -keysize 2048 \
-              -validity 10000 \
-              -dname "CN=New Fashion Tailoring, OU=App, O=New Fashion Tailoring, L=India, ST=Tamil Nadu, C=IN"
-          fi
-
-          echo "Stable signing keystore ready."
-
-      - name: Configure stable signing
+      - name: Configure stable signing and versionCode
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
+          set -e
+          test -n "$KEYSTORE_PASSWORD"
+          test -n "$KEY_ALIAS"
+          test -n "$KEY_PASSWORD"
+
           python3 - <<'PY'
           from pathlib import Path
+          import re
 
           gradle = Path("android/app/build.gradle")
           text = gradle.read_text()
 
-          signing_block = '''
+          signing_block = """
               signingConfigs {
                   stable {
                       storeFile file("newfashion-debug.keystore")
-                      storePassword "android"
-                      keyAlias "newfashion"
-                      keyPassword "android"
+                      storePassword System.getenv("KEYSTORE_PASSWORD")
+                      keyAlias System.getenv("KEY_ALIAS")
+                      keyPassword System.getenv("KEY_PASSWORD")
                   }
               }
-          '''
+          """
 
           if "signingConfigs {" not in text:
-              text = text.replace("    buildTypes {", signing_block + "\n    buildTypes {", 1)
+              text = text.replace(
+                  "    buildTypes {",
+                  signing_block + "\n    buildTypes {",
+                  1
+              )
 
-          text = text.replace(
-              "debug {",
-              '''debug {
-            signingConfig signingConfigs.stable''',
-              1
-          )
+          if "signingConfig signingConfigs.stable" not in text:
+              text = text.replace(
+                  "debug {",
+                  "debug {\n            signingConfig signingConfigs.stable",
+                  1
+              )
+
+          version_code = int("${{ github.run_number }}") + 1000
+
+          if re.search(r"versionCode\s+\d+", text):
+              text = re.sub(
+                  r"versionCode\s+\d+",
+                  f"versionCode {version_code}",
+                  text,
+                  count=1
+              )
+          else:
+              text = text.replace(
+                  "defaultConfig {",
+                  f"defaultConfig {{\n            versionCode {version_code}",
+                  1
+              )
 
           gradle.write_text(text)
-          print("Stable signing configuration applied.")
+          print(f"Stable signing configured. versionCode={version_code}")
           PY
 
       - name: Make Gradle Wrapper executable
