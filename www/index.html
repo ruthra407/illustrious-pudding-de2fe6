@@ -1967,6 +1967,9 @@ async function saveQuickOrder(id,customerId){
  customerId=customerId||id;
  const box=$("quick-order-"+id),editOrderId=box?.dataset.editOrderId||"";
  const existing=editOrderId?state.orders.find(x=>x.id===editOrderId):null;
+ const nfReturnCustomerId=String(customerId||existing?.customer_id||"");
+ const nfReturnView=(document.getElementById("view-customers")?.classList.contains("active"))?"customers":"orders";
+ const nfReturnScrollY=window.scrollY||window.pageYOffset||0;
  const garment=$("qo-garment-"+id)?.value||"Blouse",cloth=$("qo-cloth-"+id)?.value||null,delivery=$("qo-delivery-"+id)?.value||null,r=getQuickBlouseRates(id);
  const s={normal:Number($("qo-normal-"+id)?.value||0),lining:Number($("qo-lining-"+id)?.value||0),design:Number($("qo-design-"+id)?.value||0)};
  const handover=getQuickBlouseHandover(id);
@@ -2005,11 +2008,49 @@ async function saveQuickOrder(id,customerId){
    const customerUpdate=await supabaseClient.from("customers").update(customerNotePayload).eq("id",customerId);
    if(customerUpdate.error)throw customerUpdate.error;
    box.dataset.editOrderId="";
-   await loadAll(true);
    const title=box.querySelector(".nf-quick-edit-title"),save=box.querySelector(".nf-quick-save-btn");
    if(title)title.textContent="🧾 New Order";
    if(save)save.textContent="💾 Save Order";
-   toast(existing?"Order details updated.":"இந்த customer-க்கு New Order சேமிக்கப்பட்டது.");
+
+   if(existing){
+     const returnedOrderId=String(existing.id);
+     const returnedOrder={...existing,...payload};
+     const orderIndex=(state.orders||[]).findIndex(o=>String(o.id)===returnedOrderId);
+     if(orderIndex>=0)state.orders[orderIndex]=returnedOrder;
+     else state.orders=[returnedOrder,...(state.orders||[])];
+
+     const localCustomer=(state.customers||[]).find(c=>String(c.id)===nfReturnCustomerId);
+     if(localCustomer)localCustomer.notes=userNotes;
+
+     if(typeof closeOrdersQuickAdd==="function")closeOrdersQuickAdd(false);
+     const screenTitle=document.getElementById("ordersNewOrderScreenTitle");
+     if(screenTitle)screenTitle.textContent="🧾 New Order";
+
+     if(typeof goView==="function")goView("customers",true);
+     requestAnimationFrame(function(){
+       requestAnimationFrame(function(){
+         const card=document.getElementById("customer-card-"+nfReturnCustomerId);
+         if(card){
+           if(nfReturnView==="customers")window.scrollTo(0,nfReturnScrollY);
+           else card.scrollIntoView({behavior:"auto",block:"start"});
+         }
+       });
+     });
+
+     loadAll(true).then(function(){
+       requestAnimationFrame(function(){
+         const card=document.getElementById("customer-card-"+nfReturnCustomerId);
+         if(!card)return;
+         if(nfReturnView==="customers")window.scrollTo(0,nfReturnScrollY);
+         else card.scrollIntoView({behavior:"auto",block:"start"});
+       });
+     }).catch(function(err){console.error("Background data refresh after order update:",err);});
+
+     toast("Order details updated.");
+   }else{
+     toast("இந்த customer-க்கு New Order சேமிக்கப்பட்டது.");
+     loadAll(true).catch(function(err){console.error("Background data refresh after new order:",err);});
+   }
  }catch(err){toast("Order save failed: "+err.message,true)}
 }
 
@@ -2892,18 +2933,28 @@ if(type==="order"){
 const wasNewCustomer=type==="customer" && !id;
 const savedCustomerId=type==="customer" ? String(result.data?.id||"") : "";
 closeModal();
-await loadAll(true);
+
 if(wasNewCustomer && savedCustomerId){
+  /* SPEED FIX: do not wait for the full 6-table refresh before opening New Order.
+     Put the just-saved customer into the in-memory state first so the New Order
+     selector can open immediately. The normal full sync still runs in background. */
+  const savedCustomer=result.data;
+  if(savedCustomer){
+    const existingIndex=(state.customers||[]).findIndex(c=>String(c.id)===savedCustomerId);
+    if(existingIndex>=0) state.customers[existingIndex]=savedCustomer;
+    else state.customers=[savedCustomer,...(state.customers||[])];
+  }
   toast("Customer saved. New Order திறக்கப்படுகிறது…");
   if(typeof openOrdersNewOrderForCustomer==="function"){
-    setTimeout(()=>openOrdersNewOrderForCustomer(savedCustomerId),120);
+    openOrdersNewOrderForCustomer(savedCustomerId);
   }else{
-    goView("orders");
-    setTimeout(()=>{
-      if(typeof openOrdersNewOrderForCustomer==="function") openOrdersNewOrderForCustomer(savedCustomerId);
-    },250);
+    goView("orders",true);
+    if(typeof openOrdersNewOrderForCustomer==="function") openOrdersNewOrderForCustomer(savedCustomerId);
   }
+  /* Keep Data Sync exactly as before, but never block navigation. */
+  loadAll(true).catch(err=>console.error("Background data refresh after customer save:",err));
 }else{
+  await loadAll(true);
   toast(id?"Updated online":"Saved online");
 }
 }catch(err){$("formMsg").textContent="Save failed: "+err.message;$("formMsg").className="msg error"}
@@ -5633,6 +5684,8 @@ function nfFormatPaymentDate(v){return v?dateText(v):"—";}
     customerId=customerId||id;
     const box=document.getElementById("quick-order-"+id),editOrderId=String(box?.dataset.editOrderId||"").trim(),existing=editOrderId?(state.orders||[]).find(x=>String(x.id)===editOrderId):null;
     if(editOrderId&&!existing){toast("இந்த Order data கிடைக்கவில்லை. மீண்டும் Edit Order திறக்கவும்.",true);return;}
+    const nfReturnCustomerId=String(customerId||existing?.customer_id||"");
+    const nfReturnScrollY=window.scrollY||window.pageYOffset||0;
     const isOrdersEditor=String(id||"").indexOf("orders_")===0;
     const garment=document.getElementById("qo-garment-"+id)?.value||"Blouse",combined=isCombinedValue(garment),isBlouse=combined||garment==="Blouse",isChudi=combined||garment==="Chudi";
     const orderDate=document.getElementById("qo-order-date-"+id)?.value||existing?.order_date||localDate();
@@ -5705,15 +5758,49 @@ function nfFormatPaymentDate(v){return v?dateText(v):"—";}
         const cr=await supabaseClient.from("customers").update({notes:userNotes}).eq("id",syncCustomerId);
         if(cr.error)throw cr.error;
       }
-      box.dataset.editOrderId="";await loadAll(true);
+      box.dataset.editOrderId="";
       const title=box.querySelector(".nf-quick-edit-title"),save=box.querySelector(".nf-quick-save-btn");if(title)title.textContent="🧾 New Order";if(save)save.textContent="💾 Save Order";
-      toast(existing?"Order details updated.":"இந்த customer-க்கு New Order சேமிக்கப்பட்டது.");
-      if(isOrdersEditor){
-        setTimeout(function(){
-          if(typeof closeOrdersQuickAdd==="function")closeOrdersQuickAdd(false);
-          const screenTitle=document.getElementById("ordersNewOrderScreenTitle");if(screenTitle)screenTitle.textContent="🧾 New Order";
-          if(typeof goView==="function")goView("orders");
-        },60);
+
+      if(existing){
+        /* IMPORTANT: the database save above is already complete. Do not wait for
+           loadAll() here. Waiting for all six tables was the visible delay and its
+           render cycle was sending the user back to the first customer. */
+        const returnedOrder=result.data||{...existing,...payload};
+        const orderIndex=(state.orders||[]).findIndex(o=>String(o.id)===String(existing.id));
+        if(orderIndex>=0)state.orders[orderIndex]={...state.orders[orderIndex],...returnedOrder};
+        else state.orders=[returnedOrder,...(state.orders||[])];
+
+        const localCustomer=(state.customers||[]).find(c=>String(c.id)===nfReturnCustomerId);
+        if(localCustomer)localCustomer.notes=userNotes;
+
+        if(typeof closeOrdersQuickAdd==="function")closeOrdersQuickAdd(false);
+        const screenTitle=document.getElementById("ordersNewOrderScreenTitle");
+        if(screenTitle)screenTitle.textContent="🧾 New Order";
+
+        /* Go directly to the edited customer's card — no timeout and no smooth scroll. */
+        if(typeof goView==="function")goView("customers",true);
+        requestAnimationFrame(function(){
+          const card=document.getElementById("customer-card-"+nfReturnCustomerId);
+          if(card){
+            if(nfReturnScrollY>0)window.scrollTo(0,nfReturnScrollY);
+            else card.scrollIntoView({behavior:"auto",block:"start"});
+          }
+        });
+        toast("Order details updated.");
+
+        /* Full Data Sync remains unchanged, but runs after navigation so it cannot
+           block the user. Re-apply the exact customer position after its render. */
+        loadAll(true).then(function(){
+          requestAnimationFrame(function(){
+            const latest=document.getElementById("customer-card-"+nfReturnCustomerId);
+            if(!latest)return;
+            if(nfReturnScrollY>0)window.scrollTo(0,nfReturnScrollY);
+            else latest.scrollIntoView({behavior:"auto",block:"start"});
+          });
+        }).catch(function(err){console.error("Background data refresh after order update:",err);});
+      }else{
+        toast("இந்த customer-க்கு New Order சேமிக்கப்பட்டது.");
+        loadAll(true).catch(function(err){console.error("Background data refresh after new order:",err);});
       }
     }catch(err){toast("Order save failed: "+err.message,true)}
   };
