@@ -5397,13 +5397,28 @@ function nfFormatPaymentDate(v){return v?dateText(v):"—";}
   window.renderOrders.__nfFinalOrderSync=true;
 
   window.openOrdersNewOrderForCustomer=function(customerId){
+    var cid=String(customerId||"");
+    if(!cid)return;
+
+    /* SPEED + CORRECT CUSTOMER FIX:
+       openOrdersQuickAdd() creates the customer selector synchronously.
+       The actual element is ordersQuickCustomerStartInline (not
+       ordersQuickCustomerStart). Select the newly-created customer
+       immediately and mount the form without an unnecessary delay. */
     openOrdersQuickAdd();
-    setTimeout(function(){
-      var select=$("ordersQuickCustomerStart");
-      if(select){select.value=String(customerId);mountOrdersQuickForm(customerId);}
-      var title=$("ordersNewOrderScreenTitle");
-      if(title)title.textContent="🧾 New Order";
-    },0);
+
+    var select=$("ordersQuickCustomerStartInline") || $("ordersQuickCustomerStart");
+    if(select){
+      select.value=cid;
+      select.dispatchEvent(new Event("change",{bubbles:true}));
+    }
+
+    if(typeof mountOrdersQuickForm==="function"){
+      mountOrdersQuickForm(cid);
+    }
+
+    var title=$("ordersNewOrderScreenTitle");
+    if(title)title.textContent="🧾 New Order";
   };
 
   window.openOrdersEditOrder=function(orderId){
