@@ -742,6 +742,13 @@ body.nf-photo-preview-scroll-locked{
 const SUPABASE_URL="https://pdlsicwzfmartkwcwozx.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY="sb_publishable_eCKne6Tzs6-QYSXpJb-aSQ_6AHe8n9O";
 const supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+
+/* Customer cloth photo cloud-storage diagnostic.
+   This never blocks app startup; it only records the real Storage error. */
+window.nfRunCustomerClothPhotoStorageCheck=async function(){
+  if(typeof nfCheckCustomerClothPhotoStorage!=="function") return {ok:false,error:"Storage checker unavailable"};
+  return await nfCheckCustomerClothPhotoStorage();
+};
 const state={user:null,customers:[],orders:[],measurements:[],alterations:[],payments:[],designs:[],editing:null};
 const $=id=>document.getElementById(id);
 const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
@@ -1394,6 +1401,7 @@ const NF_CLOTH_PHOTO_BUCKET="customer-cloth-photos";
 const nfClothPhotoCache=Object.create(null);
 const nfClothPhotoCloudPathCache=Object.create(null);
 let nfCloudPhotoHydrationPromise=null;
+let nfCloudPhotoLastError="";
 
 function nfCloudPhotoPath(id,slot){
   return String(id)+"/photo-"+(Number(slot)+1);
@@ -1409,17 +1417,44 @@ function nfDataUrlToBlob(dataUrl){
   }catch(_){return null}
 }
 async function nfUploadCustomerClothPhoto(id,slot,fileOrBlob,contentType){
+  nfCloudPhotoLastError="";
   try{
-    if(!supabaseClient?.storage)return null;
+    if(!supabaseClient?.storage){
+      nfCloudPhotoLastError="Supabase Storage client இல்லை.";
+      return null;
+    }
     const path=nfCloudPhotoPath(id,slot);
     const {error}=await supabaseClient.storage.from(NF_CLOTH_PHOTO_BUCKET)
-      .upload(path,fileOrBlob,{upsert:true,contentType:contentType||fileOrBlob?.type||"application/octet-stream",cacheControl:"3600"});
+      .upload(path,fileOrBlob,{
+        upsert:true,
+        contentType:contentType||fileOrBlob?.type||"application/octet-stream",
+        cacheControl:"3600"
+      });
     if(error)throw error;
     nfClothPhotoCloudPathCache[String(id)+":"+slot]=path;
     return path;
   }catch(err){
-    console.warn("Cloud customer photo upload failed:",err?.message||err);
+    nfCloudPhotoLastError=String(err?.message||err||"Unknown Storage error");
+    console.warn("Cloud customer photo upload failed:",nfCloudPhotoLastError);
     return null;
+  }
+}
+
+async function nfCheckCustomerClothPhotoStorage(){
+  nfCloudPhotoLastError="";
+  try{
+    if(!supabaseClient?.storage){
+      return {ok:false,error:"Supabase Storage client இல்லை."};
+    }
+    const {data,error}=await supabaseClient.storage
+      .from(NF_CLOTH_PHOTO_BUCKET)
+      .list("",{limit:1});
+    if(error)throw error;
+    return {ok:true,data};
+  }catch(err){
+    nfCloudPhotoLastError=String(err?.message||err||"Unknown Storage error");
+    console.warn("Customer cloth photo storage check failed:",nfCloudPhotoLastError);
+    return {ok:false,error:nfCloudPhotoLastError};
   }
 }
 async function nfGetCustomerClothPhotoUrl(path){
@@ -1630,7 +1665,8 @@ async function saveCustomerClothPhoto(id,slot,file){
       await setCustomerClothPhotos(id,arr);
       toast(`Customer துணி photo ${slot+1} cloud-லும் சேமிக்கப்பட்டது.`);
     }else{
-      toast(`Customer துணி photo ${slot+1} device-ல் சேமிக்கப்பட்டது. Cloud storage கிடைக்கவில்லை.`,true);
+      const reason=nfCloudPhotoLastError ? ` (${nfCloudPhotoLastError})` : "";
+      toast(`Customer துணி photo ${slot+1} device-ல் சேமிக்கப்பட்டது. Cloud storage கிடைக்கவில்லை.${reason}`,true);
     }
     renderCustomers();
   }catch(err){
