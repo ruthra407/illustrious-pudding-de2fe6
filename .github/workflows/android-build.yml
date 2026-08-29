@@ -133,28 +133,24 @@ jobs:
           print("Required Android permissions are present.")
           PY
 
-      - name: Create stable signing keystore
+      - name: Restore permanent signing key
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
         run: |
           set -e
 
-          mkdir -p android/app
-
-          if [ ! -f android/app/newfashion-debug.keystore ]; then
-            keytool -genkeypair \
-              -v \
-              -keystore android/app/newfashion-debug.keystore \
-              -storepass android \
-              -alias newfashion \
-              -keypass android \
-              -keyalg RSA \
-              -keysize 2048 \
-              -validity 10000 \
-              -dname "CN=New Fashion Tailoring, OU=App, O=New Fashion Tailoring, L=India, ST=Tamil Nadu, C=IN"
+          if [ -z "$ANDROID_KEYSTORE_BASE64" ]; then
+            echo "ERROR: ANDROID_KEYSTORE_BASE64 secret is missing."
+            exit 1
           fi
 
-          echo "Stable signing keystore ready."
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/newfashion-release.jks
 
-      - name: Configure stable signing
+          test -s android/app/newfashion-release.jks
+
+          echo "Permanent signing keystore restored."
+
+      - name: Configure permanent signing
         run: |
           python3 - <<'PY'
           from pathlib import Path
@@ -165,10 +161,10 @@ jobs:
           signing_block = '''
               signingConfigs {
                   stable {
-                      storeFile file("newfashion-debug.keystore")
-                      storePassword "android"
+                      storeFile file("newfashion-release.jks")
+                      storePassword "newfashion123"
                       keyAlias "newfashion"
-                      keyPassword "android"
+                      keyPassword "newfashion123"
                   }
               }
           '''
@@ -189,7 +185,30 @@ jobs:
 
           gradle.write_text(text)
 
-          print("Stable signing configuration applied.")
+          print("Permanent signing configuration applied.")
+          PY
+
+      - name: Set APK version
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          gradle = Path("android/app/build.gradle")
+          text = gradle.read_text()
+
+          version_code = int("${{ github.run_number }}") + 1
+
+          text = re.sub(
+              r"versionCode\s+\d+",
+              f"versionCode {version_code}",
+              text,
+              count=1
+          )
+
+          gradle.write_text(text)
+
+          print(f"APK versionCode set to {version_code}.")
           PY
 
       - name: Make Gradle Wrapper executable
