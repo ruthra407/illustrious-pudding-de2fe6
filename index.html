@@ -6187,10 +6187,30 @@ function nfFormatPaymentDate(v){return v?dateText(v):"—";}
   window.openLatestCustomerOrderEdit=function(customerId){
     var order=latestForCustomer(customerId);
     if(!order){
-      toast("இந்த customer-க்கு Edit செய்ய Order இல்லை.",true);
-      return;
+      /* Customer Card → Edit Order must also be the New Order entry point
+         when this customer has no saved order yet.  Do not block the user
+         with an "no order" error; leave all customer/data/calculation logic
+         unchanged. */
+      if(typeof window.openOrdersNewOrderForCustomer === "function"){
+        window.openOrdersNewOrderForCustomer(String(customerId));
+        return true;
+      }
+      if(typeof window.openOrdersQuickAdd === "function"){
+        window.openOrdersQuickAdd();
+        setTimeout(function(){
+          var select=document.getElementById("ordersQuickCustomerStart");
+          if(select){
+            select.value=String(customerId);
+            if(typeof window.mountOrdersQuickForm === "function") window.mountOrdersQuickForm(String(customerId));
+          }
+        },0);
+        return true;
+      }
+      toast("New Order screen கிடைக்கவில்லை.",true);
+      return false;
     }
     dedicatedEdit(order.id);
+    return true;
   };
 
   window.__v2035DedicatedCustomerEdit=true;
