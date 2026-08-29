@@ -8940,3 +8940,153 @@ window.addEventListener("keydown",function(e){if(e.key==="Escape")window.closeCu
 
 })();
 </script>
+
+<script id="nf-definitive-order-card-swipe-customer-route">
+(function(){
+  "use strict";
+
+  function sid(v){ return String(v==null?"":v).trim(); }
+
+  function findOrderById(id){
+    var orders=(window.state&&Array.isArray(state.orders))?state.orders:[];
+    return orders.find(function(o){return sid(o&&o.id)===sid(id);})||null;
+  }
+
+  function latestOrderForCustomer(customerId){
+    var orders=(window.state&&Array.isArray(state.orders))?state.orders:[];
+    var matches=orders.filter(function(o){
+      return sid(o&&o.customer_id)===sid(customerId);
+    }).slice();
+
+    matches.sort(function(a,b){
+      var ad=String(a&&(a.created_at||a.order_date||a.cloth_received_date)||"");
+      var bd=String(b&&(b.created_at||b.order_date||b.cloth_received_date)||"");
+      return bd.localeCompare(ad);
+    });
+    return matches[0]||null;
+  }
+
+  function openExactOrder(order){
+    if(!order)return false;
+    if(typeof window.openOrderFullDetails==="function"){
+      window.openOrderFullDetails(String(order.id));
+      return true;
+    }
+    return false;
+  }
+
+  function isOrdersPage(){
+    var v=(window.history&&history.state&&history.state.view)||"";
+    var el=document.getElementById("view-orders");
+    return v==="orders" || !!(el&&el.classList.contains("active"));
+  }
+
+  /*
+   * Capture the actual order card under the finger when the left-edge swipe
+   * starts. This lets the customer tap resolve to THAT order, not merely a
+   * customer card or an unrelated/latest order.
+   */
+  document.addEventListener("touchstart",function(e){
+    if(window.innerWidth>900 || !e.touches || e.touches.length!==1)return;
+
+    var t=e.touches[0];
+    if(t.clientX>24)return;
+
+    var target=e.target;
+    var card=target&&target.closest?target.closest(
+      ".nf-mobile-order-card,.nf-order-row,[data-order-id]"
+    ):null;
+
+    var orderId="";
+    if(card){
+      orderId=card.getAttribute("data-order-id")||"";
+      if(!orderId){
+        var oc=(card.getAttribute("onclick")||"").match(
+          /openOrderFullDetails\(['"]([^'"]+)['"]\)/
+        );
+        if(oc)orderId=oc[1];
+      }
+    }
+
+    window.__nfOrderSwipeOrigin={
+      orderId:sid(orderId),
+      customerId:"",
+      active:isOrdersPage()
+    };
+
+    if(orderId){
+      var order=findOrderById(orderId);
+      if(order)window.__nfOrderSwipeOrigin.customerId=sid(order.customer_id);
+    }
+  },true);
+
+  function resolveTappedCustomer(customerId){
+    var id=sid(customerId);
+    var origin=window.__nfOrderSwipeOrigin;
+
+    /* Exact originating order wins when the tapped customer is the same
+       customer shown on that order card. */
+    if(origin && origin.active && origin.orderId){
+      var originOrder=findOrderById(origin.orderId);
+      if(originOrder && sid(originOrder.customer_id)===id){
+        return originOrder;
+      }
+    }
+
+    /* If the list was opened from Orders but the originating card could not
+       be detected, use that customer's latest existing order. */
+    if(isOrdersPage()){
+      return latestOrderForCustomer(id);
+    }
+
+    return null;
+  }
+
+  function routeCustomerTap(id){
+    var order=resolveTappedCustomer(id);
+
+    /* Critical: NEVER go to Customer Card and NEVER open New Order here. */
+    if(order){
+      openExactOrder(order);
+      return true;
+    }
+
+    /* No order exists for the tapped customer. Stay out of both Customer Card
+       and New Order flows; just close the drawer. */
+    return false;
+  }
+
+  window.openSidebarCustomer=function(id){
+    try{
+      routeCustomerTap(id);
+    }finally{
+      var drawer=document.getElementById("sidebar");
+      if(drawer)drawer.classList.remove("open");
+      document.body.classList.remove("drawer-open");
+      window.__nfOrderSwipeOrigin=null;
+    }
+  };
+
+  window.openCustomerFromMyCustomersMenu=function(id){
+    var ordersContext=isOrdersPage();
+    if(typeof window.closeMyCustomersSlideMenu==="function"){
+      window.closeMyCustomersSlideMenu();
+    }
+
+    if(ordersContext){
+      setTimeout(function(){
+        routeCustomerTap(id);
+        window.__nfOrderSwipeOrigin=null;
+      },80);
+    }else if(typeof window.goToCustomer==="function"){
+      setTimeout(function(){window.goToCustomer(id)},80);
+    }
+  };
+
+  /* Do not allow older patches to reintroduce Customer Card routing while
+     the Orders page is active. */
+  var originalGoToCustomer=window.goToCustomer;
+  window.__nfOriginalGoToCustomer=originalGoToCustomer;
+
+})();
+</script>
