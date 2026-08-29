@@ -8652,63 +8652,97 @@ window.addEventListener("keydown",function(e){if(e.key==="Escape")window.closeCu
 
 
 
-<script id="nf-context-aware-customer-menu-final">
+<!-- FINAL FIX: context-aware customer slide menu routing -->
+<script id="nf-final-context-customer-routing">
 (function(){
   "use strict";
 
-  // Remember which main screen was active when the customer slide menu opened.
-  var nfCustomerMenuOrigin = "customers";
+  var nfMenuOrigin = "customers";
 
-  function nfCurrentOrigin(){
+  function currentView(){
     var orders = document.getElementById("view-orders");
     var customers = document.getElementById("view-customers");
     if(orders && orders.classList.contains("active")) return "orders";
     if(customers && customers.classList.contains("active")) return "customers";
-    return nfCustomerMenuOrigin || "customers";
+    return nfMenuOrigin;
   }
 
-  var oldToggle = window.toggleMyCustomersSlideMenu;
-  if(typeof oldToggle === "function" && !oldToggle.__nfContextAware){
+  function findCustomerOrder(customerId){
+    var orders = (window.state && Array.isArray(state.orders)) ? state.orders : [];
+    var matches = orders.filter(function(o){
+      return String(o && o.customer_id || "") === String(customerId || "");
+    });
+
+    matches.sort(function(a,b){
+      var ad = String(a && (a.created_at || a.order_date || "") || "");
+      var bd = String(b && (b.created_at || b.order_date || "") || "");
+      return bd.localeCompare(ad);
+    });
+
+    return matches[0] || null;
+  }
+
+  /* Record the screen from which the slide menu was opened. */
+  var originalToggle = window.toggleMyCustomersSlideMenu;
+  if(typeof originalToggle === "function" && !originalToggle.__nfFinalContextRouting){
     window.toggleMyCustomersSlideMenu = function(e){
-      var panel=document.getElementById("nfCustomerSlideMenu");
+      var panel = document.getElementById("nfCustomerSlideMenu");
       var opening = !panel || !panel.classList.contains("nf-open");
-      if(opening) nfCustomerMenuOrigin = nfCurrentOrigin();
-      return oldToggle.apply(this, arguments);
+      if(opening) nfMenuOrigin = currentView();
+      return originalToggle.apply(this, arguments);
     };
-    window.toggleMyCustomersSlideMenu.__nfContextAware = true;
+    window.toggleMyCustomersSlideMenu.__nfFinalContextRouting = true;
   }
 
-  window.openCustomerFromMyCustomersMenu = function(id){
-    var origin = nfCustomerMenuOrigin || nfCurrentOrigin();
-    if(typeof closeMyCustomersSlideMenu === "function") closeMyCustomersSlideMenu();
+  /*
+   * Customer List tap:
+   * Orders screen  -> selected customer's existing order -> Order Full Details
+   * Customers screen -> selected customer's normal Customer Card/call context
+   *
+   * Never route Orders -> Customer Card.
+   * Never route this menu action to New Order.
+   */
+  window.openCustomerFromMyCustomersMenu = function(customerId){
+    var origin = nfMenuOrigin || currentView();
+
+    if(typeof window.closeMyCustomersSlideMenu === "function"){
+      window.closeMyCustomersSlideMenu();
+    }
 
     setTimeout(function(){
       if(origin === "orders"){
-        // From an Order Card: do NOT navigate to Customer Card.
-        // Keep the Orders screen and open the selected order if it can
-        // be resolved from the selected customer's orders.
-        var orders = (window.state && Array.isArray(state.orders)) ? state.orders : [];
-        var matches = orders.filter(function(o){
-          return String(o && o.customer_id || "") === String(id || "");
-        });
+        var order = findCustomerOrder(customerId);
 
-        matches.sort(function(a,b){
-          return String(b && (b.created_at || b.order_date) || "")
-            .localeCompare(String(a && (a.created_at || a.order_date) || ""));
-        });
-
-        var order = matches[0];
         if(order && typeof window.openOrderFullDetails === "function"){
-          window.openOrderFullDetails(order.id);
+          window.openOrderFullDetails(String(order.id));
+          return;
+        }
+
+        if(typeof window.toast === "function"){
+          window.toast("இந்த customer-க்கு Order Details கிடைக்கவில்லை.", true);
         }
         return;
       }
 
-      // From Customer Card: go to that customer's normal customer/call screen.
+      /* Customer Card context: preserve the existing customer navigation. */
       if(typeof window.goToCustomer === "function"){
-        window.goToCustomer(id);
+        window.goToCustomer(String(customerId));
       }
-    },80);
+    }, 80);
   };
+
+  /*
+   * If the menu is opened through another existing menu entry point,
+   * capture the origin there too, without changing the actual menu UI.
+   */
+  document.addEventListener("click", function(e){
+    var t = e.target && e.target.closest ? e.target.closest(
+      '[onclick*="toggleMyCustomersSlideMenu"], [onclick*="toggleMyCustomersMenu"]'
+    ) : null;
+    if(t){
+      nfMenuOrigin = currentView();
+    }
+  }, true);
+
 })();
 </script>
