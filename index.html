@@ -8696,21 +8696,15 @@ window.addEventListener("keydown",function(e){if(e.key==="Escape")window.closeCu
   }
 
   /* Only this shared customer-list routing is context-aware.
-     Orders context: existing order -> that order's details; no order -> New Order.
+     Orders context: customer tap -> that customer's existing order details only.
      Customers context: -> customer details. No data/calculation logic is changed. */
   window.openSidebarCustomer=function(id){
     var view=currentView();
     try{
       if(view==="orders"){
         var order=latestOrderForCustomer(id);
-        if(order){
-          if(typeof window.openOrderFullDetails==="function") window.openOrderFullDetails(order.id);
-          else if(typeof window.goView==="function") window.goView("orders");
-        }else if(typeof window.openOrdersNewOrderForCustomer==="function"){
-          window.openOrdersNewOrderForCustomer(id);
-        }else if(typeof window.goView==="function"){
-          window.goView("orders");
-        }
+        if(order && typeof window.openOrderFullDetails==="function") window.openOrderFullDetails(order.id);
+        else if(!order && typeof window.toast==="function") window.toast("இந்த customer-க்கு Order இல்லை.",true);
       }else if(typeof window.goToCustomer==="function"){
         window.goToCustomer(id);
       }
