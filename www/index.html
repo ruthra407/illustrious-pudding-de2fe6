@@ -5397,28 +5397,13 @@ function nfFormatPaymentDate(v){return v?dateText(v):"—";}
   window.renderOrders.__nfFinalOrderSync=true;
 
   window.openOrdersNewOrderForCustomer=function(customerId){
-    var cid=String(customerId||"");
-    if(!cid)return;
-
-    /* SPEED + CORRECT CUSTOMER FIX:
-       openOrdersQuickAdd() creates the customer selector synchronously.
-       The actual element is ordersQuickCustomerStartInline (not
-       ordersQuickCustomerStart). Select the newly-created customer
-       immediately and mount the form without an unnecessary delay. */
     openOrdersQuickAdd();
-
-    var select=$("ordersQuickCustomerStartInline") || $("ordersQuickCustomerStart");
-    if(select){
-      select.value=cid;
-      select.dispatchEvent(new Event("change",{bubbles:true}));
-    }
-
-    if(typeof mountOrdersQuickForm==="function"){
-      mountOrdersQuickForm(cid);
-    }
-
-    var title=$("ordersNewOrderScreenTitle");
-    if(title)title.textContent="🧾 New Order";
+    setTimeout(function(){
+      var select=$("ordersQuickCustomerStart");
+      if(select){select.value=String(customerId);mountOrdersQuickForm(customerId);}
+      var title=$("ordersNewOrderScreenTitle");
+      if(title)title.textContent="🧾 New Order";
+    },0);
   };
 
   window.openOrdersEditOrder=function(orderId){
@@ -8759,5 +8744,75 @@ window.addEventListener("keydown",function(e){if(e.key==="Escape")window.closeCu
     }
   }, true);
 
+})();
+</script>
+
+
+<!-- FINAL CUSTOMER SAVE -> NEW ORDER FIX v2
+     Source: index-12-corrected.html
+     The existing hand-off called openOrdersNewOrderForCustomer(), but that
+     function targeted the old #ordersQuickCustomerStart selector. The actual
+     New Order entry screen creates #ordersQuickCustomerStartInline.
+     This final definition is intentionally synchronous so the modal opens
+     immediately and the newly saved customer is selected immediately. -->
+<script id="nf-final-customer-save-new-order-v3">
+(function(){
+  "use strict";
+
+  /*
+   * IMPORTANT:
+   * `state` is declared with `const` in this file, so it is NOT available
+   * as window.state. The previous fix incorrectly used window.state and
+   * therefore stopped before opening New Order.
+   */
+  window.openOrdersNewOrderForCustomer = function(customerId){
+    var cid = String(customerId || "");
+    if(!cid) return false;
+
+    var customers = Array.isArray(state.customers) ? state.customers : [];
+    var customer = customers.find(function(c){
+      return String(c && c.id || "") === cid;
+    });
+
+    if(!customer){
+      if(typeof toast === "function"){
+        toast("Customer கிடைக்கவில்லை.", true);
+      }
+      return false;
+    }
+
+    // Open the Orders view only if it is not already the active view.
+    // Do not let navigation history close the New Order modal.
+    var ordersView = document.getElementById("view-orders");
+    if(!ordersView || !ordersView.classList.contains("active")){
+      if(typeof goView === "function") goView("orders", true);
+    }
+
+    if(typeof openOrdersQuickAdd !== "function"){
+      if(typeof toast === "function") toast("New Order screen கிடைக்கவில்லை.", true);
+      return false;
+    }
+
+    // This creates #ordersQuickCustomerStartInline synchronously.
+    openOrdersQuickAdd();
+
+    // Immediately mount the full form for the customer that was just saved.
+    // mountOrdersQuickForm itself creates the selected customer option and
+    // the complete New Order form, so no manual "Select customer" step remains.
+    if(typeof mountOrdersQuickForm === "function"){
+      mountOrdersQuickForm(cid);
+      return true;
+    }
+
+    // Defensive fallback: at least select the inline customer selector.
+    var select = document.getElementById("ordersQuickCustomerStartInline");
+    if(select){
+      select.value = cid;
+      select.dispatchEvent(new Event("change", {bubbles:true}));
+      return true;
+    }
+
+    return false;
+  };
 })();
 </script>
