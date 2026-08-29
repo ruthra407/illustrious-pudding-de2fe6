@@ -8626,3 +8626,96 @@ window.addEventListener("keydown",function(e){if(e.key==="Escape")window.closeCu
 
 
 
+
+<script id="nf-v205-order-sidebar-customer-target-fix">
+(function(){
+  "use strict";
+  if(window.__nfV205OrderSidebarCustomerTargetFix) return;
+  window.__nfV205OrderSidebarCustomerTargetFix=true;
+
+  function currentView(){
+    return (history.state && history.state.view) || "dashboard";
+  }
+
+  function closeSidebar(){
+    var drawer=document.getElementById("sidebar");
+    if(drawer) drawer.classList.remove("open");
+    document.body.classList.remove("drawer-open");
+  }
+
+  function latestOrderForCustomer(customerId){
+    var list=(state.orders||[]).filter(function(o){
+      return String(o.customer_id)===String(customerId);
+    });
+    list.sort(function(a,b){
+      return String(b.created_at||b.order_date||b.cloth_received_date||b.id||"")
+        .localeCompare(String(a.created_at||a.order_date||a.cloth_received_date||a.id||""));
+    });
+    return list[0]||null;
+  }
+
+  function findOrderCard(order){
+    if(!order) return null;
+    var orderNo=String(order.order_no||"").trim();
+    if(!orderNo) return null;
+
+    var mobile=null;
+    document.querySelectorAll("#ordersTable .nf-mobile-order-card").forEach(function(card){
+      if(mobile) return;
+      var label=String(card.getAttribute("aria-label")||"");
+      if(label.toLowerCase()===("order "+orderNo).toLowerCase()) mobile=card;
+    });
+    if(mobile) return mobile;
+
+    var desktop=null;
+    document.querySelectorAll("#ordersTable table tbody tr").forEach(function(tr){
+      if(desktop) return;
+      var first=tr.querySelector("td");
+      if(first && String(first.textContent||"").trim()===orderNo) desktop=tr;
+    });
+    return desktop;
+  }
+
+  function focusOrderCard(card){
+    if(!card) return false;
+    document.querySelectorAll("#ordersTable .nf-v205-order-target").forEach(function(x){
+      x.classList.remove("nf-v205-order-target");
+    });
+    card.classList.add("nf-v205-order-target");
+    card.scrollIntoView({behavior:"auto",block:"center"});
+    setTimeout(function(){card.classList.remove("nf-v205-order-target");},1400);
+    return true;
+  }
+
+  window.openSidebarCustomer=function(id){
+    var targetId=String(id||"");
+    if(!targetId) return;
+
+    closeSidebar();
+
+    /* Orders page: stay in Orders and jump directly to this customer's
+       existing order card. No data reload, sync, calculation or view reset. */
+    if(currentView()==="orders"){
+      var order=latestOrderForCustomer(targetId);
+      if(!order){
+        if(typeof toast==="function") toast("இந்த customer-க்கு Order இல்லை.",true);
+        return;
+      }
+
+      if(focusOrderCard(findOrderCard(order))) return;
+
+      /* If a filter currently hides the card, open its existing full-details
+         view rather than changing filters or reloading any data. */
+      if(typeof openOrderFullDetails==="function") openOrderFullDetails(order.id);
+      return;
+    }
+
+    /* All other pages keep the existing Customer navigation unchanged. */
+    if(typeof goToCustomer==="function") goToCustomer(targetId);
+  };
+
+  var style=document.createElement("style");
+  style.textContent=".nf-v205-order-target{outline:3px solid #6c4df6!important;outline-offset:3px;box-shadow:0 0 0 6px rgba(108,77,246,.14),0 16px 36px rgba(108,77,246,.22)!important;transition:outline .12s ease,box-shadow .12s ease!important;}";
+  document.head.appendChild(style);
+})();
+</script>
