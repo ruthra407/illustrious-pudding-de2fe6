@@ -5397,30 +5397,10 @@ function nfFormatPaymentDate(v){return v?dateText(v):"—";}
   window.renderOrders.__nfFinalOrderSync=true;
 
   window.openOrdersNewOrderForCustomer=function(customerId){
-    /* Direct hand-off: the customer is known already, so never show an
-       unselected customer picker first.  Keep the existing New Order form
-       and data/calculation logic unchanged; only select the known customer
-       before mounting it. */
-    var modal=$("ordersNewOrderScreen"),panel=$("ordersNewOrderContent");
-    if(!modal||!panel)return;
-
-    var cid=String(customerId||"");
-    if(!cid){ openOrdersQuickAdd(); return; }
-
-    var exists=(state.customers||[]).some(function(c){return String(c.id)===cid;});
-    if(!exists){
-      toast("Customer கிடைக்கவில்லை.",true);
-      return;
-    }
-
     openOrdersQuickAdd();
     setTimeout(function(){
-      var select=$("ordersQuickCustomerStartInline") || $("ordersQuickCustomerStart");
-      if(select){
-        select.value=cid;
-        /* Mount only after the correct customer has been selected. */
-        if(typeof mountOrdersQuickForm==="function") mountOrdersQuickForm(cid);
-      }
+      var select=$("ordersQuickCustomerStart");
+      if(select){select.value=String(customerId);mountOrdersQuickForm(customerId);}
       var title=$("ordersNewOrderScreenTitle");
       if(title)title.textContent="🧾 New Order";
     },0);
@@ -7451,7 +7431,6 @@ window.addEventListener("keydown",function(e){if(e.key==="Escape")window.closeCu
 .nf-handover-date-display{display:block;margin-left:8px;margin-top:2px;padding:2px 7px;border-radius:7px;background:#f7f2ff;color:#5a4380;font-size:10px;font-weight:900;white-space:nowrap}
 .nf-design-slot-card .nf-di-handover-date{margin-bottom:2px}
 </style>
-
 </body></html><script id="nf-v52-dashboard-scroll-fix-js">
 (function(){
   "use strict";
@@ -8672,421 +8651,64 @@ window.addEventListener("keydown",function(e){if(e.key==="Escape")window.closeCu
 
 
 
-<script id="nf-final-context-aware-sidebar-customer-routing">
+
+<script id="nf-context-aware-customer-menu-final">
 (function(){
   "use strict";
 
-  function latestOrderForCustomer(customerId){
-    var list=(window.state&&Array.isArray(state.orders)?state.orders:[]).filter(function(o){
-      return String(o&&o.customer_id||"")===String(customerId||"");
-    });
-    list.sort(function(a,b){
-      return String(b&&b.created_at||b&&b.order_date||"").localeCompare(
-        String(a&&a.created_at||a&&a.order_date||"")
-      );
-    });
-    return list[0]||null;
+  // Remember which main screen was active when the customer slide menu opened.
+  var nfCustomerMenuOrigin = "customers";
+
+  function nfCurrentOrigin(){
+    var orders = document.getElementById("view-orders");
+    var customers = document.getElementById("view-customers");
+    if(orders && orders.classList.contains("active")) return "orders";
+    if(customers && customers.classList.contains("active")) return "customers";
+    return nfCustomerMenuOrigin || "customers";
   }
 
-  /* The sidebar customer list is shared by views.  Preserve the current
-     context: Customers -> customer details; Orders -> that customer's
-     latest order details.  No records or calculations are changed. */
-  window.openSidebarCustomer=function(id){
-    var current=(window.history&&history.state&&history.state.view)||"dashboard";
-    try{
-      if(current==="orders"){
-        var order=latestOrderForCustomer(id);
-        if(order && typeof window.openOrderFullDetails==="function"){
-          window.openOrderFullDetails(order.id);
-        }else if(typeof window.openOrdersNewOrderForCustomer==="function"){
-          window.openOrdersNewOrderForCustomer(id);
-        }else{
-          window.goView("orders");
-        }
-      }else{
-        if(typeof window.goToCustomer==="function") window.goToCustomer(id);
-      }
-    }finally{
-      var drawer=document.getElementById("sidebar");
-      if(drawer)drawer.classList.remove("open");
-    }
-  };
+  var oldToggle = window.toggleMyCustomersSlideMenu;
+  if(typeof oldToggle === "function" && !oldToggle.__nfContextAware){
+    window.toggleMyCustomersSlideMenu = function(e){
+      var panel=document.getElementById("nfCustomerSlideMenu");
+      var opening = !panel || !panel.classList.contains("nf-open");
+      if(opening) nfCustomerMenuOrigin = nfCurrentOrigin();
+      return oldToggle.apply(this, arguments);
+    };
+    window.toggleMyCustomersSlideMenu.__nfContextAware = true;
+  }
 
-  /* The dashboard's separate customer slide menu follows the same rule when
-     it is opened while the Orders view is active. */
-  window.openCustomerFromMyCustomersMenu=function(id){
-    if(typeof window.closeMyCustomersSlideMenu==="function") window.closeMyCustomersSlideMenu();
+  window.openCustomerFromMyCustomersMenu = function(id){
+    var origin = nfCustomerMenuOrigin || nfCurrentOrigin();
+    if(typeof closeMyCustomersSlideMenu === "function") closeMyCustomersSlideMenu();
+
     setTimeout(function(){
-      var current=(window.history&&history.state&&history.state.view)||"dashboard";
-      if(current==="orders"){
-        var order=latestOrderForCustomer(id);
-        if(order && typeof window.openOrderFullDetails==="function") window.openOrderFullDetails(order.id);
-        else if(typeof window.openOrdersNewOrderForCustomer==="function") window.openOrdersNewOrderForCustomer(id);
-      }else if(typeof window.goToCustomer==="function"){
+      if(origin === "orders"){
+        // From an Order Card: do NOT navigate to Customer Card.
+        // Keep the Orders screen and open the selected order if it can
+        // be resolved from the selected customer's orders.
+        var orders = (window.state && Array.isArray(state.orders)) ? state.orders : [];
+        var matches = orders.filter(function(o){
+          return String(o && o.customer_id || "") === String(id || "");
+        });
+
+        matches.sort(function(a,b){
+          return String(b && (b.created_at || b.order_date) || "")
+            .localeCompare(String(a && (a.created_at || a.order_date) || ""));
+        });
+
+        var order = matches[0];
+        if(order && typeof window.openOrderFullDetails === "function"){
+          window.openOrderFullDetails(order.id);
+        }
+        return;
+      }
+
+      // From Customer Card: go to that customer's normal customer/call screen.
+      if(typeof window.goToCustomer === "function"){
         window.goToCustomer(id);
       }
     },80);
   };
-})();
-</script>
-
-
-<script id="nf-final-orders-swipe-customer-routing-v2">
-(function(){
-  "use strict";
-
-  function isOrdersContext(){
-    var activeOrders=document.getElementById("view-orders");
-    if(activeOrders && activeOrders.classList.contains("active")) return true;
-
-    var current=(window.history && history.state && history.state.view) || "";
-    return current==="orders";
-  }
-
-  function latestOrderForCustomer(id){
-    var orders=(window.state && Array.isArray(state.orders)) ? state.orders : [];
-    var list=orders.filter(function(o){
-      return String(o && o.customer_id || "")===String(id || "");
-    }).slice();
-
-    list.sort(function(a,b){
-      var ad=String(a && (a.created_at || a.order_date) || "");
-      var bd=String(b && (b.created_at || b.order_date) || "");
-      return bd.localeCompare(ad);
-    });
-
-    return list[0] || null;
-  }
-
-  function openSelectedCustomerOrder(id){
-    var order=latestOrderForCustomer(id);
-
-    /*
-     * IMPORTANT:
-     * This route is used ONLY when the user is on the Orders page.
-     * Never fall back to New Order. A missing order must remain a
-     * missing-order state rather than creating a new-order flow.
-     */
-    if(!order){
-      if(typeof toast==="function"){
-        toast("இந்த customer-க்கு ஏற்கனவே Order இல்லை.",true);
-      }
-      return false;
-    }
-
-    if(typeof window.openOrderFullDetails==="function"){
-      window.openOrderFullDetails(String(order.id));
-      return true;
-    }
-
-    if(typeof window.openCustomerOrderFullDetails==="function"){
-      window.openCustomerOrderFullDetails(String(order.id));
-      return true;
-    }
-
-    if(typeof toast==="function"){
-      toast("Order Details screen கிடைக்கவில்லை.",true);
-    }
-    return false;
-  }
-
-  /*
-   * LEFT-EDGE SWIPE -> SIDEBAR -> CUSTOMER TAP
-   * On the Orders page, open that customer's existing order details.
-   * Do NOT call goToCustomer() and do NOT call New Order.
-   */
-  window.openSidebarCustomer=function(id){
-    var ordersContext=isOrdersContext();
-
-    try{
-      if(ordersContext){
-        openSelectedCustomerOrder(id);
-      }else if(typeof window.goToCustomer==="function"){
-        window.goToCustomer(id);
-      }
-    }finally{
-      var drawer=document.getElementById("sidebar");
-      if(drawer) drawer.classList.remove("open");
-      document.body.classList.remove("drawer-open");
-    }
-  };
-
-  /*
-   * CUSTOMER SLIDE LIST -> CUSTOMER TAP
-   * Same rule: when opened from Orders, resolve the selected customer's
-   * existing order and open its details. Never open New Order.
-   */
-  window.openCustomerFromMyCustomersMenu=function(id){
-    var ordersContext=isOrdersContext();
-
-    if(typeof window.closeMyCustomersSlideMenu==="function"){
-      window.closeMyCustomersSlideMenu();
-    }
-
-    if(ordersContext){
-      setTimeout(function(){
-        openSelectedCustomerOrder(id);
-      },80);
-    }else if(typeof window.goToCustomer==="function"){
-      setTimeout(function(){
-        window.goToCustomer(id);
-      },80);
-    }
-  };
-
-})();
-</script>
-
-
-<script id="nf-final-customer-order-route-v3">
-(function(){
-  "use strict";
-
-  function sameId(a,b){
-    return String(a == null ? "" : a).trim() === String(b == null ? "" : b).trim();
-  }
-
-  function findCustomer(id){
-    var customers=(window.state && Array.isArray(state.customers)) ? state.customers : [];
-    return customers.find(function(c){ return sameId(c && c.id,id); }) || null;
-  }
-
-  function findLatestOrder(id){
-    var orders=(window.state && Array.isArray(state.orders)) ? state.orders : [];
-    var matches=orders.filter(function(o){ return sameId(o && o.customer_id,id); });
-
-    /* If the id came from a customer row, prefer the customer's actual id. */
-    var customer=findCustomer(id);
-    if(customer){
-      matches=orders.filter(function(o){ return sameId(o && o.customer_id,customer.id); });
-    }
-
-    matches.sort(function(a,b){
-      var ad=String(a && (a.created_at || a.order_date) || "");
-      var bd=String(b && (b.created_at || b.order_date) || "");
-      return bd.localeCompare(ad);
-    });
-    return matches[0] || null;
-  }
-
-  function openCustomerOrder(id){
-    var order=findLatestOrder(id);
-    if(!order){
-      /* Do not create a New Order here. If the customer really has no
-         order, simply show the customer card. */
-      if(typeof window.goToCustomer === "function"){
-        window.goToCustomer(String(id));
-      }
-      return false;
-    }
-
-    if(typeof window.openOrderFullDetails === "function"){
-      window.openOrderFullDetails(String(order.id));
-      return true;
-    }
-    if(typeof window.openCustomerOrderFullDetails === "function"){
-      window.openCustomerOrderFullDetails(String(order.id));
-      return true;
-    }
-    return false;
-  }
-
-  /* Fix the customer-card buttons too. Their older implementation used
-     customerOrders() with strict === matching, which can disagree with the
-     UUID/string value coming from the swipe list. */
-  window.openLatestCustomerOrderFullDetails=function(customerId){
-    var order=findLatestOrder(customerId);
-    if(!order){
-      if(typeof window.goToCustomer === "function") window.goToCustomer(String(customerId));
-      return;
-    }
-    if(typeof window.openOrderFullDetails === "function"){
-      window.openOrderFullDetails(String(order.id));
-    }
-  };
-
-  window.openLatestCustomerOrderEdit=function(customerId){
-    var order=findLatestOrder(customerId);
-    if(!order){
-      if(typeof window.goToCustomer === "function") window.goToCustomer(String(customerId));
-      return;
-    }
-    if(typeof window.openOrdersEditOrder === "function"){
-      window.openOrdersEditOrder(String(order.id));
-    }else if(typeof window.openCustomerOrderEditor === "function"){
-      window.openCustomerOrderEditor(String(customerId),String(order.id));
-    }
-  };
-
-  /* Global sidebar swipe -> customer tap. Existing order opens directly;
-     missing order never opens New Order and never shows a false error. */
-  window.openSidebarCustomer=function(id){
-    try{
-      openCustomerOrder(id);
-    }finally{
-      var drawer=document.getElementById("sidebar");
-      if(drawer) drawer.classList.remove("open");
-      document.body.classList.remove("drawer-open");
-    }
-  };
-
-  /* Dashboard customer slide list uses the same safe route. */
-  window.openCustomerFromMyCustomersMenu=function(id){
-    if(typeof window.closeMyCustomersSlideMenu === "function"){
-      window.closeMyCustomersSlideMenu();
-    }
-    setTimeout(function(){ openCustomerOrder(id); },80);
-  };
-
-})();
-</script>
-
-<script id="nf-definitive-order-card-swipe-customer-route">
-(function(){
-  "use strict";
-
-  function sid(v){ return String(v==null?"":v).trim(); }
-
-  function findOrderById(id){
-    var orders=(window.state&&Array.isArray(state.orders))?state.orders:[];
-    return orders.find(function(o){return sid(o&&o.id)===sid(id);})||null;
-  }
-
-  function latestOrderForCustomer(customerId){
-    var orders=(window.state&&Array.isArray(state.orders))?state.orders:[];
-    var matches=orders.filter(function(o){
-      return sid(o&&o.customer_id)===sid(customerId);
-    }).slice();
-
-    matches.sort(function(a,b){
-      var ad=String(a&&(a.created_at||a.order_date||a.cloth_received_date)||"");
-      var bd=String(b&&(b.created_at||b.order_date||b.cloth_received_date)||"");
-      return bd.localeCompare(ad);
-    });
-    return matches[0]||null;
-  }
-
-  function openExactOrder(order){
-    if(!order)return false;
-    if(typeof window.openOrderFullDetails==="function"){
-      window.openOrderFullDetails(String(order.id));
-      return true;
-    }
-    return false;
-  }
-
-  function isOrdersPage(){
-    var v=(window.history&&history.state&&history.state.view)||"";
-    var el=document.getElementById("view-orders");
-    return v==="orders" || !!(el&&el.classList.contains("active"));
-  }
-
-  /*
-   * Capture the actual order card under the finger when the left-edge swipe
-   * starts. This lets the customer tap resolve to THAT order, not merely a
-   * customer card or an unrelated/latest order.
-   */
-  document.addEventListener("touchstart",function(e){
-    if(window.innerWidth>900 || !e.touches || e.touches.length!==1)return;
-
-    var t=e.touches[0];
-    if(t.clientX>24)return;
-
-    var target=e.target;
-    var card=target&&target.closest?target.closest(
-      ".nf-mobile-order-card,.nf-order-row,[data-order-id]"
-    ):null;
-
-    var orderId="";
-    if(card){
-      orderId=card.getAttribute("data-order-id")||"";
-      if(!orderId){
-        var oc=(card.getAttribute("onclick")||"").match(
-          /openOrderFullDetails\(['"]([^'"]+)['"]\)/
-        );
-        if(oc)orderId=oc[1];
-      }
-    }
-
-    window.__nfOrderSwipeOrigin={
-      orderId:sid(orderId),
-      customerId:"",
-      active:isOrdersPage()
-    };
-
-    if(orderId){
-      var order=findOrderById(orderId);
-      if(order)window.__nfOrderSwipeOrigin.customerId=sid(order.customer_id);
-    }
-  },true);
-
-  function resolveTappedCustomer(customerId){
-    var id=sid(customerId);
-    var origin=window.__nfOrderSwipeOrigin;
-
-    /* Exact originating order wins when the tapped customer is the same
-       customer shown on that order card. */
-    if(origin && origin.active && origin.orderId){
-      var originOrder=findOrderById(origin.orderId);
-      if(originOrder && sid(originOrder.customer_id)===id){
-        return originOrder;
-      }
-    }
-
-    /* If the list was opened from Orders but the originating card could not
-       be detected, use that customer's latest existing order. */
-    if(isOrdersPage()){
-      return latestOrderForCustomer(id);
-    }
-
-    return null;
-  }
-
-  function routeCustomerTap(id){
-    var order=resolveTappedCustomer(id);
-
-    /* Critical: NEVER go to Customer Card and NEVER open New Order here. */
-    if(order){
-      openExactOrder(order);
-      return true;
-    }
-
-    /* No order exists for the tapped customer. Stay out of both Customer Card
-       and New Order flows; just close the drawer. */
-    return false;
-  }
-
-  window.openSidebarCustomer=function(id){
-    try{
-      routeCustomerTap(id);
-    }finally{
-      var drawer=document.getElementById("sidebar");
-      if(drawer)drawer.classList.remove("open");
-      document.body.classList.remove("drawer-open");
-      window.__nfOrderSwipeOrigin=null;
-    }
-  };
-
-  window.openCustomerFromMyCustomersMenu=function(id){
-    var ordersContext=isOrdersPage();
-    if(typeof window.closeMyCustomersSlideMenu==="function"){
-      window.closeMyCustomersSlideMenu();
-    }
-
-    if(ordersContext){
-      setTimeout(function(){
-        routeCustomerTap(id);
-        window.__nfOrderSwipeOrigin=null;
-      },80);
-    }else if(typeof window.goToCustomer==="function"){
-      setTimeout(function(){window.goToCustomer(id)},80);
-    }
-  };
-
-  /* Do not allow older patches to reintroduce Customer Card routing while
-     the Orders page is active. */
-  var originalGoToCustomer=window.goToCustomer;
-  window.__nfOriginalGoToCustomer=originalGoToCustomer;
-
 })();
 </script>
