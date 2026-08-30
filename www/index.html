@@ -738,7 +738,7 @@ body.nf-photo-preview-scroll-locked{
       <div class="nf-v600-hint">ON செய்தால் Android native notification schedule செய்யப்படும். OFF செய்தால் 24 schedule-களும் cancel ஆகும்.</div>
     </div>
   </div>
-</section></section><section id="view-daily-update" class="view"><div class="nf-daily-page-head"><button type="button" class="nf-daily-back" onclick="goView('dashboard')" aria-label="Back to Home">‹</button><div><h2>📊 Daily Update</h2><p>இன்றைய நிலவரம்</p></div></div><div id="nfDailySummaryCard" aria-label="Daily Update Summary"><div class="nfDailySummaryHead"><b>📊 Daily Update</b><span>இன்றைய நிலவரம்</span></div><div id="dailyUpdate"></div></div></section><section id="view-customers" class="view"><div class="pagehead nf-search-pagehead nf-customer-cards-head"><button class="nf-customer-cards-menu-btn" type="button" onclick="toggleMyCustomersSlideMenu(event)" aria-label="Open customer names" title="Customer names">☰</button><div class="nf-customer-cards-title"><h2>Customer Cards</h2></div><div class="nf-customer-cards-right"><button class="btn secondary nf-search-icon-btn" type="button" onclick="toggleCompactSearch('customer')" aria-label="Search customers" title="Search">🔍</button></div></div><div class="nf-customer-cards-add-wrap"><button class="btn primary nf-customer-cards-add-btn" onclick="openCustomerCardsAddCustomer()">＋ Add Customer</button></div><div id="customerSearchPanel" class="nf-compact-search-panel" hidden><div class="nf-compact-search-row"><span class="nf-compact-search-icon">🔍</span><input id="customerSearch" class="input search" placeholder="Search name / phone / address / village" autocomplete="off"><button class="btn secondary nf-compact-close" type="button" onclick="toggleCompactSearch('customer',false)" aria-label="Close search">✕</button><button class="btn secondary nf-compact-refresh" type="button" onclick="loadAll()" title="Refresh">↻</button></div></div><div id="customersTable" class="customerCards"></div></section><section id="view-measurements" class="view"><div class="pagehead"><div><h2>Measurements</h2><p>Customer-wise measurements.</p></div><div class="spacer"></div><button class="btn primary" onclick="openModal('measurement')">＋ Add Measurement</button></div><div class="card"><div class="toolbar"><input id="measurementSearch" class="input search" placeholder="Search customer / garment"><button class="btn secondary" onclick="loadAll()">↻ Refresh</button></div><div id="measurementsTable"></div></div></section><section id="view-orders" class="view"><div class="pagehead nf-search-pagehead"><div><h2>Orders</h2><p>Customer Card-ல் எடுத்த New Order-கள் மட்டும் இங்கே வரும்.</p></div><div class="spacer"></div><button class="btn secondary nf-search-icon-btn" type="button" onclick="toggleCompactSearch('orders')" aria-label="Search orders" title="Search">🔍</button></div><div id="ordersSearchPanel" class="nf-compact-search-panel" hidden><div class="nf-compact-search-row nf-orders-search-row"><span class="nf-compact-search-icon">🔍</span><input id="orderSearch" class="input search" placeholder="Search order / customer / garment" autocomplete="off"><select id="orderStatusFilter" class="input nf-order-status-select"><option value="">All status</option><option>Pending</option><option>In Progress</option><option>Ready</option><option>Delivered</option><option>Cancelled</option></select><button class="btn secondary nf-compact-close" type="button" onclick="toggleCompactSearch('orders',false)" aria-label="Close search">✕</button><button class="btn secondary nf-compact-refresh" type="button" onclick="loadAll()" title="Refresh">↻</button></div></div><div class="card nf-section-card"><div id="ordersTable"></div></div></section><section id="view-alterations" class="view"><div class="pagehead"><div><h2>Alterations</h2><p>Alteration work and delivery tracking.</p></div><div class="spacer"></div><button class="btn primary" onclick="openModal('alteration')">＋ Add Alteration</button></div><div class="card"><div class="toolbar"><input id="alterationSearch" class="input search" placeholder="Search customer / details"><button class="btn secondary" onclick="loadAll()">↻ Refresh</button></div><div id="alterationsTable"></div></div></section><section id="view-payments" class="view"><div class="pagehead"><div><h2>Payments</h2><p>Today collection மற்றும் payment history.</p></div><div class="spacer"></div></div><div class="card nf-section-card"><div class="toolbar"><input id="paymentSearch" class="input search" placeholder="Search order / payment method / reference"><button class="btn secondary" onclick="loadAll()">↻ Refresh</button></div><div id="paymentsTable"></div></div></section><section id="view-designs" class="view"><div class="pagehead"><div><h2>🎨 Blouse Design Studio</h2><p>Online-ல் design தேடி, பிடித்த design-ஐ இங்கே save செய்து customer-க்கு காட்டலாம்.</p></div><div class="spacer"></div><button class="btn primary" onclick="openModal('design')">＋ Add Design</button></div><div class="card"><div class="designTools"><input id="onlineDesignQuery" class="input" placeholder="எ.கா. bridal blouse design / simple blouse design"><button class="btn primary" id="onlineDesignBtn">🔎 Search Designs</button><button class="btn secondary" id="googleDesignBtn">🌐 Google Images</button></div><div class="mini">Google Images முழு results-ஐ Google-ல் திறக்கலாம். கீழே preview results-ல் save செய்யக்கூடிய படங்களும் வரும்.</div><div id="onlineDesignResults" class="designSearchResults"></div></div><div class="card" style="margin-top:14px"><div class="pagehead"><div><h3 style="margin:0">💾 Saved Designs</h3><p>உங்கள் design catalogue</p></div></div><div id="designGallery" class="designGallery"></div></div><div class="card" style="margin-top:14px"><div class="toolbar"><input id="designSearch" class="input search" placeholder="Search saved design no / name / category"><button class="btn secondary" onclick="loadAll()">↻ Refresh</button></div><div id="designsTable"></div></div></section></main></div></div><div id="ordersNewOrderScreen" class="modal nf-orders-new-order-screen" aria-hidden="true"><div class="modalbox nf-orders-new-order-box"><div class="modalhead"><h3 id="ordersNewOrderScreenTitle">🧾 New Order</h3><button class="close" type="button" onclick="closeOrdersQuickAdd()">✕</button></div><div id="ordersNewOrderContent"></div></div></div><button id="p4Fab" class="p4FabButton" type="button" aria-label="Add">＋</button><nav id="p4MobileNav" aria-label="Quick navigation"><button data-p4-view="dashboard"><span class="p4Icon">⌂</span><span>Home</span></button><button data-p4-view="customers"><span class="p4Icon">👥</span><span>Customers</span></button><button data-p4-view="orders"><span class="p4Icon">🧾</span><span>Orders</span></button><button data-p4-view="payments"><span class="p4Icon">₹</span><span>Payments</span></button></nav><div id="nfOrderFullDetails" class="modal nf-order-full-details" aria-hidden="true"><div class="modalbox nf-order-full-details-box"><div class="modalhead nf-order-full-details-head"><h3 id="nfOrderFullDetailsTitle">Order Full Details</h3><button class="close" type="button" onclick="closeOrderFullDetails()">✕</button></div><div id="nfOrderFullDetailsContent"></div></div></div><div id="modal" class="modal"><div class="modalbox"><div class="modalhead"><h3 id="modalTitle">Add</h3><button class="close" onclick="closeModal()">✕</button></div><form id="dataForm"><div id="formFields" class="formgrid"></div><div class="modalfoot"><button type="button" class="btn secondary" onclick="closeModal()">Cancel</button><button id="nfModalDeletePayment" type="button" class="btn danger hidden" title="Delete Payment">🗑️ Delete Payment</button><button id="saveBtn" type="submit" class="btn primary">Save</button></div><div id="formMsg" class="msg"></div></form></div></div><div id="toast" class="toast"></div><div id="passkeyGate" class="passkeyGate" aria-hidden="true"><section class="passkeyGateBox"><div class="passkeyIcon">🔐</div><h3>NEW FASHION</h3><p>இந்த சாதனத்தின் Fingerprint / Face / Screen Lock மூலம் App-ஐ unlock செய்யுங்கள்.</p><button id="passkeyUnlockBtn" class="btn primary" type="button">Unlock with Passkey</button><div id="passkeyGateMsg" class="passkeyGateMsg"></div></section></div><script>
+</section></section><section id="view-daily-update" class="view"><div class="nf-daily-page-head"><button type="button" class="nf-daily-back" onclick="goView('dashboard')" aria-label="Back to Home">‹</button><div><h2>📊 Daily Update</h2><p>இன்றைய நிலவரம்</p></div></div><div id="nfDailySummaryCard" aria-label="Daily Update Summary"><div class="nfDailySummaryHead"><b>📊 Daily Update</b><span>இன்றைய நிலவரம்</span></div><div id="dailyUpdate"></div></div></section><section id="view-customers" class="view"><div class="pagehead nf-search-pagehead nf-customer-cards-head"><button class="nf-customer-cards-menu-btn" type="button" onclick="toggleMyCustomersSlideMenu(event)" aria-label="Open customer names" title="Customer names">☰</button><div class="nf-customer-cards-title"><h2>Customer Cards</h2></div><div class="nf-customer-cards-right"><button class="btn secondary nf-search-icon-btn" type="button" onclick="toggleCompactSearch('customer')" aria-label="Search customers" title="Search">🔍</button></div></div><div class="nf-customer-cards-add-wrap"><button class="btn primary nf-customer-cards-add-btn" onclick="openModal('customer')">＋ Add Customer</button></div><div id="customerSearchPanel" class="nf-compact-search-panel" hidden><div class="nf-compact-search-row"><span class="nf-compact-search-icon">🔍</span><input id="customerSearch" class="input search" placeholder="Search name / phone / address / village" autocomplete="off"><button class="btn secondary nf-compact-close" type="button" onclick="toggleCompactSearch('customer',false)" aria-label="Close search">✕</button><button class="btn secondary nf-compact-refresh" type="button" onclick="loadAll()" title="Refresh">↻</button></div></div><div id="customersTable" class="customerCards"></div></section><section id="view-measurements" class="view"><div class="pagehead"><div><h2>Measurements</h2><p>Customer-wise measurements.</p></div><div class="spacer"></div><button class="btn primary" onclick="openModal('measurement')">＋ Add Measurement</button></div><div class="card"><div class="toolbar"><input id="measurementSearch" class="input search" placeholder="Search customer / garment"><button class="btn secondary" onclick="loadAll()">↻ Refresh</button></div><div id="measurementsTable"></div></div></section><section id="view-orders" class="view"><div class="pagehead nf-search-pagehead"><div><h2>Orders</h2><p>Customer Card-ல் எடுத்த New Order-கள் மட்டும் இங்கே வரும்.</p></div><div class="spacer"></div><button class="btn secondary nf-search-icon-btn" type="button" onclick="toggleCompactSearch('orders')" aria-label="Search orders" title="Search">🔍</button></div><div id="ordersSearchPanel" class="nf-compact-search-panel" hidden><div class="nf-compact-search-row nf-orders-search-row"><span class="nf-compact-search-icon">🔍</span><input id="orderSearch" class="input search" placeholder="Search order / customer / garment" autocomplete="off"><select id="orderStatusFilter" class="input nf-order-status-select"><option value="">All status</option><option>Pending</option><option>In Progress</option><option>Ready</option><option>Delivered</option><option>Cancelled</option></select><button class="btn secondary nf-compact-close" type="button" onclick="toggleCompactSearch('orders',false)" aria-label="Close search">✕</button><button class="btn secondary nf-compact-refresh" type="button" onclick="loadAll()" title="Refresh">↻</button></div></div><div class="card nf-section-card"><div id="ordersTable"></div></div></section><section id="view-alterations" class="view"><div class="pagehead"><div><h2>Alterations</h2><p>Alteration work and delivery tracking.</p></div><div class="spacer"></div><button class="btn primary" onclick="openModal('alteration')">＋ Add Alteration</button></div><div class="card"><div class="toolbar"><input id="alterationSearch" class="input search" placeholder="Search customer / details"><button class="btn secondary" onclick="loadAll()">↻ Refresh</button></div><div id="alterationsTable"></div></div></section><section id="view-payments" class="view"><div class="pagehead"><div><h2>Payments</h2><p>Today collection மற்றும் payment history.</p></div><div class="spacer"></div></div><div class="card nf-section-card"><div class="toolbar"><input id="paymentSearch" class="input search" placeholder="Search order / payment method / reference"><button class="btn secondary" onclick="loadAll()">↻ Refresh</button></div><div id="paymentsTable"></div></div></section><section id="view-designs" class="view"><div class="pagehead"><div><h2>🎨 Blouse Design Studio</h2><p>Online-ல் design தேடி, பிடித்த design-ஐ இங்கே save செய்து customer-க்கு காட்டலாம்.</p></div><div class="spacer"></div><button class="btn primary" onclick="openModal('design')">＋ Add Design</button></div><div class="card"><div class="designTools"><input id="onlineDesignQuery" class="input" placeholder="எ.கா. bridal blouse design / simple blouse design"><button class="btn primary" id="onlineDesignBtn">🔎 Search Designs</button><button class="btn secondary" id="googleDesignBtn">🌐 Google Images</button></div><div class="mini">Google Images முழு results-ஐ Google-ல் திறக்கலாம். கீழே preview results-ல் save செய்யக்கூடிய படங்களும் வரும்.</div><div id="onlineDesignResults" class="designSearchResults"></div></div><div class="card" style="margin-top:14px"><div class="pagehead"><div><h3 style="margin:0">💾 Saved Designs</h3><p>உங்கள் design catalogue</p></div></div><div id="designGallery" class="designGallery"></div></div><div class="card" style="margin-top:14px"><div class="toolbar"><input id="designSearch" class="input search" placeholder="Search saved design no / name / category"><button class="btn secondary" onclick="loadAll()">↻ Refresh</button></div><div id="designsTable"></div></div></section></main></div></div><div id="ordersNewOrderScreen" class="modal nf-orders-new-order-screen" aria-hidden="true"><div class="modalbox nf-orders-new-order-box"><div class="modalhead"><h3 id="ordersNewOrderScreenTitle">🧾 New Order</h3><button class="close" type="button" onclick="closeOrdersQuickAdd()">✕</button></div><div id="ordersNewOrderContent"></div></div></div><button id="p4Fab" class="p4FabButton" type="button" aria-label="Add">＋</button><nav id="p4MobileNav" aria-label="Quick navigation"><button data-p4-view="dashboard"><span class="p4Icon">⌂</span><span>Home</span></button><button data-p4-view="customers"><span class="p4Icon">👥</span><span>Customers</span></button><button data-p4-view="orders"><span class="p4Icon">🧾</span><span>Orders</span></button><button data-p4-view="payments"><span class="p4Icon">₹</span><span>Payments</span></button></nav><div id="nfOrderFullDetails" class="modal nf-order-full-details" aria-hidden="true"><div class="modalbox nf-order-full-details-box"><div class="modalhead nf-order-full-details-head"><h3 id="nfOrderFullDetailsTitle">Order Full Details</h3><button class="close" type="button" onclick="closeOrderFullDetails()">✕</button></div><div id="nfOrderFullDetailsContent"></div></div></div><div id="modal" class="modal"><div class="modalbox"><div class="modalhead"><h3 id="modalTitle">Add</h3><button class="close" onclick="closeModal()">✕</button></div><form id="dataForm"><div id="formFields" class="formgrid"></div><div class="modalfoot"><button type="button" class="btn secondary" onclick="closeModal()">Cancel</button><button id="nfModalDeletePayment" type="button" class="btn danger hidden" title="Delete Payment">🗑️ Delete Payment</button><button id="saveBtn" type="submit" class="btn primary">Save</button></div><div id="formMsg" class="msg"></div></form></div></div><div id="toast" class="toast"></div><div id="passkeyGate" class="passkeyGate" aria-hidden="true"><section class="passkeyGateBox"><div class="passkeyIcon">🔐</div><h3>NEW FASHION</h3><p>இந்த சாதனத்தின் Fingerprint / Face / Screen Lock மூலம் App-ஐ unlock செய்யுங்கள்.</p><button id="passkeyUnlockBtn" class="btn primary" type="button">Unlock with Passkey</button><div id="passkeyGateMsg" class="passkeyGateMsg"></div></section></div><script>
 const SUPABASE_URL="https://pdlsicwzfmartkwcwozx.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY="sb_publishable_eCKne6Tzs6-QYSXpJb-aSQ_6AHe8n9O";
 const supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
@@ -2932,20 +2932,13 @@ if(type==="order"){
 }
 const wasNewCustomer=type==="customer" && !id;
 const savedCustomerId=type==="customer" ? String(result.data?.id||"") : "";
-const fromCustomerCardsAdd=wasNewCustomer && !!window.__nfCustomerCardsAddMode;
-if(fromCustomerCardsAdd)window.__nfCustomerCardsAddMode=false;
 /* Customer Save → New Order is a direct hand-off. Do not trigger the modal
    history.back() here, because it can race with openOrdersQuickAdd() and
    immediately close the New Order screen again. All other save flows keep
    the original closeModal() history behavior unchanged. */
 closeModal(!(wasNewCustomer && savedCustomerId));
 
-if(wasNewCustomer && savedCustomerId && fromCustomerCardsAdd){
-  /* Customer Cards Add Customer stays on Customer Cards. Other Add Customer
-     entry points keep the existing automatic New Order hand-off. */
-  await loadAll(true);
-  toast("Customer saved online.");
-}else if(wasNewCustomer && savedCustomerId){
+if(wasNewCustomer && savedCustomerId){
   /* SPEED FIX: do not wait for the full 6-table refresh before opening New Order.
      Put the just-saved customer into the in-memory state first so the New Order
      selector can open immediately. The normal full sync still runs in background. */
@@ -5404,31 +5397,13 @@ function nfFormatPaymentDate(v){return v?dateText(v):"—";}
   window.renderOrders.__nfFinalOrderSync=true;
 
   window.openOrdersNewOrderForCustomer=function(customerId){
-    var cid=String(customerId==null?"":customerId);
-    if(!cid)return;
     openOrdersQuickAdd();
-    var tries=0;
-    function applyCustomer(){
-      tries++;
-      var select=$("ordersQuickCustomerStartInline");
-      var customer=(state.customers||[]).find(function(c){return String(c.id)===cid;});
-      if(select && customer){
-        var option=Array.from(select.options||[]).find(function(o){return String(o.value)===cid;});
-        if(option){
-          select.value=cid;
-          select.dispatchEvent(new Event("change",{bubbles:true}));
-          var title=$("ordersNewOrderScreenTitle");
-          if(title)title.textContent="🧾 New Order";
-          return;
-        }
-      }
-      if(tries<8)setTimeout(applyCustomer,60);
-      else{
-        var title=$("ordersNewOrderScreenTitle");
-        if(title)title.textContent="🧾 New Order";
-      }
-    }
-    setTimeout(applyCustomer,0);
+    setTimeout(function(){
+      var select=$("ordersQuickCustomerStart");
+      if(select){select.value=String(customerId);mountOrdersQuickForm(customerId);}
+      var title=$("ordersNewOrderScreenTitle");
+      if(title)title.textContent="🧾 New Order";
+    },0);
   };
 
   window.openOrdersEditOrder=function(orderId){
@@ -6157,7 +6132,90 @@ function nfFormatPaymentDate(v){return v?dateText(v):"—";}
 })();
 </script><style>.customerCard .customerWorkSummary{padding:10px!important;border:2px solid #cdb8f5!important;border-radius:20px!important;background:linear-gradient(135deg,#f7f2ff 0%,#fff4fb 52%,#fff9ed 100%)!important;box-shadow:0 10px 26px rgba(76,52,130,.10)!important}.customerCard .customerWorkSection{margin:9px 0!important;padding:0!important;overflow:hidden!important;border:2px solid #cbb8f2!important;border-radius:17px!important;background:#fff!important;box-shadow:0 6px 18px rgba(72,48,120,.08)!important}.customerCard .customerWorkSection h4{margin:0!important;padding:11px 14px!important;min-height:44px!important;display:flex!important;align-items:center!important;gap:8px!important;color:#fff!important;font-size:18px!important;font-weight:950!important;line-height:1.2!important;background:linear-gradient(135deg,#6036dc 0%,#b63fc0 55%,#e84f8b 100%)!important;border-bottom:2px solid rgba(255,255,255,.45)!important;text-shadow:0 1px 2px rgba(45,20,80,.22)!important}.customerCard .customerWorkSection:first-child{border-color:#a991e8!important;background:linear-gradient(180deg,#faf7ff,#fff)!important}.customerCard .customerWorkSection:first-child h4{background:linear-gradient(135deg,#5d35db,#c43fae,#ec4f8b)!important}.customerCard .customerWorkSection:nth-child(2){border-color:#58c4b5!important;background:linear-gradient(180deg,#effcf9,#fff)!important}.customerCard .customerWorkSection:nth-child(2) h4{background:linear-gradient(135deg,#087f78,#16a89b,#40c7b1)!important}.customerCard .customerWorkGrid{padding:11px!important;gap:9px!important;background:rgba(255,255,255,.72)!important}.customerCard .customerWorkItem{min-height:76px!important;padding:11px 10px!important;border-width:2px!important;border-radius:14px!important;display:flex!important;flex-direction:column!important;justify-content:center!important;box-shadow:0 4px 12px rgba(55,40,90,.05)!important}.customerCard .customerWorkItem:nth-child(1){background:linear-gradient(145deg,#f0ebff,#faf8ff)!important;border-color:#b7a1f1!important}.customerCard .customerWorkItem:nth-child(2){background:linear-gradient(145deg,#fff0f7,#fff9fc)!important;border-color:#efa8c8!important}.customerCard .customerWorkItem:nth-child(3){background:linear-gradient(145deg,#fff6dc,#fffdf3)!important;border-color:#e7c45c!important}.customerCard .customerWorkItem:nth-child(4){background:linear-gradient(145deg,#e9faf6,#f8fffd)!important;border-color:#78cdbf!important}.customerCard .customerWorkItem b{color:#241a31!important;font-size:21px!important;font-weight:950!important}.customerCard .customerWorkItem span{margin-top:4px!important;color:#3f3548!important;font-size:13px!important;font-weight:900!important}.customerCard .customerRateList{padding:0 11px 11px!important;gap:8px!important}.customerCard .customerRateRow{min-height:45px!important;padding:10px 11px!important;border:2px solid #ded5ed!important;border-radius:13px!important;background:linear-gradient(145deg,#fff,#faf8ff)!important;box-shadow:0 3px 10px rgba(55,40,90,.04)!important}.customerCard .customerRateRow:nth-child(2n){border-color:#e8b8cd!important;background:linear-gradient(145deg,#fff7fb,#fff)!important}.customerCard .customerRateRow .rateLabel,.customerCard .customerRateRow .rateMath{color:#27212d!important;font-weight:900!important}.customerCard .customerRateTotal{margin:0 11px 11px!important;padding:11px 13px!important;border:0!important;border-radius:13px!important;background:linear-gradient(135deg,#6137dc,#a63fc8,#e94f8c)!important;color:#fff!important;box-shadow:0 6px 14px rgba(100,53,205,.16)!important}.customerCard .customerLiningNote{margin:0 0 8px!important;border:2px solid #78cdb0!important;background:linear-gradient(145deg,#edfff8,#fff)!important}.customerCard .customerWorkSection.nf-summary-alteration-section{border-color:#d4a7df!important;background:linear-gradient(180deg,#fff4fc,#fff)!important}.customerCard .nf-summary-alteration-section .nf-alteration-notes-title{margin:0!important;padding:10px 13px!important;background:linear-gradient(135deg,#8b4ad8,#d64f9c)!important;color:#fff!important;font-weight:950!important}.customerCard .nf-summary-alteration-section .nf-alteration-notes-content{margin:10px!important;padding:11px!important;border:2px solid #ead6ee!important;border-radius:12px!important;background:#fff!important}@media(max-width:560px){.customerCard .customerWorkSummary{padding:8px!important;border-radius:18px!important}.customerCard .customerWorkSection{margin:8px 0!important;border-radius:16px!important}.customerCard .customerWorkSection h4{padding:10px 12px!important;font-size:17px!important}.customerCard .customerWorkGrid{padding:9px!important;gap:8px!important}.customerCard .customerWorkItem{min-height:70px!important;padding:9px!important;border-radius:13px!important}.customerCard .customerWorkItem b{font-size:19px!important}.customerCard .customerWorkItem span{font-size:12px!important}.customerCard .customerRateList{padding:0 9px 9px!important}.customerCard .customerRateTotal{margin:0 9px 9px!important}}</style><style>.nf-cash-collection .nf-cash-columns-head{display:none!important}.nf-cash-collection .customerMoneyGrid{display:block!important;margin:0!important;padding:0!important}.nf-cash-collection .customerMoneyGrid .moneyStat{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(112px,145px) minmax(90px,125px)!important;gap:0!important;align-items:center!important;min-height:68px!important;margin:0!important;padding:11px 16px!important;border:0!important;border-bottom:1.5px solid rgba(88,62,120,.18)!important;border-radius:0!important;box-shadow:none!important}.nf-cash-collection .customerMoneyGrid .moneyStat:first-child{border-top:1.5px solid rgba(88,62,120,.18)!important}.nf-cash-collection .customerMoneyGrid .moneyStat:nth-child(1){background:linear-gradient(90deg,#f5f0ff,#fffaff)!important}.nf-cash-collection .customerMoneyGrid .moneyStat:nth-child(2){background:linear-gradient(90deg,#effbf5,#fbfffd)!important}.nf-cash-collection .customerMoneyGrid .moneyStat:nth-child(3){background:linear-gradient(90deg,#fff9e8,#fffdf5)!important}.nf-cash-collection .customerMoneyGrid .moneyStat:nth-child(4){background:linear-gradient(90deg,#fff1f4,#fffafd)!important}.nf-cash-collection .customerMoneyGrid .moneyStat>span.nf-v10080-label{display:contents!important;font-size:16px!important;font-weight:900!important;line-height:1.25!important}.nf-cash-collection .customerMoneyGrid .moneyStat>span.nf-v10080-label .nf-v10080-date{order:2!important;display:block!important;justify-self:center!important;margin:0!important;padding:5px 10px!important;border-radius:9px!important;font-size:15px!important;line-height:1.15!important;font-weight:950!important;white-space:nowrap!important;text-align:center!important}.nf-cash-collection .customerMoneyGrid .moneyStat>b{order:3!important;display:block!important;margin:0!important;font-size:19px!important;line-height:1.2!important;font-weight:950!important;text-align:right!important;white-space:nowrap!important}.nf-cash-collection .customerMoneyGrid .moneyStat:nth-child(1)>span.nf-v10080-label{color:#4e2d93!important}.nf-cash-collection .customerMoneyGrid .moneyStat:nth-child(2)>span.nf-v10080-label{color:#14794f!important}.nf-cash-collection .customerMoneyGrid .moneyStat:nth-child(3)>span.nf-v10080-label{color:#9a6500!important}.nf-cash-collection .customerMoneyGrid .moneyStat:nth-child(4)>span.nf-v10080-label{color:#bf3045!important}.nf-cash-collection .customerMoneyGrid .moneyStat:nth-child(1)>b{color:#4e2d93!important}.nf-cash-collection .customerMoneyGrid .moneyStat:nth-child(2)>b{color:#14794f!important}.nf-cash-collection .customerMoneyGrid .moneyStat:nth-child(3)>b{color:#9a6500!important}.nf-cash-collection .customerMoneyGrid .moneyStat:nth-child(4)>b{color:#bf3045!important}@media(max-width:560px){.nf-cash-collection .customerMoneyGrid .moneyStat{grid-template-columns:minmax(0,1fr) 104px 82px!important;min-height:66px!important;padding:10px 12px!important}.nf-cash-collection .customerMoneyGrid .moneyStat>span.nf-v10080-label{font-size:15px!important}.nf-cash-collection .customerMoneyGrid .moneyStat>span.nf-v10080-label .nf-v10080-date{font-size:14px!important;padding:5px 7px!important}.nf-cash-collection .customerMoneyGrid .moneyStat>b{font-size:17px!important}}</style>
 
+<script id="v2035-customer-edit-order-routing-fix">
+(function(){
+  "use strict";
 
+  function latestForCustomer(customerId){
+    var list=(state.orders||[]).filter(function(o){
+      return String(o.customer_id)===String(customerId);
+    });
+    list.sort(function(a,b){
+      return String(b.created_at||b.order_date||"")
+        .localeCompare(String(a.created_at||a.order_date||""));
+    });
+    return list[0]||null;
+  }
+
+  function dedicatedEdit(orderId){
+    var order=(state.orders||[]).find(function(o){
+      return String(o.id)===String(orderId);
+    });
+    if(!order){
+      toast("Edit செய்ய Order கிடைக்கவில்லை.",true);
+      return;
+    }
+
+    /* Use the same dedicated Orders edit screen used by the Orders card.
+       Resolve the actual implementation dynamically, but never call the
+       Customer Card's inline openCustomerOrderEditor route. */
+    var fn=window.openOrdersEditOrder;
+    if(typeof fn==="function"){
+      fn(String(order.id));
+      return true;
+    }
+
+    /* Fallback: open the dedicated Orders screen and populate its editor
+       through the existing Orders UI functions, not the Customer Card. */
+    try{
+      goView("orders");
+      setTimeout(function(){
+        if(typeof window.openOrdersEditOrder==="function"){
+          window.openOrdersEditOrder(String(order.id));
+        }else{
+          toast("Dedicated Edit Order screen கிடைக்கவில்லை.",true);
+        }
+      },80);
+      return true;
+    }catch(e){
+      console.error("V203.7 dedicated Edit Order routing:",e);
+      toast("Dedicated Edit Order screen திறக்க முடியவில்லை.",true);
+      return false;
+    }
+  }
+
+  window.openLatestCustomerOrderEdit=function(customerId){
+    var order=latestForCustomer(customerId);
+    if(!order){
+      /* Customer Card → Edit Order must also be the New Order entry point
+         when this customer has no saved order yet.  Do not block the user
+         with an "no order" error; leave all customer/data/calculation logic
+         unchanged. */
+      if(typeof window.openOrdersNewOrderForCustomer === "function"){
+        window.openOrdersNewOrderForCustomer(String(customerId));
+        return true;
+      }
+      if(typeof window.openOrdersQuickAdd === "function"){
+        window.openOrdersQuickAdd();
+        setTimeout(function(){
+          var select=document.getElementById("ordersQuickCustomerStart");
+          if(select){
+            select.value=String(customerId);
+            if(typeof window.mountOrdersQuickForm === "function") window.mountOrdersQuickForm(String(customerId));
+          }
+        },0);
+        return true;
+      }
+      toast("New Order screen கிடைக்கவில்லை.",true);
+      return false;
+    }
+    dedicatedEdit(order.id);
+    return true;
+  };
+
+  window.__v2035DedicatedCustomerEdit=true;
+})();
+</script>
 
 
 <style id="v2036-final-customer-card-actions">
@@ -6170,7 +6228,6 @@ function nfFormatPaymentDate(v){return v?dateText(v):"—";}
 .customerCard .nf-customer-compact-actions .nf-compact-action{width:54px!important;height:54px!important;min-width:54px!important;min-height:54px!important;padding:0!important;border-radius:15px!important;display:grid!important;place-items:center!important;font-size:28px!important;line-height:1!important;box-shadow:0 7px 16px rgba(45,25,90,.16)!important}
 .customerCard .nf-customer-compact-actions .nf-edit-order{background:linear-gradient(135deg,#2196f3,#00a7d8)!important;color:#fff!important}
 .customerCard .nf-customer-compact-actions .nf-order-full-details{background:linear-gradient(135deg,#7048e8,#d13a9b)!important;color:#fff!important}
-.customerCard .nf-customer-compact-actions .nf-order-action-unified{width:auto!important;min-width:118px!important;padding:0 13px!important;font-size:13px!important;white-space:nowrap!important}
 .customerCard .nf-customer-avatar-column{width:76px!important;flex:0 0 76px!important;display:flex!important;flex-direction:column!important;align-items:center!important;gap:7px!important}
 .customerCard .nf-customer-avatar-column .customerAvatar{width:60px!important;height:60px!important;flex:none!important}
 .customerCard .nf-customer-avatar-actions{display:flex!important;flex-direction:column!important;gap:5px!important;width:100%!important}
@@ -6179,7 +6236,6 @@ function nfFormatPaymentDate(v){return v?dateText(v):"—";}
 .customerCard .nf-customer-avatar-actions .nf-delete-customer{background:#ffe9ec!important;color:#b4233c!important}
 @media(max-width:560px){
  .customerCard .nf-customer-compact-actions .nf-compact-action{width:50px!important;height:50px!important;min-width:50px!important;min-height:50px!important;font-size:26px!important}
- .customerCard .nf-customer-compact-actions .nf-order-action-unified{width:auto!important;min-width:108px!important;padding:0 10px!important;font-size:12px!important}
  .customerCard .nf-customer-avatar-column{width:70px!important;flex-basis:70px!important}
  .customerCard .nf-customer-avatar-column .customerAvatar{width:56px!important;height:56px!important}
  .customerCard .nf-customer-avatar-actions button{font-size:11px!important;min-height:32px!important}
@@ -6198,9 +6254,7 @@ function nfFormatPaymentDate(v){return v?dateText(v):"—";}
     html=html.replace(/<div class="nf-customer-avatar-column"[^>]*>[\s\S]*?<\/div>\s*<div class="customerIdentity"/gi,'<div class="customerAvatar">👤</div><div class="customerIdentity"');
     var avatarActions=`<div class="nf-customer-avatar-column"><div class="customerAvatar">👤</div><div class="nf-customer-avatar-actions"><button type="button" class="nf-edit-customer" onclick="event.stopPropagation();openModal('customer','${safeId}')" title="Edit Customer" aria-label="Edit Customer">✏️ Edit</button><button type="button" class="nf-delete-customer" onclick="event.stopPropagation();removeRow('customers','${safeId}')" title="Delete Customer" aria-label="Delete Customer">🗑️ Delete</button></div></div><div class="customerIdentity">`;
     html=html.replace('<div class="customerAvatar">👤</div><div class="customerIdentity">',avatarActions);
-    var hasOrder=(state.orders||[]).some(function(o){return String(o.customer_id)===String(id);});
-    var orderActionLabel=hasOrder?"✏️ Edit Order":"＋ New Order";
-    var actions=`<div class="nf-customer-compact-actions" aria-label="Order actions"><button type="button" class="nf-compact-action nf-edit-order nf-order-action-unified" onclick="event.stopPropagation();openLatestCustomerOrderEdit('${safeId}')" title="${orderActionLabel}" aria-label="${orderActionLabel}">${orderActionLabel}</button><button type="button" class="nf-compact-action nf-order-full-details" onclick="event.stopPropagation();openLatestCustomerOrderFullDetails('${safeId}')" title="Order Full Details" aria-label="Order Full Details">📋</button></div>`;
+    var actions=`<div class="nf-customer-compact-actions" aria-label="Order actions"><button type="button" class="nf-compact-action nf-edit-order" onclick="event.stopPropagation();openLatestCustomerOrderEdit('${safeId}')" title="Edit Order" aria-label="Edit Order">✏️</button><button type="button" class="nf-compact-action nf-order-full-details" onclick="event.stopPropagation();openLatestCustomerOrderFullDetails('${safeId}')" title="Order Full Details" aria-label="Order Full Details">📋</button></div>`;
     html=html.replace(/(<div class="nf-customer-name-row"[^>]*>\s*<h3>[\s\S]*?<\/h3>)(\s*<\/div>)/i,'$1'+actions+'$2');
     return html;
   };
@@ -8588,262 +8642,177 @@ window.addEventListener("keydown",function(e){if(e.key==="Escape")window.closeCu
   if(document.body) observer.observe(document.body,{childList:true,subtree:true});
 })();
 </script>
-<script id="nf-v204-customer-cards-add-flow">
+
+
+
+
+
+
+
+
+
+
+<!-- FINAL FIX: context-aware customer slide menu routing -->
+<script id="nf-final-context-customer-routing">
 (function(){
   "use strict";
-  window.openCustomerCardsAddCustomer=function(){
-    window.__nfCustomerCardsAddMode=true;
-    openModal("customer");
+
+  var nfMenuOrigin = "customers";
+
+  function currentView(){
+    var orders = document.getElementById("view-orders");
+    var customers = document.getElementById("view-customers");
+    if(orders && orders.classList.contains("active")) return "orders";
+    if(customers && customers.classList.contains("active")) return "customers";
+    return nfMenuOrigin;
+  }
+
+  function findCustomerOrder(customerId){
+    var orders = (window.state && Array.isArray(state.orders)) ? state.orders : [];
+    var matches = orders.filter(function(o){
+      return String(o && o.customer_id || "") === String(customerId || "");
+    });
+
+    matches.sort(function(a,b){
+      var ad = String(a && (a.created_at || a.order_date || "") || "");
+      var bd = String(b && (b.created_at || b.order_date || "") || "");
+      return bd.localeCompare(ad);
+    });
+
+    return matches[0] || null;
+  }
+
+  /* Record the screen from which the slide menu was opened. */
+  var originalToggle = window.toggleMyCustomersSlideMenu;
+  if(typeof originalToggle === "function" && !originalToggle.__nfFinalContextRouting){
+    window.toggleMyCustomersSlideMenu = function(e){
+      var panel = document.getElementById("nfCustomerSlideMenu");
+      var opening = !panel || !panel.classList.contains("nf-open");
+      if(opening) nfMenuOrigin = currentView();
+      return originalToggle.apply(this, arguments);
+    };
+    window.toggleMyCustomersSlideMenu.__nfFinalContextRouting = true;
+  }
+
+  /*
+   * Customer List tap:
+   * Orders screen  -> selected customer's existing order -> Order Full Details
+   * Customers screen -> selected customer's normal Customer Card/call context
+   *
+   * Never route Orders -> Customer Card.
+   * Never route this menu action to New Order.
+   */
+  window.openCustomerFromMyCustomersMenu = function(customerId){
+    var origin = nfMenuOrigin || currentView();
+
+    if(typeof window.closeMyCustomersSlideMenu === "function"){
+      window.closeMyCustomersSlideMenu();
+    }
+
     setTimeout(function(){
-      var title=document.getElementById("modalTitle");
-      if(title)title.textContent="＋ Add Customer";
-    },0);
+      if(origin === "orders"){
+        var order = findCustomerOrder(customerId);
+
+        if(order && typeof window.openOrderFullDetails === "function"){
+          window.openOrderFullDetails(String(order.id));
+          return;
+        }
+
+        if(typeof window.toast === "function"){
+          window.toast("இந்த customer-க்கு Order Details கிடைக்கவில்லை.", true);
+        }
+        return;
+      }
+
+      /* Customer Card context: preserve the existing customer navigation. */
+      if(typeof window.goToCustomer === "function"){
+        window.goToCustomer(String(customerId));
+      }
+    }, 80);
   };
+
+  /*
+   * If the menu is opened through another existing menu entry point,
+   * capture the origin there too, without changing the actual menu UI.
+   */
+  document.addEventListener("click", function(e){
+    var t = e.target && e.target.closest ? e.target.closest(
+      '[onclick*="toggleMyCustomersSlideMenu"], [onclick*="toggleMyCustomersMenu"]'
+    ) : null;
+    if(t){
+      nfMenuOrigin = currentView();
+    }
+  }, true);
+
 })();
 </script>
 
-<script id="nf-v203-customer-order-routing-final">
+
+<!-- FINAL CUSTOMER SAVE -> NEW ORDER FIX v2
+     Source: index-12-corrected.html
+     The existing hand-off called openOrdersNewOrderForCustomer(), but that
+     function targeted the old #ordersQuickCustomerStart selector. The actual
+     New Order entry screen creates #ordersQuickCustomerStartInline.
+     This final definition is intentionally synchronous so the modal opens
+     immediately and the newly saved customer is selected immediately. -->
+<script id="nf-final-customer-save-new-order-v3">
 (function(){
   "use strict";
 
-  /* V203 FINAL: customer/order routing only.
-     No calculation, payment, order-total, or sync formulas are changed here.
-     The only purpose of this patch is to make customer/order ID matching
-     type-safe and to make Add Customer -> existing Order linking deterministic. */
+  /*
+   * IMPORTANT:
+   * `state` is declared with `const` in this file, so it is NOT available
+   * as window.state. The previous fix incorrectly used window.state and
+   * therefore stopped before opening New Order.
+   */
+  window.openOrdersNewOrderForCustomer = function(customerId){
+    var cid = String(customerId || "");
+    if(!cid) return false;
 
-  function key(v){ return String(v==null?"":v).trim(); }
+    var customers = Array.isArray(state.customers) ? state.customers : [];
+    var customer = customers.find(function(c){
+      return String(c && c.id || "") === cid;
+    });
 
-  function resolveCustomer(id){
-    var sid=key(id);
-    return (state.customers||[]).find(function(c){ return key(c&&c.id)===sid; })||null;
-  }
-
-  function resolveCustomerId(id){
-    var c=resolveCustomer(id);
-    return c ? c.id : id;
-  }
-
-  function resolveOrder(id){
-    var sid=key(id);
-    return (state.orders||[]).find(function(o){ return key(o&&o.id)===sid; })||null;
-  }
-
-  /* Fix the common failure point used by Customer Card, Dashboard,
-     Payments, Measurements, and customer/order detail routing. */
-  window.customerName=function(id){
-    var c=resolveCustomer(id);
-    return c ? (c.name||"Unknown") : "Unknown";
-  };
-
-  window.customerOrders=function(id){
-    var sid=key(id);
-    return (state.orders||[]).filter(function(o){ return key(o&&o.customer_id)===sid; });
-  };
-
-  window.customerPayments=function(id){
-    var ids=new Set(window.customerOrders(id).map(function(o){return key(o&&o.id);}));
-    return (state.payments||[]).filter(function(p){return ids.has(key(p&&p.order_id));});
-  };
-
-  /* Customer Card itself previously used strict equality before reading c.address.
-     Always pass the actual stored ID value to the original renderer. */
-  var baseCustomerCard=window.customerCard;
-  if(typeof baseCustomerCard==='function' && !baseCustomerCard.__nfV203Final){
-    var wrappedCustomerCard=function(id){
-      var actual=resolveCustomerId(id);
-      if(!resolveCustomer(actual)){
-        return '<div class="card empty">Customer கிடைக்கவில்லை.</div>';
+    if(!customer){
+      if(typeof toast === "function"){
+        toast("Customer கிடைக்கவில்லை.", true);
       }
-      return baseCustomerCard.call(this,actual);
-    };
-    wrappedCustomerCard.__nfV203Final=true;
-    window.customerCard=wrappedCustomerCard;
-  }
-
-  /* Menu/customer-card navigation: never manufacture an order error merely
-     because the selected ID is a different primitive type. */
-  window.goToCustomer=function(id){
-    var actual=resolveCustomerId(id);
-    goView('customers');
-    setTimeout(function(){
-      var card=document.getElementById('customer-card-'+actual);
-      if(card){ card.scrollIntoView({behavior:'smooth',block:'start'}); }
-      else {
-        var fallback=document.getElementById('customer-card-'+key(actual));
-        if(fallback)fallback.scrollIntoView({behavior:'smooth',block:'start'});
-      }
-    },120);
-  };
-
-  window.openLatestCustomerOrderEdit=function(customerId){
-    var actual=resolveCustomerId(customerId);
-    var order=window.customerOrders(actual).slice().sort(function(a,b){
-      return String(b.created_at||b.order_date||'').localeCompare(String(a.created_at||a.order_date||''));
-    })[0]||null;
-    if(!order){ toast('இந்த customer-க்கு Edit செய்ய Order இல்லை.',true); return; }
-    if(typeof window.openOrdersEditOrder==='function') window.openOrdersEditOrder(String(order.id));
-  };
-
-  window.openLatestCustomerOrderFullDetails=function(customerId){
-    var actual=resolveCustomerId(customerId);
-    var order=window.customerOrders(actual).slice().sort(function(a,b){
-      return String(b.created_at||b.order_date||'').localeCompare(String(a.created_at||a.order_date||''));
-    })[0]||null;
-    if(!order){ toast('இந்த customer-க்கு Order இல்லை.',true); return; }
-    if(typeof window.openCustomerOrderFullDetails==='function') window.openCustomerOrderFullDetails(String(order.id));
-    else if(typeof window.openOrderFullDetails==='function') window.openOrderFullDetails(String(order.id));
-  };
-
-  window.openCustomerOrderEditor=function(customerId,orderId){
-    var actualCustomer=resolveCustomerId(customerId);
-    var order=resolveOrder(orderId);
-    if(!order){
-      order=window.customerOrders(actualCustomer).slice().sort(function(a,b){
-        return String(b.created_at||b.order_date||'').localeCompare(String(a.created_at||a.order_date||''));
-      })[0]||null;
+      return false;
     }
-    if(!order){ toast('இந்த customer-க்கு Edit செய்ய order இல்லை. முதலில் New Order சேமிக்கவும்.',true); return; }
-    /* Dedicated Orders editor only. This avoids the old Customer Card inline
-       route and therefore cannot change calculation logic. */
-    if(typeof window.openOrdersEditOrder==='function'){
-      window.openOrdersEditOrder(String(order.id));
-      return;
+
+    // Open the Orders view only if it is not already the active view.
+    // Do not let navigation history close the New Order modal.
+    var ordersView = document.getElementById("view-orders");
+    if(!ordersView || !ordersView.classList.contains("active")){
+      if(typeof goView === "function") goView("orders", true);
     }
-    toast('Edit Order screen கிடைக்கவில்லை.',true);
-  };
 
-  window.openCustomerPayment=function(id){
-    var actual=resolveCustomerId(id);
-    var os=window.customerOrders(actual);
-    if(!os.length){ toast('இந்த customer-க்கு order இல்லை.',true); return; }
-    openModal('payment');
-    setTimeout(function(){
-      var x=document.querySelector('#formFields [name="order_id"]');
-      if(x){x.value=os[0].id;x.dispatchEvent(new Event('change',{bubbles:true}));}
-    },30);
-  };
-
-  window.openCustomerMeasurement=function(id){
-    var actual=resolveCustomerId(id);
-    openModal('measurement');
-    setTimeout(function(){
-      var x=document.querySelector('#formFields [name="customer_id"]');
-      if(x){x.value=actual;x.dispatchEvent(new Event('change',{bubbles:true}));}
-    },30);
-  };
-
-  window.openCustomerOrder=function(id){
-    var actual=resolveCustomerId(id);
-    openModal('order');
-    setTimeout(function(){
-      var x=document.querySelector('#formFields [name="customer_id"]');
-      if(x){x.value=actual;x.dispatchEvent(new Event('change',{bubbles:true}));}
-    },30);
-  };
-
-  /* Keep the canonical New Order opener type-safe. The opener itself now owns
-     the customer-select handoff, so this final routing layer only normalizes ID. */
-  var baseOpenOrdersNewOrderForCustomer=window.openOrdersNewOrderForCustomer;
-  if(typeof baseOpenOrdersNewOrderForCustomer==='function' && !baseOpenOrdersNewOrderForCustomer.__nfV203Final){
-    var wrappedNewOrder=function(customerId){
-      var actual=resolveCustomerId(customerId);
-      if(!resolveCustomer(actual)){
-        toast('Customer கிடைக்கவில்லை.',true);
-        return;
-      }
-      return baseOpenOrdersNewOrderForCustomer.call(this,actual);
-    };
-    wrappedNewOrder.__nfV203Final=true;
-    window.openOrdersNewOrderForCustomer=wrappedNewOrder;
-  }
-
-  /* ------------------------------------------------------------------
-     Add Customer from an Order card. The previous implementation waited for
-     a side effect in state.customers and could miss it during loadAll().
-     Here we take a snapshot, let the original Customer Save flow run exactly
-     as-is, then deterministically find the newly inserted customer and only
-     update that Order's customer_id. No calculation/sync formula is touched.
-  ------------------------------------------------------------------ */
-  var addOrderLink=null;
-  window.openAddCustomerForOrder=function(orderId){
-    var order=resolveOrder(orderId);
-    if(!order){ toast('Order கிடைக்கவில்லை.',true); return; }
-    addOrderLink={
-      orderId:order.id,
-      existingIds:new Set((state.customers||[]).map(function(c){return key(c.id);})),
-      startedAt:Date.now(),
-      handled:false
-    };
-    openModal('customer');
-    setTimeout(function(){
-      var title=document.getElementById('modalTitle');
-      if(title)title.textContent='＋ Add Customer — Order-க்கு இணைக்கவும்';
-      var msg=document.getElementById('formMsg');
-      if(msg){
-        msg.textContent='Customer Save செய்தவுடன் இந்த Order-க்கு தானாக sync ஆகும்.';
-        msg.className='msg';
-      }
-    },0);
-  };
-
-  async function finishOrderCustomerLink(){
-    var link=addOrderLink;
-    if(!link||link.handled||Date.now()-link.startedAt>15000)return;
-    var fresh=(state.customers||[]).find(function(c){return !link.existingIds.has(key(c.id));});
-    if(!fresh)return;
-    link.handled=true;
-    var order=resolveOrder(link.orderId);
-    if(!order){addOrderLink=null;return;}
-    try{
-      var result=await supabaseClient.from('orders')
-        .update({customer_id:fresh.id})
-        .eq('id',order.id)
-        .select()
-        .single();
-      if(result.error)throw result.error;
-      /* Update in-memory order immediately, then use the normal refresh path. */
-      var idx=(state.orders||[]).findIndex(function(o){return key(o.id)===key(order.id);});
-      if(idx>=0)state.orders[idx]=Object.assign({},state.orders[idx],{customer_id:fresh.id});
-      if(typeof renderAll==='function')renderAll();
-      if(typeof renderOrders==='function')renderOrders();
-      toast('Customer Order-க்கு sync செய்யப்பட்டது.');
-      await loadAll(true);
-    }catch(err){
-      link.handled=false;
-      toast('Customer sync failed: '+(err&&err.message||err),true);
+    if(typeof openOrdersQuickAdd !== "function"){
+      if(typeof toast === "function") toast("New Order screen கிடைக்கவில்லை.", true);
+      return false;
     }
-    addOrderLink=null;
-  }
 
-  if(!document.__nfV203OrderCustomerListener){
-    document.__nfV203OrderCustomerListener=true;
-    document.getElementById('dataForm')?.addEventListener('submit',function(){
-      if(!addOrderLink)return;
-      var started=Date.now();
-      var timer=setInterval(function(){
-        if(!addOrderLink||addOrderLink.startedAt!==started&&Date.now()-addOrderLink.startedAt>15000){
-          clearInterval(timer);return;
-        }
-        finishOrderCustomerLink().then(function(){
-          if(!addOrderLink)clearInterval(timer);
-        });
-      },180);
-      setTimeout(function(){clearInterval(timer);},15200);
-    },false);
-  }
+    // This creates #ordersQuickCustomerStartInline synchronously.
+    openOrdersQuickAdd();
 
-  /* Existing loadAll may replace state arrays; retry the deterministic link
-     after every refresh while the short-lived Add Customer handoff is active. */
-  var baseLoadAll=window.loadAll;
-  if(typeof baseLoadAll==='function' && !baseLoadAll.__nfV203Final){
-    var wrappedLoadAll=async function(){
-      var r=await baseLoadAll.apply(this,arguments);
-      if(addOrderLink) setTimeout(finishOrderCustomerLink,60);
-      return r;
-    };
-    wrappedLoadAll.__nfV203Final=true;
-    window.loadAll=wrappedLoadAll;
-  }
+    // Immediately mount the full form for the customer that was just saved.
+    // mountOrdersQuickForm itself creates the selected customer option and
+    // the complete New Order form, so no manual "Select customer" step remains.
+    if(typeof mountOrdersQuickForm === "function"){
+      mountOrdersQuickForm(cid);
+      return true;
+    }
 
+    // Defensive fallback: at least select the inline customer selector.
+    var select = document.getElementById("ordersQuickCustomerStartInline");
+    if(select){
+      select.value = cid;
+      select.dispatchEvent(new Event("change", {bubbles:true}));
+      return true;
+    }
+
+    return false;
+  };
 })();
 </script>
