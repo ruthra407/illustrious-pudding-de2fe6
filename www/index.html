@@ -2193,37 +2193,16 @@ function mountOrdersQuickForm(customerId){
    if(typeof window.renderQuickDesignRates==="function")window.renderQuickDesignRates(key,[]);
  }
 }
-function openOrdersQuickAdd(customerId=""){
+function openOrdersQuickAdd(){
  const modal=$("ordersNewOrderScreen"),panel=$("ordersNewOrderContent");
- if(!modal||!panel)return false;
- const cid=String(customerId||"");
- const customers=Array.isArray(state.customers)?state.customers:[];
- if(cid && !customers.some(c=>String(c?.id||"")===cid)){
-   toast("Customer கிடைக்கவில்லை.",true);
-   return false;
- }
-
- /* V401.0: one canonical New Order entry point.
-    When a customer is supplied, mount the complete New Order form directly
-    instead of opening a temporary customer selector first. */
+ if(!modal||!panel)return;
+ const options=state.customers.map(c=>'<option value="'+esc(c.id)+'">'+esc(c.name||"Customer")+'</option>').join("");
+ panel.innerHTML='<div class="field" style="margin-bottom:12px"><label>Customer</label><select id="ordersQuickCustomerStartInline" class="input" onchange="mountOrdersQuickForm(this.value)"><option value="">Select customer</option>'+options+'</select></div><div class="hint">Customer-ஐ தேர்வு செய்ததும் Customer Card-ல் இருக்கும் அதே <b>New Order</b> system இங்கே முழுமையாக வரும்.</div>';
  modal.classList.add("open");
  const base=history.state||{view:"orders"};
- if(!base.__nfOrdersNewOrder){
-   history.pushState({...base,__nfOrdersNewOrder:true},"",location.hash||"#orders-new-order");
- }
-
- if(cid){
-   mountOrdersQuickForm(cid);
-   const title=$("ordersNewOrderScreenTitle");
-   if(title)title.textContent="🧾 New Order";
-   return true;
- }
-
- const options=customers.map(c=>'<option value="'+esc(c.id)+'">'+esc(c.name||"Customer")+'</option>').join("");
- panel.innerHTML='<div class="field" style="margin-bottom:12px"><label>Customer</label><select id="ordersQuickCustomerStart" class="input" onchange="mountOrdersQuickForm(this.value)"><option value="">Select customer</option>'+options+'</select></div><div class="hint">Customer-ஐ தேர்வு செய்ததும் Customer Card-ல் இருக்கும் அதே <b>New Order</b> system இங்கே முழுமையாக வரும்.</div>';
- const select=$("ordersQuickCustomerStart");
+ if(!base.__nfOrdersNewOrder){history.pushState({...base,__nfOrdersNewOrder:true},"",location.hash||"#orders-new-order");}
+ const select=$("ordersQuickCustomerStartInline");
  if(select)select.focus();
- return true;
 }
 
 function toggleCompactSearch(type,force){
@@ -2953,11 +2932,7 @@ if(type==="order"){
 }
 const wasNewCustomer=type==="customer" && !id;
 const savedCustomerId=type==="customer" ? String(result.data?.id||"") : "";
-/* Customer Save → New Order is a direct hand-off. Do not trigger the modal
-   history.back() here, because it can race with openOrdersQuickAdd() and
-   immediately close the New Order screen again. All other save flows keep
-   the original closeModal() history behavior unchanged. */
-closeModal(!(wasNewCustomer && savedCustomerId));
+closeModal();
 
 if(wasNewCustomer && savedCustomerId){
   /* SPEED FIX: do not wait for the full 6-table refresh before opening New Order.
@@ -5417,22 +5392,14 @@ function nfFormatPaymentDate(v){return v?dateText(v):"—";}
   };
   window.renderOrders.__nfFinalOrderSync=true;
 
-  /* V401.0 — Home Add Customer → Orders → New Order. */
   window.openOrdersNewOrderForCustomer=function(customerId){
-    var cid=String(customerId||"");
-    if(!cid)return false;
-
-    var ordersView=document.getElementById("view-orders");
-    if(!ordersView || !ordersView.classList.contains("active")){
-      if(typeof goView==="function")goView("orders",true);
-    }
-
-    if(typeof openOrdersQuickAdd!=="function"){
-      if(typeof toast==="function")toast("New Order screen கிடைக்கவில்லை.",true);
-      return false;
-    }
-
-    return openOrdersQuickAdd(cid);
+    openOrdersQuickAdd();
+    setTimeout(function(){
+      var select=$("ordersQuickCustomerStart");
+      if(select){select.value=String(customerId);mountOrdersQuickForm(customerId);}
+      var title=$("ordersNewOrderScreenTitle");
+      if(title)title.textContent="🧾 New Order";
+    },0);
   };
 
   window.openOrdersEditOrder=function(orderId){
@@ -6216,22 +6183,10 @@ function nfFormatPaymentDate(v){return v?dateText(v):"—";}
   window.openLatestCustomerOrderEdit=function(customerId){
     var order=latestForCustomer(customerId);
     if(!order){
-      /* Customer Card → Edit Order must also be the New Order entry point
-         when this customer has no saved order yet.  Do not block the user
-         with an "no order" error; leave all customer/data/calculation logic
-         unchanged. */
-      if(typeof window.openOrdersNewOrderForCustomer === "function"){
-        window.openOrdersNewOrderForCustomer(String(customerId));
-        return true;
-      }
-      if(typeof window.openOrdersQuickAdd === "function"){
-        return !!window.openOrdersQuickAdd(String(customerId));
-      }
-      toast("New Order screen கிடைக்கவில்லை.",true);
-      return false;
+      toast("இந்த customer-க்கு Edit செய்ய Order இல்லை.",true);
+      return;
     }
     dedicatedEdit(order.id);
-    return true;
   };
 
   window.__v2035DedicatedCustomerEdit=true;
@@ -8672,98 +8627,95 @@ window.addEventListener("keydown",function(e){if(e.key==="Escape")window.closeCu
 
 
 
-
-<!-- FINAL FIX: context-aware customer slide menu routing -->
-<script id="nf-final-context-customer-routing">
+<script id="nf-v205-order-sidebar-customer-target-fix">
 (function(){
   "use strict";
-
-  var nfMenuOrigin = "customers";
+  if(window.__nfV205OrderSidebarCustomerTargetFix) return;
+  window.__nfV205OrderSidebarCustomerTargetFix=true;
 
   function currentView(){
-    var orders = document.getElementById("view-orders");
-    var customers = document.getElementById("view-customers");
-    if(orders && orders.classList.contains("active")) return "orders";
-    if(customers && customers.classList.contains("active")) return "customers";
-    return nfMenuOrigin;
+    return (history.state && history.state.view) || "dashboard";
   }
 
-  function findCustomerOrder(customerId){
-    var orders = (window.state && Array.isArray(state.orders)) ? state.orders : [];
-    var matches = orders.filter(function(o){
-      return String(o && o.customer_id || "") === String(customerId || "");
+  function closeSidebar(){
+    var drawer=document.getElementById("sidebar");
+    if(drawer) drawer.classList.remove("open");
+    document.body.classList.remove("drawer-open");
+  }
+
+  function latestOrderForCustomer(customerId){
+    var list=(state.orders||[]).filter(function(o){
+      return String(o.customer_id)===String(customerId);
     });
-
-    matches.sort(function(a,b){
-      var ad = String(a && (a.created_at || a.order_date || "") || "");
-      var bd = String(b && (b.created_at || b.order_date || "") || "");
-      return bd.localeCompare(ad);
+    list.sort(function(a,b){
+      return String(b.created_at||b.order_date||b.cloth_received_date||b.id||"")
+        .localeCompare(String(a.created_at||a.order_date||a.cloth_received_date||a.id||""));
     });
-
-    return matches[0] || null;
+    return list[0]||null;
   }
 
-  /* Record the screen from which the slide menu was opened. */
-  var originalToggle = window.toggleMyCustomersSlideMenu;
-  if(typeof originalToggle === "function" && !originalToggle.__nfFinalContextRouting){
-    window.toggleMyCustomersSlideMenu = function(e){
-      var panel = document.getElementById("nfCustomerSlideMenu");
-      var opening = !panel || !panel.classList.contains("nf-open");
-      if(opening) nfMenuOrigin = currentView();
-      return originalToggle.apply(this, arguments);
-    };
-    window.toggleMyCustomersSlideMenu.__nfFinalContextRouting = true;
+  function findOrderCard(order){
+    if(!order) return null;
+    var orderNo=String(order.order_no||"").trim();
+    if(!orderNo) return null;
+
+    var mobile=null;
+    document.querySelectorAll("#ordersTable .nf-mobile-order-card").forEach(function(card){
+      if(mobile) return;
+      var label=String(card.getAttribute("aria-label")||"");
+      if(label.toLowerCase()===("order "+orderNo).toLowerCase()) mobile=card;
+    });
+    if(mobile) return mobile;
+
+    var desktop=null;
+    document.querySelectorAll("#ordersTable table tbody tr").forEach(function(tr){
+      if(desktop) return;
+      var first=tr.querySelector("td");
+      if(first && String(first.textContent||"").trim()===orderNo) desktop=tr;
+    });
+    return desktop;
   }
 
-  /*
-   * Customer List tap:
-   * Orders screen  -> selected customer's existing order -> Order Full Details
-   * Customers screen -> selected customer's normal Customer Card/call context
-   *
-   * Never route Orders -> Customer Card.
-   * Never route this menu action to New Order.
-   */
-  window.openCustomerFromMyCustomersMenu = function(customerId){
-    var origin = nfMenuOrigin || currentView();
+  function focusOrderCard(card){
+    if(!card) return false;
+    document.querySelectorAll("#ordersTable .nf-v205-order-target").forEach(function(x){
+      x.classList.remove("nf-v205-order-target");
+    });
+    card.classList.add("nf-v205-order-target");
+    card.scrollIntoView({behavior:"auto",block:"center"});
+    setTimeout(function(){card.classList.remove("nf-v205-order-target");},1400);
+    return true;
+  }
 
-    if(typeof window.closeMyCustomersSlideMenu === "function"){
-      window.closeMyCustomersSlideMenu();
-    }
+  window.openSidebarCustomer=function(id){
+    var targetId=String(id||"");
+    if(!targetId) return;
 
-    setTimeout(function(){
-      if(origin === "orders"){
-        var order = findCustomerOrder(customerId);
+    closeSidebar();
 
-        if(order && typeof window.openOrderFullDetails === "function"){
-          window.openOrderFullDetails(String(order.id));
-          return;
-        }
-
-        if(typeof window.toast === "function"){
-          window.toast("இந்த customer-க்கு Order Details கிடைக்கவில்லை.", true);
-        }
+    /* Orders page: stay in Orders and jump directly to this customer's
+       existing order card. No data reload, sync, calculation or view reset. */
+    if(currentView()==="orders"){
+      var order=latestOrderForCustomer(targetId);
+      if(!order){
+        if(typeof toast==="function") toast("இந்த customer-க்கு Order இல்லை.",true);
         return;
       }
 
-      /* Customer Card context: preserve the existing customer navigation. */
-      if(typeof window.goToCustomer === "function"){
-        window.goToCustomer(String(customerId));
-      }
-    }, 80);
+      if(focusOrderCard(findOrderCard(order))) return;
+
+      /* If a filter currently hides the card, open its existing full-details
+         view rather than changing filters or reloading any data. */
+      if(typeof openOrderFullDetails==="function") openOrderFullDetails(order.id);
+      return;
+    }
+
+    /* All other pages keep the existing Customer navigation unchanged. */
+    if(typeof goToCustomer==="function") goToCustomer(targetId);
   };
 
-  /*
-   * If the menu is opened through another existing menu entry point,
-   * capture the origin there too, without changing the actual menu UI.
-   */
-  document.addEventListener("click", function(e){
-    var t = e.target && e.target.closest ? e.target.closest(
-      '[onclick*="toggleMyCustomersSlideMenu"], [onclick*="toggleMyCustomersMenu"]'
-    ) : null;
-    if(t){
-      nfMenuOrigin = currentView();
-    }
-  }, true);
-
+  var style=document.createElement("style");
+  style.textContent=".nf-v205-order-target{outline:3px solid #6c4df6!important;outline-offset:3px;box-shadow:0 0 0 6px rgba(108,77,246,.14),0 16px 36px rgba(108,77,246,.22)!important;transition:outline .12s ease,box-shadow .12s ease!important;}";
+  document.head.appendChild(style);
 })();
 </script>
