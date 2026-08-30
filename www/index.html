@@ -2193,16 +2193,14 @@ function mountOrdersQuickForm(customerId){
    if(typeof window.renderQuickDesignRates==="function")window.renderQuickDesignRates(key,[]);
  }
 }
-function openOrdersQuickAdd(skipHistory=false){
+function openOrdersQuickAdd(){
  const modal=$("ordersNewOrderScreen"),panel=$("ordersNewOrderContent");
  if(!modal||!panel)return;
  const options=state.customers.map(c=>'<option value="'+esc(c.id)+'">'+esc(c.name||"Customer")+'</option>').join("");
  panel.innerHTML='<div class="field" style="margin-bottom:12px"><label>Customer</label><select id="ordersQuickCustomerStartInline" class="input" onchange="mountOrdersQuickForm(this.value)"><option value="">Select customer</option>'+options+'</select></div><div class="hint">Customer-ஐ தேர்வு செய்ததும் Customer Card-ல் இருக்கும் அதே <b>New Order</b> system இங்கே முழுமையாக வரும்.</div>';
  modal.classList.add("open");
- if(!skipHistory){
-   const base=history.state||{view:"orders"};
-   if(!base.__nfOrdersNewOrder){history.pushState({...base,__nfOrdersNewOrder:true},"",location.hash||"#orders-new-order");}
- }
+ const base=history.state||{view:"orders"};
+ if(!base.__nfOrdersNewOrder){history.pushState({...base,__nfOrdersNewOrder:true},"",location.hash||"#orders-new-order");}
  const select=$("ordersQuickCustomerStartInline");
  if(select)select.focus();
 }
@@ -8653,156 +8651,174 @@ window.addEventListener("keydown",function(e){if(e.key==="Escape")window.closeCu
 
 
 
+<!-- NF navigation/context safety patch -->
 
-<!-- FINAL FIX: context-aware customer slide menu routing -->
-<script id="nf-final-context-customer-routing">
+<!-- NF navigation/context safety patch -->
+<script id="nf-navigation-context-safe-patch">
 (function(){
   "use strict";
 
-  var nfMenuOrigin = "customers";
-
-  function currentView(){
-    var orders = document.getElementById("view-orders");
-    var customers = document.getElementById("view-customers");
-    if(orders && orders.classList.contains("active")) return "orders";
-    if(customers && customers.classList.contains("active")) return "customers";
-    return nfMenuOrigin;
-  }
-
-  function findCustomerOrder(customerId){
-    var orders = (window.state && Array.isArray(state.orders)) ? state.orders : [];
-    var matches = orders.filter(function(o){
-      return String(o && o.customer_id || "") === String(customerId || "");
-    });
-
-    matches.sort(function(a,b){
-      var ad = String(a && (a.created_at || a.order_date || "") || "");
-      var bd = String(b && (b.created_at || b.order_date || "") || "");
-      return bd.localeCompare(ad);
-    });
-
-    return matches[0] || null;
-  }
-
-  /* Record the screen from which the slide menu was opened. */
-  var originalToggle = window.toggleMyCustomersSlideMenu;
-  if(typeof originalToggle === "function" && !originalToggle.__nfFinalContextRouting){
-    window.toggleMyCustomersSlideMenu = function(e){
-      var panel = document.getElementById("nfCustomerSlideMenu");
-      var opening = !panel || !panel.classList.contains("nf-open");
-      if(opening) nfMenuOrigin = currentView();
-      return originalToggle.apply(this, arguments);
-    };
-    window.toggleMyCustomersSlideMenu.__nfFinalContextRouting = true;
-  }
-
   /*
-   * Customer List tap:
-   * Orders screen  -> selected customer's existing order -> Order Full Details
-   * Customers screen -> selected customer's normal Customer Card/call context
-   *
-   * Never route Orders -> Customer Card.
-   * Never route this menu action to New Order.
+   * This patch intentionally changes navigation only.
+   * It does NOT touch order/customer payloads, calculations, payment sync,
+   * database writes, or existing render functions.
    */
-  window.openCustomerFromMyCustomersMenu = function(customerId){
-    var origin = nfMenuOrigin || currentView();
 
-    if(typeof window.closeMyCustomersSlideMenu === "function"){
-      window.closeMyCustomersSlideMenu();
+  function safeId(v){ return String(v==null?"":v); }
+
+  function latestOrderForCustomerSafe(customerId){
+    var list=(window.state && Array.isArray(state.orders)?state.orders:[])
+      .filter(function(o){return safeId(o.customer_id)===safeId(customerId);})
+      .slice();
+    list.sort(function(a,b){
+      return String(b.created_at||b.order_date||"")
+        .localeCompare(String(a.created_at||a.order_date||""));
+    });
+    return list[0]||null;
+  }
+
+  /* ---------------------------------------------------------------
+   * 1) Customer Save -> direct New/Edit Order screen.
+   *    Reuses the existing quick-order renderer, then removes ONLY the
+   *    customer-selection row. Therefore the existing form/calculation
+   *    handlers remain untouched.
+   * --------------------------------------------------------------- */
+  window.openOrdersNewOrderForCustomer=function(customerId){
+    var cid=safeId(customerId);
+    if(!cid){
+      if(typeof toast==="function")toast("Customer கிடைக்கவில்லை.",true);
+      return;
     }
 
-    setTimeout(function(){
-      if(origin === "orders"){
-        var order = findCustomerOrder(customerId);
+    var customer=(window.state&&Array.isArray(state.customers))
+      ? state.customers.find(function(c){return safeId(c.id)===cid;}) : null;
+    if(!customer){
+      if(typeof toast==="function")toast("Customer கிடைக்கவில்லை.",true);
+      return;
+    }
 
-        if(order && typeof window.openOrderFullDetails === "function"){
-          window.openOrderFullDetails(String(order.id));
+    var modal=document.getElementById("ordersNewOrderScreen");
+    var panel=document.getElementById("ordersNewOrderContent");
+    if(!modal||!panel){
+      if(typeof toast==="function")toast("Edit Order screen கிடைக்கவில்லை.",true);
+      return;
+    }
+
+    /* Build the exact existing order form first. */
+    if(typeof openOrdersQuickAdd==="function"){
+      openOrdersQuickAdd();
+    }else{
+      modal.classList.add("open");
+    }
+
+    /* Existing mount function contains the canonical customer-card order
+       form and all of its calculation/sync handlers. */
+    if(typeof mountOrdersQuickForm==="function"){
+      mountOrdersQuickForm(cid);
+    }else{
+      if(typeof toast==="function")toast("New Order form கிடைக்கவில்லை.",true);
+      return;
+    }
+
+    /* Remove the customer-selection UI completely. */
+    var chooser=document.getElementById("ordersQuickCustomerStart");
+    if(chooser && chooser.parentElement) chooser.parentElement.remove();
+
+    var inlineChooser=document.getElementById("ordersQuickCustomerStartInline");
+    if(inlineChooser && inlineChooser.parentElement) inlineChooser.parentElement.remove();
+
+    var title=document.getElementById("ordersNewOrderScreenTitle");
+    if(title) title.textContent="✏️ Edit Order";
+
+    modal.classList.add("open");
+    modal.setAttribute("aria-hidden","false");
+
+    /* Keep the modal in Orders context without adding another history entry. */
+    var currentHistory=history.state||{};
+    history.replaceState(
+      Object.assign({},currentHistory,{view:"orders",__nfView:true,__nfOrdersNewOrder:true}),
+      "",
+      "#orders-new-order"
+    );
+
+    setTimeout(function(){
+      var box=document.getElementById("quick-order-"+
+        (typeof ordersQuickKey==="function"?ordersQuickKey(cid):("orders_"+cid.replace(/[^a-zA-Z0-9_-]/g,"_")))
+      );
+      if(box)box.scrollIntoView({behavior:"smooth",block:"start"});
+    },40);
+  };
+
+  /* ---------------------------------------------------------------
+   * 2) Sidebar Customer List -> context-aware destination.
+   *    Customer context stays Customer Card.
+   *    Orders context stays Orders / Order Details.
+   * --------------------------------------------------------------- */
+  window.openSidebarCustomer=function(customerId){
+    var cid=safeId(customerId);
+    var drawer=document.getElementById("sidebar");
+    if(!cid)return;
+
+    try{
+      var fullDetails=document.getElementById("nfOrderFullDetails");
+      var orderEdit=document.getElementById("ordersNewOrderScreen");
+      var currentView=(history.state&&history.state.view)||"dashboard";
+
+      /* If an Order Full Details overlay is currently open, preserve that
+         exact order-detail context and open the selected customer's latest
+         order in the same Order Details overlay. */
+      if(fullDetails && fullDetails.classList.contains("open")){
+        var selectedOrder=latestOrderForCustomerSafe(cid);
+        if(selectedOrder && typeof openOrderFullDetails==="function"){
+          openOrderFullDetails(String(selectedOrder.id));
           return;
         }
+        if(typeof toast==="function")toast("இந்த customer-க்கு Order கிடைக்கவில்லை.",true);
+        return;
+      }
 
-        if(typeof window.toast === "function"){
-          window.toast("இந்த customer-க்கு Order Details கிடைக்கவில்லை.", true);
+      /* Orders screen context: never redirect to Customer Card. */
+      if(currentView==="orders" ||
+         (orderEdit && orderEdit.classList.contains("open"))){
+        var order=latestOrderForCustomerSafe(cid);
+        if(order && typeof openOrderFullDetails==="function"){
+          openOrderFullDetails(String(order.id));
+        }else if(typeof toast==="function"){
+          toast("இந்த customer-க்கு Order கிடைக்கவில்லை.",true);
         }
         return;
       }
 
-      /* Customer Card context: preserve the existing customer navigation. */
-      if(typeof window.goToCustomer === "function"){
-        window.goToCustomer(String(customerId));
+      /* Customer Card context: stay inside Customer Cards. */
+      if(currentView==="customers" && typeof goToCustomer==="function"){
+        goToCustomer(cid);
+        return;
       }
-    }, 80);
+
+      /* For non-customer/non-order pages, keep the original safe behavior. */
+      if(typeof goToCustomer==="function")goToCustomer(cid);
+    }finally{
+      if(drawer)drawer.classList.remove("open");
+      if(document.body)document.body.classList.remove("drawer-open");
+    }
   };
 
-  /*
-   * If the menu is opened through another existing menu entry point,
-   * capture the origin there too, without changing the actual menu UI.
-   */
-  document.addEventListener("click", function(e){
-    var t = e.target && e.target.closest ? e.target.closest(
-      '[onclick*="toggleMyCustomersSlideMenu"], [onclick*="toggleMyCustomersMenu"]'
-    ) : null;
-    if(t){
-      nfMenuOrigin = currentView();
-    }
-  }, true);
+  /* ---------------------------------------------------------------
+   * 3) Make the Home/Customers/Orders + flows use the same direct
+   *    customer -> order hand-off wherever the existing customer save
+   *    already calls openOrdersNewOrderForCustomer().
+   *    No data operation is introduced here.
+   * --------------------------------------------------------------- */
+  function normalizeCustomerAddButtons(){
+    document.querySelectorAll('[data-view="customers"]').forEach(function(btn){
+      btn.setAttribute("data-nf-nav-context","customers");
+    });
+  }
 
-})();
-</script>
-
-
-<!-- FINAL CUSTOMER SAVE -> NEW ORDER FIX v2
-     Source: index-12-corrected.html
-     The existing hand-off called openOrdersNewOrderForCustomer(), but that
-     function targeted the old #ordersQuickCustomerStart selector. The actual
-     New Order entry screen creates #ordersQuickCustomerStartInline.
-     This final definition is intentionally synchronous so the modal opens
-     immediately and the newly saved customer is selected immediately. -->
-<script id="nf-final-customer-save-new-order-v4">
-(function(){
-  "use strict";
-  window.openOrdersNewOrderForCustomer=function(customerId){
-    var cid=String(customerId||"");
-    if(!cid)return false;
-
-    var customers=Array.isArray(state.customers)?state.customers:[];
-    var customer=customers.find(function(c){return String(c&&c.id||"")===cid;});
-    if(!customer){
-      if(typeof toast==="function")toast("Customer கிடைக்கவில்லை.",true);
-      return false;
-    }
-
-    if(typeof openOrdersQuickAdd!=="function"){
-      if(typeof toast==="function")toast("New Order screen கிடைக்கவில்லை.",true);
-      return false;
-    }
-
-    /*
-     * App/WebView-safe auto hand-off:
-     * open the existing New Order modal without creating a new history/hash
-     * entry. This prevents the host app from interpreting #orders-new-order
-     * as a separate page.
-     */
-    openOrdersQuickAdd(true);
-
-    /*
-     * mountOrdersQuickForm() uses the exact saved customer ID and builds the
-     * complete New Order form immediately, so "Select customer" is skipped.
-     */
-    if(typeof mountOrdersQuickForm==="function"){
-      mountOrdersQuickForm(cid);
-    }else{
-      var select=document.getElementById("ordersQuickCustomerStartInline");
-      if(!select){
-        if(typeof toast==="function")toast("New Order form திறக்க முடியவில்லை.",true);
-        return false;
-      }
-      select.value=cid;
-      select.dispatchEvent(new Event("change",{bubbles:true}));
-    }
-
-    var title=document.getElementById("ordersNewOrderScreenTitle");
-    if(title)title.textContent="🧾 New Order";
-    return true;
-  };
+  if(document.readyState==="loading"){
+    document.addEventListener("DOMContentLoaded",normalizeCustomerAddButtons,{once:true});
+  }else{
+    normalizeCustomerAddButtons();
+  }
 })();
 </script>
