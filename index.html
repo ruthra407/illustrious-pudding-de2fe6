@@ -8642,183 +8642,248 @@ window.addEventListener("keydown",function(e){if(e.key==="Escape")window.closeCu
   if(document.body) observer.observe(document.body,{childList:true,subtree:true});
 })();
 </script>
-
-
-
-
-
-
-
-
-
-<!-- NF navigation/context safety patch -->
-
-<!-- NF navigation/context safety patch -->
-<script id="nf-navigation-context-safe-patch">
+<script id="nf-v203-customer-order-routing-final">
 (function(){
   "use strict";
 
-  /*
-   * This patch intentionally changes navigation only.
-   * It does NOT touch order/customer payloads, calculations, payment sync,
-   * database writes, or existing render functions.
-   */
+  /* V203 FINAL: customer/order routing only.
+     No calculation, payment, order-total, or sync formulas are changed here.
+     The only purpose of this patch is to make customer/order ID matching
+     type-safe and to make Add Customer -> existing Order linking deterministic. */
 
-  function safeId(v){ return String(v==null?"":v); }
+  function key(v){ return String(v==null?"":v).trim(); }
 
-  function latestOrderForCustomerSafe(customerId){
-    var list=(window.state && Array.isArray(state.orders)?state.orders:[])
-      .filter(function(o){return safeId(o.customer_id)===safeId(customerId);})
-      .slice();
-    list.sort(function(a,b){
-      return String(b.created_at||b.order_date||"")
-        .localeCompare(String(a.created_at||a.order_date||""));
-    });
-    return list[0]||null;
+  function resolveCustomer(id){
+    var sid=key(id);
+    return (state.customers||[]).find(function(c){ return key(c&&c.id)===sid; })||null;
   }
 
-  /* ---------------------------------------------------------------
-   * 1) Customer Save -> direct New/Edit Order screen.
-   *    Reuses the existing quick-order renderer, then removes ONLY the
-   *    customer-selection row. Therefore the existing form/calculation
-   *    handlers remain untouched.
-   * --------------------------------------------------------------- */
-  window.openOrdersNewOrderForCustomer=function(customerId){
-    var cid=safeId(customerId);
-    if(!cid){
-      if(typeof toast==="function")toast("Customer கிடைக்கவில்லை.",true);
-      return;
-    }
+  function resolveCustomerId(id){
+    var c=resolveCustomer(id);
+    return c ? c.id : id;
+  }
 
-    var customer=(window.state&&Array.isArray(state.customers))
-      ? state.customers.find(function(c){return safeId(c.id)===cid;}) : null;
-    if(!customer){
-      if(typeof toast==="function")toast("Customer கிடைக்கவில்லை.",true);
-      return;
-    }
+  function resolveOrder(id){
+    var sid=key(id);
+    return (state.orders||[]).find(function(o){ return key(o&&o.id)===sid; })||null;
+  }
 
-    var modal=document.getElementById("ordersNewOrderScreen");
-    var panel=document.getElementById("ordersNewOrderContent");
-    if(!modal||!panel){
-      if(typeof toast==="function")toast("Edit Order screen கிடைக்கவில்லை.",true);
-      return;
-    }
+  /* Fix the common failure point used by Customer Card, Dashboard,
+     Payments, Measurements, and customer/order detail routing. */
+  window.customerName=function(id){
+    var c=resolveCustomer(id);
+    return c ? (c.name||"Unknown") : "Unknown";
+  };
 
-    /* Build the exact existing order form first. */
-    if(typeof openOrdersQuickAdd==="function"){
-      openOrdersQuickAdd();
-    }else{
-      modal.classList.add("open");
-    }
+  window.customerOrders=function(id){
+    var sid=key(id);
+    return (state.orders||[]).filter(function(o){ return key(o&&o.customer_id)===sid; });
+  };
 
-    /* Existing mount function contains the canonical customer-card order
-       form and all of its calculation/sync handlers. */
-    if(typeof mountOrdersQuickForm==="function"){
-      mountOrdersQuickForm(cid);
-    }else{
-      if(typeof toast==="function")toast("New Order form கிடைக்கவில்லை.",true);
-      return;
-    }
+  window.customerPayments=function(id){
+    var ids=new Set(window.customerOrders(id).map(function(o){return key(o&&o.id);}));
+    return (state.payments||[]).filter(function(p){return ids.has(key(p&&p.order_id));});
+  };
 
-    /* Remove the customer-selection UI completely. */
-    var chooser=document.getElementById("ordersQuickCustomerStart");
-    if(chooser && chooser.parentElement) chooser.parentElement.remove();
+  /* Customer Card itself previously used strict equality before reading c.address.
+     Always pass the actual stored ID value to the original renderer. */
+  var baseCustomerCard=window.customerCard;
+  if(typeof baseCustomerCard==='function' && !baseCustomerCard.__nfV203Final){
+    var wrappedCustomerCard=function(id){
+      var actual=resolveCustomerId(id);
+      if(!resolveCustomer(actual)){
+        return '<div class="card empty">Customer கிடைக்கவில்லை.</div>';
+      }
+      return baseCustomerCard.call(this,actual);
+    };
+    wrappedCustomerCard.__nfV203Final=true;
+    window.customerCard=wrappedCustomerCard;
+  }
 
-    var inlineChooser=document.getElementById("ordersQuickCustomerStartInline");
-    if(inlineChooser && inlineChooser.parentElement) inlineChooser.parentElement.remove();
-
-    var title=document.getElementById("ordersNewOrderScreenTitle");
-    if(title) title.textContent="✏️ Edit Order";
-
-    modal.classList.add("open");
-    modal.setAttribute("aria-hidden","false");
-
-    /* Keep the modal in Orders context without adding another history entry. */
-    var currentHistory=history.state||{};
-    history.replaceState(
-      Object.assign({},currentHistory,{view:"orders",__nfView:true,__nfOrdersNewOrder:true}),
-      "",
-      "#orders-new-order"
-    );
-
+  /* Menu/customer-card navigation: never manufacture an order error merely
+     because the selected ID is a different primitive type. */
+  window.goToCustomer=function(id){
+    var actual=resolveCustomerId(id);
+    goView('customers');
     setTimeout(function(){
-      var box=document.getElementById("quick-order-"+
-        (typeof ordersQuickKey==="function"?ordersQuickKey(cid):("orders_"+cid.replace(/[^a-zA-Z0-9_-]/g,"_")))
-      );
-      if(box)box.scrollIntoView({behavior:"smooth",block:"start"});
-    },40);
+      var card=document.getElementById('customer-card-'+actual);
+      if(card){ card.scrollIntoView({behavior:'smooth',block:'start'}); }
+      else {
+        var fallback=document.getElementById('customer-card-'+key(actual));
+        if(fallback)fallback.scrollIntoView({behavior:'smooth',block:'start'});
+      }
+    },120);
   };
 
-  /* ---------------------------------------------------------------
-   * 2) Sidebar Customer List -> context-aware destination.
-   *    Customer context stays Customer Card.
-   *    Orders context stays Orders / Order Details.
-   * --------------------------------------------------------------- */
-  window.openSidebarCustomer=function(customerId){
-    var cid=safeId(customerId);
-    var drawer=document.getElementById("sidebar");
-    if(!cid)return;
+  window.openLatestCustomerOrderEdit=function(customerId){
+    var actual=resolveCustomerId(customerId);
+    var order=window.customerOrders(actual).slice().sort(function(a,b){
+      return String(b.created_at||b.order_date||'').localeCompare(String(a.created_at||a.order_date||''));
+    })[0]||null;
+    if(!order){ toast('இந்த customer-க்கு Edit செய்ய Order இல்லை.',true); return; }
+    if(typeof window.openOrdersEditOrder==='function') window.openOrdersEditOrder(String(order.id));
+  };
 
-    try{
-      var fullDetails=document.getElementById("nfOrderFullDetails");
-      var orderEdit=document.getElementById("ordersNewOrderScreen");
-      var currentView=(history.state&&history.state.view)||"dashboard";
+  window.openLatestCustomerOrderFullDetails=function(customerId){
+    var actual=resolveCustomerId(customerId);
+    var order=window.customerOrders(actual).slice().sort(function(a,b){
+      return String(b.created_at||b.order_date||'').localeCompare(String(a.created_at||a.order_date||''));
+    })[0]||null;
+    if(!order){ toast('இந்த customer-க்கு Order இல்லை.',true); return; }
+    if(typeof window.openCustomerOrderFullDetails==='function') window.openCustomerOrderFullDetails(String(order.id));
+    else if(typeof window.openOrderFullDetails==='function') window.openOrderFullDetails(String(order.id));
+  };
 
-      /* If an Order Full Details overlay is currently open, preserve that
-         exact order-detail context and open the selected customer's latest
-         order in the same Order Details overlay. */
-      if(fullDetails && fullDetails.classList.contains("open")){
-        var selectedOrder=latestOrderForCustomerSafe(cid);
-        if(selectedOrder && typeof openOrderFullDetails==="function"){
-          openOrderFullDetails(String(selectedOrder.id));
-          return;
-        }
-        if(typeof toast==="function")toast("இந்த customer-க்கு Order கிடைக்கவில்லை.",true);
-        return;
-      }
-
-      /* Orders screen context: never redirect to Customer Card. */
-      if(currentView==="orders" ||
-         (orderEdit && orderEdit.classList.contains("open"))){
-        var order=latestOrderForCustomerSafe(cid);
-        if(order && typeof openOrderFullDetails==="function"){
-          openOrderFullDetails(String(order.id));
-        }else if(typeof toast==="function"){
-          toast("இந்த customer-க்கு Order கிடைக்கவில்லை.",true);
-        }
-        return;
-      }
-
-      /* Customer Card context: stay inside Customer Cards. */
-      if(currentView==="customers" && typeof goToCustomer==="function"){
-        goToCustomer(cid);
-        return;
-      }
-
-      /* For non-customer/non-order pages, keep the original safe behavior. */
-      if(typeof goToCustomer==="function")goToCustomer(cid);
-    }finally{
-      if(drawer)drawer.classList.remove("open");
-      if(document.body)document.body.classList.remove("drawer-open");
+  window.openCustomerOrderEditor=function(customerId,orderId){
+    var actualCustomer=resolveCustomerId(customerId);
+    var order=resolveOrder(orderId);
+    if(!order){
+      order=window.customerOrders(actualCustomer).slice().sort(function(a,b){
+        return String(b.created_at||b.order_date||'').localeCompare(String(a.created_at||a.order_date||''));
+      })[0]||null;
     }
+    if(!order){ toast('இந்த customer-க்கு Edit செய்ய order இல்லை. முதலில் New Order சேமிக்கவும்.',true); return; }
+    /* Dedicated Orders editor only. This avoids the old Customer Card inline
+       route and therefore cannot change calculation logic. */
+    if(typeof window.openOrdersEditOrder==='function'){
+      window.openOrdersEditOrder(String(order.id));
+      return;
+    }
+    toast('Edit Order screen கிடைக்கவில்லை.',true);
   };
 
-  /* ---------------------------------------------------------------
-   * 3) Make the Home/Customers/Orders + flows use the same direct
-   *    customer -> order hand-off wherever the existing customer save
-   *    already calls openOrdersNewOrderForCustomer().
-   *    No data operation is introduced here.
-   * --------------------------------------------------------------- */
-  function normalizeCustomerAddButtons(){
-    document.querySelectorAll('[data-view="customers"]').forEach(function(btn){
-      btn.setAttribute("data-nf-nav-context","customers");
-    });
+  window.openCustomerPayment=function(id){
+    var actual=resolveCustomerId(id);
+    var os=window.customerOrders(actual);
+    if(!os.length){ toast('இந்த customer-க்கு order இல்லை.',true); return; }
+    openModal('payment');
+    setTimeout(function(){
+      var x=document.querySelector('#formFields [name="order_id"]');
+      if(x){x.value=os[0].id;x.dispatchEvent(new Event('change',{bubbles:true}));}
+    },30);
+  };
+
+  window.openCustomerMeasurement=function(id){
+    var actual=resolveCustomerId(id);
+    openModal('measurement');
+    setTimeout(function(){
+      var x=document.querySelector('#formFields [name="customer_id"]');
+      if(x){x.value=actual;x.dispatchEvent(new Event('change',{bubbles:true}));}
+    },30);
+  };
+
+  window.openCustomerOrder=function(id){
+    var actual=resolveCustomerId(id);
+    openModal('order');
+    setTimeout(function(){
+      var x=document.querySelector('#formFields [name="customer_id"]');
+      if(x){x.value=actual;x.dispatchEvent(new Event('change',{bubbles:true}));}
+    },30);
+  };
+
+  /* Customer Save -> New Order: normalize to the real stored customer ID
+     before the existing New Order UI builds its customer card. */
+  var baseOpenOrdersNewOrderForCustomer=window.openOrdersNewOrderForCustomer;
+  if(typeof baseOpenOrdersNewOrderForCustomer==='function' && !baseOpenOrdersNewOrderForCustomer.__nfV203Final){
+    var wrappedNewOrder=function(customerId){
+      var actual=resolveCustomerId(customerId);
+      if(!resolveCustomer(actual)){
+        toast('Customer கிடைக்கவில்லை.',true);
+        return;
+      }
+      return baseOpenOrdersNewOrderForCustomer.call(this,actual);
+    };
+    wrappedNewOrder.__nfV203Final=true;
+    window.openOrdersNewOrderForCustomer=wrappedNewOrder;
   }
 
-  if(document.readyState==="loading"){
-    document.addEventListener("DOMContentLoaded",normalizeCustomerAddButtons,{once:true});
-  }else{
-    normalizeCustomerAddButtons();
+  /* ------------------------------------------------------------------
+     Add Customer from an Order card. The previous implementation waited for
+     a side effect in state.customers and could miss it during loadAll().
+     Here we take a snapshot, let the original Customer Save flow run exactly
+     as-is, then deterministically find the newly inserted customer and only
+     update that Order's customer_id. No calculation/sync formula is touched.
+  ------------------------------------------------------------------ */
+  var addOrderLink=null;
+  window.openAddCustomerForOrder=function(orderId){
+    var order=resolveOrder(orderId);
+    if(!order){ toast('Order கிடைக்கவில்லை.',true); return; }
+    addOrderLink={
+      orderId:order.id,
+      existingIds:new Set((state.customers||[]).map(function(c){return key(c.id);})),
+      startedAt:Date.now(),
+      handled:false
+    };
+    openModal('customer');
+    setTimeout(function(){
+      var title=document.getElementById('modalTitle');
+      if(title)title.textContent='＋ Add Customer — Order-க்கு இணைக்கவும்';
+      var msg=document.getElementById('formMsg');
+      if(msg){
+        msg.textContent='Customer Save செய்தவுடன் இந்த Order-க்கு தானாக sync ஆகும்.';
+        msg.className='msg';
+      }
+    },0);
+  };
+
+  async function finishOrderCustomerLink(){
+    var link=addOrderLink;
+    if(!link||link.handled||Date.now()-link.startedAt>15000)return;
+    var fresh=(state.customers||[]).find(function(c){return !link.existingIds.has(key(c.id));});
+    if(!fresh)return;
+    link.handled=true;
+    var order=resolveOrder(link.orderId);
+    if(!order){addOrderLink=null;return;}
+    try{
+      var result=await supabaseClient.from('orders')
+        .update({customer_id:fresh.id})
+        .eq('id',order.id)
+        .select()
+        .single();
+      if(result.error)throw result.error;
+      /* Update in-memory order immediately, then use the normal refresh path. */
+      var idx=(state.orders||[]).findIndex(function(o){return key(o.id)===key(order.id);});
+      if(idx>=0)state.orders[idx]=Object.assign({},state.orders[idx],{customer_id:fresh.id});
+      if(typeof renderAll==='function')renderAll();
+      if(typeof renderOrders==='function')renderOrders();
+      toast('Customer Order-க்கு sync செய்யப்பட்டது.');
+      await loadAll(true);
+    }catch(err){
+      link.handled=false;
+      toast('Customer sync failed: '+(err&&err.message||err),true);
+    }
+    addOrderLink=null;
   }
+
+  if(!document.__nfV203OrderCustomerListener){
+    document.__nfV203OrderCustomerListener=true;
+    document.getElementById('dataForm')?.addEventListener('submit',function(){
+      if(!addOrderLink)return;
+      var started=Date.now();
+      var timer=setInterval(function(){
+        if(!addOrderLink||addOrderLink.startedAt!==started&&Date.now()-addOrderLink.startedAt>15000){
+          clearInterval(timer);return;
+        }
+        finishOrderCustomerLink().then(function(){
+          if(!addOrderLink)clearInterval(timer);
+        });
+      },180);
+      setTimeout(function(){clearInterval(timer);},15200);
+    },false);
+  }
+
+  /* Existing loadAll may replace state arrays; retry the deterministic link
+     after every refresh while the short-lived Add Customer handoff is active. */
+  var baseLoadAll=window.loadAll;
+  if(typeof baseLoadAll==='function' && !baseLoadAll.__nfV203Final){
+    var wrappedLoadAll=async function(){
+      var r=await baseLoadAll.apply(this,arguments);
+      if(addOrderLink) setTimeout(finishOrderCustomerLink,60);
+      return r;
+    };
+    wrappedLoadAll.__nfV203Final=true;
+    window.loadAll=wrappedLoadAll;
+  }
+
 })();
 </script>
