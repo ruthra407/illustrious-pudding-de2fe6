@@ -2193,16 +2193,37 @@ function mountOrdersQuickForm(customerId){
    if(typeof window.renderQuickDesignRates==="function")window.renderQuickDesignRates(key,[]);
  }
 }
-function openOrdersQuickAdd(){
+function openOrdersQuickAdd(customerId=""){
  const modal=$("ordersNewOrderScreen"),panel=$("ordersNewOrderContent");
- if(!modal||!panel)return;
- const options=state.customers.map(c=>'<option value="'+esc(c.id)+'">'+esc(c.name||"Customer")+'</option>').join("");
- panel.innerHTML='<div class="field" style="margin-bottom:12px"><label>Customer</label><select id="ordersQuickCustomerStartInline" class="input" onchange="mountOrdersQuickForm(this.value)"><option value="">Select customer</option>'+options+'</select></div><div class="hint">Customer-ஐ தேர்வு செய்ததும் Customer Card-ல் இருக்கும் அதே <b>New Order</b> system இங்கே முழுமையாக வரும்.</div>';
+ if(!modal||!panel)return false;
+ const cid=String(customerId||"");
+ const customers=Array.isArray(state.customers)?state.customers:[];
+ if(cid && !customers.some(c=>String(c?.id||"")===cid)){
+   toast("Customer கிடைக்கவில்லை.",true);
+   return false;
+ }
+
+ /* V401.0: one canonical New Order entry point.
+    When a customer is supplied, mount the complete New Order form directly
+    instead of opening a temporary customer selector first. */
  modal.classList.add("open");
  const base=history.state||{view:"orders"};
- if(!base.__nfOrdersNewOrder){history.pushState({...base,__nfOrdersNewOrder:true},"",location.hash||"#orders-new-order");}
- const select=$("ordersQuickCustomerStartInline");
+ if(!base.__nfOrdersNewOrder){
+   history.pushState({...base,__nfOrdersNewOrder:true},"",location.hash||"#orders-new-order");
+ }
+
+ if(cid){
+   mountOrdersQuickForm(cid);
+   const title=$("ordersNewOrderScreenTitle");
+   if(title)title.textContent="🧾 New Order";
+   return true;
+ }
+
+ const options=customers.map(c=>'<option value="'+esc(c.id)+'">'+esc(c.name||"Customer")+'</option>').join("");
+ panel.innerHTML='<div class="field" style="margin-bottom:12px"><label>Customer</label><select id="ordersQuickCustomerStart" class="input" onchange="mountOrdersQuickForm(this.value)"><option value="">Select customer</option>'+options+'</select></div><div class="hint">Customer-ஐ தேர்வு செய்ததும் Customer Card-ல் இருக்கும் அதே <b>New Order</b> system இங்கே முழுமையாக வரும்.</div>';
+ const select=$("ordersQuickCustomerStart");
  if(select)select.focus();
+ return true;
 }
 
 function toggleCompactSearch(type,force){
@@ -5396,14 +5417,22 @@ function nfFormatPaymentDate(v){return v?dateText(v):"—";}
   };
   window.renderOrders.__nfFinalOrderSync=true;
 
+  /* V401.0 — Home Add Customer → Orders → New Order. */
   window.openOrdersNewOrderForCustomer=function(customerId){
-    openOrdersQuickAdd();
-    setTimeout(function(){
-      var select=$("ordersQuickCustomerStart");
-      if(select){select.value=String(customerId);mountOrdersQuickForm(customerId);}
-      var title=$("ordersNewOrderScreenTitle");
-      if(title)title.textContent="🧾 New Order";
-    },0);
+    var cid=String(customerId||"");
+    if(!cid)return false;
+
+    var ordersView=document.getElementById("view-orders");
+    if(!ordersView || !ordersView.classList.contains("active")){
+      if(typeof goView==="function")goView("orders",true);
+    }
+
+    if(typeof openOrdersQuickAdd!=="function"){
+      if(typeof toast==="function")toast("New Order screen கிடைக்கவில்லை.",true);
+      return false;
+    }
+
+    return openOrdersQuickAdd(cid);
   };
 
   window.openOrdersEditOrder=function(orderId){
@@ -6196,15 +6225,7 @@ function nfFormatPaymentDate(v){return v?dateText(v):"—";}
         return true;
       }
       if(typeof window.openOrdersQuickAdd === "function"){
-        window.openOrdersQuickAdd();
-        setTimeout(function(){
-          var select=document.getElementById("ordersQuickCustomerStart");
-          if(select){
-            select.value=String(customerId);
-            if(typeof window.mountOrdersQuickForm === "function") window.mountOrdersQuickForm(String(customerId));
-          }
-        },0);
-        return true;
+        return !!window.openOrdersQuickAdd(String(customerId));
       }
       toast("New Order screen கிடைக்கவில்லை.",true);
       return false;
@@ -8744,75 +8765,5 @@ window.addEventListener("keydown",function(e){if(e.key==="Escape")window.closeCu
     }
   }, true);
 
-})();
-</script>
-
-
-<!-- FINAL CUSTOMER SAVE -> NEW ORDER FIX v2
-     Source: index-12-corrected.html
-     The existing hand-off called openOrdersNewOrderForCustomer(), but that
-     function targeted the old #ordersQuickCustomerStart selector. The actual
-     New Order entry screen creates #ordersQuickCustomerStartInline.
-     This final definition is intentionally synchronous so the modal opens
-     immediately and the newly saved customer is selected immediately. -->
-<script id="nf-final-customer-save-new-order-v3">
-(function(){
-  "use strict";
-
-  /*
-   * IMPORTANT:
-   * `state` is declared with `const` in this file, so it is NOT available
-   * as window.state. The previous fix incorrectly used window.state and
-   * therefore stopped before opening New Order.
-   */
-  window.openOrdersNewOrderForCustomer = function(customerId){
-    var cid = String(customerId || "");
-    if(!cid) return false;
-
-    var customers = Array.isArray(state.customers) ? state.customers : [];
-    var customer = customers.find(function(c){
-      return String(c && c.id || "") === cid;
-    });
-
-    if(!customer){
-      if(typeof toast === "function"){
-        toast("Customer கிடைக்கவில்லை.", true);
-      }
-      return false;
-    }
-
-    // Open the Orders view only if it is not already the active view.
-    // Do not let navigation history close the New Order modal.
-    var ordersView = document.getElementById("view-orders");
-    if(!ordersView || !ordersView.classList.contains("active")){
-      if(typeof goView === "function") goView("orders", true);
-    }
-
-    if(typeof openOrdersQuickAdd !== "function"){
-      if(typeof toast === "function") toast("New Order screen கிடைக்கவில்லை.", true);
-      return false;
-    }
-
-    // This creates #ordersQuickCustomerStartInline synchronously.
-    openOrdersQuickAdd();
-
-    // Immediately mount the full form for the customer that was just saved.
-    // mountOrdersQuickForm itself creates the selected customer option and
-    // the complete New Order form, so no manual "Select customer" step remains.
-    if(typeof mountOrdersQuickForm === "function"){
-      mountOrdersQuickForm(cid);
-      return true;
-    }
-
-    // Defensive fallback: at least select the inline customer selector.
-    var select = document.getElementById("ordersQuickCustomerStartInline");
-    if(select){
-      select.value = cid;
-      select.dispatchEvent(new Event("change", {bubbles:true}));
-      return true;
-    }
-
-    return false;
-  };
 })();
 </script>
