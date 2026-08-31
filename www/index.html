@@ -2193,16 +2193,23 @@ function mountOrdersQuickForm(customerId){
    if(typeof window.renderQuickDesignRates==="function")window.renderQuickDesignRates(key,[]);
  }
 }
-function openOrdersQuickAdd(){
+function openOrdersQuickAdd(customerId){
  const modal=$("ordersNewOrderScreen"),panel=$("ordersNewOrderContent");
  if(!modal||!panel)return;
- const options=state.customers.map(c=>'<option value="'+esc(c.id)+'">'+esc(c.name||"Customer")+'</option>').join("");
- panel.innerHTML='<div class="field" style="margin-bottom:12px"><label>Customer</label><select id="ordersQuickCustomerStartInline" class="input" onchange="mountOrdersQuickForm(this.value)"><option value="">Select customer</option>'+options+'</select></div><div class="hint">Customer-ஐ தேர்வு செய்ததும் Customer Card-ல் இருக்கும் அதே <b>New Order</b> system இங்கே முழுமையாக வரும்.</div>';
+ const options=state.customers.map(c=>'<option value="'+esc(c.id)+'" '+(String(c.id)===String(customerId||"")?"selected":"")+'>'+esc(c.name||"Customer")+'</option>').join("");
+ panel.innerHTML='<div class="field" style="margin-bottom:12px"><label>Customer</label><select id="ordersQuickCustomerStartInline" class="input" onchange="mountOrdersQuickForm(this.value)"><option value="">Select customer</option>'+options+'</select></div><div id="nfDirectNewOrderCustomer" class="hint" style="font-weight:850;font-size:14px"></div><div class="hint">Customer-ஐ தேர்வு செய்ததும் Customer Card-ல் இருக்கும் அதே <b>New Order</b> system இங்கே முழுமையாக வரும்.</div>';
  modal.classList.add("open");
  const base=history.state||{view:"orders"};
  if(!base.__nfOrdersNewOrder){history.pushState({...base,__nfOrdersNewOrder:true},"",location.hash||"#orders-new-order");}
- const select=$("ordersQuickCustomerStartInline");
- if(select)select.focus();
+ if(customerId){
+   const customer=state.customers.find(c=>String(c.id)===String(customerId));
+   const nameEl=$("nfDirectNewOrderCustomer");
+   if(nameEl && customer) nameEl.textContent="👤 Customer: "+(customer.name||"Customer");
+   if(typeof mountOrdersQuickForm==="function") mountOrdersQuickForm(String(customerId));
+ }else{
+   const select=$("ordersQuickCustomerStartInline");
+   if(select)select.focus();
+ }
 }
 
 function toggleCompactSearch(type,force){
@@ -8771,7 +8778,7 @@ window.addEventListener("keydown",function(e){if(e.key==="Escape")window.closeCu
       if(typeof toast === "function") toast("New Order screen கிடைக்கவில்லை.", true);
       return false;
     }
-    openOrdersQuickAdd();
+    openOrdersQuickAdd(cid);
     if(typeof mountOrdersQuickForm === "function"){
       mountOrdersQuickForm(cid);
       var title = document.getElementById("ordersNewOrderScreenTitle");
