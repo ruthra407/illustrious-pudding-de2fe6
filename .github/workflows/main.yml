@@ -13,6 +13,7 @@ jobs:
           keytool -genkeypair \
             -v \
             -keystore newfashion-stable.jks \
+            -storetype JKS \
             -storepass "NewFashion@2026" \
             -alias "newfashion" \
             -keypass "NewFashion@2026" \
@@ -20,6 +21,14 @@ jobs:
             -keysize 2048 \
             -validity 10000 \
             -dname "CN=New Fashion Tailoring, OU=App, O=New Fashion Tailoring, L=India, ST=Tamil Nadu, C=IN"
+
+      - name: Verify JKS
+        run: |
+          keytool -list \
+            -keystore newfashion-stable.jks \
+            -storetype JKS \
+            -storepass "NewFashion@2026" \
+            -alias "newfashion"
 
       - name: Create Base64 Secret Value
         run: |
@@ -29,10 +38,11 @@ jobs:
         run: |
           keytool -list -v \
             -keystore newfashion-stable.jks \
+            -storetype JKS \
             -storepass "NewFashion@2026" \
             -alias "newfashion" | grep "SHA256:"
 
-      - name: Upload JKS
+      - name: Upload signing files
         uses: actions/upload-artifact@v4
         with:
           name: New-Fashion-Stable-Signing-Key
