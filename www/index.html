@@ -5376,16 +5376,6 @@ function nfFormatPaymentDate(v){return v?dateText(v):"—";}
   };
   window.renderOrders.__nfFinalOrderSync=true;
 
-  window.openOrdersNewOrderForCustomer=function(customerId){
-    openOrdersQuickAdd();
-    setTimeout(function(){
-      var select=$("ordersQuickCustomerStart");
-      if(select){select.value=String(customerId);mountOrdersQuickForm(customerId);}
-      var title=$("ordersNewOrderScreenTitle");
-      if(title)title.textContent="🧾 New Order";
-    },0);
-  };
-
   window.openOrdersEditOrder=function(orderId){
     var o=(state.orders||[]).find(function(x){return String(x.id)===String(orderId);});
     if(!o){toast("Edit செய்ய Order கிடைக்கவில்லை.",true);return;}
@@ -7411,6 +7401,217 @@ window.addEventListener("keydown",function(e){if(e.key==="Escape")window.closeCu
 .nf-handover-date-display{display:block;margin-left:8px;margin-top:2px;padding:2px 7px;border-radius:7px;background:#f7f2ff;color:#5a4380;font-size:10px;font-weight:900;white-space:nowrap}
 .nf-design-slot-card .nf-di-handover-date{margin-bottom:2px}
 </style>
+
+<style id="nf-orders-customer-list-v1">
+.nf-orders-customer-list{
+  margin:0 0 14px;
+  display:grid;
+  gap:10px;
+}
+.nf-orders-customer-list-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  padding:12px 14px;
+  border-radius:16px;
+  background:linear-gradient(135deg,#f0ebff,#fff1f7);
+  border:1px solid rgba(108,77,246,.14);
+  box-shadow:0 7px 20px rgba(40,38,68,.06);
+}
+.nf-orders-customer-list-head strong{font-size:16px;font-weight:950}
+.nf-orders-customer-list-head span{font-size:12px;color:#6f7482;font-weight:750}
+.nf-orders-customer-item{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:11px 12px;
+  border:1px solid rgba(70,58,95,.10);
+  border-radius:15px;
+  background:rgba(255,255,255,.96);
+  box-shadow:0 6px 18px rgba(40,38,68,.05);
+}
+.nf-orders-customer-avatar{
+  width:42px;height:42px;min-width:42px;
+  display:grid;place-items:center;
+  border-radius:13px;
+  color:#fff;
+  background:linear-gradient(135deg,#6c45e8,#e94678);
+  font-size:20px;
+}
+.nf-orders-customer-info{min-width:0;flex:1}
+.nf-orders-customer-info strong{
+  display:block;
+  font-size:15px;
+  font-weight:950;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.nf-orders-customer-info small{
+  display:block;
+  margin-top:2px;
+  color:#6f7482;
+  font-size:11px;
+  font-weight:750;
+}
+.nf-orders-customer-actions{
+  display:flex;gap:6px;align-items:center;flex:0 0 auto;
+}
+.nf-orders-customer-actions .btn{
+  min-height:40px;
+  padding:7px 10px;
+  white-space:nowrap;
+}
+@media(max-width:560px){
+  .nf-orders-customer-list{gap:8px}
+  .nf-orders-customer-list-head{padding:10px 12px}
+  .nf-orders-customer-item{padding:9px 10px}
+  .nf-orders-customer-actions .btn{min-height:38px;padding:6px 8px;font-size:12px}
+}
+</style>
+
+<script id="nf-orders-customer-list-v1">
+(function(){
+  "use strict";
+
+  if(window.__nfOrdersCustomerListV1)return;
+  window.__nfOrdersCustomerListV1=true;
+
+  function safe(s){
+    return typeof esc==="function" ? esc(String(s==null?"":s)) :
+      String(s==null?"":s).replace(/[&<>"']/g,function(c){
+        return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];
+      });
+  }
+
+  function renderCustomerList(){
+    var host=document.getElementById("ordersTable");
+    if(!host)return;
+
+    var customers=Array.isArray(state.customers)?state.customers:[];
+    if(!customers.length)return;
+
+    var q=(document.getElementById("orderSearch")?.value||"").trim().toLowerCase();
+    var statusFilter=document.getElementById("orderStatusFilter")?.value||"";
+
+    /*
+     * Customer list is shown when there are no matching orders.
+     * Existing orders continue to use the original rich Order Card/table,
+     * including Edit Order and Order Full Details.
+     */
+    var orderRows=(state.orders||[]).filter(function(o){
+      var matchesStatus=!statusFilter || o.status===statusFilter;
+      var hay=[o.order_no,customerName(o.customer_id),o.garment_type,o.status].join(" ").toLowerCase();
+      return matchesStatus && hay.includes(q);
+    });
+    if(orderRows.length)return;
+
+    var matchingCustomers=customers.filter(function(c){
+      if(!q)return true;
+      return [c.name,c.phone,c.address,c.village].join(" ").toLowerCase().includes(q);
+    });
+
+    if(!matchingCustomers.length)return;
+
+    var rows=matchingCustomers.map(function(c){
+      var id=String(c.id||"");
+      var orders=(state.orders||[]).filter(function(o){return String(o.customer_id)===id;});
+      var active=orders.filter(function(o){return !isFinished(o);});
+      var summary=orders.length
+        ? (active.length ? (active.length+" pending order") : (orders.length+" order"))
+        : "இன்னும் order எடுக்கவில்லை";
+
+      return '<div class="nf-orders-customer-item">'+
+        '<div class="nf-orders-customer-avatar">👤</div>'+
+        '<div class="nf-orders-customer-info">'+
+          '<strong>'+safe(c.name||"Customer")+'</strong>'+
+          '<small>'+safe(summary)+'</small>'+
+        '</div>'+
+        '<div class="nf-orders-customer-actions">'+
+          '<button type="button" class="btn primary" onclick="openOrdersNewOrderForCustomer(\''+
+            id.replace(/\\/g,"\\\\").replace(/'/g,"\\'")+
+          '\')">＋ New Order</button>'+
+        '</div>'+
+      '</div>';
+    }).join("");
+
+    var block=
+      '<section class="nf-orders-customer-list" aria-label="Customer list in Orders">'+
+        '<div class="nf-orders-customer-list-head">'+
+          '<strong>👥 Customer List</strong>'+
+          '<span>'+matchingCustomers.length+' customer</span>'+
+        '</div>'+
+        rows+
+      '</section>';
+
+    host.innerHTML=block;
+  }
+
+  /*
+   * Wrap the final renderOrders after all existing order patches have loaded.
+   * This preserves the current Order Card / Edit / Full Details implementation.
+   */
+  function install(){
+    if(typeof window.renderOrders!=="function"){
+      setTimeout(install,50);
+      return;
+    }
+    if(window.renderOrders.__nfOrdersCustomerListWrapped)return;
+
+    var base=window.renderOrders;
+    window.renderOrders=function(){
+      base.apply(this,arguments);
+      try{renderCustomerList();}catch(e){console.error("Orders customer list:",e);}
+    };
+    window.renderOrders.__nfOrdersCustomerListWrapped=true;
+    window.__nfRenderOrdersBase=base;
+  }
+
+  install();
+
+  document.addEventListener("DOMContentLoaded",function(){
+    setTimeout(install,0);
+    setTimeout(install,250);
+  },{once:true});
+})();
+</script>
+
+<script id="nf-customer-save-order-flow-safety-v2">
+(function(){
+  "use strict";
+  if(window.__nfCustomerSaveOrderFlowSafetyV2)return;
+  window.__nfCustomerSaveOrderFlowSafetyV2=true;
+
+  /*
+   * If a background loadAll() finishes while the New Order screen is opening,
+   * re-assert the selected customer instead of falling back to the blank
+   * customer selector. No function override is used here.
+   */
+  function reassert(){
+    var lastCustomerId=String(window.__nfLastNewOrderCustomerId||"");
+    if(!lastCustomerId)return;
+
+    var screen=document.getElementById("ordersNewOrderScreen");
+    if(!screen || !screen.classList.contains("open"))return;
+
+    var box=document.getElementById("quick-order-"+lastCustomerId);
+    if(box)return;
+
+    if(typeof mountOrdersQuickForm==="function" &&
+       Array.isArray(state.customers) &&
+       state.customers.some(function(c){return String(c.id)===lastCustomerId;})){
+      try{mountOrdersQuickForm(lastCustomerId);}
+      catch(e){console.warn("Reassert New Order:",e);}
+    }
+  }
+
+  window.addEventListener("pageshow",function(){setTimeout(reassert,80);});
+  document.addEventListener("visibilitychange",function(){
+    if(!document.hidden)setTimeout(reassert,80);
+  });
+})();
+</script>
 </body></html><script id="nf-v52-dashboard-scroll-fix-js">
 (function(){
   "use strict";
@@ -8735,19 +8936,24 @@ window.addEventListener("keydown",function(e){if(e.key==="Escape")window.closeCu
      New Order entry screen creates #ordersQuickCustomerStartInline.
      This final definition is intentionally synchronous so the modal opens
      immediately and the newly saved customer is selected immediately. -->
-<script id="nf-final-customer-save-new-order-v3">
+<script id="nf-final-customer-save-new-order-v4">
 (function(){
   "use strict";
 
   /*
-   * IMPORTANT:
-   * `state` is declared with `const` in this file, so it is NOT available
-   * as window.state. The previous fix incorrectly used window.state and
-   * therefore stopped before opening New Order.
+   * FINAL CUSTOMER SAVE -> NEW ORDER FLOW v4
+   *
+   * Rules:
+   *  1. A newly saved customer is immediately inserted into state.customers.
+   *  2. Orders view is opened without depending on a browser-only navigation race.
+   *  3. New Order opens for that exact customer automatically.
+   *  4. Android/Capacitor WebView gets a short retry window for UI readiness.
+   *  5. Existing Order/Edit/Full Details logic is not changed.
    */
   window.openOrdersNewOrderForCustomer = function(customerId){
     var cid = String(customerId || "");
     if(!cid) return false;
+    window.__nfLastNewOrderCustomerId = cid;
 
     var customers = Array.isArray(state.customers) ? state.customers : [];
     var customer = customers.find(function(c){
@@ -8755,44 +8961,109 @@ window.addEventListener("keydown",function(e){if(e.key==="Escape")window.closeCu
     });
 
     if(!customer){
-      if(typeof toast === "function"){
-        toast("Customer கிடைக்கவில்லை.", true);
+      if(typeof toast === "function") toast("Customer கிடைக்கவில்லை.", true);
+      return false;
+    }
+
+    var attempts = 0;
+    var maxAttempts = 20;
+
+    function openNow(){
+      attempts++;
+
+      try{
+        /* Close the Add Customer modal visually without history.back().
+           The save handler already owns the customer-save navigation. */
+        var customerModal = document.getElementById("modal");
+        if(customerModal) customerModal.classList.remove("open");
+
+        /* Move the visible app screen to Orders without requiring a history
+           round-trip. The New Order screen will create its own history entry. */
+        var ordersView = document.getElementById("view-orders");
+        if(ordersView && !ordersView.classList.contains("active")){
+          if(typeof goView === "function"){
+            goView("orders", false);
+          }else{
+            document.querySelectorAll(".view").forEach(function(v){v.classList.remove("active");});
+            ordersView.classList.add("active");
+          }
+        }
+
+        if(typeof openOrdersQuickAdd !== "function"){
+          if(attempts < maxAttempts){
+            setTimeout(openNow, 75);
+            return false;
+          }
+          if(typeof toast === "function") toast("New Order screen கிடைக்கவில்லை.", true);
+          return false;
+        }
+
+        /*
+         * openOrdersQuickAdd() is synchronous. It creates the inline customer
+         * selector and opens the New Order screen.
+         */
+        openOrdersQuickAdd();
+
+        var mounted = false;
+        if(typeof mountOrdersQuickForm === "function"){
+          try{
+            mountOrdersQuickForm(cid);
+            mounted = !!document.getElementById("quick-order-"+cid);
+          }catch(err){
+            console.warn("New Order customer mount retry:", err);
+          }
+        }
+
+        /*
+         * Defensive fallback for older Android WebView / delayed DOM cases.
+         * Use the actual inline selector id created by openOrdersQuickAdd().
+         */
+        if(!mounted){
+          var inlineSelect = document.getElementById("ordersQuickCustomerStartInline");
+          if(inlineSelect){
+            inlineSelect.value = cid;
+            if(typeof mountOrdersQuickForm === "function"){
+              try{
+                mountOrdersQuickForm(cid);
+                mounted = true;
+              }catch(err){
+                console.warn("Inline New Order mount retry:", err);
+              }
+            }
+          }
+        }
+
+        var newOrderScreen = document.getElementById("ordersNewOrderScreen");
+        if(newOrderScreen){
+          newOrderScreen.classList.add("open");
+          newOrderScreen.setAttribute("aria-hidden","false");
+        }
+
+        if(mounted){
+          var title = document.getElementById("ordersNewOrderScreenTitle");
+          if(title) title.textContent = "🧾 New Order";
+          return true;
+        }
+
+        if(attempts < maxAttempts){
+          setTimeout(openNow, 75);
+          return false;
+        }
+
+        if(typeof toast === "function") toast("New Order form திறக்க முடியவில்லை. மீண்டும் முயற்சிக்கவும்.", true);
+        return false;
+      }catch(err){
+        console.error("Customer → New Order handoff failed:", err);
+        if(attempts < maxAttempts){
+          setTimeout(openNow, 100);
+          return false;
+        }
+        if(typeof toast === "function") toast("Customer save ஆனது. ஆனால் New Order திறக்கவில்லை.", true);
+        return false;
       }
-      return false;
     }
 
-    // Open the Orders view only if it is not already the active view.
-    // Do not let navigation history close the New Order modal.
-    var ordersView = document.getElementById("view-orders");
-    if(!ordersView || !ordersView.classList.contains("active")){
-      if(typeof goView === "function") goView("orders", true);
-    }
-
-    if(typeof openOrdersQuickAdd !== "function"){
-      if(typeof toast === "function") toast("New Order screen கிடைக்கவில்லை.", true);
-      return false;
-    }
-
-    // This creates #ordersQuickCustomerStartInline synchronously.
-    openOrdersQuickAdd();
-
-    // Immediately mount the full form for the customer that was just saved.
-    // mountOrdersQuickForm itself creates the selected customer option and
-    // the complete New Order form, so no manual "Select customer" step remains.
-    if(typeof mountOrdersQuickForm === "function"){
-      mountOrdersQuickForm(cid);
-      return true;
-    }
-
-    // Defensive fallback: at least select the inline customer selector.
-    var select = document.getElementById("ordersQuickCustomerStartInline");
-    if(select){
-      select.value = cid;
-      select.dispatchEvent(new Event("change", {bubbles:true}));
-      return true;
-    }
-
-    return false;
+    return openNow();
   };
 })();
 </script>
