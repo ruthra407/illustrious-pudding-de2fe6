@@ -6800,12 +6800,12 @@ document.addEventListener("keydown",function(e){if(e.key==="Escape"&&nfWacHistor
 function nfWacText(data){var c=data.c,rows=data.rows,st=data.st,village=nfCustomerVillage(c,activeCustomerId)||"";var lines=["NEW FASHION TAILORING","CUSTOMER CARD","","Customer: "+(c.name||"Customer"),"ஊர்: "+village];if(c.phone)lines.push("Phone: "+c.phone);lines.push("துணி கொடுத்த தேதி: "+nfWacDate(data.clothDate),"Delivery Date: "+nfWacDate(data.deliveryDate),"","Garment Details:");rows.forEach(function(x){lines.push(x.name+" — "+x.qty+" × "+nfWacMoney(x.rate)+" = "+nfWacMoney(x.qty*x.rate))});lines.push("","Total: "+nfWacMoney(st.total),"Paid: "+nfWacMoney(st.paid),"Balance: "+nfWacMoney(st.balance),"","Thank you — NEW FASHION TAILORING");return lines.join("\n")}
 window.shareCustomerWhatsAppText=function(){if(!activeCustomerId)return;var data=nfWacSummary(activeCustomerId),text=nfWacText(data),phone=String(data.c.phone||"").replace(/\D/g,"");var url=phone?"https://wa.me/"+phone+"?text="+encodeURIComponent(text):"https://wa.me/?text="+encodeURIComponent(text);window.open(url,"_blank","noopener")};
 function nfWacSvg(data){
-  var W=1080,
-      EXPORT_SCALE=3,
+  var W=1080, EXPORT_SCALE=3,
       rows=(data.rows||[]).slice(0,9),
       photos=(data.photos||[]).filter(function(p){return p&&p.src}).slice(0,3),
-      c=data.c||{}, st=data.st||{};
-  var village=nfCustomerVillage(c,activeCustomerId)||"ஊர் இல்லை";
+      c=data.c||{}, st=data.st||{},
+      village=nfCustomerVillage(c,activeCustomerId)||"ஊர் இல்லை",
+      SHOP_PHONE="8524931003";
 
   function escSvg(v){
     return String(v==null?"":v)
@@ -6815,191 +6815,153 @@ function nfWacSvg(data){
   function escHref(v){
     return String(v||"").replace(/&/g,"&amp;").replace(/"/g,"&quot;");
   }
-
-  /* Premium palette — visual-only redesign. Data/calculation logic is untouched. */
-  var palette=["#F7D66A","#FF6FAE","#6DE7D0","#7CCBFF","#C99BFF","#FF9D5C","#FFFFFF"];
-
-  function colorWordsFit(text,x,y,size,weight,anchor,colors,maxWidth){
-    var words=String(text||"").trim().split(/\s+/).filter(Boolean);
-    if(!words.length)return "";
-    var approx=String(text||"").length*size*.58;
-    var fitSize=size;
-    if(maxWidth && approx>maxWidth){
-      var ratio=Math.max(.72,maxWidth/approx);
-      fitSize=Math.max(Math.round(size*ratio),Math.round(size*.72));
-    }
-    var safeDx=10;
-    var out='<text x="'+x+'" y="'+y+'" text-anchor="'+(anchor||"start")+
-      '" font-size="'+fitSize+'" font-weight="'+weight+
-      '" fill="'+colors[0]+'" xml:space="preserve">';
-    words.forEach(function(w,i){
-      if(i)out+='<tspan dx="'+safeDx+'" fill="'+colors[i%colors.length]+'">'+escSvg(w)+'</tspan>';
-      else out+='<tspan fill="'+colors[i%colors.length]+'">'+escSvg(w)+'</tspan>';
-    });
-    out+='</text>';
-    return out;
+  function text(v,x,y,size,weight,fill,anchor){
+    return '<text x="'+x+'" y="'+y+'" font-size="'+size+'" font-weight="'+weight+
+      '" fill="'+fill+'" text-anchor="'+(anchor||"start")+
+      '" font-family="Arial, Noto Sans Tamil, sans-serif">'+escSvg(v)+'</text>';
   }
-
-  function colorWords(text,x,y,size,weight,anchor,colors,dx){
-    var words=String(text||"").trim().split(/\s+/).filter(Boolean);
-    if(!words.length)return "";
-    var safeDx=dx==null?10:dx;
-    var out='<text x="'+x+'" y="'+y+'" text-anchor="'+(anchor||"start")+
-      '" font-size="'+size+'" font-weight="'+weight+'" fill="'+colors[0]+'">';
-    words.forEach(function(w,i){
-      if(i)out+='<tspan dx="'+safeDx+'" fill="'+colors[i%colors.length]+'">'+escSvg(w)+'</tspan>';
-      else out+='<tspan fill="'+colors[i%colors.length]+'">'+escSvg(w)+'</tspan>';
-    });
-    out+='</text>';
-    return out;
+  function fit(v,x,y,size,weight,fill,max,anchor){
+    var s=String(v==null?"":v), n=s.length, fs=size;
+    if(max && n*size*.56>max)fs=Math.max(Math.floor(max/(Math.max(1,n)*.56)),Math.floor(size*.72));
+    return text(s,x,y,fs,weight,fill,anchor);
   }
+  function money(v){return escSvg(nfWacMoney(v));}
+  function date(v){return escSvg(nfWacDate(v));}
 
-  function colorLine(text,x,y,size,weight,colors,dx){
-    return colorWords(text,x,y,size,weight,"start",colors,dx);
-  }
-
-  var rowH=64;
-  var calcHeaderH=64, calcColsH=46, calcRowsH=rows.length*rowH, totalH=82, calcPad=8;
-  var calcH=calcHeaderH+calcColsH+calcRowsH+totalH+calcPad;
-
-  var customerY=220, customerH=360;
-  var datesY=customerY+customerH+16, datesH=122;
-  var photosY=datesY+datesH+16;
-  var photosH=photos.length?300:0;
-  var calcY=photosY+photosH+16;
-  var totalY=calcY+calcHeaderH+calcColsH+calcRowsH+4;
-  var payY=calcY+calcH+16, payH=128;
-  var noteH=data.note?102:0;
-  var noteY=payY+payH+16;
-  var footerY=noteY+(data.note?noteH:0)+18;
-  var footerH=126;
-  var H=footerY+footerH+24;
-
-  var photoDefs=photos.map(function(_,i){
-    return '<clipPath id="wacPhotoClip'+i+'"><rect x="'+(70+i*315)+'" y="'+(photosY+58)+'" width="285" height="215" rx="16"/></clipPath>';
-  }).join("");
-
-  var photoImages=photos.map(function(p,i){
-    var x=70+i*315;
-    return '<rect x="'+x+'" y="'+(photosY+58)+'" width="285" height="215" rx="16" fill="#1d1434" stroke="'+palette[(i+1)%palette.length]+'" stroke-width="4"/>'+
-      '<image href="'+escHref(p.src)+'" x="'+x+'" y="'+(photosY+58)+'" width="285" height="215" preserveAspectRatio="xMidYMid slice" clip-path="url(#wacPhotoClip'+i+')"/>';
-  }).join("");
+  var rowH=60, calcHead=62, calcCols=48, calcRows=Math.max(1,rows.length)*rowH,
+      calcTotal=82, calcH=calcHead+calcCols+calcRows+calcTotal+8;
+  var customerY=305, customerH=318,
+      datesY=customerY+customerH+14, datesH=116,
+      calcY=datesY+datesH+16,
+      totalY=calcY+calcHead+calcCols+calcRows+5,
+      payY=calcY+calcH+16, payH=128,
+      noteH=data.note?96:0, noteY=payY+payH+(data.note?14:0),
+      footerY=payY+payH+(data.note?noteH+14:0)+18,
+      footerH=118, H=footerY+footerH+22;
 
   var mainPhoto=photos[0];
-  var mainPhotoSvg=mainPhoto
-    ? '<rect x="535" y="'+(customerY+20)+'" width="475" height="320" rx="24" fill="#17102b" stroke="#D35AA5" stroke-width="4"/>'+
-      '<image href="'+escHref(mainPhoto.src)+'" x="535" y="'+(customerY+20)+'" width="475" height="320" preserveAspectRatio="xMidYMid slice" clip-path="url(#mainPhotoClip)"/>'
-    : '<rect x="535" y="'+(customerY+20)+'" width="475" height="320" rx="24" fill="url(#wacPhotoBg)" stroke="#D35AA5" stroke-width="4"/>'+
-      '<circle cx="772" cy="'+(customerY+142)+'" r="44" fill="none" stroke="#F7D66A" stroke-width="3" opacity=".9"/>'+
-      '<text x="772" y="'+(customerY+156)+'" text-anchor="middle" font-size="28" font-weight="900" fill="#ffffff">📷</text>'+
-      '<text x="772" y="'+(customerY+218)+'" text-anchor="middle" font-size="26" font-weight="900" fill="#ffffff">Customer Given</text>'+
-      '<text x="772" y="'+(customerY+252)+'" text-anchor="middle" font-size="26" font-weight="900" fill="#F7D66A">Cloth Photo</text>';
+  var photoBox=mainPhoto
+    ? '<rect x="555" y="'+(customerY+22)+'" width="470" height="274" rx="22" fill="#fff" stroke="#d13b78" stroke-width="3"/>'+
+      '<image href="'+escHref(mainPhoto.src)+'" x="567" y="'+(customerY+34)+'" width="446" height="250" preserveAspectRatio="xMidYMid slice" clip-path="url(#mainPhotoClip)"/>'
+    : '<rect x="555" y="'+(customerY+22)+'" width="470" height="274" rx="22" fill="#fff7fb" stroke="#d13b78" stroke-width="3"/>'+
+      '<circle cx="790" cy="'+(customerY+105)+'" r="50" fill="url(#wacPink)"/>'+
+      text("📷",790,customerY+119,43,900,"#ffffff","middle")+
+      text("CUSTOMER GIVEN",790,customerY+178,24,950,"#211b20","middle")+
+      text("CLOTH PHOTO",790,customerY+211,27,950,"#c52e68","middle");
 
   var body=rows.map(function(x,i){
-    var yy=calcY+calcHeaderH+calcColsH+40+i*rowH;
-    var name=colorWords(x.name,88,yy,25,900,"start",palette,10);
-    return '<rect x="70" y="'+(yy-42)+'" width="940" height="54" rx="10" fill="'+(i%2?'#241536':'#1b1838')+'" stroke="#3d2b58" stroke-width="1"/>'+
-      '<rect x="72" y="'+(yy-40)+'" width="6" height="48" rx="3" fill="'+palette[(i+1)%palette.length]+'"/>'+name+
-      '<text x="655" y="'+yy+'" font-size="25" text-anchor="end" font-weight="900" fill="'+palette[(i+2)%palette.length]+'">'+escSvg(x.qty)+'</text>'+
-      '<text x="820" y="'+yy+'" font-size="25" text-anchor="end" font-weight="900" fill="'+palette[(i+3)%palette.length]+'">'+escSvg(nfWacMoney(x.rate))+'</text>'+
-      '<text x="992" y="'+yy+'" font-size="25" text-anchor="end" font-weight="950" fill="'+palette[(i+4)%palette.length]+'">'+escSvg(nfWacMoney(x.qty*x.rate))+'</text>';
+    var yy=calcY+calcHead+calcCols+36+i*rowH;
+    return '<rect x="58" y="'+(yy-36)+'" width="964" height="52" rx="9" fill="'+(i%2?"#fff8fb":"#f7f5ff")+'"/>'+
+      '<text x="76" y="'+yy+'" font-size="23" font-weight="900" fill="#171827" font-family="Arial, Noto Sans Tamil, sans-serif">'+escSvg(x.name)+'</text>'+
+      '<text x="610" y="'+yy+'" font-size="23" font-weight="900" fill="#171827" text-anchor="middle" font-family="Arial, Noto Sans Tamil, sans-serif">'+escSvg(x.qty)+'</text>'+
+      '<text x="805" y="'+yy+'" font-size="23" font-weight="900" fill="#b52c52" text-anchor="middle" font-family="Arial, Noto Sans Tamil, sans-serif">'+money(x.rate)+'</text>'+
+      '<text x="960" y="'+yy+'" font-size="23" font-weight="950" fill="#176c3e" text-anchor="middle" font-family="Arial, Noto Sans Tamil, sans-serif">'+money(x.qty*x.rate)+'</text>';
   }).join("");
 
-  var phoneText=c.phone?String(c.phone):"Phone number not available";
-  var addressText=c.address?String(c.address).slice(0,42):"";
+  var extraPhotos="";
+  if(photos.length>1){
+    extraPhotos='<rect x="555" y="'+(customerY+238)+'" width="470" height="58" rx="13" fill="rgba(255,255,255,.92)" opacity=".92"/>';
+    photos.slice(1).forEach(function(p,i){
+      var px=570+i*64;
+      extraPhotos+='<image href="'+escHref(p.src)+'" x="'+px+'" y="'+(customerY+245)+'" width="50" height="44" preserveAspectRatio="xMidYMid slice" clip-path="url(#thumb'+i+')"/>';
+    });
+  }
 
   var svg='<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="'+(W*EXPORT_SCALE)+'" height="'+(H*EXPORT_SCALE)+'" viewBox="0 0 '+W+' '+H+'">'+
     '<defs>'+
-      '<linearGradient id="wacBg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#0D0A20"/><stop offset=".42" stop-color="#241044"/><stop offset=".72" stop-color="#4A155B"/><stop offset="1" stop-color="#190D2E"/></linearGradient>'+
-      '<linearGradient id="wacBrand" x1="0" x2="1"><stop stop-color="#120C2B"/><stop offset=".35" stop-color="#3B1764"/><stop offset=".68" stop-color="#7B236E"/><stop offset="1" stop-color="#C93679"/></linearGradient>'+
-      '<linearGradient id="wacPhone" x1="0" x2="1"><stop stop-color="#F6C94C"/><stop offset=".5" stop-color="#FF76B1"/><stop offset="1" stop-color="#A96BFF"/></linearGradient>'+
-      '<linearGradient id="wacTotal" x1="0" x2="1"><stop stop-color="#5B35D5"/><stop offset=".5" stop-color="#9A3FBA"/><stop offset="1" stop-color="#E13F80"/></linearGradient>'+
-      '<linearGradient id="wacFooter" x1="0" x2="1"><stop stop-color="#110C27"/><stop offset=".5" stop-color="#42175E"/><stop offset="1" stop-color="#8C245F"/></linearGradient>'+
-      '<linearGradient id="wacPhotoBg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#21113B"/><stop offset=".5" stop-color="#40134E"/><stop offset="1" stop-color="#17102E"/></linearGradient>'+
-      '<clipPath id="mainPhotoClip"><rect x="535" y="'+(customerY+20)+'" width="475" height="320" rx="24"/></clipPath>'+
-      photoDefs+
+      '<linearGradient id="wacBrand" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#24134b"/><stop offset=".48" stop-color="#7a2c9b"/><stop offset="1" stop-color="#d43b73"/></linearGradient>'+
+      '<linearGradient id="wacPhone" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#d10e55"/><stop offset=".52" stop-color="#b61f68"/><stop offset="1" stop-color="#7b1e73"/></linearGradient>'+
+      '<linearGradient id="wacTotal" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#24105b"/><stop offset=".5" stop-color="#6b2bd1"/><stop offset="1" stop-color="#d82f70"/></linearGradient>'+
+      '<linearGradient id="wacFooter" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#24104c"/><stop offset=".5" stop-color="#641d75"/><stop offset="1" stop-color="#b51e69"/></linearGradient>'+
+      '<linearGradient id="wacGold" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#ffe27a"/><stop offset=".5" stop-color="#f6bd3f"/><stop offset="1" stop-color="#fff0a2"/></linearGradient>'+
+      '<linearGradient id="wacPink" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#9c174e"/><stop offset="1" stop-color="#d92d72"/></linearGradient>'+
+      '<filter id="wacShadow" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="7" stdDeviation="8" flood-color="#24123e" flood-opacity=".16"/></filter>'+
+      '<clipPath id="mainPhotoClip"><rect x="567" y="'+(customerY+34)+'" width="446" height="250" rx="16"/></clipPath>'+
+      '<clipPath id="thumb0"><rect x="570" y="'+(customerY+245)+'" width="50" height="44" rx="8"/></clipPath>'+
+      '<clipPath id="thumb1"><rect x="634" y="'+(customerY+245)+'" width="50" height="44" rx="8"/></clipPath>'+
     '</defs>'+
-    '<rect width="'+W+'" height="'+H+'" fill="url(#wacBg)"/>'+
-    '<circle cx="80" cy="260" r="170" fill="#7A35D4" opacity=".08"/>'+
-    '<circle cx="1000" cy="650" r="230" fill="#F04E9B" opacity=".07"/>'+
-    '<circle cx="910" cy="'+(H-220)+'" r="180" fill="#6E42F5" opacity=".06"/>'+
 
-    /* Header */
-    '<rect x="28" y="24" width="1024" height="172" rx="30" fill="url(#wacBrand)" stroke="#B96ACD" stroke-width="2"/>'+
-    '<text x="540" y="74" text-anchor="middle" font-size="42" font-weight="950" fill="#FFFFFF">NEW FASHION TAILORING</text>'+
-    colorWords("CUSTOMER • ORDER CARD",540,116,29,950,"middle",["#F7D66A","#FFFFFF","#FF79B3","#FFFFFF"],18)+
-    '<rect x="305" y="132" width="470" height="50" rx="25" fill="url(#wacPhone)" stroke="#FFE9A6" stroke-width="2"/>'+
-    '<text x="540" y="153" text-anchor="middle" font-size="14" font-weight="900" fill="#25102F">PHONE NUMBER</text>'+
-    '<text x="540" y="174" text-anchor="middle" font-size="25" font-weight="950" fill="#FFFFFF">'+escSvg(phoneText)+'</text>'+
+    '<rect width="'+W+'" height="'+H+'" fill="#f5f1f7"/>'+
+    '<rect x="16" y="14" width="1048" height="276" rx="25" fill="url(#wacBrand)" stroke="#f1c94a" stroke-width="3" filter="url(#wacShadow)"/>'+
+    '<path d="M365 42 H715" stroke="#f4c94b" stroke-width="2"/>'+
+    '<path d="M365 264 H715" stroke="#f4c94b" stroke-width="2"/>'+
+    '<text x="540" y="104" text-anchor="middle" font-size="52" font-weight="950" fill="#ffffff" font-family="Georgia,serif">NEW FASHION</text>'+
+    '<text x="540" y="162" text-anchor="middle" font-size="55" font-weight="950" fill="url(#wacGold)" font-family="Georgia,serif">TAILORING</text>'+
+    '<text x="540" y="215" text-anchor="middle" font-size="28" font-weight="950" fill="#ffe66d" font-family="Arial, Noto Sans Tamil, sans-serif">CUSTOMER</text>'+
+    '<text x="675" y="215" text-anchor="middle" font-size="25" font-weight="950" fill="#ffffff">•</text>'+
+    '<text x="730" y="215" text-anchor="middle" font-size="28" font-weight="950" fill="#ff82a8">ORDER</text>'+
+    '<text x="850" y="215" text-anchor="middle" font-size="28" font-weight="950" fill="#ffffff">CARD</text>'+
+    '<rect x="42" y="42" width="220" height="220" rx="22" fill="rgba(255,255,255,.04)" stroke="#f2c94c" stroke-width="2"/>'+
+    '<path d="M79 225 L82 110 L202 110 L205 225" fill="none" stroke="#f5c84b" stroke-width="5"/>'+
+    '<path d="M83 112 L103 78 L183 78 L203 112" fill="none" stroke="#f5c84b" stroke-width="5"/>'+
+    '<text x="143" y="177" text-anchor="middle" font-size="62" font-weight="950" fill="url(#wacGold)" font-family="Georgia,serif">NFT</text>'+
+    '<text x="143" y="207" text-anchor="middle" font-size="15" font-weight="900" fill="#ffffff">STITCHING YOUR STYLE</text>'+
+    '<circle cx="930" cy="125" r="58" fill="none" stroke="#f4c94b" stroke-width="3"/>'+
+    '<path d="M900 152 Q930 90 960 152" fill="none" stroke="#fff" stroke-width="4"/>'+
+    '<circle cx="930" cy="91" r="12" fill="#f4c94b"/>'+
+    '<text x="930" y="177" text-anchor="middle" font-size="14" font-weight="900" fill="#ffffff">✂  🧵</text>'+
 
-    /* Customer + photo */
-    '<rect x="45" y="'+customerY+'" width="990" height="'+customerH+'" rx="28" fill="#130D29" stroke="#9A4BAE" stroke-width="3"/>'+
-    '<rect x="65" y="'+(customerY+20)+'" width="445" height="112" rx="20" fill="#21143D" stroke="#6C45E8" stroke-width="3"/>'+
-    '<text x="90" y="'+(customerY+52)+'" font-size="18" font-weight="900" fill="#F7D66A">👤 CUSTOMER NAME</text>'+
-    colorWordsFit(c.name||"Customer",90,customerY+101,31,950,"start",["#FFFFFF","#FF79B3","#7CCBFF","#F7D66A"],395)+
+    '<rect x="42" y="300" width="996" height="150" rx="24" fill="url(#wacPhone)" stroke="#f2c94b" stroke-width="3" filter="url(#wacShadow)"/>'+
+    '<text x="540" y="333" text-anchor="middle" font-size="22" font-weight="950" fill="#ffe77d">SHOP PHONE NUMBER</text>'+
+    '<circle cx="113" cy="375" r="42" fill="none" stroke="#ffffff" stroke-width="4"/>'+
+    '<text x="113" y="389" text-anchor="middle" font-size="48" fill="#ffffff">☎</text>'+
+    '<text x="585" y="407" text-anchor="middle" font-size="56" font-weight="950" letter-spacing="3" fill="#ffffff" font-family="Arial,sans-serif">'+escSvg(SHOP_PHONE)+'</text>'+
 
-    '<rect x="65" y="'+(customerY+148)+'" width="445" height="112" rx="20" fill="#1D153C" stroke="#D34E9B" stroke-width="3"/>'+
-    '<text x="90" y="'+(customerY+180)+'" font-size="18" font-weight="900" fill="#7CCBFF">📍 ஊர்</text>'+
-    colorWordsFit(village,90,customerY+229,30,950,"start",["#6DE7D0","#7CCBFF","#FFFFFF","#F7D66A"],395)+
+    '<rect x="42" y="'+customerY+'" width="996" height="'+customerH+'" rx="24" fill="#ffffff" stroke="#d7c7df" stroke-width="3" filter="url(#wacShadow)"/>'+
+    '<rect x="58" y="'+(customerY+22)+'" width="475" height="274" rx="20" fill="#fbf9ff" stroke="#6a55d9" stroke-width="3"/>'+
+    '<rect x="72" y="'+(customerY+38)+'" width="52" height="52" rx="15" fill="url(#wacBrand)"/>'+
+    '<text x="98" y="'+(customerY+74)+'" text-anchor="middle" font-size="28" fill="#ffffff">●</text>'+
+    '<text x="142" y="'+(customerY+61)+'" font-size="21" font-weight="950" fill="#171827">CUSTOMER NAME</text>'+
+    fit(c.name||"Customer",82,customerY+122,40,950,"#11121a",420)+
+    '<rect x="78" y="'+(customerY+146)+'" width="430" height="104" rx="16" fill="#fff8fb" stroke="#d8b4c9" stroke-width="2"/>'+
+    '<circle cx="112" cy="'+(customerY+180)+'" r="18" fill="#d92768"/>'+
+    '<text x="112" y="'+(customerY+187)+'" text-anchor="middle" font-size="18" fill="#ffffff">⌖</text>'+
+    '<text x="144" y="'+(customerY+184)+'" font-size="22" font-weight="950" fill="#b61e5c">ஊர்</text>'+
+    fit(village,144,customerY+226,31,950,"#171827",345)+
+    photoBox+extraPhotos+
 
-    (addressText?'<rect x="65" y="'+(customerY+276)+'" width="445" height="64" rx="18" fill="#18112F" stroke="#5E477A" stroke-width="2"/>'+
-      '<text x="90" y="'+(customerY+303)+'" font-size="15" font-weight="850" fill="#C99BFF">🏠 ADDRESS</text>'+
-      colorWordsFit(addressText,90,customerY+328,17,800,"start",["#FFFFFF","#C99BFF","#7CCBFF"],390):"")+
-    mainPhotoSvg+
+    '<rect x="42" y="'+datesY+'" width="996" height="'+datesH+'" rx="22" fill="#ffffff" stroke="#d7c7df" stroke-width="3"/>'+
+    '<rect x="58" y="'+(datesY+14)+'" width="475" height="88" rx="18" fill="#eef8fc" stroke="#1aa4c5" stroke-width="3"/>'+
+    '<rect x="547" y="'+(datesY+14)+'" width="475" height="88" rx="18" fill="#fff1f7" stroke="#d72f76" stroke-width="3"/>'+
+    '<text x="80" y="'+(datesY+45)+'" font-size="20" font-weight="950" fill="#171827">👗 துணி கொடுத்த தேதி</text>'+
+    '<text x="80" y="'+(datesY+80)+'" font-size="31" font-weight="950" fill="#171827">'+date(data.clothDate)+'</text>'+
+    '<text x="570" y="'+(datesY+45)+'" font-size="20" font-weight="950" fill="#171827">🚚 Delivery Date</text>'+
+    '<text x="570" y="'+(datesY+80)+'" font-size="31" font-weight="950" fill="#171827">'+date(data.deliveryDate)+'</text>'+
 
-    /* Dates */
-    '<rect x="45" y="'+datesY+'" width="990" height="'+datesH+'" rx="24" fill="#130D29" stroke="#62477D" stroke-width="3"/>'+
-    '<rect x="60" y="'+(datesY+14)+'" width="465" height="94" rx="20" fill="#102C3B" stroke="#20BFE0" stroke-width="3"/>'+
-    '<rect x="555" y="'+(datesY+14)+'" width="465" height="94" rx="20" fill="#10352D" stroke="#36D38D" stroke-width="3"/>'+
-    colorLine("👗 துணி கொடுத்த தேதி",85,datesY+48,20,900,["#7CCBFF","#F7D66A","#FFFFFF"],8)+
-    colorWordsFit(nfWacDate(data.clothDate),85,datesY+86,33,950,"start",["#FFFFFF","#7CCBFF","#6DE7D0"],410)+
-    colorLine("🚚 Delivery Date",580,datesY+48,20,900,["#6DE7D0","#F7D66A","#FFFFFF"],8)+
-    colorWordsFit(nfWacDate(data.deliveryDate),580,datesY+86,33,950,"start",["#FFFFFF","#6DE7D0","#F7D66A"],410)+
-
-    /* Optional photos */
-    (photos.length?
-      '<rect x="45" y="'+photosY+'" width="990" height="'+photosH+'" rx="24" fill="#140D2A" stroke="#9C4EAD" stroke-width="3"/>'+
-      '<text x="540" y="'+(photosY+38)+'" text-anchor="middle" font-size="23" font-weight="950" fill="#F7D66A">Customer கொடுத்த துணி Photos</text>'+
-      photoImages:"")+
-
-    /* Calculation */
-    '<rect x="45" y="'+calcY+'" width="990" height="'+calcH+'" rx="24" fill="#100B24" stroke="#8B4EE6" stroke-width="3"/>'+
-    '<rect x="45" y="'+calcY+'" width="990" height="'+calcHeaderH+'" rx="24" fill="#25113F"/>'+
-    colorLine("🧵 Garment Details & Calculation",80,calcY+41,26,950,["#F7D66A","#FF79B3","#6DE7D0","#7CCBFF","#C99BFF"],10)+
-    colorLine("துணி",78,calcY+calcHeaderH+30,20,900,["#F7D66A"],0)+
-    colorLine("Qty",620,calcY+calcHeaderH+30,20,900,["#7CCBFF"],0)+
-    colorLine("Rate",765,calcY+calcHeaderH+30,20,900,["#FF9D5C"],0)+
-    colorLine("Amount",905,calcY+calcHeaderH+30,20,900,["#6DE7D0"],0)+
+    '<rect x="42" y="'+calcY+'" width="996" height="'+calcH+'" rx="22" fill="#ffffff" stroke="#c9b5dc" stroke-width="3" filter="url(#wacShadow)"/>'+
+    '<rect x="42" y="'+calcY+'" width="996" height="'+calcHead+'" rx="22" fill="url(#wacBrand)"/>'+
+    '<text x="78" y="'+(calcY+40)+'" font-size="27" font-weight="950" fill="#ffffff">🧵 GARMENT DETAILS &amp; CALCULATION</text>'+
+    '<line x1="58" y1="'+(calcY+calcHead)+'" x2="1022" y2="'+(calcY+calcHead)+'" stroke="#d6c9df" stroke-width="2"/>'+
+    '<text x="78" y="'+(calcY+calcHead+32)+'" font-size="19" font-weight="950" fill="#171827">துணி</text>'+
+    '<text x="610" y="'+(calcY+calcHead+32)+'" text-anchor="middle" font-size="19" font-weight="950" fill="#171827">QTY</text>'+
+    '<text x="805" y="'+(calcY+calcHead+32)+'" text-anchor="middle" font-size="19" font-weight="950" fill="#171827">RATE (₹)</text>'+
+    '<text x="960" y="'+(calcY+calcHead+32)+'" text-anchor="middle" font-size="19" font-weight="950" fill="#171827">AMOUNT (₹)</text>'+
     body+
+    '<rect x="58" y="'+totalY+'" width="964" height="'+calcTotal+'" rx="18" fill="url(#wacTotal)"/>'+
+    '<text x="82" y="'+(totalY+52)+'" font-size="30" font-weight="950" fill="#ffffff">GRAND TOTAL</text>'+
+    '<text x="985" y="'+(totalY+52)+'" text-anchor="end" font-size="35" font-weight="950" fill="#ffffff">'+money(st.total)+'</text>'+
 
-    /* Grand total */
-    '<rect x="45" y="'+totalY+'" width="990" height="'+totalH+'" rx="20" fill="url(#wacTotal)" stroke="#F36BAA" stroke-width="2"/>'+
-    '<text x="78" y="'+(totalY+52)+'" font-size="30" font-weight="950" fill="#FFFFFF">Grand Total</text>'+
-    colorWordsFit(nfWacMoney(st.total),995,totalY+54,35,950,"end",["#FFFFFF","#F7D66A","#FFFFFF"],390)+
-
-    /* Payment highlights */
-    '<rect x="45" y="'+payY+'" width="990" height="'+payH+'" rx="24" fill="#130D29" stroke="#8B4EE6" stroke-width="3"/>'+
-    '<rect x="62" y="'+(payY+14)+'" width="300" height="100" rx="18" fill="#281451" stroke="#865BEF" stroke-width="2"/>'+
-    '<rect x="390" y="'+(payY+14)+'" width="300" height="100" rx="18" fill="#103A32" stroke="#36D38D" stroke-width="2"/>'+
-    '<rect x="718" y="'+(payY+14)+'" width="300" height="100" rx="18" fill="#4A2412" stroke="#FF9D5C" stroke-width="2"/>'+
-    '<text x="212" y="'+(payY+42)+'" text-anchor="middle" font-size="18" font-weight="900" fill="#C99BFF">TOTAL AMOUNT</text>'+
-    colorWordsFit(nfWacMoney(st.total),212,payY+84,29,950,"middle",["#FFFFFF","#C99BFF","#F7D66A"],250)+
-    '<text x="540" y="'+(payY+42)+'" text-anchor="middle" font-size="18" font-weight="900" fill="#6DE7D0">PAID AMOUNT</text>'+
-    colorWordsFit(nfWacMoney(st.paid),540,payY+84,29,950,"middle",["#FFFFFF","#6DE7D0","#7CCBFF"],250)+
-    '<text x="868" y="'+(payY+42)+'" text-anchor="middle" font-size="18" font-weight="900" fill="#FFB36D">BALANCE AMOUNT</text>'+
-    colorWordsFit(nfWacMoney(st.balance),868,payY+84,29,950,"middle",["#FFFFFF","#FFB36D","#FF79B3"],250)+
+    '<rect x="42" y="'+payY+'" width="996" height="'+payH+'" rx="22" fill="#ffffff" stroke="#c9b5dc" stroke-width="3"/>'+
+    '<rect x="58" y="'+(payY+14)+'" width="305" height="100" rx="17" fill="#f4f0ff" stroke="#6a55d9" stroke-width="2"/>'+
+    '<rect x="388" y="'+(payY+14)+'" width="305" height="100" rx="17" fill="#effaf5" stroke="#35a878" stroke-width="2"/>'+
+    '<rect x="718" y="'+(payY+14)+'" width="304" height="100" rx="17" fill="#fff4ee" stroke="#ed9360" stroke-width="2"/>'+
+    text("TOTAL AMOUNT",210,payY+40,18,950,"#3f2b8d","middle")+
+    text(money(st.total),210,payY+80,29,950,"#11121a","middle")+
+    text("PAID AMOUNT",540,payY+40,18,950,"#176c3e","middle")+
+    text(money(st.paid),540,payY+80,29,950,"#11121a","middle")+
+    text("BALANCE AMOUNT",870,payY+40,18,950,"#c4511f","middle")+
+    text(money(st.balance),870,payY+80,29,950,"#11121a","middle")+
 
     (data.note?
-      '<rect x="45" y="'+noteY+'" width="990" height="'+noteH+'" rx="20" fill="#2C1D12" stroke="#D99A45" stroke-width="3"/>'+
-      colorLine("📝 Note",72,noteY+36,21,900,["#F7D66A","#FF9D5C"],8)+
-      colorLine(String(data.note).slice(0,90),72,noteY+72,18,800,["#FFFFFF","#C99BFF","#6DE7D0"],7):"")+
+      '<rect x="42" y="'+noteY+'" width="996" height="'+noteH+'" rx="20" fill="#fff9df" stroke="#e7c765" stroke-width="2"/>'+
+      text("📝 Note",70,noteY+32,19,950,"#6a4b00")+
+      fit(String(data.note).slice(0,100),70,noteY+67,18,800,"#171827",920):"")+
 
-    /* Footer */
-    '<rect x="45" y="'+footerY+'" width="990" height="'+footerH+'" rx="24" fill="url(#wacFooter)" stroke="#B956A1" stroke-width="3"/>'+
-    '<text x="540" y="'+(footerY+42)+'" text-anchor="middle" font-size="27" font-weight="950" fill="#FFFFFF">Thank you for choosing us!</text>'+
-    colorWords("NEW FASHION TAILORING",540,footerY+78,20,850,"middle",["#F7D66A","#FF79B3","#FFFFFF"],10)+
-    '<rect x="290" y="'+(footerY+89)+'" width="500" height="27" rx="14" fill="rgba(0,0,0,.25)" stroke="#F7D66A" stroke-width="1"/>'+
-    '<text x="540" y="'+(footerY+109)+'" text-anchor="middle" font-size="18" font-weight="950" fill="#FFFFFF">📞 '+escSvg(phoneText)+'</text>'+
+    '<rect x="42" y="'+footerY+'" width="996" height="'+footerH+'" rx="22" fill="url(#wacFooter)" stroke="#f1c94a" stroke-width="2"/>'+
+    '<text x="540" y="'+(footerY+43)+'" text-anchor="middle" font-size="27" font-weight="950" fill="#ffe66d" font-family="Georgia,serif">Thank you for choosing us!</text>'+
+    '<text x="540" y="'+(footerY+78)+'" text-anchor="middle" font-size="21" font-weight="950" fill="#ffffff">NEW FASHION TAILORING</text>'+
+    '<rect x="345" y="'+(footerY+87)+'" width="390" height="24" rx="12" fill="rgba(255,255,255,.10)" stroke="#f4c94b" stroke-width="1"/>'+
+    '<text x="540" y="'+(footerY+105)+'" text-anchor="middle" font-size="16" font-weight="900" fill="#ffffff">☎  '+escSvg(SHOP_PHONE)+'</text>'+
     '</svg>';
 
   return svg;
