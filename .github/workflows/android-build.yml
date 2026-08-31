@@ -135,9 +135,9 @@ jobs:
           mkdir -p android/app
 
           printf '%s' "$KEYSTORE_BASE64" | base64 --decode \
-            > android/app/newfashion-release.jks
+            > android/app/newfashion-stable.jks
 
-          test -s android/app/newfashion-release.jks
+          test -s android/app/newfashion-stable.jks
 
           echo "Stable keystore restored."
 
@@ -152,7 +152,7 @@ jobs:
           signing_block = '''
               signingConfigs {
                   stable {
-                      storeFile file("newfashion-release.jks")
+                      storeFile file("newfashion-stable.jks")
                       storePassword "NewFashion@2026"
                       keyAlias "newfashion"
                       keyPassword "NewFashion@2026"
