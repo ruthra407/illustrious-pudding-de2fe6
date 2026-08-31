@@ -3517,28 +3517,6 @@ async function scheduleNativeDailyNotifications(){
   }
 }
 
-async function setupNFNotificationVoiceListener(){
-  try{
-    const LocalNotifications=await getNFLocalNotifications();
-    if(!LocalNotifications || typeof LocalNotifications.addListener!=="function") return false;
-    try{ await LocalNotifications.removeAllListeners(); }catch(e){}
-    await LocalNotifications.addListener("localNotificationReceived", async notification=>{
-      try{
-        const text=String(notification?.body || notification?.title || "").trim();
-        if(!text) return;
-        await nfSpeakWithPhoneVoice(text);
-      }catch(e){
-        console.error("Notification voice listener error:",e);
-      }
-    });
-    console.log("Notification voice listener enabled.");
-    return true;
-  }catch(e){
-    console.error("Notification voice listener setup error:",e);
-    return false;
-  }
-}
-
 function startReminderScheduler(){
  if(reminderTimer){
    clearInterval(reminderTimer);
@@ -3571,8 +3549,6 @@ async function enableDailyNotifications(){
 
  toast(`✅ 24 Daily Notifications ON. 30 நிமிடத்திற்கு ஒருமுறை நீங்கள் அமைத்த நேரங்களில் notification வரும்.`);
 }
-
-setupNFNotificationVoiceListener();
 
 updateBackButton();
 refreshNFHomeNotificationBar();
