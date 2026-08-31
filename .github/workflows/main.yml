@@ -1,4 +1,4 @@
-name: Generate Signing Key
+name: Generate New Stable Signing Key
 
 on:
   workflow_dispatch:
@@ -8,27 +8,34 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Generate keystore
+      - name: Generate stable JKS
         run: |
           keytool -genkeypair \
             -v \
-            -keystore newfashion-release.jks \
-            -storepass newfashion123 \
-            -alias newfashion \
-            -keypass newfashion123 \
+            -keystore newfashion-stable.jks \
+            -storepass "NewFashion@2026" \
+            -alias "newfashion" \
+            -keypass "NewFashion@2026" \
             -keyalg RSA \
             -keysize 2048 \
             -validity 10000 \
             -dname "CN=New Fashion Tailoring, OU=App, O=New Fashion Tailoring, L=India, ST=Tamil Nadu, C=IN"
 
-      - name: Convert keystore to Base64
+      - name: Create Base64 Secret Value
         run: |
-          base64 -w 0 newfashion-release.jks > newfashion-keystore-base64.txt
+          base64 -w 0 newfashion-stable.jks > newfashion-stable-base64.txt
 
-      - name: Upload signing files
+      - name: Show SHA-256
+        run: |
+          keytool -list -v \
+            -keystore newfashion-stable.jks \
+            -storepass "NewFashion@2026" \
+            -alias "newfashion" | grep "SHA256:"
+
+      - name: Upload JKS
         uses: actions/upload-artifact@v4
         with:
-          name: New-Fashion-Signing-Key
+          name: New-Fashion-Stable-Signing-Key
           path: |
-            newfashion-release.jks
-            newfashion-keystore-base64.txt
+            newfashion-stable.jks
+            newfashion-stable-base64.txt
