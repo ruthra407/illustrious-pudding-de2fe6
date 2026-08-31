@@ -1,0 +1,32 @@
+name: Verify Existing Signing Key
+
+on:
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Decode existing keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          set -e
+
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            echo "ERROR: ANDROID_KEYSTORE_BASE64 is missing."
+            exit 1
+          fi
+
+          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > existing-key.jks
+
+          test -s existing-key.jks
+          echo "Existing keystore decoded successfully."
+
+      - name: Show certificate fingerprint
+        run: |
+          keytool -list -v \
+            -keystore existing-key.jks \
+            -storepass "newfashion123" \
+            | grep -E "Alias name:|SHA256:"
