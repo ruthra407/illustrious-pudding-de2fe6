@@ -160,8 +160,8 @@ jobs:
           gradle = Path("android/app/build.gradle")
           text = gradle.read_text()
 
-          # Remove old stable signing configuration if present
           start = text.find("    signingConfigs {")
+
           if start != -1:
               end = text.find("    }", start)
               if end != -1:
@@ -185,7 +185,6 @@ jobs:
               1
           )
 
-          # Ensure DEBUG uses the stable signing key
           if "signingConfig signingConfigs.stable" not in text:
               text = text.replace(
                   "        debug {",
@@ -194,21 +193,21 @@ jobs:
                   1
               )
 
-          # Ensure RELEASE uses the same stable signing key
           release_marker = "        release {"
 
           if release_marker in text:
               release_start = text.find(release_marker)
-
               release_end = text.find("\n        }", release_start)
 
               release_block = text[release_start:release_end]
 
               if "signingConfig signingConfigs.stable" not in release_block:
-                  text = text[:release_start] + \
-                      release_marker + \
-                      "\n            signingConfig signingConfigs.stable" + \
-                      text[release_start + len(release_marker):]
+                  text = (
+                      text[:release_start]
+                      + release_marker
+                      + "\n            signingConfig signingConfigs.stable"
+                      + text[release_start + len(release_marker):]
+                  )
 
           gradle.write_text(text)
 
@@ -242,13 +241,6 @@ jobs:
 
       - name: Make Gradle Wrapper executable
         run: chmod +x android/gradlew
-
-      - name: Verify signing key
-        run: |
-          keytool -list -v \
-            -keystore android/app/newfashion-stable.jks \
-            -storepass "NewFashion@2026" \
-            -alias "newfashion" | grep "SHA256:"
 
       - name: Build Debug APK
         working-directory: android
