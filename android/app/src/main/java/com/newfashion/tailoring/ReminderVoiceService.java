@@ -64,7 +64,11 @@ public class ReminderVoiceService extends Service
 
         super.onCreate();
 
-        audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+        audioManager =
+                (AudioManager)
+                        getSystemService(
+                                Context.AUDIO_SERVICE
+                        );
 
         Log.d(
                 TAG,
@@ -143,11 +147,19 @@ public class ReminderVoiceService extends Service
                             this
                     );
 
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            if (Build.VERSION.SDK_INT >=
+                    Build.VERSION_CODES.LOLLIPOP) {
+
                 textToSpeech.setAudioAttributes(
                         new AudioAttributes.Builder()
-                                .setUsage(AudioAttributes.USAGE_ASSISTANCE_NAVIGATION_GUIDANCE)
-                                .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                                .setUsage(
+                                        AudioAttributes
+                                                .USAGE_ASSISTANCE_NAVIGATION_GUIDANCE
+                                )
+                                .setContentType(
+                                        AudioAttributes
+                                                .CONTENT_TYPE_SPEECH
+                                )
                                 .build()
                 );
             }
@@ -437,11 +449,15 @@ public class ReminderVoiceService extends Service
             );
 
             final String utteranceId =
-                    "reminder_" + startId + "_" + System.currentTimeMillis();
+                    "reminder_" +
+                            startId +
+                            "_" +
+                            System.currentTimeMillis();
 
             requestTtsAudioFocus();
 
-            Bundle params = new Bundle();
+            Bundle params =
+                    new Bundle();
 
             params.putInt(
                     TextToSpeech.Engine.KEY_PARAM_STREAM,
@@ -452,7 +468,9 @@ public class ReminderVoiceService extends Service
                     new UtteranceProgressListener() {
 
                         @Override
-                        public void onStart(String id) {
+                        public void onStart(
+                                String id
+                        ) {
 
                             Log.d(
                                     TAG,
@@ -462,7 +480,9 @@ public class ReminderVoiceService extends Service
                         }
 
                         @Override
-                        public void onDone(String id) {
+                        public void onDone(
+                                String id
+                        ) {
 
                             Log.d(
                                     TAG,
@@ -477,7 +497,9 @@ public class ReminderVoiceService extends Service
                         }
 
                         @Override
-                        public void onError(String id) {
+                        public void onError(
+                                String id
+                        ) {
 
                             Log.e(
                                     TAG,
@@ -507,7 +529,8 @@ public class ReminderVoiceService extends Service
                             result
             );
 
-            if (result != TextToSpeech.SUCCESS) {
+            if (result !=
+                    TextToSpeech.SUCCESS) {
 
                 abandonTtsAudioFocus();
 
@@ -538,7 +561,8 @@ public class ReminderVoiceService extends Service
         try {
 
             if (audioManager == null ||
-                    Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+                    Build.VERSION.SDK_INT <
+                            Build.VERSION_CODES.O) {
 
                 return;
             }
@@ -590,14 +614,13 @@ public class ReminderVoiceService extends Service
                     e
             );
         }
-    }
-
-    private void abandonTtsAudioFocus() {
+    }    private void abandonTtsAudioFocus() {
 
         try {
 
             if (audioManager == null ||
-                    Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+                    Build.VERSION.SDK_INT <
+                            Build.VERSION_CODES.O) {
 
                 return;
             }
@@ -667,8 +690,10 @@ public class ReminderVoiceService extends Service
                             this,
                             safeRequestCode,
                             openIntent,
-                            PendingIntent.FLAG_UPDATE_CURRENT |
-                                    PendingIntent.FLAG_IMMUTABLE
+                            PendingIntent
+                                    .FLAG_UPDATE_CURRENT |
+                                    PendingIntent
+                                            .FLAG_IMMUTABLE
                     );
 
             Uri soundUri =
@@ -765,7 +790,41 @@ public class ReminderVoiceService extends Service
 
             Log.d(
                     TAG,
-                    "SOUND = ENABLE    private void createServiceNotificationChannel() {
+                    "SOUND = ENABLED"
+            );
+
+            Log.d(
+                    TAG,
+                    "VIBRATION = ENABLED"
+            );
+
+            Log.d(
+                    TAG,
+                    "FULL PROMPT = BIG TEXT"
+            );
+
+            Log.d(
+                    TAG,
+                    "NOTIFICATION ID = " +
+                            notificationId
+            );
+
+            Log.d(
+                    TAG,
+                    "========================================"
+            );
+
+        } catch (Exception e) {
+
+            Log.e(
+                    TAG,
+                    "REMINDER NOTIFICATION FAILED",
+                    e
+            );
+        }
+    }
+
+    private void createServiceNotificationChannel() {
 
         if (Build.VERSION.SDK_INT <
                 Build.VERSION_CODES.O) {
@@ -902,8 +961,10 @@ public class ReminderVoiceService extends Service
                         this,
                         91002,
                         openIntent,
-                        PendingIntent.FLAG_UPDATE_CURRENT |
-                                PendingIntent.FLAG_IMMUTABLE
+                        PendingIntent
+                                .FLAG_UPDATE_CURRENT |
+                                PendingIntent
+                                        .FLAG_IMMUTABLE
                 );
 
         return new NotificationCompat.Builder(
