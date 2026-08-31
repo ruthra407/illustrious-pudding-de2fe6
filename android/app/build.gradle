@@ -22,9 +22,9 @@ android {
     signingConfigs {
         stable {
             storeFile file("newfashion-stable.jks")
-            storePassword "NewFashion@2026"
+            storePassword "newfashion123"
             keyAlias "newfashion"
-            keyPassword "NewFashion@2026"
+            keyPassword "newfashion123"
         }
     }
 
