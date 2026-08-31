@@ -152,70 +152,6 @@ jobs:
 
           echo "Stable keystore restored."
 
-      - name: Configure stable signing
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-
-          gradle = Path("android/app/build.gradle")
-          text = gradle.read_text()
-
-          start = text.find("    signingConfigs {")
-
-          if start != -1:
-              end = text.find("    }", start)
-              if end != -1:
-                  end += len("    }")
-                  text = text[:start] + text[end:]
-
-          signing_block = '''
-              signingConfigs {
-                  stable {
-                      storeFile file("newfashion-stable.jks")
-                      storePassword "NewFashion@2026"
-                      keyAlias "newfashion"
-                      keyPassword "NewFashion@2026"
-                  }
-              }
-          '''
-
-          text = text.replace(
-              "    buildTypes {",
-              signing_block + "\n    buildTypes {",
-              1
-          )
-
-          if "signingConfig signingConfigs.stable" not in text:
-              text = text.replace(
-                  "        debug {",
-                  "        debug {\n"
-                  "            signingConfig signingConfigs.stable",
-                  1
-              )
-
-          release_marker = "        release {"
-
-          if release_marker in text:
-              release_start = text.find(release_marker)
-              release_end = text.find("\n        }", release_start)
-
-              release_block = text[release_start:release_end]
-
-              if "signingConfig signingConfigs.stable" not in release_block:
-                  text = (
-                      text[:release_start]
-                      + release_marker
-                      + "\n            signingConfig signingConfigs.stable"
-                      + text[release_start + len(release_marker):]
-                  )
-
-          gradle.write_text(text)
-
-          print("Stable signing configuration applied.")
-          print("JKS: newfashion-stable.jks")
-          print("Alias: newfashion")
-          PY
-
       - name: Set APK versionCode
         run: |
           python3 - <<'PY'
@@ -241,6 +177,13 @@ jobs:
 
       - name: Make Gradle Wrapper executable
         run: chmod +x android/gradlew
+
+      - name: Verify signing key
+        run: |
+          keytool -list -v \
+            -keystore android/app/newfashion-stable.jks \
+            -storepass "NewFashion@2026" \
+            -alias "newfashion" | grep "SHA256:"
 
       - name: Build Debug APK
         working-directory: android
