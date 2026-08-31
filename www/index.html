@@ -635,6 +635,66 @@ body.nf-photo-preview-scroll-locked{
   font-weight:800!important;
 }
 </style>
+
+/* PROFESSIONAL CARD DESIGN — visual-only update */
+<style id="professional-card-design">
+.hd-card,
+.customer-card,
+.whatsapp-card,
+.card-preview,
+.order-card {
+  background: linear-gradient(145deg, #f8f7ff 0%, #ffffff 48%, #fff7fb 100%) !important;
+  border: 1px solid rgba(76, 46, 135, .16) !important;
+}
+
+.hd-card *,
+.customer-card *,
+.whatsapp-card *,
+.card-preview *,
+.order-card * {
+  letter-spacing: .01em;
+}
+
+.card-header,
+.hd-card-header,
+.customer-card-header,
+.order-card-header {
+  background: linear-gradient(135deg, #17133d 0%, #4c2ca0 52%, #c52d78 100%) !important;
+  color: #fff !important;
+  box-shadow: 0 8px 22px rgba(55, 32, 112, .22);
+}
+
+.shop-phone-header {
+  display: block;
+  margin: 10px auto 0;
+  padding: 9px 18px;
+  width: fit-content;
+  border-radius: 999px;
+  background: rgba(255,255,255,.16);
+  border: 1px solid rgba(255,255,255,.34);
+  color: #fff;
+  font-size: clamp(20px, 4vw, 30px);
+  font-weight: 900;
+  line-height: 1.1;
+  text-align: center;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.18);
+}
+
+.card-section,
+.customer-info,
+.garment-section,
+.amount-section {
+  background: rgba(255,255,255,.82) !important;
+  border-color: rgba(82, 48, 150, .16) !important;
+  box-shadow: 0 4px 14px rgba(55, 32, 112, .06);
+}
+
+.card-footer,
+.order-card-footer {
+  background: linear-gradient(135deg, #17133d 0%, #4c2ca0 52%, #c52d78 100%) !important;
+}
+</style>
+
 </head><body><div id="loginPage" class="loginpage"><section class="loginbox"><div class="brand">NEW FASHION</div><div class="gold">TAILORING INDUSTRY</div><div class="sub">Online Tailoring Management Software</div><form id="loginForm"><div class="field"><label>Email</label><input id="loginEmail" class="input" type="email" autocomplete="email" required placeholder="உங்கள் Email"></div><div class="field"><label>Password</label><input id="loginPassword" class="input" type="password" autocomplete="current-password" required placeholder="Password"></div><button class="btn primary" id="loginBtn" type="submit">🔐 LOGIN</button><div id="loginMsg" class="msg"></div></form><button id="resetPasswordBtn" class="btn primary nf-reset-password-btn" type="button">🔄 RESET PASSWORD</button>
 <div class="nf-forgot-row">
   <button id="forgotBtn" class="btn secondary nf-forgot-btn" type="button">Forgot password?</button>
