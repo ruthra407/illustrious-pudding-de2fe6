@@ -3018,111 +3018,74 @@ $("ownerCameraInput")?.addEventListener("change",e=>savePhoto("owner",e.target.f
 $("shopPhotoInput")?.addEventListener("change",e=>savePhoto("shop",e.target.files[0]));
 $("shopCameraInput")?.addEventListener("change",e=>savePhoto("shop",e.target.files[0]));
 
-let nfLocalNotificationsPromise=null;
+let nfReminderSchedulerPromise=null;
 
-async function getNFLocalNotifications(){
- const cap=window.Capacitor;
- if(!cap)return null;
+/*
+ * IMPORTANT:
+ * Daily reminders must be scheduled through the native Android
+ * ReminderScheduler plugin. Do NOT use Capacitor LocalNotifications here.
+ *
+ * Reason:
+ * LocalNotifications can display a notification directly, but that path
+ * does not pass through ReminderReceiver -> ReminderVoiceService.
+ * The native ReminderScheduler path does, so the Android Tamil TTS service
+ * can speak when the reminder fires.
+ */
+async function getNFReminderScheduler(){
+  if(nfReminderSchedulerPromise)return nfReminderSchedulerPromise;
 
- if(nfLocalNotificationsPromise){
-   return nfLocalNotificationsPromise;
- }
+  nfReminderSchedulerPromise=(async()=>{
+    try{
+      const cap=window.Capacitor;
+      if(!cap)return null;
 
- nfLocalNotificationsPromise=(async()=>{
-   try{
+      if(cap.Plugins?.ReminderScheduler){
+        return cap.Plugins.ReminderScheduler;
+      }
 
-     if(typeof cap.registerPlugin==="function"){
-       const plugin=cap.registerPlugin("LocalNotifications");
-       if(plugin)return plugin;
-     }
+      if(typeof cap.registerPlugin==="function"){
+        const plugin=cap.registerPlugin("ReminderScheduler");
+        if(plugin)return plugin;
+      }
+    }catch(e){
+      console.error("ReminderScheduler registration error:",e);
+    }
 
-     if(cap.Plugins && cap.Plugins.LocalNotifications){
-       return cap.Plugins.LocalNotifications;
-     }
-   }catch(e){
-     console.error("LocalNotifications registration error:",e);
-   }
+    return null;
+  })();
 
-   return null;
- })();
-
- return nfLocalNotificationsPromise;
-}
-
-async function ensureNFNotificationChannel(){
- const LocalNotifications=await getNFLocalNotifications();
- if(!LocalNotifications)return false;
-
- try{
-   if(typeof LocalNotifications.createChannel==="function"){
-     await LocalNotifications.createChannel({
-       id:"nf_daily_reminders",
-       name:"Daily Tailoring Reminders",
-       description:"New Fashion Tailoring delivery reminders",
-       importance:4,
-       visibility:1,
-       sound:"default",
-       vibration:true
-     });
-   }
- }catch(e){
-   console.log("Notification channel:",e);
- }
- return true;
-}
-
-function nfDelay(ms){
- return new Promise(resolve=>setTimeout(resolve,ms));
+  return nfReminderSchedulerPromise;
 }
 
 async function requestNotificationPermission(){
- const LocalNotifications=await getNFLocalNotifications();
+  const ReminderScheduler=await getNFReminderScheduler();
 
- if(!LocalNotifications){
-   toast("Notification plugin கிடைக்கவில்லை. APK-ல் Local Notifications plugin register ஆகவில்லை.",true);
-   return "denied";
- }
+  if(!ReminderScheduler){
+    toast("ReminderScheduler plugin கிடைக்கவில்லை. Android native plugin register செய்யுங்கள்.",true);
+    return "denied";
+  }
 
- try{
+  try{
+    if(typeof ReminderScheduler.requestPermissions==="function"){
+      const result=await ReminderScheduler.requestPermissions();
+      return result?.display || "granted";
+    }
 
-   let current=await LocalNotifications.checkPermissions();
+    return "granted";
+  }catch(error){
+    console.error("Native reminder permission error:",error);
+    toast("Notification permission error: "+(error?.message||String(error)),true);
+    return "denied";
+  }
+}
 
-   if(current?.display==="granted"){
-     await ensureNFNotificationChannel();
-     return "granted";
-   }
-
-   let result=await LocalNotifications.requestPermissions();
-
-   await nfDelay(350);
-
-   current=await LocalNotifications.checkPermissions();
-
-   if(current?.display==="granted"){
-     await ensureNFNotificationChannel();
-     return "granted";
-   }
-
-   if(result?.display==="granted"){
-     await ensureNFNotificationChannel();
-     return "granted";
-   }
-
-   await nfDelay(500);
-   current=await LocalNotifications.checkPermissions();
-
-   if(current?.display==="granted"){
-     await ensureNFNotificationChannel();
-     return "granted";
-   }
-
-   console.warn("Notification permission state:",current,result);
-   return current?.display || result?.display || "denied";
- }catch(error){
-   console.error("Native notification permission error:",error);
-   toast("Notification permission error: "+(error?.message||String(error)),true);
-   return "denied";
- }
+async function ensureNFNotificationChannel(){
+  /*
+   * The Android ReminderReceiver creates and owns the real notification
+   * channel. HTML must not create a second LocalNotifications channel,
+   * otherwise the scheduled notification can bypass ReminderReceiver.
+   */
+  return true;
 }
 
 const DEFAULT_REMINDER_TIMES=[
@@ -3191,17 +3154,26 @@ function resetReminderTimes(button){
 }
 
 async function disableDailyNotifications(){
- try{
-  const LocalNotifications=await getNFLocalNotifications();
-  if(LocalNotifications){
-   await LocalNotifications.cancel({notifications:NF_NOTIFICATION_IDS.map(id=>({id}))});
+  try{
+    const ReminderScheduler=await getNFReminderScheduler();
+
+    if(!ReminderScheduler){
+      toast("ReminderScheduler plugin கிடைக்கவில்லை.",true);
+      return;
+    }
+
+    if(typeof ReminderScheduler.cancelDailyReminders==="function"){
+      await ReminderScheduler.cancelDailyReminders();
+    }
+
+    localStorage.removeItem("nf_notification_enabled");
+    refreshNFHomeNotificationBar();
+    toast("🔕 Notifications OFF. அனைத்து daily notifications cancel செய்யப்பட்டது.");
+
+  }catch(error){
+    console.error("Notification cancel error:",error);
+    toast("Notifications OFF செய்ய முடியவில்லை.",true);
   }
- }catch(error){
-  console.error("Notification cancel error:",error);
- }
- localStorage.removeItem("nf_notification_enabled");
- refreshNFHomeNotificationBar();
- toast("🔕 Notifications OFF. அனைத்து daily notifications cancel செய்யப்பட்டது.");
 }
 
 let reminderTimer=null;
@@ -3424,93 +3396,86 @@ document.addEventListener("keydown",e=>{if(e.key==="Escape")closeNFNotificationP
 
 
 async function ensureNFExactAlarmPermission(){
- const LocalNotifications=await getNFLocalNotifications();
- if(!LocalNotifications)return false;
+  const ReminderScheduler=await getNFReminderScheduler();
 
- try{
-   if(typeof LocalNotifications.checkExactNotificationSetting!=="function"){
-     return true;
-   }
-
-   let setting=await LocalNotifications.checkExactNotificationSetting();
-
-   if(setting?.exact_alarm==="granted"){
-     return true;
-   }
-
-   if(typeof LocalNotifications.changeExactNotificationSetting==="function"){
-     await LocalNotifications.changeExactNotificationSetting();
-
-     toast("⏰ Exact alarm permission ON செய்து, app-க்கு திரும்பி மீண்டும் Notifications ON அழுத்துங்கள்.");
-     return false;
-   }
-
-   toast("⏰ Exact alarm permission கிடைக்கவில்லை. Phone Settings-ல் Allow செய்யுங்கள்.",true);
-   return false;
- }catch(error){
-   console.error("Exact alarm permission error:",error);
-   toast("⏰ Exact alarm permission check செய்ய முடியவில்லை.",true);
-   return false;
- }
-}
-
-async function scheduleNativeDailyNotifications(){
-  const LocalNotifications = await getNFLocalNotifications();
-
-  if(!LocalNotifications){
-    toast("Notification plugin கிடைக்கவில்லை.",true);
+  if(!ReminderScheduler){
+    toast("ReminderScheduler plugin கிடைக்கவில்லை.",true);
     return false;
   }
 
   try{
-    const exactReady = await ensureNFExactAlarmPermission();
-    if(!exactReady){
+    if(typeof ReminderScheduler.checkExactAlarmPermission!=="function"){
+      return true;
+    }
+
+    const setting=await ReminderScheduler.checkExactAlarmPermission();
+
+    if(setting?.granted===true || setting?.exact_alarm==="granted"){
+      return true;
+    }
+
+    if(typeof ReminderScheduler.requestExactAlarmPermission==="function"){
+      await ReminderScheduler.requestExactAlarmPermission();
+      toast("⏰ Exact alarm permission ON செய்து, app-க்கு திரும்பி மீண்டும் Notifications ON அழுத்துங்கள்.");
       return false;
     }
 
-    await ensureNFNotificationChannel();
+    toast("⏰ Exact alarm permission கிடைக்கவில்லை. Phone Settings-ல் Allow செய்யுங்கள்.",true);
+    return false;
 
-    /* Cancel the previous 24 schedules before creating the new ones. */
-    try{
-      await LocalNotifications.cancel({
-        notifications: NF_NOTIFICATION_IDS.map(id => ({id}))
-      });
-    }catch(e){
-      console.log("Old notification cancel:",e);
+  }catch(error){
+    console.error("Exact alarm permission error:",error);
+    toast("⏰ Exact alarm permission check செய்ய முடியவில்லை.",true);
+    return false;
+  }
+}
+
+async function scheduleNativeDailyNotifications(){
+  const ReminderScheduler=await getNFReminderScheduler();
+
+  if(!ReminderScheduler){
+    toast("ReminderScheduler plugin கிடைக்கவில்லை.",true);
+    return false;
+  }
+
+  try{
+    const exactReady=await ensureNFExactAlarmPermission();
+    if(!exactReady)return false;
+
+    if(typeof ReminderScheduler.scheduleDailyReminders!=="function"){
+      toast("ReminderScheduler.scheduleDailyReminders கிடைக்கவில்லை.",true);
+      return false;
     }
 
-    /* Schedule all 24 configured daily reminder times natively. */
-    const notifications = REMINDER_TIMES.map((time,index)=>{
-      const [hour,minute] = time.split(":").map(Number);
-
-      return {
-        id: NF_NOTIFICATION_IDS[index],
-        title: "🔔 New Fashion Tailoring",
-        body: nfReminderBody(),
-        channelId: "nf_daily_reminders",
-        schedule: {
-          on: {
-            hour,
-            minute
-          },
-          allowWhileIdle: true
-        },
-        autoCancel: true
-      };
+    /*
+     * IMPORTANT:
+     * Send the 24 times to the Android native scheduler.
+     * ReminderScheduler -> AlarmManager -> ReminderReceiver ->
+     * ReminderVoiceService -> Android Tamil TTS.
+     *
+     * Do not call LocalNotifications.schedule() here.
+     */
+    const body=nfReminderBody();
+    const result=await ReminderScheduler.scheduleDailyReminders({
+      times:REMINDER_TIMES.slice(),
+      title:"🔔 New Fashion Tailoring",
+      body:body
     });
 
-    const result = await LocalNotifications.schedule({
-      notifications
-    });
+    if(result?.success===false){
+      console.error("Native daily reminder scheduling rejected:",result);
+      toast("Native notification schedule அமைக்கப்படவில்லை.",true);
+      return false;
+    }
 
-    console.log("Native daily notifications scheduled:",result);
+    console.log("Android native daily reminders scheduled:",result);
     return true;
 
   }catch(error){
     console.error("Native notification schedule error:",error);
     toast(
-      "Notification schedule error: " +
-      (error?.message || String(error)),
+      "Notification schedule error: "+
+      (error?.message||String(error)),
       true
     );
     return false;
