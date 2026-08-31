@@ -8,6 +8,9 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.media.AudioAttributes;
+import android.media.RingtoneManager;
+import android.net.Uri;
 import android.os.Build;
 import android.util.Log;
 
@@ -19,41 +22,56 @@ public class ReminderReceiver extends BroadcastReceiver {
     private static final String TAG = "ReminderReceiver";
 
     private static final String CHANNEL_ID =
-            "reminder_voice_channel_v4";
+            "reminder_voice_channel_v5";
 
     private static final int DEFAULT_NOTIFICATION_ID = 1001;
 
     @Override
     public void onReceive(Context context, Intent intent) {
 
-        Context app = context.getApplicationContext();
+        Context app =
+                context.getApplicationContext();
 
         if (intent == null) {
-            Log.e(TAG, "Received null intent");
+
+            Log.e(
+                    TAG,
+                    "Received null intent"
+            );
+
             return;
         }
 
-        String title = intent.getStringExtra("title");
-        String message = intent.getStringExtra("message");
+        String title =
+                intent.getStringExtra("title");
 
-        if (title == null || title.trim().isEmpty()) {
+        String message =
+                intent.getStringExtra("message");
+
+        if (title == null ||
+                title.trim().isEmpty()) {
+
             title = "நினைவூட்டல்";
         }
 
-        if (message == null || message.trim().isEmpty()) {
-            message = "உங்களுக்கு ஒரு நினைவூட்டல் உள்ளது.";
+        if (message == null ||
+                message.trim().isEmpty()) {
+
+            message =
+                    "உங்களுக்கு ஒரு நினைவூட்டல் உள்ளது.";
         }
 
         final String finalTitle = title;
         final String finalMessage = message;
 
-        int id = intent.getIntExtra(
-                "requestCode",
+        int id =
                 intent.getIntExtra(
-                        "notification_id",
-                        DEFAULT_NOTIFICATION_ID
-                )
-        );
+                        "requestCode",
+                        intent.getIntExtra(
+                                "notification_id",
+                                DEFAULT_NOTIFICATION_ID
+                        )
+                );
 
         Log.d(
                 TAG,
@@ -82,7 +100,8 @@ public class ReminderReceiver extends BroadcastReceiver {
 
         Log.d(
                 TAG,
-                "TIME = " + System.currentTimeMillis()
+                "TIME = " +
+                        System.currentTimeMillis()
         );
 
         Log.d(
@@ -96,15 +115,16 @@ public class ReminderReceiver extends BroadcastReceiver {
 
         createNotificationChannel(app);
 
-        Intent openIntent = new Intent(
-                app,
-                MainActivity.class
-        );
+        Intent openIntent =
+                new Intent(
+                        app,
+                        MainActivity.class
+                );
 
         openIntent.setFlags(
                 Intent.FLAG_ACTIVITY_NEW_TASK |
-                Intent.FLAG_ACTIVITY_CLEAR_TOP |
-                Intent.FLAG_ACTIVITY_SINGLE_TOP
+                        Intent.FLAG_ACTIVITY_CLEAR_TOP |
+                        Intent.FLAG_ACTIVITY_SINGLE_TOP
         );
 
         PendingIntent pendingIntent =
@@ -113,7 +133,7 @@ public class ReminderReceiver extends BroadcastReceiver {
                         id,
                         openIntent,
                         PendingIntent.FLAG_UPDATE_CURRENT |
-                        PendingIntent.FLAG_IMMUTABLE
+                                PendingIntent.FLAG_IMMUTABLE
                 );
 
         NotificationCompat.Builder builder =
@@ -122,23 +142,64 @@ public class ReminderReceiver extends BroadcastReceiver {
                         CHANNEL_ID
                 )
                         .setSmallIcon(
-                                android.R.drawable.ic_popup_reminder
+                                android.R.drawable
+                                        .ic_popup_reminder
                         )
-                        .setContentTitle(finalTitle)
-                        .setContentText(finalMessage)
+                        .setContentTitle(
+                                finalTitle
+                        )
+                        .setContentText(
+                                finalMessage
+                        )
                         .setStyle(
-                                new NotificationCompat.BigTextStyle()
-                                        .bigText(finalMessage)
+                                new NotificationCompat
+                                        .BigTextStyle()
+                                        .bigText(
+                                                finalMessage
+                                        )
                         )
                         .setPriority(
-                                NotificationCompat.PRIORITY_HIGH
+                                NotificationCompat
+                                        .PRIORITY_HIGH
                         )
                         .setCategory(
-                                NotificationCompat.CATEGORY_REMINDER
+                                NotificationCompat
+                                        .CATEGORY_REMINDER
                         )
-                        .setAutoCancel(true)
-                        .setContentIntent(pendingIntent)
-                        .setSilent(true);
+                        .setAutoCancel(
+                                true
+                        )
+                        .setContentIntent(
+                                pendingIntent
+                        )
+                        .setSilent(false);
+
+        /*
+         * Android versions below 8:
+         * sound + vibration are set directly.
+         */
+        if (Build.VERSION.SDK_INT <
+                Build.VERSION_CODES.O) {
+
+            Uri soundUri =
+                    RingtoneManager.getDefaultUri(
+                            RingtoneManager
+                                    .TYPE_NOTIFICATION
+                    );
+
+            builder.setSound(
+                    soundUri
+            );
+
+            builder.setVibrate(
+                    new long[]{
+                            0,
+                            400,
+                            200,
+                            400
+                    }
+            );
+        }
 
         NotificationManager notificationManager =
                 (NotificationManager)
@@ -154,8 +215,10 @@ public class ReminderReceiver extends BroadcastReceiver {
                             ||
                     ContextCompat.checkSelfPermission(
                             app,
-                            Manifest.permission.POST_NOTIFICATIONS
-                    ) == PackageManager.PERMISSION_GRANTED;
+                            Manifest.permission
+                                    .POST_NOTIFICATIONS
+                    ) ==
+                            PackageManager.PERMISSION_GRANTED;
 
             if (canNotify) {
 
@@ -184,10 +247,11 @@ public class ReminderReceiver extends BroadcastReceiver {
 
         try {
 
-            ReminderScheduler.rescheduleNextDailyReminder(
-                    app,
-                    id
-            );
+            ReminderScheduler
+                    .rescheduleNextDailyReminder(
+                            app,
+                            id
+                    );
 
             Log.d(
                     TAG,
@@ -269,10 +333,13 @@ public class ReminderReceiver extends BroadcastReceiver {
     // Notification Channel
     // -------------------------------------------------------------
 
-    private void createNotificationChannel(Context context) {
+    private void createNotificationChannel(
+            Context context
+    ) {
 
         if (Build.VERSION.SDK_INT <
                 Build.VERSION_CODES.O) {
+
             return;
         }
 
@@ -282,25 +349,59 @@ public class ReminderReceiver extends BroadcastReceiver {
                 );
 
         if (manager == null) {
+
             return;
         }
+
+        Uri soundUri =
+                RingtoneManager.getDefaultUri(
+                        RingtoneManager
+                                .TYPE_NOTIFICATION
+                );
+
+        AudioAttributes audioAttributes =
+                new AudioAttributes.Builder()
+                        .setUsage(
+                                AudioAttributes
+                                        .USAGE_NOTIFICATION
+                        )
+                        .setContentType(
+                                AudioAttributes
+                                        .CONTENT_TYPE_SONIFICATION
+                        )
+                        .build();
 
         NotificationChannel channel =
                 new NotificationChannel(
                         CHANNEL_ID,
                         "தமிழ் நினைவூட்டல்கள்",
-                        NotificationManager.IMPORTANCE_HIGH
+                        NotificationManager
+                                .IMPORTANCE_HIGH
                 );
 
         channel.setDescription(
                 "New Fashion Tailoring reminder notifications"
         );
 
-        // Notification itself should not make sound.
-        // Voice service handles the spoken reminder.
+        /*
+         * Notification is NOT silent.
+         */
         channel.setSound(
-                null,
-                null
+                soundUri,
+                audioAttributes
+        );
+
+        channel.enableVibration(
+                true
+        );
+
+        channel.setVibrationPattern(
+                new long[]{
+                        0,
+                        400,
+                        200,
+                        400
+                }
         );
 
         manager.createNotificationChannel(
