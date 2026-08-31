@@ -6891,7 +6891,7 @@ function nfWacSvg(data){
   var noteH=data.note?102:0;
   var noteY=payY+payH+16;
   var footerY=noteY+(data.note?noteH:0)+18;
-  var footerH=112;
+  var footerH=145;
   var H=footerY+footerH+24;
 
   var photoDefs=photos.map(function(_,i){
@@ -6985,8 +6985,10 @@ function nfWacSvg(data){
       colorLine(String(data.note).slice(0,90),80,noteY+72,18,800,["#7b2cbf","#0089c9","#00a878"],7,900):"")+
 
     '<rect x="55" y="'+footerY+'" width="970" height="'+footerH+'" rx="22" fill="url(#wacFooter)"/>'+
-    '<text x="540" y="'+(footerY+45)+'" text-anchor="middle" font-size="27" font-weight="950" fill="#ffffff">Thank you for choosing us!</text>'+
-    colorWords("NEW FASHION TAILORING",540,footerY+84,20,850,"middle",["#ffe66d","#ff8fab","#ffffff"],10)+
+    '<text x="540" y="'+(footerY+40)+'" text-anchor="middle" font-size="25" font-weight="950" fill="#ffffff">Thank you for choosing us!</text>'+
+    colorWords("NEW FASHION TAILORING",540,footerY+78,20,850,"middle",["#ffe66d","#ff8fab","#ffffff"],10)+
+    '<rect x="285" y="'+(footerY+94)+'" width="510" height="36" rx="18" fill="#ffffff" opacity=".14" stroke="#ffffff" stroke-opacity=".25" stroke-width="2"/>'+
+    '<text x="540" y="'+(footerY+119)+'" text-anchor="middle" font-size="22" font-weight="950" fill="#ffffff">PHONE: 8524931003</text>'+
     '</svg>';
 
   return svg;
