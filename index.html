@@ -7780,201 +7780,111 @@ window.addEventListener("keydown",function(e){if(e.key==="Escape")window.closeCu
 </script>
 
 
-<script id="nf-photo-fast-final-patch">
+<script id="nf-photo-preview-safe-fix">
 (function(){
-  "use strict";
-  if(window.__NF_PHOTO_FAST_FINAL_PATCH)return;
-  window.__NF_PHOTO_FAST_FINAL_PATCH=true;
+"use strict";
+if(window.__NF_PHOTO_PREVIEW_SAFE_FIX)return;
+window.__NF_PHOTO_PREVIEW_SAFE_FIX=true;
 
-  /*
-   * Photo fast path:
-   * - Never waits for cloud hydration when local photos already exist.
-   * - Builds a small cached JPEG data URL for the card (not the original).
-   * - Uses the same cached thumbnail for preview and WhatsApp export.
-   * - Original HD remains untouched in IndexedDB and is used by the normal
-   *   photo-preview tap handler.
-   */
-  var NF_WA_THUMB_MAX=960;
-  var NF_WA_THUMB_QUALITY=0.72;
-  var nfWaThumbCache=Object.create(null);
+/* Safe photo resolver: local IndexedDB first; no cloud wait when local photos exist. */
+window.nfWacResolvePhotos=async function(id){
+  var key=String(id||"");
+  try{
+    if(typeof initCustomerClothPhotoStore==="function") await initCustomerClothPhotoStore();
+  }catch(e){console.warn("Local photo store init skipped:",e)}
+  var local=typeof customerClothPhotos==="function"?customerClothPhotos(key):[];
+  if(local.some(function(p){return p&&p.src})) return local;
+  if(navigator.onLine && typeof nfHydrateCloudClothPhotos==="function"){
+    try{await nfHydrateCloudClothPhotos()}catch(e){console.warn("Cloud photo fallback skipped:",e)}
+    return typeof customerClothPhotos==="function"?customerClothPhotos(key):local;
+  }
+  return local;
+};
 
-  async function nfFastPhotoHref(photo){
-    if(!photo || !photo.src)return "";
-    var src=String(photo.src);
-    if(!src.startsWith("data:"))return src;
-
-    var cacheKey=String(photo.savedAt||"")+"|"+String(photo.originalSize||"")+"|"+String(src.length);
-    if(nfWaThumbCache[cacheKey])return nfWaThumbCache[cacheKey];
-
-    try{
-      var blob=typeof nfDataUrlToBlob==="function"?nfDataUrlToBlob(src):null;
-      if(!blob)return src;
-
-      var bmp=window.createImageBitmap?await createImageBitmap(blob):null;
-      if(!bmp){
-        nfWaThumbCache[cacheKey]=src;
-        return src;
-      }
-
-      var scale=Math.min(1,NF_WA_THUMB_MAX/Math.max(bmp.width,bmp.height));
-      var w=Math.max(1,Math.round(bmp.width*scale));
-      var h=Math.max(1,Math.round(bmp.height*scale));
-      var c=document.createElement("canvas");
-      c.width=w;c.height=h;
+/* Convert local data URL to a small data URL, not a blob URL.
+   Embedded data URLs are reliable inside the generated SVG preview. */
+window.nfWacPhotoHref=async function(photo){
+  if(!photo||!photo.src)return "";
+  var src=String(photo.src);
+  if(!src.startsWith("data:"))return src;
+  try{
+    var blob=typeof nfDataUrlToBlob==="function"?nfDataUrlToBlob(src):null;
+    if(blob && typeof createImageBitmap==="function"){
+      var bmp=await createImageBitmap(blob);
+      var maxDim=960,scale=Math.min(1,maxDim/Math.max(bmp.width,bmp.height));
+      var w=Math.max(1,Math.round(bmp.width*scale)),h=Math.max(1,Math.round(bmp.height*scale));
+      var c=document.createElement("canvas");c.width=w;c.height=h;
       var ctx=c.getContext("2d",{alpha:false});
-      ctx.drawImage(bmp,0,0,w,h);
-      bmp.close();
-
-      var thumbBlob=await new Promise(function(resolve){
-        c.toBlob(resolve,"image/jpeg",NF_WA_THUMB_QUALITY);
-      });
-      if(!thumbBlob){
-        nfWaThumbCache[cacheKey]=src;
-        return src;
-      }
-
-      var reader=new FileReader();
-      var dataUrl=await new Promise(function(resolve,reject){
-        reader.onload=function(){resolve(reader.result)};
-        reader.onerror=function(){reject(reader.error||new Error("thumbnail read failed"))};
-        reader.readAsDataURL(thumbBlob);
-      });
-      nfWaThumbCache[cacheKey]=String(dataUrl||src);
-      return nfWaThumbCache[cacheKey];
-    }catch(e){
-      console.warn("Fast WhatsApp thumbnail fallback:",e);
-      return src;
-    }
-  }
-
-  async function nfFastResolvePhotos(id){
-    var key=String(id||"");
-    try{
-      if(typeof initCustomerClothPhotoStore==="function")await initCustomerClothPhotoStore();
-    }catch(e){console.warn("Local photo store init skipped:",e)}
-    var local=typeof customerClothPhotos==="function"?customerClothPhotos(key):[];
-    if(local.some(function(p){return p&&p.src}))return local;
-
-    /* Only if this device has no local copy do we try the cloud fallback. */
-    if(navigator.onLine && typeof nfHydrateCloudClothPhotos==="function"){
-      try{await nfHydrateCloudClothPhotos()}catch(e){console.warn("Cloud photo fallback skipped:",e)}
-      return typeof customerClothPhotos==="function"?customerClothPhotos(key):local;
-    }
-    return local;
-  }
-
-  async function nfFastPreview(data,preview){
-    preview.innerHTML="<div class=\"nf-wac-preview-loading\">Card preview loading…</div>";
-    try{
-      var photos=data&&data.photos?data.photos.filter(function(p){return p&&p.src}).slice(0,4):[];
-      var urls=await Promise.all(photos.map(nfFastPhotoHref));
-      var svg=nfWacSvg(data,urls);
-      var blob=new Blob([svg],{type:"image/svg+xml"});
-      var url=URL.createObjectURL(blob);
-      var img=new Image();
-      img.className="nf-wac-preview-card-image";
-      img.alt="WhatsApp Customer Card Preview";
-      img.onload=function(){
-        URL.revokeObjectURL(url);
-        preview.innerHTML="";
-        preview.appendChild(img);
-        var hint=document.createElement("div");
-        hint.className="nf-wac-preview-hint";
-        hint.textContent="WhatsApp-ல் பகிரப்படும் Card • Local thumbnail • 4 photo slots";
-        preview.appendChild(hint);
-      };
-      img.onerror=function(){
-        URL.revokeObjectURL(url);
-        preview.innerHTML="<div style=\"padding:30px;text-align:center;font-weight:800;color:#6b6376\">Card preview உருவாக்க முடியவில்லை.</div>";
-      };
-      img.src=url;
-    }catch(e){
-      console.error("Fast WhatsApp preview failed:",e);
-      preview.innerHTML="<div class=\"nf-wac-preview-loading\">Card preview உருவாக்க முடியவில்லை.</div>";
-    }
-  }
-
-  window.openCustomerWhatsAppCard=async function(id){
-    activeCustomerId=String(id||"");
-    var overlay=document.getElementById("nfWhatsAppCardOverlay");
-    var preview=document.getElementById("nfWacPreview");
-    if(!overlay||!preview)return;
-    nfWacLockPage();
-    if(!nfWacHistoryOpen){
-      try{history.pushState({nfWhatsAppCard:true},"",location.href)}catch(e){}
-      nfWacHistoryOpen=true;
-    }
-    preview.innerHTML="<div class=\"nf-wac-preview-loading\">Card preview loading…</div>";
-    overlay.classList.add("open");
-    overlay.setAttribute("aria-hidden","false");
-
-    try{
-      var data=nfWacSummary(activeCustomerId);
-      /* Local photos are resolved first and are not blocked by cloud sync. */
-      data.photos=await nfFastResolvePhotos(activeCustomerId);
-      await nfFastPreview(data,preview);
-    }catch(err){
-      console.error("WhatsApp card preview failed",err);
-      preview.innerHTML="<div class=\"nf-wac-preview-loading\">Card preview உருவாக்க முடியவில்லை.</div>";
-    }
-  };
-
-  window.shareCustomerWhatsAppCard=async function(){
-    if(!activeCustomerId)return;
-    var data=nfWacSummary(activeCustomerId);
-    data.photos=await nfFastResolvePhotos(activeCustomerId);
-    var text=nfWacText(data);
-    var phone=String(data.c.phone||"").replace(/\D/g,"");
-
-    try{
-      var photos=data.photos.filter(function(p){return p&&p.src}).slice(0,4);
-      var photoUrls=await Promise.all(photos.map(nfFastPhotoHref));
-      var svg=nfWacSvg(data,photoUrls);
-      var svgBlob=new Blob([svg],{type:"image/svg+xml"});
-      var svgUrl=URL.createObjectURL(svgBlob);
-      var img=new Image();
-      img.src=svgUrl;
-      await new Promise(function(resolve,reject){
-        img.onload=resolve;img.onerror=reject;
-      });
-
-      var match=svg.match(/width="([0-9]+)"/),matchH=svg.match(/height="([0-9]+)"/);
-      var canvas=document.createElement("canvas");
-      canvas.width=Number(match&&match[1]||3066);
-      canvas.height=Number(matchH&&matchH[1]||5400);
-      var ctx=canvas.getContext("2d",{alpha:false});
-      ctx.fillStyle="#fff";
-      ctx.fillRect(0,0,canvas.width,canvas.height);
-      ctx.drawImage(img,0,0);
-      URL.revokeObjectURL(svgUrl);
-
-      /* JPEG is much lighter/faster than PNG while retaining card quality. */
-      var cardBlob=await new Promise(function(resolve){
-        canvas.toBlob(resolve,"image/jpeg",0.88);
-      });
-      if(!cardBlob)throw new Error("card-image-failed");
-
-      var file=new File([cardBlob],"NEW_FASHION_TAILORING_CUSTOMER_CARD.jpg",{type:"image/jpeg"});
-      if(navigator.share&&(!navigator.canShare||navigator.canShare({files:[file]}))){
-        await navigator.share({
-          title:"NEW FASHION TAILORING – CUSTOMER CARD",
-          text:text,
-          files:[file]
+      ctx.drawImage(bmp,0,0,w,h);bmp.close();
+      var thumb=await new Promise(function(resolve){c.toBlob(resolve,"image/jpeg",0.74)});
+      if(thumb){
+        var reader=new FileReader();
+        return await new Promise(function(resolve,reject){
+          reader.onload=function(){resolve(String(reader.result||src))};
+          reader.onerror=function(){reject(reader.error||new Error("photo data read failed"))};
+          reader.readAsDataURL(thumb);
         });
-        return;
       }
-      var wa=phone
-        ?"https://wa.me/"+phone+"?text="+encodeURIComponent(text)
-        :"https://wa.me/?text="+encodeURIComponent(text);
-      window.open(wa,"_blank","noopener");
-    }catch(err){
-      console.warn("Fast WhatsApp card share fallback",err);
-      var wa2=phone
-        ?"https://wa.me/"+phone+"?text="+encodeURIComponent(text)
-        :"https://wa.me/?text="+encodeURIComponent(text);
-      window.open(wa2,"_blank","noopener");
     }
-  };
+  }catch(e){console.warn("Photo thumbnail conversion skipped:",e)}
+  return src;
+};
+
+/* Preview only: preserve the existing exact SVG card, but do not revoke photo
+   URLs because they are embedded data URLs. */
+window.nfWacPreviewExact=async function(data,preview){
+  preview.innerHTML='<div class="nf-wac-preview-loading">Card preview loading…</div>';
+  try{
+    var usable=data&&data.photos?data.photos.filter(function(p){return p&&p.src}).slice(0,4):[];
+    var photoUrls=await Promise.all(usable.map(window.nfWacPhotoHref));
+    var svg=nfWacSvg(data,photoUrls);
+    var blob=new Blob([svg],{type:"image/svg+xml;charset=utf-8"});
+    var url=URL.createObjectURL(blob);
+    var img=new Image();
+    img.className="nf-wac-preview-card-image";
+    img.alt="WhatsApp Customer Card Preview";
+    img.onload=function(){
+      URL.revokeObjectURL(url);
+      preview.innerHTML="";
+      preview.appendChild(img);
+      var hint=document.createElement("div");
+      hint.className="nf-wac-preview-hint";
+      hint.textContent="WhatsApp-ல் பகிரப்படும் Card • Local thumbnail • 4 photo slots";
+      preview.appendChild(hint);
+    };
+    img.onerror=function(){
+      URL.revokeObjectURL(url);
+      preview.innerHTML='<div style="padding:30px;text-align:center;font-weight:800;color:#6b6376">Card preview உருவாக்க முடியவில்லை.</div>';
+    };
+    img.src=url;
+  }catch(e){
+    console.error("Safe WhatsApp card preview failed:",e);
+    preview.innerHTML='<div style="padding:30px;text-align:center;font-weight:800;color:#6b6376">Card preview உருவாக்க முடியவில்லை.</div>';
+  }
+};
+
+window.openCustomerWhatsAppCard=async function(id){
+  activeCustomerId=String(id||"");
+  var overlay=document.getElementById("nfWhatsAppCardOverlay");
+  var preview=document.getElementById("nfWacPreview");
+  if(!overlay||!preview)return;
+  try{nfWacLockPage()}catch(_){}
+  if(!nfWacHistoryOpen){
+    try{history.pushState({nfWhatsAppCard:true},"",location.href)}catch(e){}
+    nfWacHistoryOpen=true;
+  }
+  preview.innerHTML='<div class="nf-wac-preview-loading">Card preview loading…</div>';
+  overlay.classList.add("open");
+  overlay.setAttribute("aria-hidden","false");
+  try{
+    var data=nfWacSummary(activeCustomerId);
+    data.photos=await window.nfWacResolvePhotos(activeCustomerId);
+    await window.nfWacPreviewExact(data,preview);
+  }catch(e){
+    console.error("WhatsApp card open failed:",e);
+    preview.innerHTML='<div style="padding:30px;text-align:center;font-weight:800;color:#6b6376">Card preview உருவாக்க முடியவில்லை.</div>';
+  }
+};
 })();
 </script>
 
