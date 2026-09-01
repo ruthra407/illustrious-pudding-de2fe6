@@ -6805,12 +6805,23 @@ function nfWacUnlockPage(){
 async function nfWacPhotoHref(photo){
   if(!photo||!photo.src)return "";
   var src=String(photo.src);
-  if(!src.startsWith("data:"))return src;
+  /* Embed cloud/Supabase photos into the SVG before canvas rendering.
+     This prevents cross-origin image URLs from disappearing/tainting the canvas. */
+  if(src.startsWith("data:"))return src;
   try{
-    var blob=typeof nfDataUrlToBlob==="function"?nfDataUrlToBlob(src):null;
-    if(blob)return URL.createObjectURL(blob);
-  }catch(e){console.warn("Photo Blob URL conversion skipped:",e)}
-  return src;
+    var r=await fetch(src,{mode:"cors",cache:"no-store"});
+    if(!r.ok)throw new Error("photo fetch "+r.status);
+    var blob=await r.blob();
+    return await new Promise(function(resolve,reject){
+      var fr=new FileReader();
+      fr.onload=function(){resolve(String(fr.result||""));};
+      fr.onerror=reject;
+      fr.readAsDataURL(blob);
+    });
+  }catch(e){
+    console.warn("WhatsApp card photo embed failed:",e);
+    return src;
+  }
 }
 async function nfWacPreviewExact(data,preview){
   preview.innerHTML="<div class=\"nf-wac-preview-loading\">Card preview loading…</div>";
@@ -7528,6 +7539,7 @@ window.addEventListener("keydown",function(e){if(e.key==="Escape")window.closeCu
 })();
 </script>
 <!-- NF PHOTO SPEED FIX: auth/login flow intentionally unchanged. -->
+<!-- NF THUMBNAIL FIX: embed cloud photos before SVG/canvas export; login/auth unchanged. -->
 </body></html><script id="nf-v52-dashboard-scroll-fix-js">
 (function(){
   "use strict";
