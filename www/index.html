@@ -1528,7 +1528,7 @@ function nfDataUrlToBlob(dataUrl){
     return new Blob([bytes],{type:mime});
   }catch(_){return null}
 }
-async function nfCompressPhotoForCloud(blob,maxDim=1280,quality=0.65){
+async function nfCompressPhotoForCloud(blob,maxDim=960,quality=0.58){
   if(!blob || !window.createImageBitmap)return blob;
   try{
     const bmp=await createImageBitmap(blob);
@@ -7081,31 +7081,62 @@ function nfWacSvg(data,photoHref){
 window.shareCustomerWhatsAppCard=async function(){
   if(!activeCustomerId)return;
   var data=nfWacSummary(activeCustomerId);
-  var photos=(data.photos||[]).filter(function(p){return p&&p.src}).slice(0,4);
-  if(!photos.length){try{data.photos=await nfWacResolvePhotos(activeCustomerId);}catch(e){data.photos=[];}}
-  else data.photos=photos;
-  var text=nfWacText(data),phone=String(data.c.phone||"").replace(/\D/g,"");
+  var localPhotos=(data.photos||[]).filter(function(p){return p&&p.src}).slice(0,4);
+
+  /* Do not wait for cloud if local photos are already available. */
+  if(!localPhotos.length){
+    try{
+      data.photos=await nfWacResolvePhotos(activeCustomerId);
+      localPhotos=(data.photos||[]).filter(function(p){return p&&p.src}).slice(0,4);
+    }catch(e){localPhotos=[];}
+  }
+
   try{
-    var usable=(data.photos||[]).filter(function(p){return p&&p.src}).slice(0,4);
-    var photoUrls=await Promise.all(usable.map(nfWacPhotoHref));
-    var svg=nfWacSvg(data,photoUrls),blob=new Blob([svg],{type:"image/svg+xml"}),url=URL.createObjectURL(blob),img=new Image();
-    img.decoding="async";img.src=url;
+    if(!localPhotos.length)throw new Error("no-local-photo");
+
+    var photoUrls=await Promise.all(localPhotos.map(nfWacPhotoHref));
+    var svg=nfWacSvg(data,photoUrls);
+    var blob=new Blob([svg],{type:"image/svg+xml"});
+    var url=URL.createObjectURL(blob);
+    var img=new Image();
+    img.decoding="async";
+    img.src=url;
     await new Promise(function(resolve,reject){img.onload=resolve;img.onerror=reject});
-    var viewW=Number(svg.match(/width="([0-9]+)"/)?.[1]||1022),viewH=Number(svg.match(/height="([0-9]+)"/)?.[1]||6000);
-    var maxW=900,scale=Math.min(1,maxW/viewW),canvas=document.createElement("canvas");
-    canvas.width=Math.max(1,Math.round(viewW*scale));canvas.height=Math.max(1,Math.round(viewH*scale));
-    var ctx=canvas.getContext("2d",{alpha:false});ctx.fillStyle="#fff";ctx.fillRect(0,0,canvas.width,canvas.height);ctx.drawImage(img,0,0,canvas.width,canvas.height);
-    URL.revokeObjectURL(url);photoUrls.forEach(function(u){if(u&&u.startsWith("blob:"))URL.revokeObjectURL(u);});
-    var jpg=await new Promise(function(resolve){canvas.toBlob(resolve,"image/jpeg",0.68)});
+
+    var viewW=Number(svg.match(/width="([0-9]+)"/)?.[1]||1022);
+    var viewH=Number(svg.match(/height="([0-9]+)"/)?.[1]||6000);
+    var canvas=document.createElement("canvas");
+    canvas.width=Math.min(viewW,960);
+    canvas.height=Math.round(viewH*(canvas.width/viewW));
+    var ctx=canvas.getContext("2d",{alpha:false});
+    ctx.fillStyle="#fff";
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+    ctx.drawImage(img,0,0,canvas.width,canvas.height);
+    URL.revokeObjectURL(url);
+
+    var jpg=await new Promise(function(resolve){canvas.toBlob(resolve,"image/jpeg",0.70)});
+    photoUrls.forEach(function(u){if(u&&u.startsWith("blob:"))URL.revokeObjectURL(u);});
     if(!jpg)throw new Error("jpeg-failed");
-    var file=new File([jpg],"NEW_FASHION_TAILORING_CUSTOMER_CARD.jpg",{type:"image/jpeg"});
+
+    /* WhatsApp gets the image only. The requested caption is embedded below
+       the card in the image itself; no separate customer-details text is sent. */
+    var file=new File([jpg],"New_Fashion_Tailoring_Customer_Card.jpg",{type:"image/jpeg"});
+
     if(typeof navigator.share==="function"){
-      try{await navigator.share({title:"NEW FASHION TAILORING – CUSTOMER CARD",text:text,files:[file]});return;}catch(shareErr){console.warn("WhatsApp image share rejected:",shareErr);}
+      await navigator.share({
+        title:"New Fashion Tailoring Customer Card",
+        files:[file]
+      });
+      return;
     }
-    var wa=phone?"https://wa.me/"+phone+"?text="+encodeURIComponent(text):"https://wa.me/?text="+encodeURIComponent(text);window.open(wa,"_blank","noopener");
+
+    throw new Error("native-file-share-unavailable");
   }catch(err){
-    console.warn("WhatsApp card image share failed",err);
-    var wa2=phone?"https://wa.me/"+phone+"?text="+encodeURIComponent(text):"https://wa.me/?text="+encodeURIComponent(text);window.open(wa2,"_blank","noopener");
+    console.warn("WhatsApp photo-only share failed:",err);
+    /* Intentionally no text-only fallback: user requested photo only. */
+    if(typeof window.showToast==="function"){
+      try{window.showToast("Photo share support இல்லை. மீண்டும் முயற்சிக்கவும்.","error");}catch(e){}
+    }
   }
 };
 window.addEventListener("keydown",function(e){if(e.key==="Escape")window.closeCustomerWhatsAppCard()});
