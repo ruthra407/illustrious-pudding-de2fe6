@@ -7,6 +7,13 @@ import android.os.Build;
 import android.os.Environment;
 import android.provider.MediaStore;
 import android.util.Base64;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.content.Context;
+import android.content.pm.PackageManager;
+
+import androidx.core.app.NotificationCompat;
+import androidx.core.content.ContextCompat;
 
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
@@ -20,6 +27,51 @@ import java.io.OutputStream;
 
 @CapacitorPlugin(name = "NativeCardDownload")
 public class NativeCardDownloadPlugin extends Plugin {
+
+    private static final String DOWNLOAD_CHANNEL_ID = "nf_card_downloads";
+    private static final int DOWNLOAD_NOTIFICATION_ID = 2401;
+
+    private void notifyDownloadComplete(String filename, String location) {
+        try {
+            Context context = getContext();
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                    ContextCompat.checkSelfPermission(
+                            context,
+                            android.Manifest.permission.POST_NOTIFICATIONS
+                    ) != PackageManager.PERMISSION_GRANTED) {
+                return;
+            }
+
+            NotificationManager manager =
+                    (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+            if (manager == null) return;
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                NotificationChannel channel = new NotificationChannel(
+                        DOWNLOAD_CHANNEL_ID,
+                        "Card Downloads",
+                        NotificationManager.IMPORTANCE_DEFAULT
+                );
+                channel.setDescription("Customer Card download notifications");
+                manager.createNotificationChannel(channel);
+            }
+
+            NotificationCompat.Builder builder =
+                    new NotificationCompat.Builder(context, DOWNLOAD_CHANNEL_ID)
+                            .setSmallIcon(android.R.drawable.stat_sys_download_done)
+                            .setContentTitle("Customer Card downloaded")
+                            .setContentText(filename + " • Saved to Downloads")
+                            .setStyle(new NotificationCompat.BigTextStyle()
+                                    .bigText("Customer Card saved successfully.\n" + location))
+                            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                            .setAutoCancel(true);
+
+            manager.notify(DOWNLOAD_NOTIFICATION_ID, builder.build());
+        } catch (Exception ignored) {
+            // Notification failure must never make a successful download fail.
+        }
+    }
 
     @PluginMethod
     public void saveCard(PluginCall call) {
@@ -65,6 +117,7 @@ public class NativeCardDownloadPlugin extends Plugin {
                 JSObject result = new JSObject();
                 result.put("saved", true);
                 result.put("location", "Downloads/New Fashion Tailoring/" + filename);
+                notifyDownloadComplete(filename, "Downloads/New Fashion Tailoring/" + filename);
                 call.resolve(result);
             } else {
                 File dir = new File(getContext().getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), "New Fashion Tailoring");
@@ -81,6 +134,7 @@ public class NativeCardDownloadPlugin extends Plugin {
                 JSObject result = new JSObject();
                 result.put("saved", true);
                 result.put("location", file.getAbsolutePath());
+                notifyDownloadComplete(filename, file.getAbsolutePath());
                 call.resolve(result);
             }
         } catch (Exception e) {
