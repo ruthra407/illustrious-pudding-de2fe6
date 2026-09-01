@@ -1528,7 +1528,7 @@ function nfDataUrlToBlob(dataUrl){
     return new Blob([bytes],{type:mime});
   }catch(_){return null}
 }
-async function nfCompressPhotoForCloud(blob,maxDim=960,quality=0.58){
+async function nfCompressPhotoForCloud(blob,maxDim=1280,quality=0.65){
   if(!blob || !window.createImageBitmap)return blob;
   try{
     const bmp=await createImageBitmap(blob);
@@ -6840,6 +6840,7 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-my-custome
 html.nf-wac-page-locked,body.nf-wac-page-locked{overflow:hidden!important;height:100%!important;overscroll-behavior:none!important}
 .nf-wac-preview-loading{padding:40px;text-align:center;color:#665b72;font-weight:900}
 .nf-wac-share{background:#25d366;color:#fff}
+.nf-wac-download{background:#6c4df6;color:#fff}
 .nf-wac-text{background:#f0eaff;color:#4d31b4}
 @media(max-width:560px){.nf-wac-live-customer,.nf-wac-live-dates{grid-template-columns:1fr}.nf-wac-live-photo img{height:230px}.nf-wac-live-pay{grid-template-columns:1fr 1fr}.nf-wac-modal{padding:8px}.nf-wac-live-brand strong{font-size:21px}}
 </style>
@@ -6851,7 +6852,7 @@ html.nf-wac-page-locked,body.nf-wac-page-locked{overflow:hidden!important;height
       <button class="nf-wac-close" type="button" onclick="closeCustomerWhatsAppCard()" aria-label="Close">✕</button>
     </div>
     <div id="nfWacPreview" class="nf-wac-preview" aria-label="Exact WhatsApp card preview"></div>
-    <div class="nf-wac-actions"><button class="nf-wac-share" type="button" onclick="shareCustomerWhatsAppCard()">🟢 WhatsApp Card</button><button class="nf-wac-text" type="button" onclick="shareCustomerWhatsAppText()">💬 Text மட்டும்</button></div>
+    <div class="nf-wac-actions"><button class="nf-wac-share" type="button" onclick="shareCustomerWhatsAppCard()">🟢 WhatsApp Card</button><button class="nf-wac-download" type="button" onclick="downloadCustomerWhatsAppCard()">⬇️ Download Card</button><button class="nf-wac-text" type="button" onclick="shareCustomerWhatsAppText()">💬 Text மட்டும்</button></div>
   </div>
 </div>
 <script id="nf-whatsapp-customer-card-v40040-script">
@@ -7081,62 +7082,57 @@ function nfWacSvg(data,photoHref){
 window.shareCustomerWhatsAppCard=async function(){
   if(!activeCustomerId)return;
   var data=nfWacSummary(activeCustomerId);
-  var localPhotos=(data.photos||[]).filter(function(p){return p&&p.src}).slice(0,4);
-
-  /* Do not wait for cloud if local photos are already available. */
-  if(!localPhotos.length){
-    try{
-      data.photos=await nfWacResolvePhotos(activeCustomerId);
-      localPhotos=(data.photos||[]).filter(function(p){return p&&p.src}).slice(0,4);
-    }catch(e){localPhotos=[];}
-  }
-
+  var photos=(data.photos||[]).filter(function(p){return p&&p.src}).slice(0,4);
+  if(!photos.length){try{data.photos=await nfWacResolvePhotos(activeCustomerId);}catch(e){data.photos=[];}}
+  else data.photos=photos;
+  var text=nfWacText(data),phone=String(data.c.phone||"").replace(/\D/g,"");
   try{
-    if(!localPhotos.length)throw new Error("no-local-photo");
-
-    var photoUrls=await Promise.all(localPhotos.map(nfWacPhotoHref));
-    var svg=nfWacSvg(data,photoUrls);
-    var blob=new Blob([svg],{type:"image/svg+xml"});
-    var url=URL.createObjectURL(blob);
-    var img=new Image();
-    img.decoding="async";
-    img.src=url;
+    var usable=(data.photos||[]).filter(function(p){return p&&p.src}).slice(0,4);
+    var photoUrls=await Promise.all(usable.map(nfWacPhotoHref));
+    var svg=nfWacSvg(data,photoUrls),blob=new Blob([svg],{type:"image/svg+xml"}),url=URL.createObjectURL(blob),img=new Image();
+    img.decoding="async";img.src=url;
     await new Promise(function(resolve,reject){img.onload=resolve;img.onerror=reject});
-
-    var viewW=Number(svg.match(/width="([0-9]+)"/)?.[1]||1022);
-    var viewH=Number(svg.match(/height="([0-9]+)"/)?.[1]||6000);
-    var canvas=document.createElement("canvas");
-    canvas.width=Math.min(viewW,960);
-    canvas.height=Math.round(viewH*(canvas.width/viewW));
-    var ctx=canvas.getContext("2d",{alpha:false});
-    ctx.fillStyle="#fff";
-    ctx.fillRect(0,0,canvas.width,canvas.height);
-    ctx.drawImage(img,0,0,canvas.width,canvas.height);
-    URL.revokeObjectURL(url);
-
-    var jpg=await new Promise(function(resolve){canvas.toBlob(resolve,"image/jpeg",0.70)});
-    photoUrls.forEach(function(u){if(u&&u.startsWith("blob:"))URL.revokeObjectURL(u);});
+    var viewW=Number(svg.match(/width="([0-9]+)"/)?.[1]||1022),viewH=Number(svg.match(/height="([0-9]+)"/)?.[1]||6000);
+    var maxW=900,scale=Math.min(1,maxW/viewW),canvas=document.createElement("canvas");
+    canvas.width=Math.max(1,Math.round(viewW*scale));canvas.height=Math.max(1,Math.round(viewH*scale));
+    var ctx=canvas.getContext("2d",{alpha:false});ctx.fillStyle="#fff";ctx.fillRect(0,0,canvas.width,canvas.height);ctx.drawImage(img,0,0,canvas.width,canvas.height);
+    URL.revokeObjectURL(url);photoUrls.forEach(function(u){if(u&&u.startsWith("blob:"))URL.revokeObjectURL(u);});
+    var jpg=await new Promise(function(resolve){canvas.toBlob(resolve,"image/jpeg",0.68)});
     if(!jpg)throw new Error("jpeg-failed");
-
-    /* WhatsApp gets the image only. The requested caption is embedded below
-       the card in the image itself; no separate customer-details text is sent. */
-    var file=new File([jpg],"New_Fashion_Tailoring_Customer_Card.jpg",{type:"image/jpeg"});
-
+    var file=new File([jpg],"NEW_FASHION_TAILORING_CUSTOMER_CARD.jpg",{type:"image/jpeg"});
     if(typeof navigator.share==="function"){
-      await navigator.share({
-        title:"New Fashion Tailoring Customer Card",
-        files:[file]
-      });
-      return;
+      try{await navigator.share({title:"NEW FASHION TAILORING – CUSTOMER CARD",text:text,files:[file]});return;}catch(shareErr){console.warn("WhatsApp image share rejected:",shareErr);}
     }
-
-    throw new Error("native-file-share-unavailable");
+    var wa=phone?"https://wa.me/"+phone+"?text="+encodeURIComponent(text):"https://wa.me/?text="+encodeURIComponent(text);window.open(wa,"_blank","noopener");
   }catch(err){
-    console.warn("WhatsApp photo-only share failed:",err);
-    /* Intentionally no text-only fallback: user requested photo only. */
-    if(typeof window.showToast==="function"){
-      try{window.showToast("Photo share support இல்லை. மீண்டும் முயற்சிக்கவும்.","error");}catch(e){}
-    }
+    console.warn("WhatsApp card image share failed",err);
+    var wa2=phone?"https://wa.me/"+phone+"?text="+encodeURIComponent(text):"https://wa.me/?text="+encodeURIComponent(text);window.open(wa2,"_blank","noopener");
+  }
+};
+window.downloadCustomerWhatsAppCard=async function(){
+  if(!activeCustomerId)return;
+  var data=nfWacSummary(activeCustomerId);
+  /* Download is LOCAL-ONLY: never hydrate/fetch photos from Supabase here. */
+  data.photos=(typeof customerClothPhotos==="function"?customerClothPhotos(activeCustomerId):[]).filter(function(p){return p&&p.src}).slice(0,4);
+  try{
+    var photoUrls=data.photos.map(function(p){return String(p.src||"");}).filter(Boolean);
+    var svg=nfWacSvg(data,photoUrls),blob=new Blob([svg],{type:"image/svg+xml"});
+    var url=URL.createObjectURL(blob),img=new Image();
+    img.decoding="async";img.src=url;
+    await new Promise(function(resolve,reject){img.onload=resolve;img.onerror=reject});
+    var viewW=Number(svg.match(/width="([0-9]+)"/)?.[1]||1022),viewH=Number(svg.match(/height="([0-9]+)"/)?.[1]||6000);
+    var maxW=1200,scale=Math.min(1,maxW/viewW),canvas=document.createElement("canvas");
+    canvas.width=Math.max(1,Math.round(viewW*scale));canvas.height=Math.max(1,Math.round(viewH*scale));
+    var ctx=canvas.getContext("2d",{alpha:false});ctx.fillStyle="#fff";ctx.fillRect(0,0,canvas.width,canvas.height);ctx.drawImage(img,0,0,canvas.width,canvas.height);
+    URL.revokeObjectURL(url);
+    var jpg=await new Promise(function(resolve){canvas.toBlob(resolve,"image/jpeg",0.80)});
+    if(!jpg)throw new Error("jpeg-failed");
+    var fileUrl=URL.createObjectURL(jpg),a=document.createElement("a");
+    a.href=fileUrl;a.download="NEW_FASHION_TAILORING_CUSTOMER_CARD.jpg";document.body.appendChild(a);a.click();a.remove();
+    setTimeout(function(){URL.revokeObjectURL(fileUrl)},1500);
+  }catch(err){
+    console.warn("WhatsApp card download failed",err);
+    if(typeof toast==="function")toast("WhatsApp Card download செய்ய முடியவில்லை.",true);
   }
 };
 window.addEventListener("keydown",function(e){if(e.key==="Escape")window.closeCustomerWhatsAppCard()});
