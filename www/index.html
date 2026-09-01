@@ -650,13 +650,6 @@ body.nf-photo-preview-scroll-locked{
 .nf-wac-live-photo-grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:9px!important}
 .nf-wac-live-photo-grid .p{aspect-ratio:4/3!important}
 </style>
-
-<style id="nf-wac-four-photo-preview-only">
-/* Four-photo WhatsApp preview: no duplicate hero image. */
-.nf-wac-live-card .nf-wac-live-photo{display:none!important}
-.nf-wac-live-card .nf-wac-live-photo-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:9px!important}
-.nf-wac-live-card .nf-wac-live-photo-grid .p{aspect-ratio:4/3!important}
-</style>
 </head><body><div id="loginPage" class="loginpage"><section class="loginbox"><div class="brand">NEW FASHION</div><div class="gold">TAILORING INDUSTRY</div><div class="sub">Online Tailoring Management Software</div><form id="loginForm"><div class="field"><label>Email</label><input id="loginEmail" class="input" type="email" autocomplete="email" required placeholder="உங்கள் Email"></div><div class="field"><label>Password</label><input id="loginPassword" class="input" type="password" autocomplete="current-password" required placeholder="Password"></div><button class="btn primary" id="loginBtn" type="submit">🔐 LOGIN</button><div id="loginMsg" class="msg"></div></form><button id="resetPasswordBtn" class="btn primary nf-reset-password-btn" type="button">🔄 RESET PASSWORD</button>
 <div class="nf-forgot-row">
   <button id="forgotBtn" class="btn secondary nf-forgot-btn" type="button">Forgot password?</button>
@@ -752,6 +745,112 @@ window.nfRunCustomerClothPhotoStorageCheck=async function(){
   return await nfCheckCustomerClothPhotoStorage();
 };
 const state={user:null,customers:[],orders:[],measurements:[],alterations:[],payments:[],designs:[],editing:null};
+/* NF FULL LOCAL-FIRST v2 */
+const NF_APP_DB="nf_full_local_first_v2";
+const NF_APP_STORE="state";
+const NF_QUEUE_STORE="queue";
+const NF_TABLES=["customers","orders","measurements","alterations","payments","designs"];
+const nfRawFrom=supabaseClient.from.bind(supabaseClient);
+let nfAppDbPromise=null;
+let nfSyncTimer=null;
+let nfSyncBusy=false;
+let nfLocalReady=false;
+function nfUuid(){if(window.crypto?.randomUUID)return crypto.randomUUID();return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g,c=>{const r=Math.random()*16|0,v=c==="x"?r:(r&3)|8;return v.toString(16)})}
+function nfOpenAppDb(){
+ if(nfAppDbPromise)return nfAppDbPromise;
+ nfAppDbPromise=new Promise((resolve,reject)=>{
+  if(!window.indexedDB){reject(new Error("IndexedDB not supported"));return}
+  const req=indexedDB.open(NF_APP_DB,1);
+  req.onupgradeneeded=()=>{const db=req.result;if(!db.objectStoreNames.contains(NF_APP_STORE))db.createObjectStore(NF_APP_STORE,{keyPath:"id"});if(!db.objectStoreNames.contains(NF_QUEUE_STORE)){const q=db.createObjectStore(NF_QUEUE_STORE,{keyPath:"key"});q.createIndex("queuedAt","queuedAt")}};
+  req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error||new Error("Local database open failed"));
+ });return nfAppDbPromise;
+}
+async function nfDbGet(store,id){const db=await nfOpenAppDb();return new Promise((resolve,reject)=>{const tx=db.transaction(store,"readonly"),r=tx.objectStore(store).get(id);r.onsuccess=()=>resolve(r.result||null);r.onerror=()=>reject(r.error||new Error("Local read failed"))})}
+async function nfDbPut(store,value){const db=await nfOpenAppDb();return new Promise((resolve,reject)=>{const tx=db.transaction(store,"readwrite");tx.objectStore(store).put(value);tx.oncomplete=()=>resolve(true);tx.onerror=()=>reject(tx.error||new Error("Local write failed"));tx.onabort=()=>reject(tx.error||new Error("Local write aborted"))})}
+async function nfDbDelete(store,id){const db=await nfOpenAppDb();return new Promise((resolve,reject)=>{const tx=db.transaction(store,"readwrite");tx.objectStore(store).delete(id);tx.oncomplete=()=>resolve(true);tx.onerror=()=>reject(tx.error||new Error("Local delete failed"))})}
+async function nfDbAll(store){const db=await nfOpenAppDb();return new Promise((resolve,reject)=>{const tx=db.transaction(store,"readonly"),r=tx.objectStore(store).getAll();r.onsuccess=()=>resolve(r.result||[]);r.onerror=()=>reject(r.error||new Error("Local list failed"))})}
+async function nfSaveState(){if(!state.user)return;await nfDbPut(NF_APP_STORE,{id:String(state.user.id),savedAt:Date.now(),tables:Object.fromEntries(NF_TABLES.map(t=>[t,Array.isArray(state[t])?state[t]:[]]))})}
+async function nfLoadState(userId){const rec=await nfDbGet(NF_APP_STORE,String(userId));if(!rec?.tables)return false;NF_TABLES.forEach(t=>{state[t]=Array.isArray(rec.tables[t])?rec.tables[t]:[]});return true}
+async function nfQueueOp(table,op,payload,filters=[]){
+ const id=payload?.id||filters.find(f=>f.field==="id")?.value||nfUuid();
+ const key=table+"|"+String(id);
+ if(op==="delete"){
+   const db=await nfOpenAppDb();const old=await nfDbGet(NF_QUEUE_STORE,key);
+   if(old?.op==="insert"){await nfDbDelete(NF_QUEUE_STORE,key);return}
+ }
+ const old=await nfDbGet(NF_QUEUE_STORE,key);
+ let item={key,table,op,payload,filters,queuedAt:Date.now()};
+ if(old&&old.op==="insert"&&op==="update") item={...old,payload:{...old.payload,...payload}};
+ else if(old&&old.op!=="delete"&&op==="update") item={...old,op:"update",payload:{...old.payload,...payload},filters:filters.length?filters:old.filters};
+ await nfDbPut(NF_QUEUE_STORE,item);
+ setTimeout(nfRunSync,250);
+}
+function nfMatch(row,filters){return filters.every(f=>String(row?.[f.field]??"")===String(f.value??""))}
+function nfLocalBuilder(table){
+ let operation="select", payload=null, filters=[], orderSpec=null, singleMode=null;
+ const b={
+  select(){operation=operation==="select"?"select":operation;return b},
+  insert(v){operation="insert";payload=v;return b},
+  update(v){operation="update";payload=v;return b},
+  delete(){operation="delete";return b},
+  eq(field,value){filters.push({field,value});return b},
+  in(field,values){filters.push({field,__in:Array.isArray(values)?values:[]});return b},
+  order(field,opts){orderSpec={field,ascending:opts?.ascending!==false};return b},
+  single(){singleMode="single";return b},
+  maybeSingle(){singleMode="maybe";return b},
+  then(resolve,reject){return nfExecuteLocal(table,operation,payload,filters,orderSpec,singleMode).then(resolve,reject)}
+ };return b;
+}
+async function nfExecuteLocal(table,operation,payload,filters,orderSpec,singleMode){
+ if(!NF_TABLES.includes(table))return nfRawFrom(table);
+ let rows=Array.isArray(state[table])?state[table]:[];
+ if(operation==="select"){
+  let out=rows.filter(r=>filters.every(f=>f.__in?f.__in.map(String).includes(String(r?.[f.field])):nfMatch(r,[f])));
+  if(orderSpec)out.sort((a,b)=>{const av=a?.[orderSpec.field]??"",bv=b?.[orderSpec.field]??"";const c=String(av).localeCompare(String(bv));return orderSpec.ascending?c:-c});
+  const data=out.map(x=>({...x}));
+  if(singleMode==="single"&&data.length!==1)return {data:null,error:{message:data.length?"Multiple rows returned":"No rows found"}};
+  if(singleMode==="maybe")return {data:data[0]||null,error:null};
+  return {data,error:null};
+ }
+ if(operation==="insert"){
+  const list=Array.isArray(payload)?payload:[payload];const created=list.filter(Boolean).map(x=>{const r={...x};if(!r.id)r.id=nfUuid();if(!r.created_at)r.created_at=new Date().toISOString();return r});
+  state[table]=[...created,...rows];await nfSaveState();for(const r of created)await nfQueueOp(table,"insert",r,[]);
+  const data=singleMode?created[0]||null:created;return {data,error:null};
+ }
+ const matched=rows.filter(r=>filters.every(f=>f.__in?f.__in.map(String).includes(String(r?.[f.field])):nfMatch(r,[f])));
+ if(operation==="update"){
+  state[table]=rows.map(r=>matched.includes(r)?{...r,...payload}:r);await nfSaveState();
+  for(const r of matched)await nfQueueOp(table,"update",{...payload,id:r.id},[{field:"id",value:r.id}]);
+  const data=matched.map(r=>({...r,...payload}));if(singleMode==="single"&&data.length!==1)return {data:null,error:{message:data.length?"Multiple rows returned":"No rows found"}};if(singleMode==="maybe")return {data:data[0]||null,error:null};return {data,error:null};
+ }
+ if(operation==="delete"){
+  state[table]=rows.filter(r=>!matched.includes(r));await nfSaveState();for(const r of matched)await nfQueueOp(table,"delete",{id:r.id},[{field:"id",value:r.id}]);return {data:singleMode?matched[0]||null:matched,error:null};
+ }
+ return {data:null,error:null};
+}
+async function nfRunSync(){
+ if(nfSyncBusy||!navigator.onLine||!state.user)return;nfSyncBusy=true;
+ try{let q=await nfDbAll(NF_QUEUE_STORE);q.sort((a,b)=>a.queuedAt-b.queuedAt);for(const item of q){if(!navigator.onLine)break;let req;if(item.op==="insert")req=nfRawFrom(item.table).insert(item.payload);else if(item.op==="update")req=nfRawFrom(item.table).update(item.payload).eq("id",item.payload.id);else req=nfRawFrom(item.table).delete().eq("id",item.payload.id);const res=await req;if(res?.error){console.warn("Background sync paused",res.error);break}await nfDbDelete(NF_QUEUE_STORE,item.key)}}catch(e){console.warn("Background sync error",e)}finally{nfSyncBusy=false}}
+function nfScheduleSync(){clearTimeout(nfSyncTimer);nfSyncTimer=setTimeout(nfRunSync,800)}
+window.addEventListener("online",()=>{nfScheduleSync();setTimeout(nfRunPendingPhotoDeletes,1000)});document.addEventListener("visibilitychange",()=>{if(!document.hidden)nfScheduleSync()});
+/* Replace only table CRUD. Auth and Storage APIs remain untouched. */
+supabaseClient.from=function(table){return nfLocalBuilder(table)};
+async function nfLocalFirstLoadAll(silent=false,forceCloud=false){
+ if(!state.user)return;
+ await initCustomerClothPhotoStore();
+ const hadLocal=await nfLoadState(state.user.id);
+ try{renderAll()}catch(e){console.error("Local render error",e)}
+ if(!hadLocal && navigator.onLine){
+  const result=await Promise.allSettled(NF_TABLES.map(t=>nfRawFrom(t).select("*").order("created_at",{ascending:false})));
+  result.forEach((r,i)=>{if(r.status==="fulfilled"&&!r.value.error)state[NF_TABLES[i]]=r.value.data||[]});
+  await nfSaveState();try{renderAll()}catch(e){console.error("Cloud bootstrap render error",e)}
+ }
+ await nfRunSync();
+ setTimeout(()=>{try{if(!hadLocal)nfHydrateCloudClothPhotos();nfRunPendingPhotoDeletes()}catch(_){ }},900);
+ if(!silent&&hadLocal)toast("Local data loaded");
+}
+/* Login session already uses persistSession:true. Local data is loaded after auth. */
+
 const $=id=>document.getElementById(id);
 const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
 const money=n=>"₹"+Number(n||0).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -921,36 +1020,40 @@ if(!history.state?.view){
  updateBackButton();
 }
 
-async function getTable(name){
-const {data,error}=await supabaseClient.from(name).select("*").order("created_at",{ascending:false});
-if(error)throw new Error(name+": "+error.message);return data||[];
+
+/* NF EGRESS OPTIMIZATION — data-fetch cache only.
+   Does not change calculations, database schema, login, sync semantics, or WhatsApp behavior. */
+const NF_FETCH_CACHE = new Map();
+const NF_FETCH_TTL = 15000; // 15s: prevents duplicate/repeated reads during UI refreshes
+function nfInvalidateFetchCache(name){
+  if(name) NF_FETCH_CACHE.delete(name);
+  else NF_FETCH_CACHE.clear();
 }
-async function loadAll(silent=false){
-if(!state.user)return;
-try{await initCustomerClothPhotoStore();}catch(_){ }
-const tables=["customers","orders","measurements","alterations","payments","designs"];
-const result=await Promise.allSettled(tables.map(name=>getTable(name)));
-const failed=[];
-result.forEach((r,i)=>{
-  if(r.status==="fulfilled"){
-    state[tables[i]]=Array.isArray(r.value)?r.value:[];
-  }else{
-    failed.push(r.reason?.message||(`${tables[i]} load failed`));
+async function nfCachedQuery(name, queryFactory){
+  const now = Date.now();
+  const hit = NF_FETCH_CACHE.get(name);
+  if(hit && (now - hit.time) < NF_FETCH_TTL) return hit.promise;
+  const promise = queryFactory();
+  NF_FETCH_CACHE.set(name, {time: now, promise});
+  try{
+    return await promise;
+  }catch(e){
+    NF_FETCH_CACHE.delete(name);
+    throw e;
   }
-});
-try{renderAll();}catch(err){console.error("Render error:",err);}
-try{await nfHydrateCloudClothPhotos();}catch(err){console.warn("Cloud photo sync skipped:",err);}
-refreshNFHomeNotificationBar();
-if(localStorage.getItem("nf_notification_enabled")==="1"){
-  scheduleNativeDailyNotifications().catch(e=>console.error("Notification refresh after data load:",e));
 }
-if(failed.length){
-  console.error("Database load errors:",failed);
-  toast("சில data tables load ஆகவில்லை. மற்ற data பாதுகாப்பாக காட்டப்படுகிறது.",true);
-}else if(!silent){
-  toast("Online data loaded");
+
+async function getTable(name){
+  return nfCachedQuery(name, async ()=>{
+    const {data,error}=await supabaseClient
+      .from(name)
+      .select("*")
+      .order("created_at",{ascending:false});
+    if(error) throw error;
+    return data||[];
+  });
 }
-}
+async function loadAll(silent=false){return nfLocalFirstLoadAll(silent,false)}
 function customerName(id){return state.customers.find(x=>x.id===id)?.name||"Unknown"}
 function goToCustomer(id){goView("customers");setTimeout(()=>document.getElementById("customer-card-"+id)?.scrollIntoView({behavior:"smooth",block:"start"}),120);}
 function goToOrderCustomer(orderId){
@@ -1425,6 +1528,16 @@ function nfDataUrlToBlob(dataUrl){
     return new Blob([bytes],{type:mime});
   }catch(_){return null}
 }
+async function nfCompressPhotoForCloud(blob,maxDim=1600,quality=0.72){
+  if(!blob || !window.createImageBitmap)return blob;
+  try{
+    const bmp=await createImageBitmap(blob);
+    const scale=Math.min(1,maxDim/Math.max(bmp.width,bmp.height));
+    const w=Math.max(1,Math.round(bmp.width*scale)),h=Math.max(1,Math.round(bmp.height*scale));
+    const c=document.createElement("canvas");c.width=w;c.height=h;const ctx=c.getContext("2d");ctx.drawImage(bmp,0,0,w,h);
+    const out=await new Promise(r=>c.toBlob(r,"image/jpeg",quality));bmp.close();return out||blob;
+  }catch(_){return blob}
+}
 async function nfUploadCustomerClothPhoto(id,slot,fileOrBlob,contentType){
   nfCloudPhotoLastError="";
   try{
@@ -1433,10 +1546,11 @@ async function nfUploadCustomerClothPhoto(id,slot,fileOrBlob,contentType){
       return null;
     }
     const path=nfCloudPhotoPath(id,slot);
+    const cloudBlob=await nfCompressPhotoForCloud(fileOrBlob);
     const {error}=await supabaseClient.storage.from(NF_CLOTH_PHOTO_BUCKET)
-      .upload(path,fileOrBlob,{
+      .upload(path,cloudBlob,{
         upsert:true,
-        contentType:contentType||fileOrBlob?.type||"application/octet-stream",
+        contentType:(cloudBlob&&cloudBlob.type)||"image/jpeg",
         cacheControl:"3600"
       });
     if(error)throw error;
@@ -1478,6 +1592,9 @@ async function nfGetCustomerClothPhotoUrl(path){
   }
 }
 async function nfHydrateCloudClothPhotos(){
+  if(window.__nfPhotoHydratedAt && (Date.now()-window.__nfPhotoHydratedAt)<15000) return;
+  window.__nfPhotoHydratedAt = Date.now();
+
   if(nfCloudPhotoHydrationPromise)return nfCloudPhotoHydrationPromise;
   nfCloudPhotoHydrationPromise=(async function(){
     const customers=Array.isArray(state.customers)?state.customers:[];
@@ -1520,6 +1637,12 @@ async function nfHydrateCloudClothPhotos(){
           const url=await nfGetCustomerClothPhotoUrl(path);
           if(!url)continue;
           const current=customerClothPhotos(id)[slot];
+          /* Keep the local original on this device. Cloud URL is only a fallback. */
+          if(current?.src && String(current.src).startsWith("data:")){
+            if(!current.cloudPath){current.cloudPath=path;try{await nfIdbPut({id:id,photos:customerClothPhotos(id)})}catch(_){} }
+            nfClothPhotoCloudPathCache[id+":"+slot]=path;
+            continue;
+          }
           if(!current || current.cloudPath!==path || current.src!==url){
             const next=customerClothPhotos(id);
             next[slot]={src:url,name:"Customer cloth photo "+(slot+1),savedAt:f.created_at||new Date().toISOString(),cloudPath:path,originalType:f.metadata?.mimetype||"image/*"};
@@ -1667,16 +1790,9 @@ async function saveCustomerClothPhoto(id,slot,file){
       originalSize:file.size
     };
     if(!await setCustomerClothPhotos(id,arr))throw new Error("storage-failed");
-    const cloudPath=await nfUploadCustomerClothPhoto(id,slot,file,file.type);
-    if(cloudPath){
-      arr[slot].cloudPath=cloudPath;
-      nfClothPhotoCloudPathCache[String(id)+":"+slot]=cloudPath;
-      await setCustomerClothPhotos(id,arr);
-      toast(`Customer துணி photo ${slot+1} cloud-லும் சேமிக்கப்பட்டது.`);
-    }else{
-      const reason=nfCloudPhotoLastError ? ` (${nfCloudPhotoLastError})` : "";
-      toast(`Customer துணி photo ${slot+1} device-ல் சேமிக்கப்பட்டது. Cloud storage கிடைக்கவில்லை.${reason}`,true);
-    }
+    /* Local-first: never wait for cloud upload. Background photo hydration uploads a compressed copy. */
+    nfScheduleSync();
+    toast(`Customer துணி photo ${slot+1} device-ல் சேமிக்கப்பட்டது. Cloud sync பின்னணியில் நடக்கும்.`);
     renderCustomers();
   }catch(err){
     console.error("saveCustomerClothPhoto failed",err);
@@ -1691,13 +1807,25 @@ async function removeCustomerClothPhoto(id,slot){
   await setCustomerClothPhotos(id,arr);
   const path=old?.cloudPath||nfClothPhotoCloudPathCache[cloudKey]||nfCloudPhotoPath(id,slot);
   try{
-    const {error}=await supabaseClient.storage.from(NF_CLOTH_PHOTO_BUCKET).remove([path]);
-    if(error)console.warn("Cloud customer photo delete failed:",error.message);
-  }catch(err){console.warn("Cloud customer photo delete skipped:",err?.message||err)}
+    const pending=JSON.parse(localStorage.getItem("nf_pending_photo_deletes")||"[]");
+    if(!pending.includes(path))pending.push(path);
+    localStorage.setItem("nf_pending_photo_deletes",JSON.stringify(pending));
+  }catch(_){}
+  setTimeout(nfRunPendingPhotoDeletes,300);
   delete nfClothPhotoCloudPathCache[cloudKey];
   renderCustomers();
   toast("Customer துணி photo நீக்கப்பட்டது.");
 }
+async function nfRunPendingPhotoDeletes(){
+ if(!navigator.onLine)return;
+ try{
+  const arr=JSON.parse(localStorage.getItem("nf_pending_photo_deletes")||"[]");
+  const keep=[];
+  for(const path of arr){try{const {error}=await supabaseClient.storage.from(NF_CLOTH_PHOTO_BUCKET).remove([path]);if(error)keep.push(path)}catch(_){keep.push(path)}}
+  localStorage.setItem("nf_pending_photo_deletes",JSON.stringify(keep));
+ }catch(_){}
+}
+
 function editCustomerFromSearch(){
  const input=$("customerSearch");
  const q=(input?.value||"").trim().toLowerCase();
@@ -6805,23 +6933,18 @@ function nfWacUnlockPage(){
 async function nfWacPhotoHref(photo){
   if(!photo||!photo.src)return "";
   var src=String(photo.src);
-  /* Embed cloud/Supabase photos into the SVG before canvas rendering.
-     This prevents cross-origin image URLs from disappearing/tainting the canvas. */
-  if(src.startsWith("data:"))return src;
+  if(!src.startsWith("data:"))return src;
   try{
-    var r=await fetch(src,{mode:"cors",cache:"no-store"});
-    if(!r.ok)throw new Error("photo fetch "+r.status);
-    var blob=await r.blob();
-    return await new Promise(function(resolve,reject){
-      var fr=new FileReader();
-      fr.onload=function(){resolve(String(fr.result||""));};
-      fr.onerror=reject;
-      fr.readAsDataURL(blob);
-    });
-  }catch(e){
-    console.warn("WhatsApp card photo embed failed:",e);
-    return src;
-  }
+    var blob=typeof nfDataUrlToBlob==="function"?nfDataUrlToBlob(src):null;
+    if(blob && typeof createImageBitmap==="function") {
+      var bmp=await createImageBitmap(blob),maxDim=900,scale=Math.min(1,maxDim/Math.max(bmp.width,bmp.height));
+      var w=Math.max(1,Math.round(bmp.width*scale)),h=Math.max(1,Math.round(bmp.height*scale));
+      var c=document.createElement("canvas");c.width=w;c.height=h;var ctx=c.getContext("2d");ctx.drawImage(bmp,0,0,w,h);
+      var thumb=await new Promise(r=>c.toBlob(r,"image/jpeg",0.68));bmp.close();
+      if(thumb)return URL.createObjectURL(thumb);
+    }
+  }catch(e){console.warn("WhatsApp thumbnail conversion skipped:",e)}
+  return src;
 }
 async function nfWacPreviewExact(data,preview){
   preview.innerHTML="<div class=\"nf-wac-preview-loading\">Card preview loading…</div>";
@@ -6830,7 +6953,7 @@ async function nfWacPreviewExact(data,preview){
   var svg=nfWacSvg(data,photoUrls),blob=new Blob([svg],{type:"image/svg+xml"}),url=URL.createObjectURL(blob),img=new Image();
   img.className="nf-wac-preview-card-image";
   img.alt="WhatsApp Customer Card Preview";
-  img.onload=function(){URL.revokeObjectURL(url);photoUrls.forEach(function(u){if(u&&u.startsWith("blob:"))URL.revokeObjectURL(u);});preview.innerHTML="";preview.appendChild(img);var hint=document.createElement("div");hint.className="nf-wac-preview-hint";hint.textContent="மேலே காண்பது WhatsApp-ல் பகிரப்படும் அதே Customer Card • 4 photo slots • Original photos محفوظ";preview.appendChild(hint);};
+  img.onload=function(){URL.revokeObjectURL(url);photoUrls.forEach(function(u){if(u&&u.startsWith("blob:"))URL.revokeObjectURL(u);});preview.innerHTML="";preview.appendChild(img);var hint=document.createElement("div");hint.className="nf-wac-preview-hint";hint.textContent="மேலே காண்பது WhatsApp-ல் பகிரப்படும் அதே HD Card image • 4 photo slots • Original photo quality • 3× export";preview.appendChild(hint);};
   img.onerror=function(){URL.revokeObjectURL(url);photoUrls.forEach(function(u){if(u&&u.startsWith("blob:"))URL.revokeObjectURL(u);});preview.innerHTML="<div style=\"padding:30px;text-align:center;font-weight:800;color:#6b6376\">Card preview உருவாக்க முடியவில்லை.</div>";};
   img.src=url;
 }
@@ -6864,8 +6987,8 @@ document.addEventListener("keydown",function(e){if(e.key==="Escape"&&nfWacHistor
 function nfWacText(data){var c=data.c,rows=data.rows,st=data.st,village=nfCustomerVillage(c,activeCustomerId)||"";var lines=["NEW FASHION TAILORING","CUSTOMER CARD","","Customer: "+(c.name||"Customer"),"ஊர்: "+village];if(c.phone)lines.push("Phone: "+c.phone);lines.push("துணி கொடுத்த தேதி: "+nfWacDate(data.clothDate),"Delivery Date: "+nfWacDate(data.deliveryDate),"","Garment Details:");rows.forEach(function(x){lines.push(x.name+" — "+x.qty+" × "+nfWacMoney(x.rate)+" = "+nfWacMoney(x.qty*x.rate))});lines.push("","Total: "+nfWacMoney(st.total),"Paid: "+nfWacMoney(st.paid),"Balance: "+nfWacMoney(st.balance),"","Thank you — NEW FASHION TAILORING");return lines.join("\n")}
 window.shareCustomerWhatsAppText=async function(){if(!activeCustomerId)return;var data=nfWacSummary(activeCustomerId);data.photos=await nfWacResolvePhotos(activeCustomerId);var text=nfWacText(data),phone=String(data.c.phone||"").replace(/\D/g,"");var url=phone?"https://wa.me/"+phone+"?text="+encodeURIComponent(text):"https://wa.me/?text="+encodeURIComponent(text);window.open(url,"_blank","noopener")};
 function nfWacSvg(data,photoHref){
-  var W=1022, EXPORT_SCALE=2;
-  var rows=(data.rows||[]).slice(0,9), photos=(data.photos||[]).filter(function(p){return p&&p.src}).slice(0,4);
+  var W=1022, EXPORT_SCALE=3;
+  var rows=(data.rows||[]).slice(0,9), photos=(data.photos||[]).filter(function(p){return p&&p.src}).slice(0,1);
   var c=data.c||{}, st=data.st||{};
   var village=nfCustomerVillage(c,activeCustomerId)||"ஊர் இல்லை";
   var shopPhone="8524931003";
@@ -6944,7 +7067,7 @@ function nfWacSvg(data,photoHref){
   '<text x="511" y="'+(footerY+55)+'" text-anchor="middle" font-family="Georgia,serif" font-size="30" font-weight="900" fill="#ffe05a">✦ Thank you for choosing us! ✦</text>'+ 
   '<text x="511" y="'+(footerY+94)+'" text-anchor="middle" font-family="Georgia,serif" font-size="23" font-weight="900" fill="#fff">NEW <tspan fill="#ef4f8a">FASHION</tspan> TAILORING</text>'+ 
   '<text x="511" y="'+(footerY+125)+'" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" font-weight="900" fill="#ffe05a">☎ '+shopPhone+'</text>'+ 
-  '<rect x="28" y="'+bottomY+'" width="966" height="'+bottomH+'" rx="16" fill="#fff" stroke="#d9d9d9" stroke-width="2"/><text x="511" y="'+(bottomY+35)+'" text-anchor="middle" font-family="Noto Sans Tamil,Arial,sans-serif" font-size="17" font-weight="850" fill="#25202a">மேலே காண்பது WhatsApp-ல் பகிரப்படும் முழு Customer Card • 4 Photos</text>'+ 
+  '<rect x="28" y="'+bottomY+'" width="966" height="'+bottomH+'" rx="16" fill="#fff" stroke="#d9d9d9" stroke-width="2"/><text x="511" y="'+(bottomY+35)+'" text-anchor="middle" font-family="Noto Sans Tamil,Arial,sans-serif" font-size="17" font-weight="850" fill="#25202a">மேலே காண்பது WhatsApp-ல் பகிரப்படும் அச்சல் HD Card image • 3× export</text>'+ 
   '</svg>';
   return svg;
 }
@@ -6959,8 +7082,8 @@ window.shareCustomerWhatsAppCard=async function(){
     var svg=nfWacSvg(data,photoUrls),blob=new Blob([svg],{type:"image/svg+xml"}),url=URL.createObjectURL(blob),img=new Image();
     img.src=url;await new Promise(function(res,rej){img.onload=res;img.onerror=rej});
     var canvas=document.createElement("canvas");canvas.width=Number(svg.match(/width="([0-9]+)"/)?.[1]||3240);canvas.height=Number(svg.match(/height="([0-9]+)"/)?.[1]||5400);var ctx=canvas.getContext("2d");ctx.fillStyle="#fff";ctx.fillRect(0,0,canvas.width,canvas.height);ctx.drawImage(img,0,0);URL.revokeObjectURL(url);
-    var png=await new Promise(function(resolve){canvas.toBlob(resolve,"image/jpeg",.88)});if(!png)throw new Error("jpeg-failed");photoUrls.forEach(function(u){if(u&&u.startsWith("blob:"))URL.revokeObjectURL(u);});
-    var file=new File([png],"NEW_FASHION_TAILORING_CUSTOMER_CARD.jpg",{type:"image/jpeg"});
+    var png=await new Promise(function(resolve){canvas.toBlob(resolve,"image/png",.95)});if(!png)throw new Error("png-failed");photoUrls.forEach(function(u){if(u&&u.startsWith("blob:"))URL.revokeObjectURL(u);});
+    var file=new File([png],"NEW_FASHION_TAILORING_CUSTOMER_CARD_HD.png",{type:"image/png"});
     if(navigator.share&&(!navigator.canShare||navigator.canShare({files:[file]}))){await navigator.share({title:"NEW FASHION TAILORING – CUSTOMER CARD",text:text,files:[file]});return}
     var wa=phone?"https://wa.me/"+phone+"?text="+encodeURIComponent(text):"https://wa.me/?text="+encodeURIComponent(text);window.open(wa,"_blank","noopener");
   }catch(err){console.warn("WhatsApp card image share fallback",err);var wa2=phone?"https://wa.me/"+phone+"?text="+encodeURIComponent(text):"https://wa.me/?text="+encodeURIComponent(text);window.open(wa2,"_blank","noopener")}
@@ -7538,9 +7661,125 @@ window.addEventListener("keydown",function(e){if(e.key==="Escape")window.closeCu
   });
 })();
 </script>
-<!-- NF PHOTO SPEED FIX: auth/login flow intentionally unchanged. -->
-<!-- NF THUMBNAIL FIX: embed cloud photos before SVG/canvas export; login/auth unchanged. -->
-</body></html><script id="nf-v52-dashboard-scroll-fix-js">
+</body>
+<script id="nf-final-local-first-delta-layer">
+(function(){
+  "use strict";
+  if(window.__NF_FINAL_LOCAL_FIRST_DELTA_LAYER)return;
+  window.__NF_FINAL_LOCAL_FIRST_DELTA_LAYER=true;
+
+  var TABLES=["customers","orders","measurements","alterations","payments","designs"];
+  var SYNC_META_KEY="nf_final_delta_meta_v1";
+  var DELTA_BUSY=false;
+
+  function readMeta(){
+    try{return JSON.parse(localStorage.getItem(SYNC_META_KEY)||"{}")}catch(_){return{}}
+  }
+  function writeMeta(m){
+    try{localStorage.setItem(SYNC_META_KEY,JSON.stringify(m||{}))}catch(_){}
+  }
+  function localSave(){
+    try{
+      if(typeof nfLocalSave==="function") nfLocalSave();
+    }catch(e){console.warn("Local save skipped:",e)}
+  }
+  function render(){
+    try{if(typeof renderAll==="function")renderAll()}catch(e){console.warn("Local render skipped:",e)}
+  }
+
+  /*
+   * Delta refresh: fetch only records changed since the last successful refresh.
+   * It never clears local arrays first. If the delta request fails, local data stays.
+   */
+  async function refreshTableDelta(table, since){
+    if(!navigator.onLine || !window.supabaseClient) return {ok:false};
+    try{
+      var q=window.supabaseClient.from(table).select("*");
+      if(since){
+        q=q.gt("updated_at",since).order("updated_at",{ascending:true});
+      }else{
+        // First refresh for this table: preserve the existing app behavior,
+        // but only this one table is fetched at a time.
+        q=q.order("created_at",{ascending:true});
+      }
+      var r=await q;
+      if(r.error)throw r.error;
+      var rows=Array.isArray(r.data)?r.data:[];
+      var arr=Array.isArray(state[table])?state[table]:[];
+      var byId=new Map(arr.map(function(x){return[String(x.id),x]}));
+      rows.forEach(function(row){
+        if(!row || row.id==null)return;
+        byId.set(String(row.id),row);
+      });
+      state[table]=Array.from(byId.values());
+      var newest=since||"";
+      rows.forEach(function(row){
+        var t=row.updated_at||row.created_at;
+        if(t && (!newest || String(t)>String(newest)))newest=String(t);
+      });
+      return {ok:true,newest:newest};
+    }catch(e){
+      console.warn("Delta refresh skipped for "+table+":",e);
+      return {ok:false};
+    }
+  }
+
+  async function backgroundDeltaRefresh(){
+    if(DELTA_BUSY || !navigator.onLine || !state || !state.user || !window.supabaseClient)return;
+    DELTA_BUSY=true;
+    try{
+      var meta=readMeta();
+      for(var i=0;i<TABLES.length && navigator.onLine;i++){
+        var table=TABLES[i];
+        var r=await refreshTableDelta(table,meta[table]||"");
+        if(r.ok){
+          if(r.newest)meta[table]=r.newest;
+          writeMeta(meta);
+          render();
+          localSave();
+        }
+        await new Promise(function(resolve){setTimeout(resolve,120)});
+      }
+    }finally{
+      DELTA_BUSY=false;
+    }
+  }
+
+  /*
+   * Compatibility loadAll:
+   * callers can still invoke loadAll(), but local state is rendered immediately.
+   * Cloud refresh happens in the background and never blocks navigation/calculation.
+   */
+  window.loadAll=async function(){
+    if(!state || !state.user)return;
+    render();
+    localSave();
+    if(navigator.onLine){
+      setTimeout(function(){backgroundDeltaRefresh().catch(function(e){console.warn(e)})},50);
+    }
+  };
+
+  window.addEventListener("online",function(){
+    setTimeout(function(){backgroundDeltaRefresh().catch(function(e){console.warn(e)})},800);
+  });
+
+  document.addEventListener("visibilitychange",function(){
+    if(!document.hidden && navigator.onLine){
+      setTimeout(function(){backgroundDeltaRefresh().catch(function(e){console.warn(e)})},500);
+    }
+  });
+
+  // Do not perform a cloud request immediately during startup.
+  // Existing local state gets priority; background refresh starts shortly after.
+  setTimeout(function(){
+    if(navigator.onLine)backgroundDeltaRefresh().catch(function(e){console.warn(e)});
+  },2500);
+
+  window.nfRunBackgroundDeltaSync=backgroundDeltaRefresh;
+})();
+</script>
+
+</html><script id="nf-v52-dashboard-scroll-fix-js">
 (function(){
   "use strict";
   function syncDashboardMode(){
