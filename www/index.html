@@ -6946,31 +6946,68 @@ async function nfWacPhotoHref(photo){
   }catch(e){console.warn("WhatsApp thumbnail conversion skipped:",e)}
   return src;
 }
-async function nfWacPreviewExact(data,preview){
-  preview.innerHTML="<div class=\"nf-wac-preview-loading\">Card preview loading…</div>";
-  var usablePhotos=data&&data.photos?data.photos.filter(function(p){return p&&p.src}).slice(0,4):[];
-  var photoUrls=await Promise.all(usablePhotos.map(nfWacPhotoHref));
-  var svg=nfWacSvg(data,photoUrls),blob=new Blob([svg],{type:"image/svg+xml"}),url=URL.createObjectURL(blob),img=new Image();
-  img.className="nf-wac-preview-card-image";
-  img.alt="WhatsApp Customer Card Preview";
-  img.onload=function(){URL.revokeObjectURL(url);photoUrls.forEach(function(u){if(u&&u.startsWith("blob:"))URL.revokeObjectURL(u);});preview.innerHTML="";preview.appendChild(img);var hint=document.createElement("div");hint.className="nf-wac-preview-hint";hint.textContent="மேலே காண்பது WhatsApp-ல் பகிரப்படும் அதே HD Card image • 4 photo slots • Original photo quality • 3× export";preview.appendChild(hint);};
-  img.onerror=function(){URL.revokeObjectURL(url);photoUrls.forEach(function(u){if(u&&u.startsWith("blob:"))URL.revokeObjectURL(u);});preview.innerHTML="<div style=\"padding:30px;text-align:center;font-weight:800;color:#6b6376\">Card preview உருவாக்க முடியவில்லை.</div>";};
-  img.src=url;
+function nfWacPreviewExact(data,preview){
+  /* IMPORTANT: preview must never wait for cloud/IDB/photo conversion.
+     Use the photo src already present in local state immediately. */
+  try{
+    var usablePhotos=data&&data.photos?data.photos.filter(function(p){return p&&p.src}).slice(0,4):[];
+    var photoUrls=usablePhotos.map(function(p){return String(p.src||"");}).filter(Boolean);
+    var svg=nfWacSvg(data,photoUrls);
+    var blob=new Blob([svg],{type:"image/svg+xml"});
+    var url=URL.createObjectURL(blob);
+    var img=new Image();
+    img.className="nf-wac-preview-card-image";
+    img.alt="WhatsApp Customer Card Preview";
+    img.decoding="async";
+    img.onload=function(){
+      URL.revokeObjectURL(url);
+      preview.innerHTML="";
+      preview.appendChild(img);
+      var hint=document.createElement("div");
+      hint.className="nf-wac-preview-hint";
+      hint.textContent="WhatsApp-ல் பகிரப்படும் Card • Local photo preview • Original photo local-ல் பாதுகாப்பாக இருக்கும்";
+      preview.appendChild(hint);
+    };
+    img.onerror=function(){
+      URL.revokeObjectURL(url);
+      preview.innerHTML="<div style=\"padding:30px;text-align:center;font-weight:800;color:#6b6376\">Card preview உருவாக்க முடியவில்லை.</div>";
+    };
+    img.src=url;
+  }catch(err){
+    console.error("WhatsApp card preview build failed",err);
+    preview.innerHTML="<div style=\"padding:30px;text-align:center;font-weight:800;color:#6b6376\">Card preview உருவாக்க முடியவில்லை.</div>";
+  }
 }
-window.openCustomerWhatsAppCard=async function(id){
+window.openCustomerWhatsAppCard=function(id){
   activeCustomerId=String(id||"");
   var overlay=document.getElementById("nfWhatsAppCardOverlay"),preview=document.getElementById("nfWacPreview");
   if(!overlay||!preview)return;
   nfWacLockPage();
   if(!nfWacHistoryOpen){try{history.pushState({nfWhatsAppCard:true},"",location.href);}catch(e){} nfWacHistoryOpen=true;}
-  preview.innerHTML="<div class=\"nf-wac-preview-loading\">Card preview loading…</div>";
-  overlay.classList.add("open");overlay.setAttribute("aria-hidden","false");
+  overlay.classList.add("open");
+  overlay.setAttribute("aria-hidden","false");
+
+  /* Render immediately from local state. Never block opening the card. */
   try{
     var data=nfWacSummary(activeCustomerId);
-    data.photos=await nfWacResolvePhotos(activeCustomerId);
     nfWacPreviewExact(data,preview);
+
+    /* Only after the card is visible, hydrate IndexedDB/cloud if needed.
+       A successful hydration refreshes the card; a failure leaves the local
+       preview untouched. */
+    setTimeout(function(){
+      if(!nfWacHistoryOpen)return;
+      Promise.resolve().then(function(){return nfWacResolvePhotos(activeCustomerId);}).then(function(photos){
+        if(!nfWacHistoryOpen)return;
+        var fresh=nfWacSummary(activeCustomerId);
+        fresh.photos=photos||fresh.photos||[];
+        nfWacPreviewExact(fresh,preview);
+      }).catch(function(err){
+        console.warn("WhatsApp background photo hydration skipped:",err);
+      });
+    },0);
   }catch(err){
-    console.error("WhatsApp card preview photo load failed",err);
+    console.error("WhatsApp card preview build failed",err);
     preview.innerHTML="<div class=\"nf-wac-preview-loading\">Card preview உருவாக்க முடியவில்லை.</div>";
   }
 };
@@ -7776,115 +7813,6 @@ window.addEventListener("keydown",function(e){if(e.key==="Escape")window.closeCu
   },2500);
 
   window.nfRunBackgroundDeltaSync=backgroundDeltaRefresh;
-})();
-</script>
-
-
-<script id="nf-photo-preview-safe-fix">
-(function(){
-"use strict";
-if(window.__NF_PHOTO_PREVIEW_SAFE_FIX)return;
-window.__NF_PHOTO_PREVIEW_SAFE_FIX=true;
-
-/* Safe photo resolver: local IndexedDB first; no cloud wait when local photos exist. */
-window.nfWacResolvePhotos=async function(id){
-  var key=String(id||"");
-  try{
-    if(typeof initCustomerClothPhotoStore==="function") await initCustomerClothPhotoStore();
-  }catch(e){console.warn("Local photo store init skipped:",e)}
-  var local=typeof customerClothPhotos==="function"?customerClothPhotos(key):[];
-  if(local.some(function(p){return p&&p.src})) return local;
-  if(navigator.onLine && typeof nfHydrateCloudClothPhotos==="function"){
-    try{await nfHydrateCloudClothPhotos()}catch(e){console.warn("Cloud photo fallback skipped:",e)}
-    return typeof customerClothPhotos==="function"?customerClothPhotos(key):local;
-  }
-  return local;
-};
-
-/* Convert local data URL to a small data URL, not a blob URL.
-   Embedded data URLs are reliable inside the generated SVG preview. */
-window.nfWacPhotoHref=async function(photo){
-  if(!photo||!photo.src)return "";
-  var src=String(photo.src);
-  if(!src.startsWith("data:"))return src;
-  try{
-    var blob=typeof nfDataUrlToBlob==="function"?nfDataUrlToBlob(src):null;
-    if(blob && typeof createImageBitmap==="function"){
-      var bmp=await createImageBitmap(blob);
-      var maxDim=960,scale=Math.min(1,maxDim/Math.max(bmp.width,bmp.height));
-      var w=Math.max(1,Math.round(bmp.width*scale)),h=Math.max(1,Math.round(bmp.height*scale));
-      var c=document.createElement("canvas");c.width=w;c.height=h;
-      var ctx=c.getContext("2d",{alpha:false});
-      ctx.drawImage(bmp,0,0,w,h);bmp.close();
-      var thumb=await new Promise(function(resolve){c.toBlob(resolve,"image/jpeg",0.74)});
-      if(thumb){
-        var reader=new FileReader();
-        return await new Promise(function(resolve,reject){
-          reader.onload=function(){resolve(String(reader.result||src))};
-          reader.onerror=function(){reject(reader.error||new Error("photo data read failed"))};
-          reader.readAsDataURL(thumb);
-        });
-      }
-    }
-  }catch(e){console.warn("Photo thumbnail conversion skipped:",e)}
-  return src;
-};
-
-/* Preview only: preserve the existing exact SVG card, but do not revoke photo
-   URLs because they are embedded data URLs. */
-window.nfWacPreviewExact=async function(data,preview){
-  preview.innerHTML='<div class="nf-wac-preview-loading">Card preview loading…</div>';
-  try{
-    var usable=data&&data.photos?data.photos.filter(function(p){return p&&p.src}).slice(0,4):[];
-    var photoUrls=await Promise.all(usable.map(window.nfWacPhotoHref));
-    var svg=nfWacSvg(data,photoUrls);
-    var blob=new Blob([svg],{type:"image/svg+xml;charset=utf-8"});
-    var url=URL.createObjectURL(blob);
-    var img=new Image();
-    img.className="nf-wac-preview-card-image";
-    img.alt="WhatsApp Customer Card Preview";
-    img.onload=function(){
-      URL.revokeObjectURL(url);
-      preview.innerHTML="";
-      preview.appendChild(img);
-      var hint=document.createElement("div");
-      hint.className="nf-wac-preview-hint";
-      hint.textContent="WhatsApp-ல் பகிரப்படும் Card • Local thumbnail • 4 photo slots";
-      preview.appendChild(hint);
-    };
-    img.onerror=function(){
-      URL.revokeObjectURL(url);
-      preview.innerHTML='<div style="padding:30px;text-align:center;font-weight:800;color:#6b6376">Card preview உருவாக்க முடியவில்லை.</div>';
-    };
-    img.src=url;
-  }catch(e){
-    console.error("Safe WhatsApp card preview failed:",e);
-    preview.innerHTML='<div style="padding:30px;text-align:center;font-weight:800;color:#6b6376">Card preview உருவாக்க முடியவில்லை.</div>';
-  }
-};
-
-window.openCustomerWhatsAppCard=async function(id){
-  activeCustomerId=String(id||"");
-  var overlay=document.getElementById("nfWhatsAppCardOverlay");
-  var preview=document.getElementById("nfWacPreview");
-  if(!overlay||!preview)return;
-  try{nfWacLockPage()}catch(_){}
-  if(!nfWacHistoryOpen){
-    try{history.pushState({nfWhatsAppCard:true},"",location.href)}catch(e){}
-    nfWacHistoryOpen=true;
-  }
-  preview.innerHTML='<div class="nf-wac-preview-loading">Card preview loading…</div>';
-  overlay.classList.add("open");
-  overlay.setAttribute("aria-hidden","false");
-  try{
-    var data=nfWacSummary(activeCustomerId);
-    data.photos=await window.nfWacResolvePhotos(activeCustomerId);
-    await window.nfWacPreviewExact(data,preview);
-  }catch(e){
-    console.error("WhatsApp card open failed:",e);
-    preview.innerHTML='<div style="padding:30px;text-align:center;font-weight:800;color:#6b6376">Card preview உருவாக்க முடியவில்லை.</div>';
-  }
-};
 })();
 </script>
 
