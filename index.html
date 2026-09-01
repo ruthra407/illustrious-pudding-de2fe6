@@ -650,6 +650,13 @@ body.nf-photo-preview-scroll-locked{
 .nf-wac-live-photo-grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:9px!important}
 .nf-wac-live-photo-grid .p{aspect-ratio:4/3!important}
 </style>
+
+<style id="nf-wac-four-photo-preview-only">
+/* Four-photo WhatsApp preview: no duplicate hero image. */
+.nf-wac-live-card .nf-wac-live-photo{display:none!important}
+.nf-wac-live-card .nf-wac-live-photo-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:9px!important}
+.nf-wac-live-card .nf-wac-live-photo-grid .p{aspect-ratio:4/3!important}
+</style>
 </head><body><div id="loginPage" class="loginpage"><section class="loginbox"><div class="brand">NEW FASHION</div><div class="gold">TAILORING INDUSTRY</div><div class="sub">Online Tailoring Management Software</div><form id="loginForm"><div class="field"><label>Email</label><input id="loginEmail" class="input" type="email" autocomplete="email" required placeholder="உங்கள் Email"></div><div class="field"><label>Password</label><input id="loginPassword" class="input" type="password" autocomplete="current-password" required placeholder="Password"></div><button class="btn primary" id="loginBtn" type="submit">🔐 LOGIN</button><div id="loginMsg" class="msg"></div></form><button id="resetPasswordBtn" class="btn primary nf-reset-password-btn" type="button">🔄 RESET PASSWORD</button>
 <div class="nf-forgot-row">
   <button id="forgotBtn" class="btn secondary nf-forgot-btn" type="button">Forgot password?</button>
@@ -914,38 +921,9 @@ if(!history.state?.view){
  updateBackButton();
 }
 
-
-/* NF EGRESS OPTIMIZATION — data-fetch cache only.
-   Does not change calculations, database schema, login, sync semantics, or WhatsApp behavior. */
-const NF_FETCH_CACHE = new Map();
-const NF_FETCH_TTL = 15000; // 15s: prevents duplicate/repeated reads during UI refreshes
-function nfInvalidateFetchCache(name){
-  if(name) NF_FETCH_CACHE.delete(name);
-  else NF_FETCH_CACHE.clear();
-}
-async function nfCachedQuery(name, queryFactory){
-  const now = Date.now();
-  const hit = NF_FETCH_CACHE.get(name);
-  if(hit && (now - hit.time) < NF_FETCH_TTL) return hit.promise;
-  const promise = queryFactory();
-  NF_FETCH_CACHE.set(name, {time: now, promise});
-  try{
-    return await promise;
-  }catch(e){
-    NF_FETCH_CACHE.delete(name);
-    throw e;
-  }
-}
-
 async function getTable(name){
-  return nfCachedQuery(name, async ()=>{
-    const {data,error}=await supabaseClient
-      .from(name)
-      .select("*")
-      .order("created_at",{ascending:false});
-    if(error) throw error;
-    return data||[];
-  });
+const {data,error}=await supabaseClient.from(name).select("*").order("created_at",{ascending:false});
+if(error)throw new Error(name+": "+error.message);return data||[];
 }
 async function loadAll(silent=false){
 if(!state.user)return;
@@ -1500,9 +1478,6 @@ async function nfGetCustomerClothPhotoUrl(path){
   }
 }
 async function nfHydrateCloudClothPhotos(){
-  if(window.__nfPhotoHydratedAt && (Date.now()-window.__nfPhotoHydratedAt)<15000) return;
-  window.__nfPhotoHydratedAt = Date.now();
-
   if(nfCloudPhotoHydrationPromise)return nfCloudPhotoHydrationPromise;
   nfCloudPhotoHydrationPromise=(async function(){
     const customers=Array.isArray(state.customers)?state.customers:[];
@@ -2028,14 +2003,11 @@ async function saveQuickOrder(id,customerId){
  const payload={customer_id:customerId,order_no:existing?.order_no||makeOrderNo(),garment_type:garment,order_date:existing?.order_date||localDate(),cloth_received_date:cloth,delivery_date:delivery,quantity:qty,unit_price:qty?garmentTotal/qty:0,total_amount:total,advance_amount:advance,balance_amount:Math.max(0,total-advance),status,rate_type:garment==="Chudi"?"normal":(s.normal>0?"normal":s.lining>0?"lining":s.design>0?"design":"normal"),lining_cloth_source:ls||null,lining_cloth_qty:lq,notes};
  try{
    const result=existing
-     ?await supabaseClientnfInvalidateFetchCache("orders");
-.from("orders").update(payload).eq("id",existing.id)
-     :await supabaseClientnfInvalidateFetchCache("orders");
-.from("orders").insert(payload);
+     ?await supabaseClient.from("orders").update(payload).eq("id",existing.id)
+     :await supabaseClient.from("orders").insert(payload);
    if(result.error)throw result.error;
    const customerNotePayload={notes:alterationNotes};
-   const customerUpdate=await supabaseClientnfInvalidateFetchCache("customers");
-.from("customers").update(customerNotePayload).eq("id",customerId);
+   const customerUpdate=await supabaseClient.from("customers").update(customerNotePayload).eq("id",customerId);
    if(customerUpdate.error)throw customerUpdate.error;
    box.dataset.editOrderId="";
    const title=box.querySelector(".nf-quick-edit-title"),save=box.querySelector(".nf-quick-save-btn");
@@ -2356,8 +2328,7 @@ async function saveOnlineDesign(imageUrl,name,resultId){
 if(!imageUrl){toast("இந்த design-க்கு image URL கிடைக்கவில்லை.",true);return}
 const payload={design_no:"WEB-"+Date.now().toString().slice(-6),design_name:name.slice(0,150),category:"Online Blouse Design",description:"Saved from online design search",image_url:imageUrl,price:0};
 try{
-const {data,error}=await supabaseClientnfInvalidateFetchCache("designs");
-.from("designs").insert(payload).select().single();
+const {data,error}=await supabaseClient.from("designs").insert(payload).select().single();
 if(error)throw error;
 const box=$(resultId);
 if(box)box.innerHTML=`<img src="${esc(imageUrl)}" alt="${esc(name)}" loading="lazy"><b>${esc(name)}</b><span class="mini">Saved to your Designs</span><div class="actions"><button class="btn secondary" onclick="openModal('design','${data.id}')">✏️ Edit</button><button class="btn danger" onclick="deleteOnlineSavedDesign('${data.id}','${resultId}')">🗑 Delete</button></div>`;
@@ -2367,8 +2338,7 @@ await loadAll(true);toast("Design save செய்யப்பட்டது. 
 async function deleteOnlineSavedDesign(id,resultId){
 if(!confirm("இந்த saved blouse design-ஐ delete செய்யவா?"))return;
 try{
- const {error}=await supabaseClientnfInvalidateFetchCache("designs");
-.from("designs").delete().eq("id",id);
+ const {error}=await supabaseClient.from("designs").delete().eq("id",id);
  if(error)throw error;
  $(resultId)?.remove();
  await loadAll(true);
@@ -2923,8 +2893,7 @@ const b=$("saveBtn");b.disabled=true;b.textContent="Saving...";
 try{
 if(type==="payment" && payload.__orderUpdate){
   const ou=payload.__orderUpdate; delete payload.__orderUpdate;
-  const ur=await supabaseClientnfInvalidateFetchCache("orders");
-.from("orders").update(ou).eq("id",String(payload.order_id));
+  const ur=await supabaseClient.from("orders").update(ou).eq("id",String(payload.order_id));
   if(ur.error)throw ur.error;
 }
 let result=id?await supabaseClient.from(def.table).update(payload).eq("id",id).select().single():await supabaseClient.from(def.table).insert(payload).select().single();
@@ -2945,15 +2914,13 @@ if(type==="customer"){
   /* If a real village column exists, also write it. If not, the marker stored
      in the existing notes column is the portable cloud fallback. */
   try{
-    const vr=await supabaseClientnfInvalidateFetchCache("customers");
-.from("customers").update({village:village}).eq("id",result.data.id);
+    const vr=await supabaseClient.from("customers").update({village:village}).eq("id",result.data.id);
     if(vr.error)console.warn("customers.village column unavailable; using notes marker.",vr.error.message);
   }catch(_){}
   const linkedOrders=(state.orders||[]).filter(o=>String(o.customer_id)===String(result.data.id));
   for(const order of linkedOrders){
     const nextNotes=orderNotesWithAlteration(order.notes,alterationNotes);
-    const ur=await supabaseClientnfInvalidateFetchCache("orders");
-.from("orders").update({notes:nextNotes}).eq("id",order.id);
+    const ur=await supabaseClient.from("orders").update({notes:nextNotes}).eq("id",order.id);
     if(ur.error)throw ur.error;
   }
 }
@@ -2961,8 +2928,7 @@ if(type==="order"){
   const alterationNotes=String(payload.notes||"").trim();
   const cid=String(payload.customer_id||"");
   if(cid){
-    const ur=await supabaseClientnfInvalidateFetchCache("customers");
-.from("customers").update({notes:alterationNotes}).eq("id",cid);
+    const ur=await supabaseClient.from("customers").update({notes:alterationNotes}).eq("id",cid);
     if(ur.error)throw ur.error;
   }
 }
@@ -3006,8 +2972,7 @@ const labels={"In Progress":"Progress","Ready":"Ready","Delivered":"Delivered","
 if(!["In Progress","Ready","Delivered","Cancelled"].includes(status))return;
 const label=labels[status]||status;
 if(!confirm(`இந்த order-ஐ ${label} என்று மாற்றவா?`))return;
-const {error}=await supabaseClientnfInvalidateFetchCache("orders");
-.from("orders").update({status}).eq("id",id);
+const {error}=await supabaseClient.from("orders").update({status}).eq("id",id);
 if(error){toast("Status update failed: "+error.message,true);return;}
 await loadAll(true);
 openOrderFullDetails(id);
@@ -3025,24 +2990,18 @@ async function deleteCustomer(id){
  if(!ok)return;
  try{
    if(orderIds.length){
-     const {error:paymentError}=await supabaseClientnfInvalidateFetchCache("payments");
-.from("payments").delete().in("order_id",orderIds);
+     const {error:paymentError}=await supabaseClient.from("payments").delete().in("order_id",orderIds);
      if(paymentError)throw paymentError;
-     const {error:alterOrderError}=await supabaseClientnfInvalidateFetchCache("alterations");
-.from("alterations").delete().in("order_id",orderIds);
+     const {error:alterOrderError}=await supabaseClient.from("alterations").delete().in("order_id",orderIds);
      if(alterOrderError)throw alterOrderError;
    }
-   const {error:alterCustomerError}=await supabaseClientnfInvalidateFetchCache("alterations");
-.from("alterations").delete().eq("customer_id",id);
+   const {error:alterCustomerError}=await supabaseClient.from("alterations").delete().eq("customer_id",id);
    if(alterCustomerError)throw alterCustomerError;
-   const {error:measurementError}=await supabaseClientnfInvalidateFetchCache("measurements");
-.from("measurements").delete().eq("customer_id",id);
+   const {error:measurementError}=await supabaseClient.from("measurements").delete().eq("customer_id",id);
    if(measurementError)throw measurementError;
-   const {error:orderError}=await supabaseClientnfInvalidateFetchCache("orders");
-.from("orders").delete().eq("customer_id",id);
+   const {error:orderError}=await supabaseClient.from("orders").delete().eq("customer_id",id);
    if(orderError)throw orderError;
-   const {error:customerError}=await supabaseClientnfInvalidateFetchCache("customers");
-.from("customers").delete().eq("id",id);
+   const {error:customerError}=await supabaseClient.from("customers").delete().eq("id",id);
    if(customerError)throw customerError;
    localStorage.removeItem("nf_village_"+id);
    localStorage.removeItem("nf_customer_designs_"+id);
@@ -5055,8 +5014,7 @@ if(typeof oldSave==="function"){
         if(items.length){
           notes+=(notes?" | ":"")+"DESIGN_ITEMS:"+JSON.stringify(items);
         }
-        const r=await supabaseClientnfInvalidateFetchCache("orders");
-.from("orders").update({notes}).eq("id",order.id);
+        const r=await supabaseClient.from("orders").update({notes}).eq("id",order.id);
         if(r.error)throw r.error;
         await loadAll(true);
       }
@@ -5744,10 +5702,8 @@ function nfFormatPaymentDate(v){return v?dateText(v):"—";}
     const payload={customer_id:customerId,order_no:existing?.order_no||makeOrderNo(),garment_type:storedGarment,order_date:orderDate,cloth_received_date:cloth,delivery_date:delivery,quantity:qty,unit_price:qty?total/qty:0,total_amount:total,advance_amount:advance,balance_amount:Math.max(0,total-advance),status,rate_type:isBlouse?(s.normal>0?"normal":s.lining>0?"lining":s.design>0?"design":"normal"):"normal",lining_cloth_source:ls||null,lining_cloth_qty:lq,notes};
     try{
       const result=existing
-        ?await supabaseClientnfInvalidateFetchCache("orders");
-.from("orders").update(payload).eq("id",existing.id).select("*").maybeSingle()
-        :await supabaseClientnfInvalidateFetchCache("orders");
-.from("orders").insert(payload).select("*").single();
+        ?await supabaseClient.from("orders").update(payload).eq("id",existing.id).select("*").maybeSingle()
+        :await supabaseClient.from("orders").insert(payload).select("*").single();
       if(result.error)throw result.error;
       if(existing&&!result.data)throw new Error("Order update செய்யப்படவில்லை. Database UPDATE permission / RLS policy-ஐ சரிபார்க்க வேண்டும்.");
       // Keep the linked Payment records in sync with the Edit Order values.
@@ -5760,8 +5716,7 @@ function nfFormatPaymentDate(v){return v?dateText(v):"—";}
       }catch(syncErr){ console.error("Payment date sync failed",syncErr); }
       const syncCustomerId=String(customerId||payload.customer_id||"");
       if(syncCustomerId){
-        const cr=await supabaseClientnfInvalidateFetchCache("customers");
-.from("customers").update({notes:userNotes}).eq("id",syncCustomerId);
+        const cr=await supabaseClient.from("customers").update({notes:userNotes}).eq("id",syncCustomerId);
         if(cr.error)throw cr.error;
       }
       box.dataset.editOrderId="";
@@ -6864,7 +6819,7 @@ async function nfWacPreviewExact(data,preview){
   var svg=nfWacSvg(data,photoUrls),blob=new Blob([svg],{type:"image/svg+xml"}),url=URL.createObjectURL(blob),img=new Image();
   img.className="nf-wac-preview-card-image";
   img.alt="WhatsApp Customer Card Preview";
-  img.onload=function(){URL.revokeObjectURL(url);photoUrls.forEach(function(u){if(u&&u.startsWith("blob:"))URL.revokeObjectURL(u);});preview.innerHTML="";preview.appendChild(img);var hint=document.createElement("div");hint.className="nf-wac-preview-hint";hint.textContent="மேலே காண்பது WhatsApp-ல் பகிரப்படும் அதே HD Card image • 4 photo slots • Original photo quality • 3× export";preview.appendChild(hint);};
+  img.onload=function(){URL.revokeObjectURL(url);photoUrls.forEach(function(u){if(u&&u.startsWith("blob:"))URL.revokeObjectURL(u);});preview.innerHTML="";preview.appendChild(img);var hint=document.createElement("div");hint.className="nf-wac-preview-hint";hint.textContent="மேலே காண்பது WhatsApp-ல் பகிரப்படும் அதே Customer Card • 4 photo slots • Original photos محفوظ";preview.appendChild(hint);};
   img.onerror=function(){URL.revokeObjectURL(url);photoUrls.forEach(function(u){if(u&&u.startsWith("blob:"))URL.revokeObjectURL(u);});preview.innerHTML="<div style=\"padding:30px;text-align:center;font-weight:800;color:#6b6376\">Card preview உருவாக்க முடியவில்லை.</div>";};
   img.src=url;
 }
@@ -6898,8 +6853,8 @@ document.addEventListener("keydown",function(e){if(e.key==="Escape"&&nfWacHistor
 function nfWacText(data){var c=data.c,rows=data.rows,st=data.st,village=nfCustomerVillage(c,activeCustomerId)||"";var lines=["NEW FASHION TAILORING","CUSTOMER CARD","","Customer: "+(c.name||"Customer"),"ஊர்: "+village];if(c.phone)lines.push("Phone: "+c.phone);lines.push("துணி கொடுத்த தேதி: "+nfWacDate(data.clothDate),"Delivery Date: "+nfWacDate(data.deliveryDate),"","Garment Details:");rows.forEach(function(x){lines.push(x.name+" — "+x.qty+" × "+nfWacMoney(x.rate)+" = "+nfWacMoney(x.qty*x.rate))});lines.push("","Total: "+nfWacMoney(st.total),"Paid: "+nfWacMoney(st.paid),"Balance: "+nfWacMoney(st.balance),"","Thank you — NEW FASHION TAILORING");return lines.join("\n")}
 window.shareCustomerWhatsAppText=async function(){if(!activeCustomerId)return;var data=nfWacSummary(activeCustomerId);data.photos=await nfWacResolvePhotos(activeCustomerId);var text=nfWacText(data),phone=String(data.c.phone||"").replace(/\D/g,"");var url=phone?"https://wa.me/"+phone+"?text="+encodeURIComponent(text):"https://wa.me/?text="+encodeURIComponent(text);window.open(url,"_blank","noopener")};
 function nfWacSvg(data,photoHref){
-  var W=1022, EXPORT_SCALE=3;
-  var rows=(data.rows||[]).slice(0,9), photos=(data.photos||[]).filter(function(p){return p&&p.src}).slice(0,1);
+  var W=1022, EXPORT_SCALE=2;
+  var rows=(data.rows||[]).slice(0,9), photos=(data.photos||[]).filter(function(p){return p&&p.src}).slice(0,4);
   var c=data.c||{}, st=data.st||{};
   var village=nfCustomerVillage(c,activeCustomerId)||"ஊர் இல்லை";
   var shopPhone="8524931003";
@@ -6978,7 +6933,7 @@ function nfWacSvg(data,photoHref){
   '<text x="511" y="'+(footerY+55)+'" text-anchor="middle" font-family="Georgia,serif" font-size="30" font-weight="900" fill="#ffe05a">✦ Thank you for choosing us! ✦</text>'+ 
   '<text x="511" y="'+(footerY+94)+'" text-anchor="middle" font-family="Georgia,serif" font-size="23" font-weight="900" fill="#fff">NEW <tspan fill="#ef4f8a">FASHION</tspan> TAILORING</text>'+ 
   '<text x="511" y="'+(footerY+125)+'" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" font-weight="900" fill="#ffe05a">☎ '+shopPhone+'</text>'+ 
-  '<rect x="28" y="'+bottomY+'" width="966" height="'+bottomH+'" rx="16" fill="#fff" stroke="#d9d9d9" stroke-width="2"/><text x="511" y="'+(bottomY+35)+'" text-anchor="middle" font-family="Noto Sans Tamil,Arial,sans-serif" font-size="17" font-weight="850" fill="#25202a">மேலே காண்பது WhatsApp-ல் பகிரப்படும் அச்சல் HD Card image • 3× export</text>'+ 
+  '<rect x="28" y="'+bottomY+'" width="966" height="'+bottomH+'" rx="16" fill="#fff" stroke="#d9d9d9" stroke-width="2"/><text x="511" y="'+(bottomY+35)+'" text-anchor="middle" font-family="Noto Sans Tamil,Arial,sans-serif" font-size="17" font-weight="850" fill="#25202a">மேலே காண்பது WhatsApp-ல் பகிரப்படும் முழு Customer Card • 4 Photos</text>'+ 
   '</svg>';
   return svg;
 }
@@ -6993,8 +6948,8 @@ window.shareCustomerWhatsAppCard=async function(){
     var svg=nfWacSvg(data,photoUrls),blob=new Blob([svg],{type:"image/svg+xml"}),url=URL.createObjectURL(blob),img=new Image();
     img.src=url;await new Promise(function(res,rej){img.onload=res;img.onerror=rej});
     var canvas=document.createElement("canvas");canvas.width=Number(svg.match(/width="([0-9]+)"/)?.[1]||3240);canvas.height=Number(svg.match(/height="([0-9]+)"/)?.[1]||5400);var ctx=canvas.getContext("2d");ctx.fillStyle="#fff";ctx.fillRect(0,0,canvas.width,canvas.height);ctx.drawImage(img,0,0);URL.revokeObjectURL(url);
-    var png=await new Promise(function(resolve){canvas.toBlob(resolve,"image/png",.95)});if(!png)throw new Error("png-failed");photoUrls.forEach(function(u){if(u&&u.startsWith("blob:"))URL.revokeObjectURL(u);});
-    var file=new File([png],"NEW_FASHION_TAILORING_CUSTOMER_CARD_HD.png",{type:"image/png"});
+    var png=await new Promise(function(resolve){canvas.toBlob(resolve,"image/jpeg",.88)});if(!png)throw new Error("jpeg-failed");photoUrls.forEach(function(u){if(u&&u.startsWith("blob:"))URL.revokeObjectURL(u);});
+    var file=new File([png],"NEW_FASHION_TAILORING_CUSTOMER_CARD.jpg",{type:"image/jpeg"});
     if(navigator.share&&(!navigator.canShare||navigator.canShare({files:[file]}))){await navigator.share({title:"NEW FASHION TAILORING – CUSTOMER CARD",text:text,files:[file]});return}
     var wa=phone?"https://wa.me/"+phone+"?text="+encodeURIComponent(text):"https://wa.me/?text="+encodeURIComponent(text);window.open(wa,"_blank","noopener");
   }catch(err){console.warn("WhatsApp card image share fallback",err);var wa2=phone?"https://wa.me/"+phone+"?text="+encodeURIComponent(text):"https://wa.me/?text="+encodeURIComponent(text);window.open(wa2,"_blank","noopener")}
@@ -7572,6 +7527,7 @@ window.addEventListener("keydown",function(e){if(e.key==="Escape")window.closeCu
   });
 })();
 </script>
+<!-- NF PHOTO SPEED FIX: auth/login flow intentionally unchanged. -->
 </body></html><script id="nf-v52-dashboard-scroll-fix-js">
 (function(){
   "use strict";
@@ -7695,8 +7651,7 @@ window.addEventListener("keydown",function(e){if(e.key==="Escape")window.closeCu
   };
 
   async function linkNewCustomerToOrder(customerId,orderId){
-    var result=await supabaseClientnfInvalidateFetchCache("orders");
-.from("orders")
+    var result=await supabaseClient.from("orders")
       .update({customer_id:customerId})
       .eq("id",orderId)
       .select()
@@ -8478,8 +8433,7 @@ window.addEventListener("keydown",function(e){if(e.key==="Escape")window.closeCu
     for(const p of linked){
       const nextNotes=paymentMetaNotes(p.notes, orderDate, advanceDate);
       if(String(p.notes||"")===nextNotes) continue;
-      const r=await supabaseClientnfInvalidateFetchCache("payments");
-.from("payments").update({notes:nextNotes}).eq("id",p.id);
+      const r=await supabaseClient.from("payments").update({notes:nextNotes}).eq("id",p.id);
       if(r.error) throw r.error;
     }
   }
