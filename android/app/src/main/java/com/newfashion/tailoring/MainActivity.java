@@ -17,6 +17,7 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(ReminderSchedulerPlugin.class);
+        registerPlugin(NativeCardDownloadPlugin.class);
         super.onCreate(savedInstanceState);
         requestNotificationPermission();
     }
