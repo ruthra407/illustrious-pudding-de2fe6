@@ -1519,8 +1519,10 @@ let nfCloudPhotoLastError="";
 function nfCloudPhotoPath(id,slot){
   return String(id)+"/photo-"+(Number(slot)+1);
 }
+const NF_R2_WORKER_URL="https://illustrious-pudding-de2fe6.ruthra407.workers.dev";
+
 function nfR2PhotoUrl(path){
-  return new URL("/api/r2/"+encodeURIComponent(String(path||"")),window.location.origin).href;
+  return NF_R2_WORKER_URL.replace(/\/$/,"")+"/api/r2/"+encodeURIComponent(String(path||""));
 }
 function nfDataUrlToBlob(dataUrl){
   try{
