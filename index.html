@@ -9405,6 +9405,13 @@ window.addEventListener("keydown",function(e){if(e.key==="Escape")window.closeCu
         sidebar.classList.remove("open");
         return;
       }
+      var currentView = history.state?.view || "dashboard";
+      if(currentView !== "dashboard") {
+        lastBack=0;
+        if(history.length>1) history.back();
+        else if(typeof goView === "function") goView("dashboard");
+        return;
+      }
       var now=Date.now();
       if(now-lastBack<1500){nfExitApp();lastBack=0;return;}
       lastBack=now;
