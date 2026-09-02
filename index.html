@@ -7135,7 +7135,7 @@ function nfWacSvg(data,photoHref){
     var H=footerY+footerH+16;
     var canvas=document.createElement("canvas");
     /* Mobile-safe export width: keep the generated card within typical phone/WebView width. */
-    var EXPORT_SCALE=0.703125; /* 720 / 1024 */
+    var EXPORT_SCALE=0.625; /* 640 / 1024 - phone-safe export width */
     canvas.width=Math.round(W*EXPORT_SCALE); canvas.height=Math.round(H*EXPORT_SCALE);
     var ctx=canvas.getContext("2d");
     ctx.scale(EXPORT_SCALE,EXPORT_SCALE);
