@@ -7143,7 +7143,7 @@ function nfWacSvg(data,photoHref){
       ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();
       if(fill){ctx.fillStyle=fill;ctx.fill();} if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=lw||2;ctx.stroke();}
     }
-    function grad(x,y,w,h,a,b){var g=ctx.createLinearGradient(x,y,x+w,y);g.addColorStop(0,a);g.addColorStop(1,b);return g;}
+    function grad(x,y,w,a,b){var g=ctx.createLinearGradient(x,y,x+w,y);g.addColorStop(0,a);g.addColorStop(1,b);return g;}
     function txt(v,x,y,size,weight,fill,align){
       ctx.font=(weight||700)+" "+size+"px Noto Sans Tamil, Arial, sans-serif";ctx.fillStyle=fill||"#171923";ctx.textAlign=align||"left";ctx.textBaseline="middle";ctx.fillText(String(v==null?"":v),x,y);
     }
