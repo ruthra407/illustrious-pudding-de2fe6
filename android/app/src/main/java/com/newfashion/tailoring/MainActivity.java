@@ -16,13 +16,18 @@ public class MainActivity extends BridgeActivity {
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
+
         registerPlugin(ReminderSchedulerPlugin.class);
         registerPlugin(NativeCardDownloadPlugin.class);
+        registerPlugin(NativeCardSharePlugin.class);
+
         super.onCreate(savedInstanceState);
+
         requestNotificationPermission();
     }
 
     private void requestNotificationPermission() {
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
                 ContextCompat.checkSelfPermission(
                         this,
