@@ -6915,7 +6915,7 @@ html.nf-wac-page-locked,body.nf-wac-page-locked{overflow:hidden!important;height
       <button class="nf-wac-close" type="button" onclick="closeCustomerWhatsAppCard()" aria-label="Close">✕</button>
     </div>
     <div id="nfWacPreview" class="nf-wac-preview" aria-label="Exact WhatsApp card preview"></div>
-    <div class="nf-wac-actions"><button class="nf-wac-share" type="button" onclick="shareCustomerWhatsAppCard()">🟢 WhatsApp Card</button><button class="nf-wac-download" type="button" onclick="downloadCustomerWhatsAppCard()">⬇️ Download Card</button></div>
+    <div class="nf-wac-actions"><button class="nf-wac-share" type="button" onclick="shareCustomerWhatsAppCard()">🟢 WhatsApp Card</button><button class="nf-wac-download" type="button" onclick="downloadCustomerWhatsAppCard()">⬇️ Download Card</button><button class="nf-wac-text" type="button" onclick="shareCustomerWhatsAppText()">💬 Text மட்டும்</button></div>
   </div>
 </div>
 <script id="nf-whatsapp-customer-card-v40040-script">
@@ -7140,84 +7140,36 @@ function nfWacSvg(data,photoHref){
     '</svg>';
   return svg;
 }
-function nfGetNativeCardDownload(){
-  try{
-    var cap=window.Capacitor;
-    if(!cap)return null;
-    if(cap.Plugins&&cap.Plugins.NativeCardDownload&&typeof cap.Plugins.NativeCardDownload.saveCard==="function"){
-      return cap.Plugins.NativeCardDownload;
-    }
-    if(typeof cap.registerPlugin==="function"){
-      var p=cap.registerPlugin("NativeCardDownload");
-      if(p&&typeof p.saveCard==="function")return p;
-    }
-  }catch(e){console.warn("NativeCardDownload resolve failed",e)}
-  return null;
-}
-
-async function nfNotifyCardDownload(){
-  try{
-    var cap=window.Capacitor;
-    if(!cap)return;
-    var ln=(cap.Plugins&&cap.Plugins.LocalNotifications)||null;
-    if(!ln&&typeof cap.registerPlugin==="function"){
-      ln=cap.registerPlugin("LocalNotifications");
-    }
-    if(!ln||typeof ln.schedule!=="function")return;
-    try{
-      if(typeof ln.checkPermissions==="function"){
-        var perm=await ln.checkPermissions();
-        if(perm&&perm.displayName!=="granted"&&typeof ln.requestPermissions==="function"){
-          perm=await ln.requestPermissions();
-        }
-        if(perm&&perm.displayName&&perm.displayName!=="granted")return;
-      }
-    }catch(_){ }
-    if(typeof ln.createChannel==="function"){
-      try{await ln.createChannel({id:"card_downloads",name:"Card Downloads",description:"Customer Card download notifications",importance:5,sound:"default",vibration:true,lights:true})}catch(_){ }
-    }
-    await ln.schedule({notifications:[{
-      id:Math.floor(Date.now()%2000000000),
-      title:"New Fashion Tailoring",
-      body:"Customer Card Downloads-ல் save செய்யப்பட்டது.",
-      channelId:"card_downloads",
-      schedule:{at:new Date(Date.now()+300)}
-    }]});
-  }catch(e){console.warn("Card download notification failed",e)}
-}
-
 window.shareCustomerWhatsAppCard=async function(){
   if(!activeCustomerId)return;
+  var data=nfWacSummary(activeCustomerId);
+  var photos=(data.photos||[]).filter(function(p){return p&&p.src}).slice(0,4);
+  if(!photos.length){try{data.photos=await nfWacResolvePhotos(activeCustomerId);}catch(e){data.photos=[];}}
+  else data.photos=photos;
+  var text=nfWacText(data),phone=String(data.c.phone||"").replace(/\D/g,"");
   try{
-    var data=nfWacSummary(activeCustomerId);
-    data.photos=await nfWacResolvePhotos(activeCustomerId);
-    data.photos=(data.photos||[]).filter(function(p){return p&&p.src}).slice(0,4);
-    var photoUrls=await nfWacPhotoDataUrls(data.photos);
+    var usable=(data.photos||[]).filter(function(p){return p&&p.src}).slice(0,4);
+    var photoUrls=await Promise.all(usable.map(nfWacPhotoHref));
     var svg=nfWacSvg(data,photoUrls),blob=new Blob([svg],{type:"image/svg+xml"}),url=URL.createObjectURL(blob),img=new Image();
     img.decoding="async";img.src=url;
     await new Promise(function(resolve,reject){img.onload=resolve;img.onerror=reject});
     var viewW=Number(svg.match(/width="([0-9]+)"/)?.[1]||1022),viewH=Number(svg.match(/height="([0-9]+)"/)?.[1]||6000);
-    var maxW=1200,scale=Math.min(1,maxW/viewW),canvas=document.createElement("canvas");
+    var maxW=900,scale=Math.min(1,maxW/viewW),canvas=document.createElement("canvas");
     canvas.width=Math.max(1,Math.round(viewW*scale));canvas.height=Math.max(1,Math.round(viewH*scale));
     var ctx=canvas.getContext("2d",{alpha:false});ctx.fillStyle="#fff";ctx.fillRect(0,0,canvas.width,canvas.height);ctx.drawImage(img,0,0,canvas.width,canvas.height);
-    URL.revokeObjectURL(url);
-    var jpg=await new Promise(function(resolve){canvas.toBlob(resolve,"image/jpeg",1.0)});
+    URL.revokeObjectURL(url);photoUrls.forEach(function(u){if(u&&u.startsWith("blob:"))URL.revokeObjectURL(u);});
+    var jpg=await new Promise(function(resolve){canvas.toBlob(resolve,"image/jpeg",0.68)});
     if(!jpg)throw new Error("jpeg-failed");
     var file=new File([jpg],"NEW_FASHION_TAILORING_CUSTOMER_CARD.jpg",{type:"image/jpeg"});
     if(typeof navigator.share==="function"){
-      if(!navigator.canShare || navigator.canShare({files:[file]})){
-        await navigator.share({files:[file]});
-        return;
-      }
+      try{await navigator.share({title:"NEW FASHION TAILORING – CUSTOMER CARD",text:text,files:[file]});return;}catch(shareErr){console.warn("WhatsApp image share rejected:",shareErr);}
     }
-    if(typeof toast==='function')toast("📤 இந்த App-ல் Photo Share support இல்லை.",true);
+    var wa=phone?"https://wa.me/"+phone+"?text="+encodeURIComponent(text):"https://wa.me/?text="+encodeURIComponent(text);window.open(wa,"_blank","noopener");
   }catch(err){
-    if(err&&err.name==="AbortError")return;
     console.warn("WhatsApp card image share failed",err);
-    if(typeof toast==='function')toast("❌ Photo share செய்ய முடியவில்லை.",true);
+    var wa2=phone?"https://wa.me/"+phone+"?text="+encodeURIComponent(text):"https://wa.me/?text="+encodeURIComponent(text);window.open(wa2,"_blank","noopener");
   }
 };
-
 window.downloadCustomerWhatsAppCard=async function(){
   if(!activeCustomerId){
     if(typeof toast==='function')toast("Customer Card முதலில் திறக்கவும்.",true);
@@ -7234,8 +7186,9 @@ window.downloadCustomerWhatsAppCard=async function(){
     var photoUrls=await nfWacPhotoDataUrls(data.photos);
     data.photos=data.photos.map(function(p,i){return Object.assign({},p,{src:photoUrls[i]||p.src});});
 
+    /* Keep native Android saving when available. */
     var cap=window.Capacitor;
-    var plugin=nfGetNativeCardDownload();
+    var plugin=cap&&cap.Plugins&&cap.Plugins.NativeCardDownload;
     if(plugin&&typeof plugin.saveCard==="function"){
       var svg=nfWacSvg(data,photoUrls);
       var svgBlob=new Blob([svg],{type:"image/svg+xml"});
@@ -7251,38 +7204,33 @@ window.downloadCustomerWhatsAppCard=async function(){
       ctx.fillStyle="#fff";ctx.fillRect(0,0,canvas.width,canvas.height);
       ctx.drawImage(img,0,0,canvas.width,canvas.height);
       URL.revokeObjectURL(svgUrl);
-      var jpg=await new Promise(function(resolve){canvas.toBlob(resolve,"image/jpeg",1.0)});
+      var jpg=await new Promise(function(resolve){canvas.toBlob(resolve,"image/jpeg",0.85)});
       if(!jpg)throw new Error("jpeg-failed");
       var base64=await new Promise(function(resolve,reject){
         var r=new FileReader();
         r.onload=function(){var s=String(r.result||""),comma=s.indexOf(",");resolve(comma>=0?s.slice(comma+1):s)};
         r.onerror=reject;r.readAsDataURL(jpg);
       });
-      await plugin.saveCard({filename:"NEW_FASHION_TAILORING_CUSTOMER_CARD.jpg",base64:base64,mimeType:"image/jpeg"});
-      await nfNotifyCardDownload();
+      await plugin.saveCard({
+        filename:"NEW_FASHION_TAILORING_CUSTOMER_CARD.jpg",
+        base64:base64,mimeType:"image/jpeg"
+      });
       if(typeof toast==='function')toast("✅ Card Downloads-ல் save செய்யப்பட்டது.");
       return;
     }
 
-    /* Native APK must never fall back to the old SVG download. */
-    if(cap&&typeof cap.isNativePlatform==="function"&&cap.isNativePlatform()){
-      throw new Error("native-card-download-plugin-missing");
-    }
-
-    /* Browser fallback: download a real JPEG, never an SVG renamed as a card. */
-    var fallbackSvg=nfWacSvg(data,photoUrls),fallbackUrl=URL.createObjectURL(new Blob([fallbackSvg],{type:"image/svg+xml"})),fallbackImg=new Image();
-    fallbackImg.decoding="async";fallbackImg.src=fallbackUrl;
-    await new Promise(function(resolve,reject){fallbackImg.onload=resolve;fallbackImg.onerror=reject});
-    var fw=Number(fallbackSvg.match(/width="([0-9]+)"/)?.[1]||1022),fh=Number(fallbackSvg.match(/height="([0-9]+)"/)?.[1]||6000),fs=Math.min(1,1200/fw);
-    var fc=document.createElement("canvas");fc.width=Math.max(1,Math.round(fw*fs));fc.height=Math.max(1,Math.round(fh*fs));
-    var fctx=fc.getContext("2d",{alpha:false});fctx.fillStyle="#fff";fctx.fillRect(0,0,fc.width,fc.height);fctx.drawImage(fallbackImg,0,0,fc.width,fc.height);URL.revokeObjectURL(fallbackUrl);
-    var fjpg=await new Promise(function(resolve){fc.toBlob(resolve,"image/jpeg",1.0)});if(!fjpg)throw new Error("jpeg-failed");
-    var a=document.createElement("a");a.href=URL.createObjectURL(fjpg);a.download="NEW_FASHION_TAILORING_CUSTOMER_CARD.jpg";document.body.appendChild(a);a.click();a.remove();
-    setTimeout(function(){URL.revokeObjectURL(a.href)},1500);
+    /* Browser/WebView fallback: download the same card as an SVG when the native saver is absent. */
+    var svgFallback=nfWacSvg(data,photoUrls);
+    var blob=new Blob([svgFallback],{type:"image/svg+xml"});
+    var a=document.createElement("a");
+    a.href=URL.createObjectURL(blob);
+    a.download="NEW_FASHION_TAILORING_CUSTOMER_CARD.svg";
+    document.body.appendChild(a);a.click();a.remove();
+    setTimeout(function(){URL.revokeObjectURL(a.href)},1000);
     if(typeof toast==='function')toast("✅ Card Download செய்யப்பட்டுவிட்டது.");
   }catch(err){
     console.error("WhatsApp card download failed",err);
-    if(typeof toast==='function')toast(String(err&&err.message||"").includes("native-card-download-plugin-missing")?"❌ App Download service கிடைக்கவில்லை. புதிய APK build செய்ய வேண்டும்.":"❌ Customer Card save ஆகவில்லை. மீண்டும் முயற்சி செய்யுங்கள்.",true);
+    if(typeof toast==='function')toast("❌ Customer Card save ஆகவில்லை. மீண்டும் முயற்சி செய்யுங்கள்.",true);
   }finally{
     if(btn){btn.disabled=false;btn.textContent=oldText||"⬇️ Download Card";}
   }
