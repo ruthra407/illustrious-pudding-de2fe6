@@ -21,7 +21,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
 
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -143,8 +142,7 @@ jobs:
 
           mkdir -p android/app
 
-          printf '%s' "$KEYSTORE_BASE64" | base64 --decode \
-            > android/app/newfashion-release.jks
+          printf '%s' "$KEYSTORE_BASE64" | base64 --decode             > android/app/newfashion-release.jks
 
           test -s android/app/newfashion-release.jks
 
@@ -159,7 +157,6 @@ jobs:
           gradle = Path("android/app/build.gradle")
           text = gradle.read_text()
 
-          # Remove any existing signingConfigs block.
           text = re.sub(
               r'\n\s*signingConfigs\s*\{.*?\n\s*\}\s*\n(?=\s*buildTypes\s*\{)',
               '\n',
@@ -187,7 +184,6 @@ jobs:
                   1
               )
 
-          # Ensure debug uses stable key.
           text = re.sub(
               r'(debug\s*\{)(?!\s*signingConfig)',
               r'\1\n            signingConfig signingConfigs.stable',
@@ -195,7 +191,6 @@ jobs:
               count=1
           )
 
-          # Ensure release uses stable key.
           release_match = re.search(
               r'release\s*\{.*?\n\s*\}',
               text,
@@ -258,10 +253,7 @@ jobs:
 
           test -f android/app/newfashion-release.jks
 
-          keytool -list -v \
-            -keystore android/app/newfashion-release.jks \
-            -storepass "newfashion123" \
-            -alias "newfashion"
+          keytool -list -v             -keystore android/app/newfashion-release.jks             -storepass "newfashion123"             -alias "newfashion"
 
           echo "SIGNING KEY VERIFIED SUCCESSFULLY."
 
