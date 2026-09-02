@@ -831,7 +831,7 @@ async function nfExecuteLocal(table,operation,payload,filters,orderSpec,singleMo
 async function nfRunSync(){
  if(nfSyncBusy||!navigator.onLine||!state.user)return;nfSyncBusy=true;
  try{let q=await nfDbAll(NF_QUEUE_STORE);q.sort((a,b)=>a.queuedAt-b.queuedAt);for(const item of q){if(!navigator.onLine)break;let req;if(item.op==="insert")req=nfRawFrom(item.table).insert(item.payload);else if(item.op==="update")req=nfRawFrom(item.table).update(item.payload).eq("id",item.payload.id);else req=nfRawFrom(item.table).delete().eq("id",item.payload.id);const res=await req;if(res?.error){console.warn("Background sync paused",res.error);break}await nfDbDelete(NF_QUEUE_STORE,item.key)}}catch(e){console.warn("Background sync error",e)}finally{nfSyncBusy=false}}
-function nfScheduleSync(){clearTimeout(nfSyncTimer);nfSyncTimer=setTimeout(nfRunSync,800)}
+function nfScheduleSync(){clearTimeout(nfSyncTimer);nfSyncTimer=setTimeout(async()=>{await nfRunSync();try{await nfHydrateCloudClothPhotos()}catch(e){console.warn("R2 photo sync skipped",e)}},800)}
 window.addEventListener("online",()=>{nfScheduleSync();setTimeout(nfRunPendingPhotoDeletes,1000)});document.addEventListener("visibilitychange",()=>{if(!document.hidden)nfScheduleSync()});
 /* Replace only table CRUD. Auth and Storage APIs remain untouched. */
 supabaseClient.from=function(table){return nfLocalBuilder(table)};
@@ -846,7 +846,7 @@ async function nfLocalFirstLoadAll(silent=false,forceCloud=false){
   await nfSaveState();try{renderAll()}catch(e){console.error("Cloud bootstrap render error",e)}
  }
  await nfRunSync();
- setTimeout(()=>{try{if(!hadLocal)nfHydrateCloudClothPhotos();nfRunPendingPhotoDeletes()}catch(_){ }},900);
+ setTimeout(()=>{try{nfHydrateCloudClothPhotos();nfRunPendingPhotoDeletes()}catch(_){ }},900);
  if(!silent&&hadLocal)toast("Local data loaded");
 }
 /* Login session already uses persistSession:true. Local data is loaded after auth. */
@@ -1769,9 +1769,10 @@ async function saveCustomerClothPhoto(id,slot,file){
       originalSize:file.size
     };
     if(!await setCustomerClothPhotos(id,arr))throw new Error("storage-failed");
-    /* Local-first: never wait for cloud upload. Background photo hydration uploads a compressed copy. */
+    /* Local-first: save immediately, then upload the photo to R2 in the background. */
     nfScheduleSync();
-    toast(`Customer துணி photo ${slot+1} device-ல் சேமிக்கப்பட்டது. Cloud sync பின்னணியில் நடக்கும்.`);
+    setTimeout(()=>{try{nfHydrateCloudClothPhotos()}catch(_){ }},500);
+    toast(`Customer துணி photo ${slot+1} device-ல் சேமிக்கப்பட்டது. R2 cloud sync பின்னணியில் நடக்கும்.`);
     renderCustomers();
   }catch(err){
     console.error("saveCustomerClothPhoto failed",err);
