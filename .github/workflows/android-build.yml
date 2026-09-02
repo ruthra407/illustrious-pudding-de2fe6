@@ -33,7 +33,7 @@ jobs:
         run: npm install
 
       - name: Install Capacitor Local Notifications
-        run: npm install --no-save @capacitor/local-notifications@8.2.1
+        run: npm install --save @capacitor/local-notifications@8.2.1
 
       - name: Install Capacitor App
         run: npm install --save @capacitor/app@8.0.0
@@ -145,7 +145,8 @@ jobs:
 
           mkdir -p android/app
 
-          printf '%s' "$KEYSTORE_BASE64" | base64 --decode             > android/app/newfashion-release.jks
+          printf '%s' "$KEYSTORE_BASE64" | base64 --decode \
+            > android/app/newfashion-release.jks
 
           test -s android/app/newfashion-release.jks
 
@@ -256,7 +257,10 @@ jobs:
 
           test -f android/app/newfashion-release.jks
 
-          keytool -list -v             -keystore android/app/newfashion-release.jks             -storepass "newfashion123"             -alias "newfashion"
+          keytool -list -v \
+            -keystore android/app/newfashion-release.jks \
+            -storepass "newfashion123" \
+            -alias "newfashion"
 
           echo "SIGNING KEY VERIFIED SUCCESSFULLY."
 
