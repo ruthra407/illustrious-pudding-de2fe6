@@ -9273,162 +9273,197 @@ window.addEventListener("keydown",function(e){if(e.key==="Escape")window.closeCu
 </script>
 
 
-<style id="nf-apk-refresh-exit-v1">
-  html,body{overscroll-behavior-y:contain!important}
+<style id="nf-apk-refresh-exit-v2">
   .nf-pull-refresh-indicator{
-    position:fixed;left:50%;top:calc(8px + env(safe-area-inset-top,0px));transform:translate(-50%,-90px);
-    z-index:100000;background:#30272c;color:#fff;border-radius:999px;
-    padding:10px 16px;font-size:14px;font-weight:850;box-shadow:0 7px 20px rgba(0,0,0,.24);
-    transition:transform .18s ease,background .18s ease;pointer-events:none;min-width:150px;text-align:center
+    position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 12px);
+    width:46px;height:46px;border-radius:50%;
+    z-index:100000;background:rgba(255,255,255,.97);
+    border:3px solid rgba(108,77,246,.16);
+    border-top-color:#6c4df6;
+    box-shadow:0 6px 22px rgba(35,25,60,.20);
+    display:flex;align-items:center;justify-content:center;
+    opacity:0;transform:translate(-50%,-72px) scale(.78);
+    transition:transform .18s ease,opacity .18s ease;
+    pointer-events:none;
   }
-  .nf-pull-refresh-indicator.show{transform:translate(-50%,0)}
-  .nf-pull-refresh-indicator.done{background:#16794c}
-  .nf-pull-refresh-indicator.fail{background:#b42318}
-  #sidebar #sideLogout{order:4!important}
-  #sidebar .nf-exit-app{order:5!important;color:#fff!important;background:#c62828!important;border-radius:10px!important;margin-top:4px!important;font-weight:900!important}
-  #sidebar .nf-exit-app:active{background:#a61f1f!important}
+  .nf-pull-refresh-indicator.ready{
+    opacity:1;transform:translate(-50%,0) scale(1);
+  }
+  .nf-pull-refresh-indicator.refreshing{
+    opacity:1;transform:translate(-50%,0) scale(1);
+    animation:nfPullSpin .72s linear infinite;
+    border-top-color:#6c4df6;border-right-color:#ef4f8a;
+  }
+  .nf-pull-refresh-indicator.done{
+    opacity:1;transform:translate(-50%,0) scale(1);
+    border-color:#25a56f;color:#25a56f;animation:none;
+  }
+  .nf-pull-refresh-indicator.done::after{content:"✓";font-size:24px;font-weight:950}
+  @keyframes nfPullSpin{to{transform:translate(-50%,0) scale(1) rotate(360deg)}}
+  .nf-pull-refresh-indicator .nf-pull-arrow{
+    width:18px;height:18px;border-right:3px solid #6c4df6;
+    border-bottom:3px solid #6c4df6;transform:rotate(45deg) translate(-2px,-2px);
+  }
+  #sidebar #sideExitApp{
+    order:4!important;flex:0 0 42px!important;min-height:42px!important;height:42px!important;
+    margin:6px 0 0!important;border-radius:12px!important;
+    background:#d92f3f!important;color:#fff!important;
+    font-weight:900!important;border:1px solid rgba(255,255,255,.14)!important;
+  }
 </style>
 
-<script id="nf-apk-refresh-exit-v1-js">
+<script id="nf-apk-refresh-exit-v2-js">
 (function(){
   "use strict";
 
-  /* Android APK: pull down from the top of any page to refresh. */
-  var indicator=null, startY=0, pulling=false, refreshing=false;
-  var threshold=72;
+  var indicator=null,startY=0,pulling=false,refreshing=false;
+  var threshold=105;
 
   function getIndicator(){
-    if(indicator) return indicator;
+    if(indicator)return indicator;
     indicator=document.createElement("div");
     indicator.className="nf-pull-refresh-indicator";
-    indicator.textContent="↓ இழுத்து Refresh";
+    indicator.innerHTML='<span class="nf-pull-arrow" aria-hidden="true"></span>';
     document.body.appendChild(indicator);
     return indicator;
   }
 
-  function getScrollTop(){
+  function pageAtTop(){
+    var sc=document.scrollingElement;
+    var y=Math.max(0,window.scrollY||0,sc?sc.scrollTop:0);
     var main=document.querySelector(".main");
-    if(main && main.scrollTop>0) return main.scrollTop;
     var active=document.querySelector(".view.active");
-    if(active && active.scrollTop>0) return active.scrollTop;
-    return Math.max(0,document.scrollingElement ? document.scrollingElement.scrollTop : window.pageYOffset||0);
+    var my=main?main.scrollTop:0, ay=active?active.scrollTop:0;
+    return Math.max(y,my,ay)<=2;
   }
 
-  function isExcludedTarget(target){
-    if(!target || !target.closest) return false;
-    return !!target.closest("input,textarea,select,button,a,[contenteditable='true'],.modalbox,.tablewrap");
+  function excluded(target){
+    return !!(target&&target.closest&&target.closest(
+      "input,textarea,select,button,a,[contenteditable='true'],.modalbox,.tablewrap"
+    ));
+  }
+
+  function hideIndicator(){
+    if(!indicator)return;
+    indicator.classList.remove("ready","refreshing","done");
+    indicator.style.transform="translate(-50%,-72px) scale(.78)";
+    indicator.style.opacity="0";
   }
 
   document.addEventListener("touchstart",function(e){
-    if(refreshing || !e.touches || e.touches.length!==1) return;
-    if(window.innerWidth>900 || isExcludedTarget(e.target)) return;
-    if(getScrollTop()>2) return;
+    if(refreshing||window.innerWidth>900||!e.touches||e.touches.length!==1)return;
+    if(excluded(e.target)||!pageAtTop())return;
     startY=e.touches[0].clientY;
     pulling=true;
   },{passive:true});
 
   document.addEventListener("touchmove",function(e){
-    if(!pulling || refreshing || !e.touches || e.touches.length!==1) return;
+    if(!pulling||refreshing||!e.touches||e.touches.length!==1)return;
     var dy=e.touches[0].clientY-startY;
-    if(dy<=0){pulling=false;return;}
-    if(getScrollTop()>2){pulling=false;return;}
-    var show=Math.min(dy,100);
+    if(dy<=0||!pageAtTop()){pulling=false;hideIndicator();return;}
+
     var el=getIndicator();
-    el.style.transform="translate(-50%,"+(-70+show*0.7)+"px)";
-    el.textContent=dy>=threshold ? "↑ விடு — Refresh" : "↓ இழுத்து Refresh";
-    if(dy>=18) e.preventDefault();
+    var progress=Math.min(1,dy/threshold);
+    var scale=.78+(progress*.22);
+    var lift=-72+(progress*72);
+    el.style.transform="translate(-50%,"+lift+"px) scale("+scale+")";
+    el.style.opacity=String(.25+(progress*.75));
+    el.classList.toggle("ready",dy>=threshold);
+    if(dy>=threshold){
+      el.innerHTML='<span class="nf-pull-arrow" aria-hidden="true"></span>';
+    }
+    if(dy>8)e.preventDefault();
   },{passive:false});
 
   document.addEventListener("touchend",async function(e){
-    if(!pulling || refreshing) return;
-    var endY=e.changedTouches && e.changedTouches[0] ? e.changedTouches[0].clientY : startY;
+    if(!pulling||refreshing)return;
+    var endY=e.changedTouches&&e.changedTouches[0]?e.changedTouches[0].clientY:startY;
     var dy=endY-startY;
     pulling=false;
-    if(dy<threshold) {
-      if(indicator){indicator.style.transform="translate(-50%,-90px)";}
-      return;
-    }
+
+    if(dy<threshold){hideIndicator();return;}
+
     refreshing=true;
     var el=getIndicator();
-    el.classList.add("show");
-    el.style.transform="translate(-50%,0)";
-    el.textContent="⟳ Refreshing…";
+    el.classList.remove("ready","done");
+    el.classList.add("refreshing");
+    el.innerHTML="";
+
     try{
-      el.textContent="⟳ Refreshing…";
-      if(typeof window.loadAll === "function") await window.loadAll(true);
-      el.classList.add("done");
-      el.textContent="✓ Refreshed";
-      setTimeout(function(){
+      if(typeof window.loadAll==="function"){
+        await window.loadAll(true);
+      }else{
         window.location.reload();
-      },350);
+        return;
+      }
+      el.classList.remove("refreshing");
+      el.classList.add("done");
+      setTimeout(hideIndicator,700);
     }catch(err){
       console.error("Pull refresh failed",err);
-      el.classList.add("fail");
-      el.textContent="⚠ Refresh failed";
-      setTimeout(function(){
-        if(indicator){indicator.classList.remove("show","done","fail");indicator.style.transform="translate(-50%,-90px)";}
-        refreshing=false;
-      },900);
+      el.classList.remove("refreshing");
+      el.classList.add("done");
+      el.style.borderColor="#d92f3f";
+      el.style.color="#d92f3f";
+      el.innerHTML='<span style="font-size:22px;font-weight:950">!</span>';
+      setTimeout(hideIndicator,900);
+    }finally{
+      setTimeout(function(){refreshing=false},750);
     }
   },{passive:true});
 
-  /* Android APK: explicit Exit App button + double Android back gesture. */
   async function nfExitApp(){
     try{
-      var cap=window.Capacitor;
-      var app=cap && cap.Plugins && cap.Plugins.App;
-      if(app && typeof app.exitApp === "function"){
-        await app.exitApp();
-        return;
+      var cap=window.Capacitor,app=cap&&cap.Plugins&&cap.Plugins.App;
+      if(app&&typeof app.exitApp==="function"){await app.exitApp();return;}
+      if(window.navigator&&typeof window.navigator.app!=="undefined"&&typeof window.navigator.app.exitApp==="function"){
+        window.navigator.app.exitApp();return;
       }
-      if(window.navigator && typeof window.navigator.app!=="undefined" && typeof window.navigator.app.exitApp==="function"){
-        window.navigator.app.exitApp();
-        return;
-      }
-      if(typeof toast === "function") toast("இந்த APK-ல் Exit வசதி இல்லை.",true);
+      if(typeof toast==="function")toast("இந்த APK-ல் Exit வசதி இல்லை.",true);
     }catch(err){
       console.error("Exit App failed",err);
-      if(typeof toast === "function") toast("Exit செய்ய முடியவில்லை.",true);
+      if(typeof toast==="function")toast("Exit செய்ய முடியவில்லை.",true);
     }
   }
   window.nfExitApp=nfExitApp;
 
   function installExitButton(){
     var btn=document.getElementById("sideExitApp");
-    if(btn && !btn.__nfExitBound){
+    if(btn&&!btn.__nfExitBound){
       btn.__nfExitBound=true;
-      btn.addEventListener("click",function(e){e.preventDefault();e.stopPropagation();nfExitApp();});
+      btn.addEventListener("click",function(e){
+        e.preventDefault();e.stopPropagation();nfExitApp();
+      });
     }
   }
 
   function installBackButton(){
-    var cap=window.Capacitor;
-    var app=cap && cap.Plugins && cap.Plugins.App;
-    if(!app || typeof app.addListener!=="function" || app.__nfBackInstalled) return;
+    var cap=window.Capacitor,app=cap&&cap.Plugins&&cap.Plugins.App;
+    if(!app||typeof app.addListener!=="function"||app.__nfBackInstalled)return;
     app.__nfBackInstalled=true;
     var lastBack=0;
     app.addListener("backButton",function(){
       var sidebar=document.getElementById("sidebar");
-      if(sidebar && sidebar.classList.contains("open")){
+      if(sidebar&&sidebar.classList.contains("open")){
         sidebar.classList.remove("open");
         return;
       }
-      var currentView = history.state?.view || "dashboard";
-      if(currentView !== "dashboard") {
+      var currentView=history.state?.view||"dashboard";
+      if(currentView!=="dashboard"){
         lastBack=0;
-        if(history.length>1) history.back();
-        else if(typeof goView === "function") goView("dashboard");
+        if(history.length>1)history.back();
+        else if(typeof goView==="function")goView("dashboard");
         return;
       }
       var now=Date.now();
       if(now-lastBack<1500){nfExitApp();lastBack=0;return;}
       lastBack=now;
-      if(typeof toast === "function") toast("மீண்டும் Back அழுத்தினால் App Exit ஆகும்.");
+      if(typeof toast==="function")toast("மீண்டும் Back அழுத்தினால் App Exit ஆகும்.");
     });
   }
 
   function install(){installExitButton();installBackButton();}
-  if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",install,{once:true});
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",install,{once:true});
   else install();
   setTimeout(install,500);
   setTimeout(install,1500);
