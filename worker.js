@@ -2,6 +2,17 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
 
+    // R2 test upload
+    if (url.pathname === "/api/r2-test") {
+      await env.MY_BUCKET.put("r2-test.txt", "R2 WORKS", {
+        httpMetadata: {
+          contentType: "text/plain"
+        }
+      });
+
+      return new Response("R2 upload OK");
+    }
+
     // R2: upload
     if (url.pathname.startsWith("/api/r2/") && request.method === "PUT") {
       const key = decodeURIComponent(url.pathname.slice(8));
@@ -45,7 +56,10 @@ export default {
       const key = decodeURIComponent(url.pathname.slice(8));
       await env.MY_BUCKET.delete(key);
 
-      return Response.json({ ok: true, key });
+      return Response.json({
+        ok: true,
+        key
+      });
     }
 
     // Normal app files
