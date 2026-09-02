@@ -1,5 +1,6 @@
 {
   "name": "illustrious-pudding-de2fe6",
+  "main": "worker.js",
   "compatibility_date": "2026-09-02",
   "r2_buckets": [
     {
