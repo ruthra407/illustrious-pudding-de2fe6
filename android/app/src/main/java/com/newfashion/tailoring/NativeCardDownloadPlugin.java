@@ -164,7 +164,7 @@ public class NativeCardDownloadPlugin extends Plugin {
             return;
         }
 
-ry {
+try {
             NotificationManager manager =
                     (NotificationManager) getContext().getSystemService(NotificationManager.class);
             if (manager == null) return;
