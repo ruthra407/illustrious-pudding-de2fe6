@@ -5,6 +5,8 @@ package com.newfashion.tailoring;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
+import android.Manifest;
+import android.content.pm.PackageManager;
 import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Intent;
@@ -13,6 +15,7 @@ import android.os.Build;
 import android.os.Environment;
 import android.provider.MediaStore;
 
+import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
 
 import com.getcapacitor.JSObject;
@@ -31,6 +34,10 @@ public class NativeCardDownloadPlugin extends Plugin {
 
     private static final String CHANNEL_ID = "card_downloads";
     private static final int NOTIFICATION_ID = 2001;
+
+    private String pendingNotificationFilename;
+    private Uri pendingNotificationUri;
+    private String pendingNotificationMimeType;
 
     @PluginMethod
     public void saveCardFromUri(PluginCall call) {
@@ -142,7 +149,22 @@ public class NativeCardDownloadPlugin extends Plugin {
     }
 
     private void showDownloadNotification(String filename, Uri imageUri, String mimeType) {
-        try {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                ActivityCompat.checkSelfPermission(getContext(), Manifest.permission.POST_NOTIFICATIONS)
+                        != PackageManager.PERMISSION_GRANTED) {
+            pendingNotificationFilename = filename;
+            pendingNotificationUri = imageUri;
+            pendingNotificationMimeType = mimeType;
+
+            ActivityCompat.requestPermissions(
+                    getActivity(),
+                    new String[]{Manifest.permission.POST_NOTIFICATIONS},
+                    4201
+            );
+            return;
+        }
+
+ry {
             NotificationManager manager =
                     (NotificationManager) getContext().getSystemService(NotificationManager.class);
             if (manager == null) return;
@@ -193,5 +215,33 @@ public class NativeCardDownloadPlugin extends Plugin {
     @PluginMethod
     public void saveCard(PluginCall call) {
         call.reject("Legacy saveCard API disabled; use saveCardFromUri");
+    }
+
+    @Override
+    protected void handleOnRequestPermissionsResult(
+            int requestCode,
+            String[] permissions,
+            int[] grantResults
+    ) {
+        super.handleOnRequestPermissionsResult(requestCode, permissions, grantResults);
+
+        if (requestCode == 4201 &&
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                ActivityCompat.checkSelfPermission(
+                        getContext(),
+                        Manifest.permission.POST_NOTIFICATIONS
+                ) == PackageManager.PERMISSION_GRANTED &&
+                pendingNotificationUri != null) {
+
+            showDownloadNotification(
+                    pendingNotificationFilename,
+                    pendingNotificationUri,
+                    pendingNotificationMimeType
+            );
+
+            pendingNotificationFilename = null;
+            pendingNotificationUri = null;
+            pendingNotificationMimeType = null;
+        }
     }
 }
