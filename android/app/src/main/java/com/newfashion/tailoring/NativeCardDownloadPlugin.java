@@ -1,5 +1,7 @@
 package com.newfashion.tailoring;
 
+// FIXED: Capacitor PluginMethod import verified
+
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
