@@ -522,6 +522,57 @@ body.nf-photo-preview-scroll-locked{
   .nf-wac-preview .nf-ref-paybox b{font-size:16px}
 }
 </style>
+<style id="nf-v8-compact-card-layout">
+/* V8 compact card: keep the complete card readable on one mobile screen. */
+.nf-wac-preview{overflow:hidden!important;padding:4px!important}
+.nf-wac-preview .nf-ref-card{width:100%;max-width:100%;border-radius:12px}
+.nf-wac-preview .nf-ref-header{
+  margin:4px!important;padding:8px 10px!important;min-height:108px!important;border-radius:12px!important
+}
+.nf-wac-preview .nf-ref-brand{font-size:24px!important;line-height:1.02!important;letter-spacing:.4px!important}
+.nf-wac-preview .nf-ref-header .nf-ref-sub{margin-top:4px!important;font-size:12px!important}
+.nf-wac-preview .nf-ref-phone{margin-top:5px!important;padding:4px 11px!important;font-size:16px!important;gap:6px!important}
+.nf-wac-preview .nf-ref-panel{margin:0 4px 5px!important;border-radius:10px!important}
+.nf-wac-preview .nf-ref-panel-title{padding:5px 9px!important;font-size:14px!important}
+.nf-wac-preview .nf-ref-detail{min-height:58px!important;padding:6px 7px!important}
+.nf-wac-preview .nf-ref-detail span{font-size:9px!important;line-height:1.05!important}
+.nf-wac-preview .nf-ref-detail b{margin-top:3px!important;font-size:13px!important;line-height:1.05!important}
+.nf-wac-preview .nf-ref-dates{gap:5px!important;margin:0 4px 5px!important}
+.nf-wac-preview .nf-ref-date{min-height:52px!important;padding:5px 7px!important;border-radius:10px!important;gap:6px!important}
+.nf-wac-preview .nf-ref-date .ico{font-size:21px!important}
+.nf-wac-preview .nf-ref-date span{font-size:9px!important;line-height:1!important}
+.nf-wac-preview .nf-ref-date b{margin-top:2px!important;font-size:14px!important;line-height:1!important}
+.nf-wac-preview .nf-ref-calc{margin:0 4px 5px!important;border-radius:10px!important}
+.nf-wac-preview .nf-ref-calc-head{padding:6px 9px!important;font-size:14px!important}
+.nf-wac-preview .nf-ref-itemhead,.nf-wac-preview .nf-ref-itembox{
+  grid-template-columns:25px minmax(0,1fr) 42px 68px 78px!important
+}
+.nf-wac-preview .nf-ref-itemhead{padding:5px 4px!important;font-size:9px!important;line-height:1.05!important}
+.nf-wac-preview .nf-ref-itembox{
+  margin:3px 4px!important;padding:4px 2px!important;min-height:28px!important;
+  font-size:10px!important;border-radius:7px!important
+}
+.nf-wac-preview .nf-ref-total{padding:6px 9px!important;font-size:14px!important}
+.nf-wac-preview .nf-ref-pay{gap:5px!important;margin:0 4px 5px!important}
+.nf-wac-preview .nf-ref-paybox{padding:5px 3px!important;border-radius:9px!important}
+.nf-wac-preview .nf-ref-paybox span{font-size:8px!important;line-height:1!important}
+.nf-wac-preview .nf-ref-paybox b{margin-top:3px!important;font-size:13px!important;line-height:1!important}
+.nf-wac-preview .nf-ref-photos-title{margin:0 4px!important;padding:5px 7px!important;border-radius:9px 9px 0 0!important;font-size:11px!important}
+.nf-wac-preview .nf-ref-photo-grid{
+  margin:0 4px 5px!important;padding:5px!important;gap:5px!important;border-radius:0 0 9px 9px!important
+}
+.nf-wac-preview .nf-ref-photo-slot{height:105px!important;border-radius:9px!important;border-width:1px!important}
+.nf-wac-preview .nf-ref-footer{margin:0 4px 5px!important;padding:6px 8px!important;border-radius:9px!important}
+.nf-wac-preview .nf-ref-footer .thanks{font-size:16px!important;line-height:1.05!important}
+.nf-wac-preview .nf-ref-footer strong{margin-top:2px!important;font-size:11px!important}
+.nf-wac-preview .nf-ref-footer .footphone{margin-top:3px!important;font-size:12px!important}
+@media(max-width:560px){
+  .nf-wac-preview .nf-ref-brand{font-size:22px!important}
+  .nf-wac-preview .nf-ref-phone{font-size:15px!important}
+  .nf-wac-preview .nf-ref-detail b{font-size:12px!important}
+  .nf-wac-preview .nf-ref-date b{font-size:13px!important}
+}
+</style>
 <style>
 /* V400.83: final readability layer for the WhatsApp customer-card preview.
    Word-level colour is handled by the SVG exporter; Tamil graphemes are never
@@ -7128,58 +7179,58 @@ window.downloadCustomerWhatsAppCard=async function(){
   var oldText=btn?btn.textContent:"";
   if(btn){btn.disabled=true;btn.textContent="⏳ Saving...";}
   try{
-    if(typeof initCustomerClothPhotoStore==='function'){try{await initCustomerClothPhotoStore();}catch(_){} }
+    if(typeof initCustomerClothPhotoStore==='function'){try{await initCustomerClothPhotoStore();}catch(_){}}
     var data=nfWacSummary(activeCustomerId);
     data.photos=await nfWacResolvePhotos(activeCustomerId);
     data.photos=(data.photos||[]).filter(function(p){return p&&p.src}).slice(0,4);
     var photoUrls=await nfWacPhotoDataUrls(data.photos);
     data.photos=data.photos.map(function(p,i){return Object.assign({},p,{src:photoUrls[i]||p.src});});
-    var svg=nfWacSvg(data,photoUrls);
-    var svgBlob=new Blob([svg],{type:"image/svg+xml"});
-    var svgUrl=URL.createObjectURL(svgBlob),img=new Image();
-    img.decoding="async";img.src=svgUrl;
-    await new Promise(function(resolve,reject){img.onload=resolve;img.onerror=reject});
-    var viewW=Number(svg.match(/width="([0-9]+)"/)?.[1]||1022);
-    var viewH=Number(svg.match(/height="([0-9]+)"/)?.[1]||6000);
-    var maxW=1200,scale=Math.min(1,maxW/viewW),canvas=document.createElement("canvas");
-    canvas.width=Math.max(1,Math.round(viewW*scale));
-    canvas.height=Math.max(1,Math.round(viewH*scale));
-    var ctx=canvas.getContext("2d",{alpha:false});
-    ctx.fillStyle="#fff";ctx.fillRect(0,0,canvas.width,canvas.height);
-    ctx.drawImage(img,0,0,canvas.width,canvas.height);
-    URL.revokeObjectURL(svgUrl);
-    var jpg=await new Promise(function(resolve){canvas.toBlob(resolve,"image/jpeg",0.85)});
-    if(!jpg)throw new Error("jpeg-failed");
 
-    /* Convert the generated local Card JPEG to base64 for the native Android bridge. */
-    var base64=await new Promise(function(resolve,reject){
-      var r=new FileReader();
-      r.onload=function(){
-        var s=String(r.result||""),comma=s.indexOf(",");
-        resolve(comma>=0?s.slice(comma+1):s);
-      };
-      r.onerror=reject;r.readAsDataURL(jpg);
-    });
-
+    /* Keep native Android saving when available. */
     var cap=window.Capacitor;
     var plugin=cap&&cap.Plugins&&cap.Plugins.NativeCardDownload;
-    if(!plugin || typeof plugin.saveCard!=="function"){
-      throw new Error("native-card-download-plugin-missing");
+    if(plugin&&typeof plugin.saveCard==="function"){
+      var svg=nfWacSvg(data,photoUrls);
+      var svgBlob=new Blob([svg],{type:"image/svg+xml"});
+      var svgUrl=URL.createObjectURL(svgBlob),img=new Image();
+      img.decoding="async";img.src=svgUrl;
+      await new Promise(function(resolve,reject){img.onload=resolve;img.onerror=reject});
+      var viewW=Number(svg.match(/width="([0-9]+)"/)?.[1]||3072);
+      var viewH=Number(svg.match(/height="([0-9]+)"/)?.[1]||3000);
+      var maxW=1200,scale=Math.min(1,maxW/viewW),canvas=document.createElement("canvas");
+      canvas.width=Math.max(1,Math.round(viewW*scale));
+      canvas.height=Math.max(1,Math.round(viewH*scale));
+      var ctx=canvas.getContext("2d",{alpha:false});
+      ctx.fillStyle="#fff";ctx.fillRect(0,0,canvas.width,canvas.height);
+      ctx.drawImage(img,0,0,canvas.width,canvas.height);
+      URL.revokeObjectURL(svgUrl);
+      var jpg=await new Promise(function(resolve){canvas.toBlob(resolve,"image/jpeg",0.85)});
+      if(!jpg)throw new Error("jpeg-failed");
+      var base64=await new Promise(function(resolve,reject){
+        var r=new FileReader();
+        r.onload=function(){var s=String(r.result||""),comma=s.indexOf(",");resolve(comma>=0?s.slice(comma+1):s)};
+        r.onerror=reject;r.readAsDataURL(jpg);
+      });
+      await plugin.saveCard({
+        filename:"NEW_FASHION_TAILORING_CUSTOMER_CARD.jpg",
+        base64:base64,mimeType:"image/jpeg"
+      });
+      if(typeof toast==='function')toast("✅ Card Downloads-ல் save செய்யப்பட்டது.");
+      return;
     }
-    var result=await plugin.saveCard({
-      filename:"NEW_FASHION_TAILORING_CUSTOMER_CARD.jpg",
-      base64:base64,
-      mimeType:"image/jpeg"
-    });
-    if(typeof toast==='function')toast("✅ Card Downloads-ல் save செய்யப்பட்டது.");
-    console.log("Native Card saved:",result);
+
+    /* Browser/WebView fallback: download the same card as an SVG when the native saver is absent. */
+    var svgFallback=nfWacSvg(data,photoUrls);
+    var blob=new Blob([svgFallback],{type:"image/svg+xml"});
+    var a=document.createElement("a");
+    a.href=URL.createObjectURL(blob);
+    a.download="NEW_FASHION_TAILORING_CUSTOMER_CARD.svg";
+    document.body.appendChild(a);a.click();a.remove();
+    setTimeout(function(){URL.revokeObjectURL(a.href)},1000);
+    if(typeof toast==='function')toast("✅ Card Download செய்யப்பட்டுவிட்டது.");
   }catch(err){
-    console.error("Native WhatsApp card download failed",err);
-    if(typeof toast==='function'){
-      toast(String(err&&err.message||"").includes("native-card-download-plugin-missing")
-        ? "❌ App Download service இன்னும் சேர்க்கப்படவில்லை. Android build-ஐ update செய்ய வேண்டும்."
-        : "❌ Customer Card save ஆகவில்லை. மீண்டும் முயற்சி செய்யுங்கள்.",true);
-    }
+    console.error("WhatsApp card download failed",err);
+    if(typeof toast==='function')toast("❌ Customer Card save ஆகவில்லை. மீண்டும் முயற்சி செய்யுங்கள்.",true);
   }finally{
     if(btn){btn.disabled=false;btn.textContent=oldText||"⬇️ Download Card";}
   }
