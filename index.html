@@ -7113,58 +7113,95 @@ function nfWacSvg(data,photoHref){
     data.photos=await nfWacResolvePhotos(activeCustomerId);
     data.photos=(data.photos||[]).filter(function(p){return p&&p.src}).slice(0,4);
 
-    /*
-      R2 images are remote. A remote image cannot safely be drawn into a
-      canvas unless the R2 worker supplies CORS headers. Convert every photo
-      that can be fetched to a data URL; if one cannot be fetched, omit that
-      photo from the export rather than poisoning the canvas.
-    */
+    /* Android WebView-safe export: draw directly to Canvas.
+       This deliberately avoids SVG->Image decoding, which was the
+       source of the repeated card-image-render-failed error. */
     var photoUrls=await nfWacPhotoDataUrls(data.photos);
     var exportPhotos=[];
     data.photos.forEach(function(p,i){
       if(photoUrls[i]) exportPhotos.push(Object.assign({},p,{src:photoUrls[i]}));
     });
     data.photos=exportPhotos;
-    photoUrls=exportPhotos.map(function(p){return p.src;});
 
-    var svg=nfWacSvg(data,photoUrls);
-    var blob=new Blob([svg],{type:"image/svg+xml;charset=utf-8"});
-    var img=new Image();
-    img.decoding="async";
-    async function loadSvgImage(source,timeoutMs){
-      return await new Promise(function(resolve,reject){
-        var done=false,timer=setTimeout(function(){if(done)return;done=true;reject(new Error("card-image-render-timeout"))},timeoutMs);
-        img.onload=function(){if(done)return;done=true;clearTimeout(timer);resolve()};
-        img.onerror=function(){if(done)return;done=true;clearTimeout(timer);reject(new Error("card-image-render-failed"))};
-        try{img.src=source;}catch(e){if(done)return;done=true;clearTimeout(timer);reject(e);}
+    var W=1024, margin=18, inner=988;
+    var rows=(data.rows||[]).slice(0,9), photos=data.photos||[];
+    var headerY=16,headerH=255,detailY=286,detailH=154,datesY=456,datesH=82;
+    var calcY=552,calcHead=58,calcCols=46,rowH=54,totalH=64;
+    var calcH=calcHead+calcCols+Math.max(1,rows.length)*rowH+totalH;
+    var payY=calcY+calcH+14,payH=100;
+    var photoTitleY=payY+payH+16,photoY=photoTitleY+48,cellW=465,cellH=255,gap=18;
+    var photoRows=photos.length?Math.ceil(photos.length/2):0;
+    var photoGridH=photoRows?photoRows*cellH+(photoRows-1)*gap+20:0;
+    var footerY=(photos.length?photoY+photoGridH:photoTitleY)+14,footerH=116;
+    var H=footerY+footerH+16;
+    var canvas=document.createElement("canvas");
+    canvas.width=W; canvas.height=H;
+    var ctx=canvas.getContext("2d");
+    if(!ctx) throw new Error("canvas-context-unavailable");
+    ctx.fillStyle="#fff";ctx.fillRect(0,0,W,H);
+
+    function rr(x,y,w,h,r,fill,stroke,lw){
+      ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();
+      if(fill){ctx.fillStyle=fill;ctx.fill();} if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=lw||2;ctx.stroke();}
+    }
+    function grad(x,y,w,h,a,b){var g=ctx.createLinearGradient(x,y,x+w,y);g.addColorStop(0,a);g.addColorStop(1,b);return g;}
+    function txt(v,x,y,size,weight,fill,align){
+      ctx.font=(weight||700)+" "+size+"px Noto Sans Tamil, Arial, sans-serif";ctx.fillStyle=fill||"#171923";ctx.textAlign=align||"left";ctx.textBaseline="middle";ctx.fillText(String(v==null?"":v),x,y);
+    }
+    function money(v){return nfWacMoney(v);}
+    function loadImg(src){
+      return new Promise(function(resolve,reject){
+        var im=new Image(),done=false,t=setTimeout(function(){if(done)return;done=true;reject(new Error("photo-image-timeout"));},5000);
+        im.onload=function(){if(done)return;done=true;clearTimeout(t);resolve(im)};
+        im.onerror=function(){if(done)return;done=true;clearTimeout(t);reject(new Error("photo-image-failed"))};
+        im.src=src;
       });
     }
-    var url=URL.createObjectURL(blob);
-    try{
-      try{await loadSvgImage(url,8000);}
-      catch(firstErr){
-        try{URL.revokeObjectURL(url)}catch(_){}
-        /* Android WebView can reject SVG blob URLs; retry as UTF-8 data URL. */
-        var dataUrl="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(svg);
-        await loadSvgImage(dataUrl,12000);
-        url=null;
-      }
-    }catch(e){try{if(url)URL.revokeObjectURL(url)}catch(_){}throw new Error("card-image-render-failed: "+String(e&&e.message||e));}
-    var viewW=Number((svg.match(/width="([0-9]+)"/)||[])[1]||3072);
-    var viewH=Number((svg.match(/height="([0-9]+)"/)||[])[1]||3000);
-    var scale=Math.min(1,1200/viewW);
-    var canvas=document.createElement("canvas");
-    canvas.width=Math.max(1,Math.round(viewW*scale));
-    canvas.height=Math.max(1,Math.round(viewH*scale));
-    var ctx=canvas.getContext("2d",{alpha:false});
-    if(!ctx) throw new Error("canvas-context-unavailable");
-    ctx.fillStyle="#fff";ctx.fillRect(0,0,canvas.width,canvas.height);
-    ctx.drawImage(img,0,0,canvas.width,canvas.height);
-    if(url)URL.revokeObjectURL(url);
-    var jpg=await new Promise(function(resolve,reject){
-      var done=false,timer=setTimeout(function(){if(done)return;done=true;reject(new Error("jpeg-encode-timeout"));},8000);
-      try{canvas.toBlob(function(b){if(done)return;done=true;clearTimeout(timer);resolve(b);},"image/jpeg",0.86);}catch(e){if(done)return;done=true;clearTimeout(timer);reject(e);}
-    });
+    function drawCover(im,x,y,w,h,r){
+      ctx.save();rr(x,y,w,h,r,"#fff");ctx.clip();
+      var s=Math.max(w/im.width,h/im.height),dw=im.width*s,dh=im.height*s;
+      ctx.drawImage(im,x+(w-dw)/2,y+(h-dh)/2,dw,dh);ctx.restore();
+      rr(x,y,w,h,r,null,"#d36b9c",3);
+    }
+
+    rr(margin,headerY,inner,headerH,20,grad(margin,headerY,inner,"#130a2a","#b20b59"),"#f3ca42",3);
+    txt("NEW FASHION TAILORING",W/2,92,38,950,"#fff","center");
+    txt("CUSTOMER • ORDER • CARD",W/2,134,22,950,"#ffd83d","center");
+    txt("☎",W/2,190,27,950,"#fff","center");
+    txt("SHOP PHONE NUMBER",W/2,178,14,950,"#ffd83d","center");
+    txt("8524931003",W/2,225,36,950,"#fff","center");
+
+    rr(margin,detailY,inner,detailH,16,"#fff","#6c4df6",3);
+    rr(margin,detailY,inner,54,16,grad(margin,detailY,inner,"#7112c4","#d30a61"),null,0);
+    txt("👤  CUSTOMER DETAILS",48,340,22,950,"#fff","left");
+    ctx.strokeStyle="#d2c8dd";ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(349,detailY+54);ctx.lineTo(349,detailY+detailH);ctx.moveTo(681,detailY+54);ctx.lineTo(681,detailY+detailH);ctx.stroke();
+    var c=data.c||{},st=data.st||{},village=nfCustomerVillage(c,activeCustomerId)||"ஊர் இல்லை";
+    txt("பெயர் / Name",72,365,17,950,"#4f2d87");txt(c.name||"Customer",72,410,24,950,"#171923");
+    txt("ஊர் / Place",383,365,17,950,"#b71955");txt(village,383,410,24,950,"#087744");
+    txt("முகவரி / Address",713,365,17,950,"#4f2d87");txt(c.address||"முகவரி இல்லை",713,410,21,950,"#171923");
+
+    rr(18,datesY,480,datesH,16,"#fff","#6c4df6",3);txt("📅",50,492,30,900,"#4f2d87");txt("துணி கொடுத்த தேதி",100,480,17,950,"#4f2d87");txt(nfWacDate(data.clothDate),100,520,25,950,"#171923");
+    rr(526,datesY,480,datesH,16,"#fff","#c41d64",3);txt("🚚",558,492,30,900,"#c41d64");txt("Delivery Date",608,480,17,950,"#a21851");txt(nfWacDate(data.deliveryDate),608,520,25,950,"#087744");
+
+    rr(18,calcY,inner,calcH,16,"#fff","#6c4df6",3);rr(18,calcY,inner,calcHead,16,grad(18,calcY,inner,"#24105b","#c90c5b"),null,0);
+    txt("👗  GARMENT DETAILS & CALCULATION",40,calcY+30,22,950,"#fff");
+    ctx.fillStyle="#f7f4ff";ctx.fillRect(18,calcY+calcHead,inner,calcCols);
+    txt("#",55,calcY+calcHead+24,18,950,"#4f2d87","center");txt("துணி ஐட்டம் / Item",100,calcY+calcHead+24,18,950,"#211a2d");txt("QTY",565,calcY+calcHead+24,18,950,"#173b8f","center");txt("RATE (₹)",760,calcY+calcHead+24,18,950,"#a21851","center");txt("AMOUNT (₹)",940,calcY+calcHead+24,18,950,"#087744","center");
+    rows.forEach(function(x,i){var yy=calcY+calcHead+calcCols+27+i*rowH;rr(32,yy-31,960,50,8,i%2?"#fff":"#faf8ff","#ddd7e2",1);txt(i+1,55,yy,20,950,"#4f2d87","center");txt(x.name,90,yy,20,950,"#171923");txt(x.qty,565,yy,20,950,"#173b8f","center");txt(money(x.rate),760,yy,20,950,"#b52c68","center");txt(money(x.qty*x.rate),940,yy,20,950,"#087744","center")});
+    ctx.fillStyle=grad(18,calcY+calcH-totalH,inner,"#24105b","#c90c5b");ctx.fillRect(18,calcY+calcH-totalH,inner,totalH);txt("GRAND TOTAL",40,calcY+calcH-32,22,950,"#fff");txt(money(st.total),970,calcY+calcH-32,31,950,"#fff","right");
+
+    rr(18,payY,316,payH,14,"#fff","#6c4df6",2);txt("💼",40,payY+45,30,950,"#4f2d87");txt("TOTAL AMOUNT",90,payY+36,15,950,"#4f2d87");txt(money(st.total),90,payY+72,24,950,"#171923");
+    rr(354,payY,316,payH,14,"#f7fff9","#4aa875",2);txt("💳",376,payY+45,30,950,"#25804e");txt("PAID AMOUNT",426,payY+36,15,950,"#25804e");txt(money(st.paid),426,payY+72,24,950,"#087744");
+    rr(690,payY,316,payH,14,"#fff9f5","#ef6b40",2);txt("💰",712,payY+45,30,950,"#e64d21");txt("BALANCE AMOUNT",762,payY+36,15,950,"#d9421d");txt(money(st.balance),762,payY+72,24,950,"#d9421d");
+
+    rr(18,photoTitleY,inner,48,13,grad(18,photoTitleY,inner,"#7112c4","#d30a61"),null,0);txt("🖼  CUSTOMER GIVEN CLOTH PHOTOS (4 SLOTS)",40,photoTitleY+25,22,950,"#fff");
+    for(var i=0;i<photos.length;i++){
+      var col=i%2,row=Math.floor(i/2),x=47+col*(cellW+gap),y=photoY+row*(cellH+gap);
+      try{var im=await loadImg(photos[i].src);drawCover(im,x+4,y+4,cellW-8,cellH-8,14);}catch(e){rr(x,y,cellW,cellH,16,"#fff","#d36b9c",3);txt("📷 Add Photo",x+cellW/2,y+cellH/2,22,900,"#655e66","center")}
+    }
+    rr(18,footerY,inner,footerH,18,grad(18,footerY,inner,"#25104d","#a80a5b"),"#e8bf40",2);txt("Thank you for choosing us!",W/2,footerY+35,25,950,"#ffd84c","center");txt("NEW FASHION TAILORING",W/2,footerY+67,20,950,"#fff","center");txt("☎  PHONE: 8524931003",W/2,footerY+101,21,950,"#fff","center");
+
+    var jpg=await new Promise(function(resolve,reject){var done=false,t=setTimeout(function(){if(done)return;done=true;reject(new Error("jpeg-encode-timeout"));},8000);try{canvas.toBlob(function(b){if(done)return;done=true;clearTimeout(t);resolve(b);},"image/jpeg",0.86);}catch(e){if(done)return;done=true;clearTimeout(t);reject(e);}});
     if(!jpg) throw new Error("jpeg-failed");
     return {blob:jpg,data:data,text:nfWacText(data),phone:String(data.c&&data.c.phone||"").replace(/\D/g,"")};
   }
