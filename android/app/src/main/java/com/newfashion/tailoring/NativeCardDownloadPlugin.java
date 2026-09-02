@@ -2,10 +2,13 @@ package com.newfashion.tailoring;
 
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.content.ContentResolver;
 import android.content.ContentValues;
+import android.content.Intent;
 import android.net.Uri;
 import android.os.Build;
+import android.os.Environment;
 import android.provider.MediaStore;
 
 import androidx.core.app.NotificationCompat;
@@ -14,8 +17,10 @@ import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.annotation.CapacitorPlugin;
-import com.getcapacitor.PluginMethod;
+import com.getcapacitor.annotation.PluginMethod;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 
@@ -36,67 +41,105 @@ public class NativeCardDownloadPlugin extends Plugin {
             return;
         }
 
+        Uri sourceUri = Uri.parse(uriString);
+        Uri targetUri = null;
+
         try {
-            Uri sourceUri = Uri.parse(uriString);
             ContentResolver resolver = getContext().getContentResolver();
 
-            ContentValues values = new ContentValues();
-            values.put(MediaStore.Downloads.DISPLAY_NAME, filename);
-            values.put(MediaStore.Downloads.MIME_TYPE, mimeType);
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                values.put(MediaStore.Downloads.RELATIVE_PATH, "Download/New Fashion Tailoring");
-                values.put(MediaStore.Downloads.IS_PENDING, 1);
-            }
+                ContentValues values = new ContentValues();
+                values.put(MediaStore.Images.Media.DISPLAY_NAME, filename);
+                values.put(MediaStore.Images.Media.MIME_TYPE, mimeType);
+                values.put(MediaStore.Images.Media.RELATIVE_PATH,
+                        Environment.DIRECTORY_PICTURES + "/New Fashion Tailoring");
+                values.put(MediaStore.Images.Media.IS_PENDING, 1);
 
-            Uri targetUri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values);
-            if (targetUri == null) {
-                call.reject("Could not create download file");
-                return;
-            }
+                targetUri = resolver.insert(
+                        MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+                        values
+                );
 
-            try (InputStream input = resolver.openInputStream(sourceUri);
-                 OutputStream output = resolver.openOutputStream(targetUri)) {
-
-                if (input == null || output == null) {
-                    resolver.delete(targetUri, null, null);
-                    call.reject("Could not open card file");
+                if (targetUri == null) {
+                    call.reject("Could not create Gallery image");
                     return;
                 }
 
-                byte[] buffer = new byte[64 * 1024];
-                int read;
-                while ((read = input.read(buffer)) != -1) {
-                    output.write(buffer, 0, read);
-                }
-                output.flush();
-            }
+                copyUriToUri(sourceUri, targetUri);
 
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 ContentValues done = new ContentValues();
-                done.put(MediaStore.Downloads.IS_PENDING, 0);
+                done.put(MediaStore.Images.Media.IS_PENDING, 0);
                 resolver.update(targetUri, done, null, null);
+
+            } else {
+                // Legacy Android: save into public Pictures and let MediaScanner index it.
+                File pictures = Environment.getExternalStoragePublicDirectory(
+                        Environment.DIRECTORY_PICTURES
+                );
+                File folder = new File(pictures, "New Fashion Tailoring");
+                if (!folder.exists() && !folder.mkdirs()) {
+                    call.reject("Could not create Pictures folder");
+                    return;
+                }
+
+                File targetFile = new File(folder, filename);
+                copyUriToFile(sourceUri, targetFile);
+                targetUri = Uri.fromFile(targetFile);
+
+                getContext().sendBroadcast(new Intent(
+                        Intent.ACTION_MEDIA_SCANNER_SCAN_FILE,
+                        targetUri
+                ));
             }
 
-            showDownloadNotification(filename);
+            showDownloadNotification(filename, targetUri, mimeType);
 
             JSObject result = new JSObject();
             result.put("ok", true);
             result.put("uri", targetUri.toString());
             result.put("filename", filename);
+            result.put("location", "Pictures/New Fashion Tailoring");
             call.resolve(result);
 
         } catch (Exception e) {
+            if (targetUri != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                try {
+                    getContext().getContentResolver().delete(targetUri, null, null);
+                } catch (Exception ignored) { }
+            }
             call.reject("Card download failed: " + e.getMessage(), e);
         }
     }
 
-    // Keep the old API available for compatibility with older HTML builds.
-    @PluginMethod
-    public void saveCard(PluginCall call) {
-        call.reject("Legacy saveCard API disabled for V18; use saveCardFromUri");
+    private void copyUriToUri(Uri source, Uri target) throws Exception {
+        ContentResolver resolver = getContext().getContentResolver();
+        try (InputStream input = resolver.openInputStream(source);
+             OutputStream output = resolver.openOutputStream(target)) {
+            if (input == null || output == null) throw new Exception("Could not open card file");
+            byte[] buffer = new byte[64 * 1024];
+            int read;
+            while ((read = input.read(buffer)) != -1) {
+                output.write(buffer, 0, read);
+            }
+            output.flush();
+        }
     }
 
-    private void showDownloadNotification(String filename) {
+    private void copyUriToFile(Uri source, File target) throws Exception {
+        ContentResolver resolver = getContext().getContentResolver();
+        try (InputStream input = resolver.openInputStream(source);
+             OutputStream output = new java.io.FileOutputStream(target)) {
+            if (input == null) throw new Exception("Could not open card file");
+            byte[] buffer = new byte[64 * 1024];
+            int read;
+            while ((read = input.read(buffer)) != -1) {
+                output.write(buffer, 0, read);
+            }
+            output.flush();
+        }
+    }
+
+    private void showDownloadNotification(String filename, Uri imageUri, String mimeType) {
         try {
             NotificationManager manager =
                     (NotificationManager) getContext().getSystemService(NotificationManager.class);
@@ -112,16 +155,41 @@ public class NativeCardDownloadPlugin extends Plugin {
                 manager.createNotificationChannel(channel);
             }
 
-            NotificationCompat.Builder builder = new NotificationCompat.Builder(getContext(), CHANNEL_ID)
-                    .setSmallIcon(android.R.drawable.stat_sys_download_done)
-                    .setContentTitle("Card Download Complete")
-                    .setContentText(filename)
-                    .setAutoCancel(true)
-                    .setPriority(NotificationCompat.PRIORITY_DEFAULT);
+            Intent openIntent = new Intent(Intent.ACTION_VIEW);
+            openIntent.setDataAndType(imageUri, mimeType);
+            openIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+
+            int flags = PendingIntent.FLAG_UPDATE_CURRENT;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                flags |= PendingIntent.FLAG_IMMUTABLE;
+            }
+
+            PendingIntent pendingIntent = PendingIntent.getActivity(
+                    getContext(),
+                    NOTIFICATION_ID,
+                    openIntent,
+                    flags
+            );
+
+            NotificationCompat.Builder builder =
+                    new NotificationCompat.Builder(getContext(), CHANNEL_ID)
+                            .setSmallIcon(android.R.drawable.stat_sys_download_done)
+                            .setContentTitle("Card Download Complete")
+                            .setContentText("Tap to open the card in Gallery")
+                            .setContentIntent(pendingIntent)
+                            .setAutoCancel(true)
+                            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                            .setStyle(new NotificationCompat.BigTextStyle()
+                                    .bigText(filename + "\nPictures/New Fashion Tailoring"));
 
             manager.notify(NOTIFICATION_ID, builder.build());
         } catch (Exception ignored) {
             // Notification failure must never turn a successful file save into a failed download.
         }
+    }
+
+    @PluginMethod
+    public void saveCard(PluginCall call) {
+        call.reject("Legacy saveCard API disabled; use saveCardFromUri");
     }
 }
