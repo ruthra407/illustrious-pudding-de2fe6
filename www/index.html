@@ -7217,38 +7217,97 @@ function nfWacSvg(data,photoHref){
 
 
 
+  async function nfWacBuildStable(){
+    if(!activeCustomerId) throw new Error("no-customer");
+    /* One single build path for both buttons. */
+    return await nfWacWithTimeout(buildCustomerCardBlob(),30000,"card-build");
+  }
+
+  async function nfWacNativePlugin(name){
+    var cap=window.Capacitor;
+    if(!cap) return null;
+    var p=cap.Plugins&&cap.Plugins[name];
+    if(p) return p;
+    if(typeof cap.registerPlugin==="function"){
+      try{return cap.registerPlugin(name);}catch(e){return null;}
+    }
+    return null;
+  }
+
+  async function nfWacSaveToFilesystem(blob,filename){
+    var cap=window.Capacitor,fs=cap&&cap.Plugins&&cap.Plugins.Filesystem;
+    if(!fs && cap && typeof cap.registerPlugin==="function"){
+      try{fs=cap.registerPlugin("Filesystem");}catch(e){}
+    }
+    if(!fs || typeof fs.writeFile!=="function") throw new Error("filesystem-plugin-unavailable");
+    var b64=await blobBase64(blob);
+    var saved=await nfWacWithTimeout(fs.writeFile({path:filename,directory:"CACHE",data:b64,recursive:true}),8000,"filesystem-write");
+    if(!saved || !saved.uri) throw new Error("filesystem-uri-unavailable");
+    return String(saved.uri);
+  }
+
+  async function nfWacShareFileNative(built){
+    var uri=await nfWacSaveToFilesystem(built.blob,"NEW_FASHION_TAILORING_CUSTOMER_CARD_"+Date.now()+".jpg");
+    var cap=window.Capacitor,share=cap&&cap.Plugins&&cap.Plugins.Share;
+    if(!share && cap && typeof cap.registerPlugin==="function"){
+      try{share=cap.registerPlugin("Share");}catch(e){}
+    }
+    if(!share || typeof share.share!=="function") throw new Error("share-plugin-unavailable");
+    await nfWacWithTimeout(share.share({title:"NEW FASHION TAILORING – CUSTOMER CARD",text:built.text,url:uri,dialogTitle:"Share Customer Card"}),10000,"native-share");
+    return true;
+  }
+
+  async function nfWacWebFileShare(built){
+    if(typeof navigator==="undefined" || typeof navigator.share!=="function") throw new Error("web-share-unavailable");
+    var file=new File([built.blob],"NEW_FASHION_TAILORING_CUSTOMER_CARD.jpg",{type:"image/jpeg"});
+    /* Do not reject merely because canShare() is absent in an older WebView. */
+    if(typeof navigator.canShare==="function"){
+      try{if(!navigator.canShare({files:[file]})) throw new Error("web-file-share-unavailable");}catch(e){throw e;}
+    }
+    await nfWacWithTimeout(navigator.share({title:"NEW FASHION TAILORING – CUSTOMER CARD",text:built.text,files:[file]}),10000,"web-file-share");
+    return true;
+  }
+
+  function nfWacOpenImageForManualSave(blob,filename){
+    var url=URL.createObjectURL(blob),w=null;
+    try{w=window.open(url,"_blank");}catch(e){}
+    if(!w){
+      var a=document.createElement("a");a.href=url;a.target="_blank";a.rel="noopener";a.textContent="Open Customer Card";a.style.cssText="position:fixed;left:20px;bottom:90px;z-index:2147483647;padding:14px 18px;background:#6c4df6;color:#fff;border-radius:12px;font-weight:900;text-decoration:none";document.body.appendChild(a);a.click();
+      setTimeout(function(){try{a.remove()}catch(_){}},15000);
+    }
+    setTimeout(function(){try{URL.revokeObjectURL(url)}catch(_){}},60000);
+    return true;
+  }
+
   window.shareCustomerWhatsAppCard=async function(){
     if(!activeCustomerId){if(typeof toast==='function')toast("Customer Card முதலில் திறக்கவும்.",true);return;}
     var btn=document.querySelector(".nf-wac-share"),old=btn?btn.textContent:"";
     if(btn){btn.disabled=true;btn.textContent="⏳ Preparing...";}
     try{
-      var built=await nfWacWithTimeout(buildCustomerCardBlob(),30000,"card-build");
-      var plugin=capPlugin("NativeCardShare");
-      if(plugin && typeof plugin.shareCard==="function"){
+      var built=await nfWacBuildStable();
+      if(btn)btn.textContent="📤 Sharing...";
+
+      /* Prefer the app's real native bridge when it exists. */
+      var native=await nfWacNativePlugin("NativeCardShare");
+      if(native && typeof native.shareCard==="function"){
         try{
           await nfWacWithTimeout((async function(){
             var b64=await blobBase64(built.blob);
-            return plugin.shareCard({filename:"NEW_FASHION_TAILORING_CUSTOMER_CARD.jpg",base64:b64,mimeType:"image/jpeg",text:built.text,phone:built.phone});
-          })(),10000,"native-share");
+            return native.shareCard({filename:"NEW_FASHION_TAILORING_CUSTOMER_CARD.jpg",base64:b64,mimeType:"image/jpeg",text:built.text,phone:built.phone});
+          })(),10000,"native-card-share");
           return;
-        }catch(nativeErr){console.warn("NativeCardShare unavailable/timeout; trying standard share",nativeErr)}
+        }catch(e){console.warn("NativeCardShare failed; standard share fallback",e)}
       }
-      try{
-        await shareViaCapacitorShare(built);
-      }catch(capErr){
-        console.warn("Capacitor file share unavailable; trying Web Share",capErr);
-        try{
-          await shareViaWebShare(built);
-        }catch(webErr){
-          console.warn("File share unavailable; using text fallback",webErr);
-          await saveBrowserFile(built.blob,"NEW_FASHION_TAILORING_CUSTOMER_CARD.jpg");
-          await shareTextFallback(built.text);
-        }
-      }
+
+      try{await nfWacShareFileNative(built);return;}catch(e){console.warn("Capacitor file share unavailable",e)}
+      try{await nfWacWebFileShare(built);return;}catch(e){console.warn("Web file share unavailable",e)}
+
+      /* Last-resort visible action: open the actual generated JPG. */
+      nfWacOpenImageForManualSave(built.blob,"NEW_FASHION_TAILORING_CUSTOMER_CARD.jpg");
+      if(typeof toast==='function')toast("⚠️ Image தயாராக உள்ளது. Open ஆன Card-ஐ WhatsApp-ல் Share செய்யுங்கள்.",false);
     }catch(err){
-      if(err&&err.name==="AbortError")return;
       console.error("Customer-card share failed",err);
-      if(typeof toast==='function')toast("❌ Customer Card share ஆகவில்லை. Card image-ஐ Download செய்து WhatsApp-ல் attach செய்யலாம்.",true);
+      if(typeof toast==='function')toast("❌ Card உருவாக்க முடியவில்லை: "+String(err&&err.message||err),true);
     }finally{
       if(btn){btn.disabled=false;btn.textContent=old||"🟢 WhatsApp Card";}
     }
@@ -7259,23 +7318,34 @@ function nfWacSvg(data,photoHref){
     var btn=document.querySelector(".nf-wac-download"),old=btn?btn.textContent:"";
     if(btn){btn.disabled=true;btn.textContent="⏳ Saving...";}
     try{
-      var built=await nfWacWithTimeout(buildCustomerCardBlob(),30000,"card-build");
-      var plugin=capPlugin("NativeCardDownload");
-      if(plugin && typeof plugin.saveCard==="function"){
+      var built=await nfWacBuildStable();
+      if(btn)btn.textContent="💾 Saving file...";
+
+      var native=await nfWacNativePlugin("NativeCardDownload");
+      if(native && typeof native.saveCard==="function"){
         try{
-          await nfWacWithTimeout((async function(){
-            var b64=await blobBase64(built.blob);
-            return plugin.saveCard({filename:"NEW_FASHION_TAILORING_CUSTOMER_CARD.jpg",base64:b64,mimeType:"image/jpeg"});
-          })(),10000,"native-download");
+          var b64=await blobBase64(built.blob);
+          await nfWacWithTimeout(native.saveCard({filename:"NEW_FASHION_TAILORING_CUSTOMER_CARD.jpg",base64:b64,mimeType:"image/jpeg"}),10000,"native-card-download");
           if(typeof toast==='function')toast("✅ Customer Card save செய்யப்பட்டது.");
           return;
-        }catch(nativeErr){console.warn("NativeCardDownload unavailable/timeout; using Filesystem/browser fallback",nativeErr)}
+        }catch(e){console.warn("NativeCardDownload failed; filesystem fallback",e)}
       }
-      var saveMode=await saveBrowserFile(built.blob,"NEW_FASHION_TAILORING_CUSTOMER_CARD.jpg");
-      if(typeof toast==='function')toast(saveMode==="native"?"✅ Customer Card Documents folder-ல் save செய்யப்பட்டது.":"✅ Customer Card download தொடங்கப்பட்டது.");
+
+      try{
+        var uri=await nfWacSaveToFilesystem(built.blob,"NEW_FASHION_TAILORING_CUSTOMER_CARD_"+Date.now()+".jpg");
+        if(typeof toast==='function')toast("✅ Card app storage-ல் save செய்யப்பட்டது.");
+        /* Also open the saved URI when the WebView can display it. */
+        try{window.open(uri,"_blank");}catch(_){}
+        return;
+      }catch(e){console.warn("Filesystem download unavailable",e)}
+
+      /* Android WebView fallback: open the real generated JPG instead of a
+         fake success. User can use the system/browser Share/Save action. */
+      nfWacOpenImageForManualSave(built.blob,"NEW_FASHION_TAILORING_CUSTOMER_CARD.jpg");
+      if(typeof toast==='function')toast("⚠️ Card image தயாராக உள்ளது. Open ஆன image-ஐ Save செய்யுங்கள்.",false);
     }catch(err){
       console.error("Customer-card download failed",err);
-      if(typeof toast==='function')toast("❌ Customer Card save ஆகவில்லை. Browser/WebView download support-ஐ check செய்யுங்கள்.",true);
+      if(typeof toast==='function')toast("❌ Card உருவாக்க முடியவில்லை: "+String(err&&err.message||err),true);
     }finally{
       if(btn){btn.disabled=false;btn.textContent=old||"⬇️ Download Card";}
     }
