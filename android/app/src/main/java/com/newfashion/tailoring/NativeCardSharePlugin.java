@@ -1,16 +1,16 @@
 package com.newfashion.tailoring;
 
+import android.content.ClipData;
 import android.content.Intent;
 import android.net.Uri;
+import android.util.Base64;
 
 import androidx.core.content.FileProvider;
 
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.annotation.CapacitorPlugin;
-import com.getcapacitor.PluginMethod;
-
-import android.util.Base64;
+import com.getcapacitor.annotation.PluginMethod;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -22,90 +22,140 @@ public class NativeCardSharePlugin extends Plugin {
     public void shareCard(PluginCall call) {
 
         String filename = call.getString(
-            "filename",
-            "NEW_FASHION_TAILORING_CUSTOMER_CARD.jpg"
+                "filename",
+                "NEW_FASHION_TAILORING_CUSTOMER_CARD.jpg"
         );
 
         String base64 = call.getString("base64");
 
-        if (base64 == null || base64.isEmpty()) {
+        if (base64 == null || base64.trim().isEmpty()) {
             call.reject("Missing card image");
             return;
         }
 
         try {
 
-            // Base64 → JPG bytes
-            byte[] data = Base64.decode(
-                base64,
-                Base64.DEFAULT
-            );
+            // ---------------------------------------------------------
+            // 1. Sanitize filename
+            // ---------------------------------------------------------
+            filename = new File(filename).getName();
 
-            // App cache folder
-            File shareDir = new File(
-                getContext().getCacheDir(),
-                "shared_cards"
-            );
-
-            if (!shareDir.exists()) {
-                shareDir.mkdirs();
+            if (filename.isEmpty()) {
+                filename =
+                        "NEW_FASHION_TAILORING_CUSTOMER_CARD.jpg";
             }
 
-            File imageFile = new File(
-                shareDir,
-                filename
+            // ---------------------------------------------------------
+            // 2. Base64 → JPG bytes
+            // ---------------------------------------------------------
+            byte[] data = Base64.decode(
+                    base64,
+                    Base64.DEFAULT
             );
 
-            // Write JPG
+            if (data.length == 0) {
+                call.reject("Card image is empty");
+                return;
+            }
+
+            // ---------------------------------------------------------
+            // 3. App cache/shared_cards
+            // ---------------------------------------------------------
+            File shareDir = new File(
+                    getContext().getCacheDir(),
+                    "shared_cards"
+            );
+
+            if (!shareDir.exists() &&
+                    !shareDir.mkdirs()) {
+
+                call.reject("Could not create share folder");
+                return;
+            }
+
+            // ---------------------------------------------------------
+            // 4. Write JPG
+            // ---------------------------------------------------------
+            File imageFile = new File(
+                    shareDir,
+                    filename
+            );
+
             try (FileOutputStream output =
-                     new FileOutputStream(imageFile)) {
+                         new FileOutputStream(imageFile)) {
 
                 output.write(data);
                 output.flush();
             }
 
-            // Generate secure content:// URI
+            // ---------------------------------------------------------
+            // 5. Secure content:// URI
+            // ---------------------------------------------------------
             Uri contentUri = FileProvider.getUriForFile(
-                getContext(),
-                getContext().getPackageName() + ".fileprovider",
-                imageFile
+                    getContext(),
+                    getContext().getPackageName()
+                            + ".fileprovider",
+                    imageFile
             );
 
+            // ---------------------------------------------------------
+            // 6. Native Android image share
+            //
             // IMPORTANT:
-            // Only IMAGE is sent.
-            // NO customer text.
-            Intent shareIntent = new Intent(
-                Intent.ACTION_SEND
-            );
+            // EXTRA_TEXT is deliberately NOT used.
+            // Therefore only the card image is shared.
+            // ---------------------------------------------------------
+            Intent shareIntent =
+                    new Intent(Intent.ACTION_SEND);
 
             shareIntent.setType("image/jpeg");
 
             shareIntent.putExtra(
-                Intent.EXTRA_STREAM,
-                contentUri
+                    Intent.EXTRA_STREAM,
+                    contentUri
             );
 
-            // Give WhatsApp permission to read the image
             shareIntent.addFlags(
-                Intent.FLAG_GRANT_READ_URI_PERMISSION
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION
             );
 
-            // Native Android Share Sheet
+            // Important for newer Android versions
+            shareIntent.setClipData(
+                    ClipData.newRawUri(
+                            "Customer Card",
+                            contentUri
+                    )
+            );
+
+            // ---------------------------------------------------------
+            // 7. Native Android Share Sheet
+            // ---------------------------------------------------------
             Intent chooser = Intent.createChooser(
-                shareIntent,
-                "Share Customer Card"
+                    shareIntent,
+                    "Share Customer Card"
+            );
+
+            chooser.addFlags(
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION
             );
 
             getContext().startActivity(chooser);
 
             call.resolve();
 
+        } catch (IllegalArgumentException e) {
+
+            call.reject(
+                    "Invalid card image data",
+                    e
+            );
+
         } catch (Exception e) {
 
             call.reject(
-                "Card share failed: " +
-                e.getMessage(),
-                e
+                    "Card share failed: "
+                            + e.getMessage(),
+                    e
             );
         }
     }
