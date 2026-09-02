@@ -7165,8 +7165,10 @@ function nfWacSvg(data,photoHref){
     }
     if(fs && typeof fs.writeFile==="function"){
       try{
-        var b64=await blobBase64(blob);
-        await nfWacWithTimeout(fs.writeFile({path:filename,directory:"DOCUMENTS",data:b64,recursive:true}),8000,"filesystem-save");
+        await nfWacWithTimeout((async function(){
+          var b64=await blobBase64(blob);
+          return fs.writeFile({path:filename,directory:"DOCUMENTS",data:b64,recursive:true});
+        })(),15000,"filesystem-save");
         return "native";
       }catch(e){console.warn("Capacitor Filesystem save unavailable/timeout; using browser download",e)}
     }
@@ -7193,11 +7195,13 @@ function nfWacSvg(data,photoHref){
     if(!fs && cap && typeof cap.registerPlugin==="function"){try{fs=cap.registerPlugin("Filesystem")}catch(e){}}
     if(!share || typeof share.share!=="function" || !fs || typeof fs.writeFile!=="function") throw new Error("capacitor-file-share-unavailable");
     var name="NEW_FASHION_TAILORING_CUSTOMER_CARD_"+Date.now()+".jpg";
-    var b64=await blobBase64(built.blob);
-    var saved=await nfWacWithTimeout(fs.writeFile({path:name,directory:"CACHE",data:b64,recursive:true}),8000,"filesystem-share-save");
-    var uri=saved&&saved.uri?String(saved.uri):"";
-    if(!uri)throw new Error("filesystem-uri-unavailable");
-    await nfWacWithTimeout(share.share({title:"NEW FASHION TAILORING – CUSTOMER CARD",text:built.text,url:uri,dialogTitle:"Share Customer Card"}),10000,"capacitor-share");
+    await nfWacWithTimeout((async function(){
+      var b64=await blobBase64(built.blob);
+      var saved=await fs.writeFile({path:name,directory:"CACHE",data:b64,recursive:true});
+      var uri=saved&&saved.uri?String(saved.uri):"";
+      if(!uri)throw new Error("filesystem-uri-unavailable");
+      return share.share({title:"NEW FASHION TAILORING – CUSTOMER CARD",text:built.text,url:uri,dialogTitle:"Share Customer Card"});
+    })(),15000,"capacitor-file-share");
     return "file";
   }
 
@@ -7222,7 +7226,10 @@ function nfWacSvg(data,photoHref){
       var plugin=capPlugin("NativeCardShare");
       if(plugin && typeof plugin.shareCard==="function"){
         try{
-          await nfWacWithTimeout(plugin.shareCard({filename:"NEW_FASHION_TAILORING_CUSTOMER_CARD.jpg",base64:await blobBase64(built.blob),mimeType:"image/jpeg",text:built.text,phone:built.phone}),8000,"native-share");
+          await nfWacWithTimeout((async function(){
+            var b64=await blobBase64(built.blob);
+            return plugin.shareCard({filename:"NEW_FASHION_TAILORING_CUSTOMER_CARD.jpg",base64:b64,mimeType:"image/jpeg",text:built.text,phone:built.phone});
+          })(),10000,"native-share");
           return;
         }catch(nativeErr){console.warn("NativeCardShare unavailable/timeout; trying standard share",nativeErr)}
       }
@@ -7256,7 +7263,10 @@ function nfWacSvg(data,photoHref){
       var plugin=capPlugin("NativeCardDownload");
       if(plugin && typeof plugin.saveCard==="function"){
         try{
-          await nfWacWithTimeout(plugin.saveCard({filename:"NEW_FASHION_TAILORING_CUSTOMER_CARD.jpg",base64:await blobBase64(built.blob),mimeType:"image/jpeg"}),8000,"native-download");
+          await nfWacWithTimeout((async function(){
+            var b64=await blobBase64(built.blob);
+            return plugin.saveCard({filename:"NEW_FASHION_TAILORING_CUSTOMER_CARD.jpg",base64:b64,mimeType:"image/jpeg"});
+          })(),10000,"native-download");
           if(typeof toast==='function')toast("✅ Customer Card save செய்யப்பட்டது.");
           return;
         }catch(nativeErr){console.warn("NativeCardDownload unavailable/timeout; using Filesystem/browser fallback",nativeErr)}
