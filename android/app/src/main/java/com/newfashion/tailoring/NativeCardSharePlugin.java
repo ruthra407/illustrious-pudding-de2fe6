@@ -118,6 +118,7 @@ public class NativeCardSharePlugin extends Plugin {
 
             chooser.addFlags(
                     Intent.FLAG_GRANT_READ_URI_PERMISSION
+                    | Intent.FLAG_ACTIVITY_NEW_TASK
             );
 
             getContext().startActivity(chooser);
