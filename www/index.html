@@ -6974,23 +6974,15 @@ function nfWacPhotoHref(photo){
 }
 function nfWacPreviewExact(data,preview){
   try{
-    var usablePhotos=data&&data.photos?data.photos.filter(function(p){return p&&p.src}).slice(0,4):[];
-    var photoUrls=usablePhotos.map(function(p){return String(p.src||"");}).filter(Boolean);
-    var svg=nfWacSvg(data,photoUrls);
-    var blob=new Blob([svg],{type:"image/svg+xml"});
-    var url=URL.createObjectURL(blob),img=new Image();
-    img.className="nf-wac-preview-card-image";
-    img.alt="WhatsApp Customer Card Preview";
-    img.decoding="async";
-    img.onload=function(){URL.revokeObjectURL(url);preview.innerHTML="";preview.appendChild(img);};
-    img.onerror=function(){URL.revokeObjectURL(url);preview.innerHTML="<div style=\"padding:30px;text-align:center;font-weight:800;color:#6b6376\">Card preview உருவாக்க முடியவில்லை.</div>";};
-    img.src=url;
+    var renderData=Object.assign({},data||{});
+    renderData.photos=(renderData.photos||[]).filter(function(p){return p&&p.src}).slice(0,4);
+    preview.innerHTML=nfWacPreviewHtml(renderData);
   }catch(err){
     console.error("WhatsApp card preview build failed",err);
     preview.innerHTML="<div style=\"padding:30px;text-align:center;font-weight:800;color:#6b6376\">Card preview உருவாக்க முடியவில்லை.</div>";
   }
 }
-window.openCustomerWhatsAppCard=function(id){
+window.openCustomerWhatsAppCard=async function(id){
   activeCustomerId=String(id||"");
   var overlay=document.getElementById("nfWhatsAppCardOverlay"),preview=document.getElementById("nfWacPreview");
   if(!overlay||!preview)return;
@@ -6998,18 +6990,13 @@ window.openCustomerWhatsAppCard=function(id){
   if(!nfWacHistoryOpen){try{history.pushState({nfWhatsAppCard:true},"",location.href);}catch(e){} nfWacHistoryOpen=true;}
   overlay.classList.add("open");
   overlay.setAttribute("aria-hidden","false");
+  preview.innerHTML="<div class=\"nf-wac-preview-loading\">📸 Customer photos loading...</div>";
   try{
-    var localData=nfWacSummary(activeCustomerId);
-    nfWacPreviewExact(localData,preview);
-    setTimeout(function(){
-      if(!nfWacHistoryOpen)return;
-      Promise.resolve().then(function(){return nfWacResolvePhotos(activeCustomerId);}).then(function(photos){
-        if(!nfWacHistoryOpen || !Array.isArray(photos) || !photos.length)return;
-        var fresh=nfWacSummary(activeCustomerId);
-        fresh.photos=photos;
-        nfWacPreviewExact(fresh,preview);
-      }).catch(function(err){console.warn("WhatsApp background photo hydration skipped:",err);});
-    },0);
+    var data=nfWacSummary(activeCustomerId);
+    var photos=await nfWacResolvePhotos(activeCustomerId);
+    if(!nfWacHistoryOpen)return;
+    data.photos=Array.isArray(photos)?photos:[];
+    nfWacPreviewExact(data,preview);
   }catch(err){
     console.error("WhatsApp card preview build failed",err);
     preview.innerHTML="<div class=\"nf-wac-preview-loading\">Card preview உருவாக்க முடியவில்லை.</div>";
