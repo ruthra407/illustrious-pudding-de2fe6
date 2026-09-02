@@ -9274,15 +9274,19 @@ window.addEventListener("keydown",function(e){if(e.key==="Escape")window.closeCu
 
 
 <style id="nf-apk-refresh-exit-v1">
+  html,body{overscroll-behavior-y:contain!important}
   .nf-pull-refresh-indicator{
-    position:fixed;left:50%;top:8px;transform:translate(-50%,-70px);
+    position:fixed;left:50%;top:calc(8px + env(safe-area-inset-top,0px));transform:translate(-50%,-90px);
     z-index:100000;background:#30272c;color:#fff;border-radius:999px;
-    padding:8px 14px;font-size:13px;font-weight:800;box-shadow:0 6px 18px rgba(0,0,0,.22);
-    transition:transform .18s ease;pointer-events:none
+    padding:10px 16px;font-size:14px;font-weight:850;box-shadow:0 7px 20px rgba(0,0,0,.24);
+    transition:transform .18s ease,background .18s ease;pointer-events:none;min-width:150px;text-align:center
   }
   .nf-pull-refresh-indicator.show{transform:translate(-50%,0)}
   .nf-pull-refresh-indicator.done{background:#16794c}
-  .nf-exit-app{color:#ffd7d7!important}
+  .nf-pull-refresh-indicator.fail{background:#b42318}
+  #sidebar #sideLogout{order:4!important}
+  #sidebar .nf-exit-app{order:5!important;color:#fff!important;background:#c62828!important;border-radius:10px!important;margin-top:4px!important;font-weight:900!important}
+  #sidebar .nf-exit-app:active{background:#a61f1f!important}
 </style>
 
 <script id="nf-apk-refresh-exit-v1-js">
@@ -9341,7 +9345,7 @@ window.addEventListener("keydown",function(e){if(e.key==="Escape")window.closeCu
     var dy=endY-startY;
     pulling=false;
     if(dy<threshold) {
-      if(indicator){indicator.style.transform="translate(-50%,-70px)";}
+      if(indicator){indicator.style.transform="translate(-50%,-90px)";}
       return;
     }
     refreshing=true;
@@ -9350,18 +9354,22 @@ window.addEventListener("keydown",function(e){if(e.key==="Escape")window.closeCu
     el.style.transform="translate(-50%,0)";
     el.textContent="⟳ Refreshing…";
     try{
+      el.textContent="⟳ Refreshing…";
       if(typeof window.loadAll === "function") await window.loadAll(true);
-      else window.location.reload();
       el.classList.add("done");
-      el.textContent="✓ Updated";
+      el.textContent="✓ Refreshed";
+      setTimeout(function(){
+        window.location.reload();
+      },350);
     }catch(err){
       console.error("Pull refresh failed",err);
+      el.classList.add("fail");
       el.textContent="⚠ Refresh failed";
+      setTimeout(function(){
+        if(indicator){indicator.classList.remove("show","done","fail");indicator.style.transform="translate(-50%,-90px)";}
+        refreshing=false;
+      },900);
     }
-    setTimeout(function(){
-      if(indicator){indicator.classList.remove("show","done");indicator.style.transform="translate(-50%,-70px)";}
-      refreshing=false;
-    },700);
   },{passive:true});
 
   /* Android APK: explicit Exit App button + double Android back gesture. */
