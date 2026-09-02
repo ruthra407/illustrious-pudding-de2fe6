@@ -1509,7 +1509,9 @@ const r=new FileReader();r.onload=()=>{
    into localStorage. Existing V400.81 photos are migrated once. */
 const NF_CLOTH_PHOTO_DB="nf_customer_cloth_photos_v2";
 const NF_CLOTH_PHOTO_STORE="photos";
-const NF_CLOTH_PHOTO_BUCKET="customer-cloth-photos";
+/* V600.3 — Customer cloth photos now use Cloudflare Worker + R2.
+   Local IndexedDB remains the first/local copy. */
+const NF_CLOTH_PHOTO_BUCKET="new-fashion-tailoring";
 const nfClothPhotoCache=Object.create(null);
 const nfClothPhotoCloudPathCache=Object.create(null);
 let nfCloudPhotoHydrationPromise=null;
@@ -1517,6 +1519,9 @@ let nfCloudPhotoLastError="";
 
 function nfCloudPhotoPath(id,slot){
   return String(id)+"/photo-"+(Number(slot)+1);
+}
+function nfR2PhotoUrl(path){
+  return location.origin+"/api/r2/"+String(path).split("/").map(encodeURIComponent).join("/");
 }
 function nfDataUrlToBlob(dataUrl){
   try{
@@ -1541,60 +1546,41 @@ async function nfCompressPhotoForCloud(blob,maxDim=1280,quality=0.65){
 async function nfUploadCustomerClothPhoto(id,slot,fileOrBlob,contentType){
   nfCloudPhotoLastError="";
   try{
-    if(!supabaseClient?.storage){
-      nfCloudPhotoLastError="Supabase Storage client இல்லை.";
-      return null;
-    }
     const path=nfCloudPhotoPath(id,slot);
     const cloudBlob=await nfCompressPhotoForCloud(fileOrBlob);
-    const {error}=await supabaseClient.storage.from(NF_CLOTH_PHOTO_BUCKET)
-      .upload(path,cloudBlob,{
-        upsert:true,
-        contentType:(cloudBlob&&cloudBlob.type)||"image/jpeg",
-        cacheControl:"3600"
-      });
-    if(error)throw error;
+    const res=await fetch("/api/r2/"+path.split("/").map(encodeURIComponent).join("/"),{
+      method:"PUT",
+      headers:{"Content-Type":(cloudBlob&&cloudBlob.type)||contentType||"image/jpeg"},
+      body:cloudBlob
+    });
+    if(!res.ok)throw new Error(await res.text()||("R2 upload failed: "+res.status));
     nfClothPhotoCloudPathCache[String(id)+":"+slot]=path;
     return path;
   }catch(err){
-    nfCloudPhotoLastError=String(err?.message||err||"Unknown Storage error");
+    nfCloudPhotoLastError=String(err?.message||err||"Unknown R2 error");
     console.warn("Cloud customer photo upload failed:",nfCloudPhotoLastError);
     return null;
   }
 }
-
 async function nfCheckCustomerClothPhotoStorage(){
   nfCloudPhotoLastError="";
   try{
-    if(!supabaseClient?.storage){
-      return {ok:false,error:"Supabase Storage client இல்லை."};
-    }
-    const {data,error}=await supabaseClient.storage
-      .from(NF_CLOTH_PHOTO_BUCKET)
-      .list("",{limit:1});
-    if(error)throw error;
-    return {ok:true,data};
+    const res=await fetch("/api/r2-test",{cache:"no-store"});
+    if(!res.ok)throw new Error(await res.text()||("R2 test failed: "+res.status));
+    return {ok:true,data:[]};
   }catch(err){
-    nfCloudPhotoLastError=String(err?.message||err||"Unknown Storage error");
+    nfCloudPhotoLastError=String(err?.message||err||"Unknown R2 error");
     console.warn("Customer cloth photo storage check failed:",nfCloudPhotoLastError);
     return {ok:false,error:nfCloudPhotoLastError};
   }
 }
 async function nfGetCustomerClothPhotoUrl(path){
   if(!path)return null;
-  try{
-    const {data,error}=await supabaseClient.storage.from(NF_CLOTH_PHOTO_BUCKET).createSignedUrl(path,60*60*24*7);
-    if(error)throw error;
-    return data?.signedUrl||null;
-  }catch(err){
-    console.warn("Cloud customer photo URL failed:",err?.message||err);
-    return null;
-  }
+  return nfR2PhotoUrl(path);
 }
 async function nfHydrateCloudClothPhotos(){
-  if(window.__nfPhotoHydratedAt && (Date.now()-window.__nfPhotoHydratedAt)<15000) return;
-  window.__nfPhotoHydratedAt = Date.now();
-
+  if(window.__nfPhotoHydratedAt && (Date.now()-window.__nfPhotoHydratedAt)<15000)return;
+  window.__nfPhotoHydratedAt=Date.now();
   if(nfCloudPhotoHydrationPromise)return nfCloudPhotoHydrationPromise;
   nfCloudPhotoHydrationPromise=(async function(){
     const customers=Array.isArray(state.customers)?state.customers:[];
@@ -1623,39 +1609,31 @@ async function nfHydrateCloudClothPhotos(){
           }
         }
       }
-      /* Then pull cloud photos so a fresh APK/browser gets the same photos. */
-      try{
-        const {data,error}=await supabaseClient.storage.from(NF_CLOTH_PHOTO_BUCKET)
-          .list(id,{limit:10,sortBy:{column:"name",order:"asc"}});
-        if(error)throw error;
-        const files=Array.isArray(data)?data:[];
-        for(let slot=0;slot<4;slot++){
-          const expected="photo-"+(slot+1);
-          const f=files.find(x=>String(x.name||"").split(".")[0]===expected || String(x.name||"")===expected);
-          if(!f)continue;
-          const path=id+"/"+f.name;
-          const url=await nfGetCustomerClothPhotoUrl(path);
-          if(!url)continue;
+      /* Then probe the four known R2 keys so a fresh APK/browser can restore photos. */
+      for(let slot=0;slot<4;slot++){
+        const path=nfCloudPhotoPath(id,slot);
+        try{
+          const res=await fetch(nfR2PhotoUrl(path),{cache:"no-store"});
+          if(!res.ok)continue;
+          const url=nfR2PhotoUrl(path);
           const current=customerClothPhotos(id)[slot];
-          /* Keep the local original on this device. Cloud URL is only a fallback. */
           if(current?.src && String(current.src).startsWith("data:")){
-            if(!current.cloudPath){current.cloudPath=path;try{await nfIdbPut({id:id,photos:customerClothPhotos(id)})}catch(_){} }
+            if(!current.cloudPath){current.cloudPath=path;try{await nfIdbPut({id:id,photos:customerClothPhotos(id)})}catch(_){}
+            }
             nfClothPhotoCloudPathCache[id+":"+slot]=path;
             continue;
           }
           if(!current || current.cloudPath!==path || current.src!==url){
             const next=customerClothPhotos(id);
-            next[slot]={src:url,name:"Customer cloth photo "+(slot+1),savedAt:f.created_at||new Date().toISOString(),cloudPath:path,originalType:f.metadata?.mimetype||"image/*"};
+            next[slot]={src:url,name:"Customer cloth photo "+(slot+1),savedAt:new Date().toISOString(),cloudPath:path,originalType:res.headers.get("content-type")||"image/*"};
             nfClothPhotoCache[id]=next;
             nfClothPhotoCloudPathCache[id+":"+slot]=path;
             try{await nfIdbPut({id:id,photos:next});}catch(_){}
             changed=true;
           }
+        }catch(err){
+          console.warn("R2 customer photo hydration skipped:",err?.message||err);
         }
-      }catch(err){
-        /* The app must continue working with local IndexedDB if the bucket
-           is not configured or temporarily unavailable. */
-        console.warn("Cloud customer photo hydration skipped:",err?.message||err);
       }
     }
     if(changed)renderCustomers();
@@ -1821,7 +1799,7 @@ async function nfRunPendingPhotoDeletes(){
  try{
   const arr=JSON.parse(localStorage.getItem("nf_pending_photo_deletes")||"[]");
   const keep=[];
-  for(const path of arr){try{const {error}=await supabaseClient.storage.from(NF_CLOTH_PHOTO_BUCKET).remove([path]);if(error)keep.push(path)}catch(_){keep.push(path)}}
+  for(const path of arr){try{const res=await fetch("/api/r2/"+String(path).split("/").map(encodeURIComponent).join("/"),{method:"DELETE"});if(!res.ok)keep.push(path)}catch(_){keep.push(path)}}
   localStorage.setItem("nf_pending_photo_deletes",JSON.stringify(keep));
  }catch(_){}
 }
