@@ -7026,7 +7026,7 @@ function nfWacSvg(data,photoHref){
   function photoSlot(i){
     var col=i%2,row=Math.floor(i/2),x=47+col*(cellW+gap),y=photoY+row*(cellH+gap),ph=photoHrefs[i]||((photos[i]&&photos[i].src)||"");
     var frame='<rect x="'+x+'" y="'+y+'" width="'+cellW+'" height="'+cellH+'" rx="16" fill="#fff" stroke="#d36b9c" stroke-width="3"/>';
-    if(ph)return frame+'<image href="'+href(ph)+'" xlink:href="'+href(ph)+'" x="'+(x+4)+'" y="'+(y+4)+'" width="'+(cellW-8)+'" height="'+(cellH-8)+'" preserveAspectRatio="xMidYMid slice" clip-path="url(#p'+i+')"/>';
+    if(ph)return frame+'<image href="'+href(ph)+'" x="'+(x+4)+'" y="'+(y+4)+'" width="'+(cellW-8)+'" height="'+(cellH-8)+'" preserveAspectRatio="xMidYMid slice" clip-path="url(#p'+i+')"/>';
     return frame+'<text x="'+(x+cellW/2)+'" y="'+(y+128)+'" text-anchor="middle" font-family="Arial" font-size="54">📷</text>'+text("Add Photo",x+cellW/2,y+185,22,900,"#655e66","middle");
   }
   var defs='<defs>'+
