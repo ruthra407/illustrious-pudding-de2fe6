@@ -7241,19 +7241,21 @@ function nfWacSvg(data,photoHref){
     }
     if(!fs || typeof fs.writeFile!=="function") throw new Error("filesystem-plugin-unavailable");
     var b64=await blobBase64(blob);
-    var saved=await nfWacWithTimeout(fs.writeFile({path:filename,directory:"CACHE",data:b64,recursive:true}),8000,"filesystem-write");
+    var saved=await nfWacWithTimeout(fs.writeFile({path:filename,directory:"CACHE",data:b64,recursive:true}),12000,"filesystem-write");
     if(!saved || !saved.uri) throw new Error("filesystem-uri-unavailable");
     return String(saved.uri);
   }
 
+  async function nfWacPrepareNativeFile(built){
+    var filename="NEW_FASHION_TAILORING_CUSTOMER_CARD_"+Date.now()+".jpg";
+    return await nfWacSaveToFilesystem(built.blob,filename);
+  }
+
   async function nfWacShareFileNative(built){
-    var uri=await nfWacSaveToFilesystem(built.blob,"NEW_FASHION_TAILORING_CUSTOMER_CARD_"+Date.now()+".jpg");
-    var cap=window.Capacitor,share=cap&&cap.Plugins&&cap.Plugins.Share;
-    if(!share && cap && typeof cap.registerPlugin==="function"){
-      try{share=cap.registerPlugin("Share");}catch(e){}
-    }
-    if(!share || typeof share.share!=="function") throw new Error("share-plugin-unavailable");
-    await nfWacWithTimeout(share.share({title:"NEW FASHION TAILORING – CUSTOMER CARD",text:built.text,url:uri,dialogTitle:"Share Customer Card"}),10000,"native-share");
+    var uri=await nfWacPrepareNativeFile(built);
+    var native=nfWacNativePlugin("NativeCardShare");
+    if(!native || typeof native.shareCardFromUri!=="function") throw new Error("native-share-uri-method-unavailable");
+    await nfWacWithTimeout(native.shareCardFromUri({uri:uri,filename:"NEW_FASHION_TAILORING_CUSTOMER_CARD.jpg",mimeType:"image/jpeg",text:built.text,phone:built.phone}),10000,"native-share-uri");
     return true;
   }
 
@@ -7287,27 +7289,15 @@ function nfWacSvg(data,photoHref){
       var built=await nfWacBuildStable();
       if(btn)btn.textContent="📤 Sharing...";
 
-      /* Prefer the app's real native bridge when it exists. */
-      var native=await nfWacNativePlugin("NativeCardShare");
-      if(native && typeof native.shareCard==="function"){
-        try{
-          await nfWacWithTimeout((async function(){
-            var b64=await blobBase64(built.blob);
-            return native.shareCard({filename:"NEW_FASHION_TAILORING_CUSTOMER_CARD.jpg",base64:b64,mimeType:"image/jpeg",text:built.text,phone:built.phone});
-          })(),10000,"native-card-share");
-          return;
-        }catch(e){console.warn("NativeCardShare failed; standard share fallback",e)}
-      }
-
-      try{await nfWacShareFileNative(built);return;}catch(e){console.warn("Capacitor file share unavailable",e)}
+      /* Native plugin: pass a small file URI, not a huge Base64 payload. */
+      try{await nfWacShareFileNative(built);return;}catch(e){console.warn("Native URI share failed; trying standard share",e)}
       try{await nfWacWebFileShare(built);return;}catch(e){console.warn("Web file share unavailable",e)}
 
-      /* Last-resort visible action: open the actual generated JPG. */
       nfWacOpenImageForManualSave(built.blob,"NEW_FASHION_TAILORING_CUSTOMER_CARD.jpg");
-      if(typeof toast==='function')toast("⚠️ Image தயாராக உள்ளது. Open ஆன Card-ஐ WhatsApp-ல் Share செய்யுங்கள்.",false);
+      if(typeof toast==='function')toast("⚠️ Card image தயாராக உள்ளது. Open ஆன Card-ஐ WhatsApp-ல் Share செய்யுங்கள்.",false);
     }catch(err){
       console.error("Customer-card share failed",err);
-      if(typeof toast==='function')toast("❌ Card உருவாக்க முடியவில்லை: "+String(err&&err.message||err),true);
+      if(typeof toast==='function')toast("❌ Card share ஆகவில்லை: "+String(err&&err.message||err),true);
     }finally{
       if(btn){btn.disabled=false;btn.textContent=old||"🟢 WhatsApp Card";}
     }
@@ -7321,31 +7311,28 @@ function nfWacSvg(data,photoHref){
       var built=await nfWacBuildStable();
       if(btn)btn.textContent="💾 Saving file...";
 
-      var native=await nfWacNativePlugin("NativeCardDownload");
-      if(native && typeof native.saveCard==="function"){
+      var native=nfWacNativePlugin("NativeCardDownload");
+      if(native && typeof native.saveCardFromUri==="function"){
         try{
-          var b64=await blobBase64(built.blob);
-          await nfWacWithTimeout(native.saveCard({filename:"NEW_FASHION_TAILORING_CUSTOMER_CARD.jpg",base64:b64,mimeType:"image/jpeg"}),10000,"native-card-download");
+          var uri=await nfWacPrepareNativeFile(built);
+          await nfWacWithTimeout(native.saveCardFromUri({uri:uri,filename:"NEW_FASHION_TAILORING_CUSTOMER_CARD.jpg",mimeType:"image/jpeg"}),10000,"native-download-uri");
           if(typeof toast==='function')toast("✅ Customer Card save செய்யப்பட்டது.");
           return;
-        }catch(e){console.warn("NativeCardDownload failed; filesystem fallback",e)}
+        }catch(e){console.warn("Native URI download failed; filesystem fallback",e)}
       }
 
       try{
-        var uri=await nfWacSaveToFilesystem(built.blob,"NEW_FASHION_TAILORING_CUSTOMER_CARD_"+Date.now()+".jpg");
-        if(typeof toast==='function')toast("✅ Card app storage-ல் save செய்யப்பட்டது.");
-        /* Also open the saved URI when the WebView can display it. */
-        try{window.open(uri,"_blank");}catch(_){}
+        var savedUri=await nfWacSaveToFilesystem(built.blob,"NEW_FASHION_TAILORING_CUSTOMER_CARD_"+Date.now()+".jpg");
+        try{window.open(savedUri,"_blank");}catch(_){}
+        if(typeof toast==='function')toast("⚠️ Card file app cache-ல் தயாராக உள்ளது. Open செய்து Save செய்யுங்கள்.",false);
         return;
       }catch(e){console.warn("Filesystem download unavailable",e)}
 
-      /* Android WebView fallback: open the real generated JPG instead of a
-         fake success. User can use the system/browser Share/Save action. */
       nfWacOpenImageForManualSave(built.blob,"NEW_FASHION_TAILORING_CUSTOMER_CARD.jpg");
       if(typeof toast==='function')toast("⚠️ Card image தயாராக உள்ளது. Open ஆன image-ஐ Save செய்யுங்கள்.",false);
     }catch(err){
       console.error("Customer-card download failed",err);
-      if(typeof toast==='function')toast("❌ Card உருவாக்க முடியவில்லை: "+String(err&&err.message||err),true);
+      if(typeof toast==='function')toast("❌ Card download ஆகவில்லை: "+String(err&&err.message||err),true);
     }finally{
       if(btn){btn.disabled=false;btn.textContent=old||"⬇️ Download Card";}
     }
