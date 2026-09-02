@@ -52,7 +52,7 @@
 })();
 </script><style>.v66-corner-search{position:absolute!important;top:10px!important;right:12px!important;width:46px!important;height:46px!important;min-width:46px!important;padding:0!important;border:0!important;border-radius:14px!important;background:linear-gradient(135deg,#6d3df0,#c52d91)!important;color:#fff!important;box-shadow:0 6px 16px rgba(92,45,170,.25)!important;font-size:21px!important;z-index:5}.v66-search-host{position:relative!important}.v66-search-panel.v66-open{position:absolute!important;top:62px!important;right:8px!important;left:8px!important;z-index:20;background:#f7f3fb!important;padding:8px!important;border-radius:14px!important;box-shadow:0 8px 22px rgba(50,30,80,.18)!important}.v66-search-panel{display:none!important}.v66-search-panel.v66-open{display:flex!important}.page h1+p,.page-title+p,.page h1~.subtitle:first-of-type,.page-title~.subtitle:first-of-type{display:none!important}</style><script>
 (function(){
-  function setup(){
+  async function setup(){
     document.querySelectorAll('.v65-search-wrap').forEach(function(wrap){
       if(wrap.dataset.v66Done) return;
       wrap.dataset.v66Done='1';
@@ -735,6 +735,7 @@ body.nf-photo-preview-scroll-locked{
   </div>
 </section></section><section id="view-daily-update" class="view"><div class="nf-daily-page-head"><button type="button" class="nf-daily-back" onclick="goView('dashboard')" aria-label="Back to Home">‹</button><div><h2>📊 Daily Update</h2><p>இன்றைய நிலவரம்</p></div></div><div id="nfDailySummaryCard" aria-label="Daily Update Summary"><div class="nfDailySummaryHead"><b>📊 Daily Update</b><span>இன்றைய நிலவரம்</span></div><div id="dailyUpdate"></div></div></section><section id="view-customers" class="view"><div class="pagehead nf-search-pagehead nf-customer-cards-head"><button class="nf-customer-cards-menu-btn" type="button" onclick="toggleMyCustomersSlideMenu(event)" aria-label="Open customer names" title="Customer names">☰</button><div class="nf-customer-cards-title"><h2>Customer Cards</h2></div><div class="nf-customer-cards-right"><button class="btn secondary nf-search-icon-btn" type="button" onclick="toggleCompactSearch('customer')" aria-label="Search customers" title="Search">🔍</button></div></div><div class="nf-customer-cards-add-wrap"><button class="btn primary nf-customer-cards-add-btn" onclick="openModal('customer')">＋ Add Customer</button></div><div id="customerSearchPanel" class="nf-compact-search-panel" hidden><div class="nf-compact-search-row"><span class="nf-compact-search-icon">🔍</span><input id="customerSearch" class="input search" placeholder="Search name / phone / address / village" autocomplete="off"><button class="btn secondary nf-compact-close" type="button" onclick="toggleCompactSearch('customer',false)" aria-label="Close search">✕</button><button class="btn secondary nf-compact-refresh" type="button" onclick="loadAll()" title="Refresh">↻</button></div></div><div id="customersTable" class="customerCards"></div></section><section id="view-measurements" class="view"><div class="pagehead"><div><h2>Measurements</h2><p>Customer-wise measurements.</p></div><div class="spacer"></div><button class="btn primary" onclick="openModal('measurement')">＋ Add Measurement</button></div><div class="card"><div class="toolbar"><input id="measurementSearch" class="input search" placeholder="Search customer / garment"><button class="btn secondary" onclick="loadAll()">↻ Refresh</button></div><div id="measurementsTable"></div></div></section><section id="view-orders" class="view"><div class="pagehead nf-search-pagehead"><div><h2>Orders</h2><p>Customer Card-ல் எடுத்த New Order-கள் மட்டும் இங்கே வரும்.</p></div><div class="spacer"></div><button class="btn secondary nf-search-icon-btn" type="button" onclick="toggleCompactSearch('orders')" aria-label="Search orders" title="Search">🔍</button></div><div id="ordersSearchPanel" class="nf-compact-search-panel" hidden><div class="nf-compact-search-row nf-orders-search-row"><span class="nf-compact-search-icon">🔍</span><input id="orderSearch" class="input search" placeholder="Search order / customer / garment" autocomplete="off"><select id="orderStatusFilter" class="input nf-order-status-select"><option value="">All status</option><option>Pending</option><option>In Progress</option><option>Ready</option><option>Delivered</option><option>Cancelled</option></select><button class="btn secondary nf-compact-close" type="button" onclick="toggleCompactSearch('orders',false)" aria-label="Close search">✕</button><button class="btn secondary nf-compact-refresh" type="button" onclick="loadAll()" title="Refresh">↻</button></div></div><div class="card nf-section-card"><div id="ordersTable"></div></div></section><section id="view-alterations" class="view"><div class="pagehead"><div><h2>Alterations</h2><p>Alteration work and delivery tracking.</p></div><div class="spacer"></div><button class="btn primary" onclick="openModal('alteration')">＋ Add Alteration</button></div><div class="card"><div class="toolbar"><input id="alterationSearch" class="input search" placeholder="Search customer / details"><button class="btn secondary" onclick="loadAll()">↻ Refresh</button></div><div id="alterationsTable"></div></div></section><section id="view-payments" class="view"><div class="pagehead"><div><h2>Payments</h2><p>Today collection மற்றும் payment history.</p></div><div class="spacer"></div></div><div class="card nf-section-card"><div class="toolbar"><input id="paymentSearch" class="input search" placeholder="Search order / payment method / reference"><button class="btn secondary" onclick="loadAll()">↻ Refresh</button></div><div id="paymentsTable"></div></div></section><section id="view-designs" class="view"><div class="pagehead"><div><h2>🎨 Blouse Design Studio</h2><p>Online-ல் design தேடி, பிடித்த design-ஐ இங்கே save செய்து customer-க்கு காட்டலாம்.</p></div><div class="spacer"></div><button class="btn primary" onclick="openModal('design')">＋ Add Design</button></div><div class="card"><div class="designTools"><input id="onlineDesignQuery" class="input" placeholder="எ.கா. bridal blouse design / simple blouse design"><button class="btn primary" id="onlineDesignBtn">🔎 Search Designs</button><button class="btn secondary" id="googleDesignBtn">🌐 Google Images</button></div><div class="mini">Google Images முழு results-ஐ Google-ல் திறக்கலாம். கீழே preview results-ல் save செய்யக்கூடிய படங்களும் வரும்.</div><div id="onlineDesignResults" class="designSearchResults"></div></div><div class="card" style="margin-top:14px"><div class="pagehead"><div><h3 style="margin:0">💾 Saved Designs</h3><p>உங்கள் design catalogue</p></div></div><div id="designGallery" class="designGallery"></div></div><div class="card" style="margin-top:14px"><div class="toolbar"><input id="designSearch" class="input search" placeholder="Search saved design no / name / category"><button class="btn secondary" onclick="loadAll()">↻ Refresh</button></div><div id="designsTable"></div></div></section></main></div></div><div id="ordersNewOrderScreen" class="modal nf-orders-new-order-screen" aria-hidden="true"><div class="modalbox nf-orders-new-order-box"><div class="modalhead"><h3 id="ordersNewOrderScreenTitle">🧾 New Order</h3><button class="close" type="button" onclick="closeOrdersQuickAdd()">✕</button></div><div id="ordersNewOrderContent"></div></div></div><button id="p4Fab" class="p4FabButton" type="button" aria-label="Add">＋</button><nav id="p4MobileNav" aria-label="Quick navigation"><button data-p4-view="dashboard"><span class="p4Icon">⌂</span><span>Home</span></button><button data-p4-view="customers"><span class="p4Icon">👥</span><span>Customers</span></button><button data-p4-view="orders"><span class="p4Icon">🧾</span><span>Orders</span></button><button data-p4-view="payments"><span class="p4Icon">₹</span><span>Payments</span></button></nav><div id="nfOrderFullDetails" class="modal nf-order-full-details" aria-hidden="true"><div class="modalbox nf-order-full-details-box"><div class="modalhead nf-order-full-details-head"><h3 id="nfOrderFullDetailsTitle">Order Full Details</h3><button class="close" type="button" onclick="closeOrderFullDetails()">✕</button></div><div id="nfOrderFullDetailsContent"></div></div></div><div id="modal" class="modal"><div class="modalbox"><div class="modalhead"><h3 id="modalTitle">Add</h3><button class="close" onclick="closeModal()">✕</button></div><form id="dataForm"><div id="formFields" class="formgrid"></div><div class="modalfoot"><button type="button" class="btn secondary" onclick="closeModal()">Cancel</button><button id="nfModalDeletePayment" type="button" class="btn danger hidden" title="Delete Payment">🗑️ Delete Payment</button><button id="saveBtn" type="submit" class="btn primary">Save</button></div><div id="formMsg" class="msg"></div></form></div></div><div id="toast" class="toast"></div><div id="passkeyGate" class="passkeyGate" aria-hidden="true"><section class="passkeyGateBox"><div class="passkeyIcon">🔐</div><h3>NEW FASHION</h3><p>இந்த சாதனத்தின் Fingerprint / Face / Screen Lock மூலம் App-ஐ unlock செய்யுங்கள்.</p><button id="passkeyUnlockBtn" class="btn primary" type="button">Unlock with Passkey</button><div id="passkeyGateMsg" class="passkeyGateMsg"></div></section></div><script>
 const SUPABASE_URL="https://pdlsicwzfmartkwcwozx.supabase.co";
+/* CLOUD-FIRST: Supabase DB + Cloudflare R2 are the source of truth; local data is only an offline fallback. */
 const SUPABASE_PUBLISHABLE_KEY="sb_publishable_eCKne6Tzs6-QYSXpJb-aSQ_6AHe8n9O";
 const supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
 
@@ -756,7 +757,7 @@ let nfSyncTimer=null;
 let nfSyncBusy=false;
 let nfLocalReady=false;
 function nfUuid(){if(window.crypto?.randomUUID)return crypto.randomUUID();return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g,c=>{const r=Math.random()*16|0,v=c==="x"?r:(r&3)|8;return v.toString(16)})}
-function nfOpenAppDb(){
+async function nfOpenAppDb(){
  if(nfAppDbPromise)return nfAppDbPromise;
  nfAppDbPromise=new Promise((resolve,reject)=>{
   if(!window.indexedDB){reject(new Error("IndexedDB not supported"));return}
@@ -837,17 +838,18 @@ window.addEventListener("online",()=>{nfScheduleSync();setTimeout(nfRunPendingPh
 supabaseClient.from=function(table){return nfLocalBuilder(table)};
 async function nfLocalFirstLoadAll(silent=false,forceCloud=false){
  if(!state.user)return;
- await initCustomerClothPhotoStore();
- const hadLocal=await nfLoadState(state.user.id);
- try{renderAll()}catch(e){console.error("Local render error",e)}
- if(!hadLocal && navigator.onLine){
+ /* Cloud is the source of truth. Local IndexedDB is not required for recovery. */
+ if(navigator.onLine){
   const result=await Promise.allSettled(NF_TABLES.map(t=>nfRawFrom(t).select("*").order("created_at",{ascending:false})));
   result.forEach((r,i)=>{if(r.status==="fulfilled"&&!r.value.error)state[NF_TABLES[i]]=r.value.data||[]});
-  await nfSaveState();try{renderAll()}catch(e){console.error("Cloud bootstrap render error",e)}
+  try{renderAll()}catch(e){console.error("Cloud render error",e)}
+  try{await nfHydrateCloudClothPhotos()}catch(e){console.warn("R2 photo hydrate skipped",e)}
+ }else{
+  /* Offline fallback only; cloud remains the primary source. */
+  try{await nfLoadState(state.user.id);renderAll()}catch(e){console.warn("Offline local fallback unavailable",e)}
  }
  await nfRunSync();
  setTimeout(()=>{try{nfHydrateCloudClothPhotos();nfRunPendingPhotoDeletes()}catch(_){ }},900);
- if(!silent&&hadLocal)toast("Local data loaded");
 }
 /* Login session already uses persistSession:true. Local data is loaded after auth. */
 
@@ -1578,64 +1580,30 @@ async function nfGetCustomerClothPhotoUrl(path){
 }
 async function nfHydrateCloudClothPhotos(){
   if(window.__nfPhotoHydratedAt && (Date.now()-window.__nfPhotoHydratedAt)<15000) return;
-  window.__nfPhotoHydratedAt = Date.now();
-
+  window.__nfPhotoHydratedAt=Date.now();
   if(nfCloudPhotoHydrationPromise)return nfCloudPhotoHydrationPromise;
   nfCloudPhotoHydrationPromise=(async function(){
     const customers=Array.isArray(state.customers)?state.customers:[];
-    if(!customers.length)return;
+    if(!customers.length || !navigator.onLine)return;
     let changed=false;
     for(const c of customers){
       const id=String(c.id||"");
       if(!id)continue;
-      const local=customerClothPhotos(id);
-
-      /* First push photos that still exist only in this browser/device. */
-      for(let slot=0;slot<4;slot++){
-        const p=local[slot];
-        if(p?.src){
-          const key=id+":"+slot;
-          if(!nfClothPhotoCloudPathCache[key]){
-            const blob=nfDataUrlToBlob(p.src);
-            if(blob){
-              const path=await nfUploadCustomerClothPhoto(id,slot,blob,p.originalType||blob.type);
-              if(path){
-                nfClothPhotoCloudPathCache[key]=path;
-                p.cloudPath=path;
-                nfClothPhotoCache[id]=local;
-                try{await nfIdbPut({id:id,photos:local});}catch(_){}
-              }
-            }
-          }
-        }
-      }
-
-      /* Then pull R2 photos so a fresh APK/browser gets the same photos. */
+      const current=customerClothPhotos(id);
       for(let slot=0;slot<4;slot++){
         const path=nfCloudPhotoPath(id,slot);
-        const url=await nfGetCustomerClothPhotoUrl(path);
-        if(!url)continue;
         try{
-          const res=await fetch(url,{method:"GET",cache:"no-store"});
+          const res=await fetch(nfR2PhotoUrl(path),{method:"GET",cache:"no-store"});
           if(!res.ok)continue;
-        }catch(_){continue}
-
-        const current=customerClothPhotos(id)[slot];
-        /* Keep the local original on this device. Cloud URL is only a fallback. */
-        if(current?.src && String(current.src).startsWith("data:")){
-          if(!current.cloudPath){current.cloudPath=path;try{await nfIdbPut({id:id,photos:customerClothPhotos(id)})}catch(_){}}
+          const url=nfR2PhotoUrl(path);
           nfClothPhotoCloudPathCache[id+":"+slot]=path;
-          continue;
-        }
-        if(!current || current.cloudPath!==path || current.src!==url){
-          const next=customerClothPhotos(id);
-          next[slot]={src:url,name:"Customer cloth photo "+(slot+1),savedAt:new Date().toISOString(),cloudPath:path,originalType:"image/*"};
-          nfClothPhotoCache[id]=next;
-          nfClothPhotoCloudPathCache[id+":"+slot]=path;
-          try{await nfIdbPut({id:id,photos:next});}catch(_){}
-          changed=true;
-        }
+          if(!current[slot] || current[slot].cloudPath!==path || current[slot].src!==url){
+            current[slot]={src:url,name:"Customer cloth photo "+(slot+1),savedAt:current[slot]?.savedAt||new Date().toISOString(),cloudPath:path,originalType:current[slot]?.originalType||"image/*"};
+            changed=true;
+          }
+        }catch(_){}
       }
+      nfClothPhotoCache[id]=current;
     }
     if(changed)renderCustomers();
   })().finally(()=>{nfCloudPhotoHydrationPromise=null});
@@ -1659,7 +1627,7 @@ function nfOpenClothPhotoDb(){
   });
   return nfClothPhotoDbPromise;
 }
-function nfIdbGetAll(){
+async function nfIdbGetAll(){
   return nfOpenClothPhotoDb().then(function(db){return new Promise(function(resolve,reject){
     const tx=db.transaction(NF_CLOTH_PHOTO_STORE,"readonly");
     const req=tx.objectStore(NF_CLOTH_PHOTO_STORE).getAll();
@@ -1667,7 +1635,7 @@ function nfIdbGetAll(){
     req.onerror=function(){reject(req.error||new Error("IndexedDB read failed"))};
   })});
 }
-function nfIdbPut(record){
+async function nfIdbPut(record){
   return nfOpenClothPhotoDb().then(function(db){return new Promise(function(resolve,reject){
     const tx=db.transaction(NF_CLOTH_PHOTO_STORE,"readwrite");
     tx.objectStore(NF_CLOTH_PHOTO_STORE).put(record);
@@ -1676,7 +1644,7 @@ function nfIdbPut(record){
     tx.onabort=function(){reject(tx.error||new Error("IndexedDB write aborted"))};
   })});
 }
-function nfIdbDelete(id){
+async function nfIdbDelete(id){
   return nfOpenClothPhotoDb().then(function(db){return new Promise(function(resolve,reject){
     const tx=db.transaction(NF_CLOTH_PHOTO_STORE,"readwrite");
     tx.objectStore(NF_CLOTH_PHOTO_STORE).delete(String(id));
@@ -1720,14 +1688,8 @@ async function initCustomerClothPhotoStore(){
 }
 function customerClothPhotos(id){
   const key=String(id);
-  if(Object.prototype.hasOwnProperty.call(nfClothPhotoCache,key)){
-    const arr=nfClothPhotoCache[key]||[];
-    return Array.from({length:4},(_,i)=>arr[i]||null);
-  }
-  try{
-    const arr=JSON.parse(localStorage.getItem("nf_customer_cloth_photos_"+key)||"[]");
-    return Array.from({length:4},(_,i)=>arr[i]||null);
-  }catch(_){return[null,null,null]}
+  const arr=nfClothPhotoCache[key];
+  return Array.from({length:4},(_,i)=>arr?.[i]||null);
 }
 async function setCustomerClothPhotos(id,arr){
   const key=String(id);
@@ -1754,29 +1716,29 @@ async function saveCustomerClothPhoto(id,slot,file){
   if(!file)return;
   if(slot<0||slot>3){toast("Photo slot சரியாக இல்லை.",true);return}
   if(!file.type || !file.type.startsWith("image/")){toast("Image file மட்டும் தேர்வு செய்யுங்கள்.",true);return}
-  /* Original bytes are preserved. This is only a safety ceiling, not compression. */
   if(file.size>40*1024*1024){toast("Photo 40MB-க்கு குறைவாக இருக்க வேண்டும்.",true);return}
-  toast("Original photo சேமிக்கப்படுகிறது...");
+  if(!navigator.onLine){toast("Internet connection தேவை. Photo cloud-ல் சேமிக்கப்படுகிறது.",true);return}
+  toast("Photo R2 cloud-ல் சேமிக்கப்படுகிறது...");
   try{
-    await initCustomerClothPhotoStore();
-    const data=await fileToOriginalDataUrl(file);
+    const path=await nfUploadCustomerClothPhoto(id,slot,file,file.type);
+    if(!path)throw new Error(nfCloudPhotoLastError||"R2 upload failed");
+    const url=await nfGetCustomerClothPhotoUrl(path);
     const arr=customerClothPhotos(id);
     arr[slot]={
-      src:data,
+      src:url||nfR2PhotoUrl(path),
       name:file.name.replace(/\.[^.]+$/,""),
       savedAt:new Date().toISOString(),
+      cloudPath:path,
       originalType:file.type,
       originalSize:file.size
     };
-    if(!await setCustomerClothPhotos(id,arr))throw new Error("storage-failed");
-    /* Local-first: save immediately, then upload the photo to R2 in the background. */
-    nfScheduleSync();
-    setTimeout(()=>{try{nfHydrateCloudClothPhotos()}catch(_){ }},500);
-    toast(`Customer துணி photo ${slot+1} device-ல் சேமிக்கப்பட்டது. R2 cloud sync பின்னணியில் நடக்கும்.`);
+    nfClothPhotoCache[String(id)]=arr;
+    nfClothPhotoCloudPathCache[String(id)+":"+slot]=path;
+    toast(`Customer துணி photo ${slot+1} cloud-ல் சேமிக்கப்பட்டது. ☁️`);
     renderCustomers();
   }catch(err){
     console.error("saveCustomerClothPhoto failed",err);
-    toast("Original photo-வை சேமிக்க முடியவில்லை. மீண்டும் முயற்சி செய்யுங்கள்.",true);
+    toast("Photo cloud-ல் சேமிக்க முடியவில்லை. மீண்டும் முயற்சி செய்யுங்கள்.",true);
   }
 }
 async function removeCustomerClothPhoto(id,slot){
@@ -3451,7 +3413,7 @@ function nfSplitSpeechText(text,maxLen=180){
   return out.filter(Boolean);
 }
 
-function nfSpeakChunk(text,voice){
+async function nfSpeakChunk(text,voice){
   return new Promise(resolve=>{
     let done=false;
     const finish=ok=>{if(done)return;done=true;resolve(!!ok)};
