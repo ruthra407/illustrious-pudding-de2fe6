@@ -35,6 +35,9 @@ jobs:
       - name: Install Capacitor Local Notifications
         run: npm install --no-save @capacitor/local-notifications@8.2.1
 
+      - name: Install Capacitor App
+        run: npm install --save @capacitor/app@8.0.0
+
       - name: Install Capacitor Contacts
         run: |
           npm install --save @capacitor/contacts@1.0.1
