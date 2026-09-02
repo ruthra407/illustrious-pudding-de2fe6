@@ -6861,19 +6861,19 @@ function nfWacRows(os){
 }
 async function nfWacResolvePhotos(id){
   var key=String(id||"");
-  /* Read the already-rendered/local photo list first. Do not block the card
-     export on cloud-store initialization when photos are already available. */
   var photos=typeof customerClothPhotos==="function"?customerClothPhotos(key):[];
+  /* Online: cloud is authoritative. Refresh first so an old local photo
+     cannot win just because it already has a src. Offline: keep local data. */
+  if(navigator.onLine && typeof nfHydrateCloudClothPhotos==="function"){
+    try{await nfWacWithTimeout(nfHydrateCloudClothPhotos(),5000,"cloud-photo-hydrate");}
+    catch(e){console.warn("WhatsApp card cloud photo hydration timeout/skipped:",e)}
+    photos=typeof customerClothPhotos==="function"?customerClothPhotos(key):photos;
+  }
   if(Array.isArray(photos)&&photos.some(function(p){return p&&p.src})) return photos;
   if(typeof initCustomerClothPhotoStore==="function"){
     try{await nfWacWithTimeout(initCustomerClothPhotoStore(),1500,"photo-store-init");}catch(e){console.warn("WhatsApp card photo store init timeout/skipped:",e)}
   }
   photos=typeof customerClothPhotos==="function"?customerClothPhotos(key):photos;
-  if(Array.isArray(photos)&&photos.some(function(p){return p&&p.src})) return photos;
-  if(typeof nfHydrateCloudClothPhotos==="function"){
-    try{await nfWacWithTimeout(nfHydrateCloudClothPhotos(),3000,"cloud-photo-hydrate");}catch(e){console.warn("WhatsApp card cloud photo hydration timeout/skipped:",e)}
-    photos=typeof customerClothPhotos==="function"?customerClothPhotos(key):photos;
-  }
   return Array.isArray(photos)?photos:[];
 }
 
@@ -6947,12 +6947,21 @@ async function nfWacPhotoDataUrls(photos){
     }catch(e){console.warn("Photo embed failed/timeout; omitting photo from exported card",e);return "";}
   }));
 }
-function nfWacPreviewExact(data,preview){
+async function nfWacPreviewExact(data,preview){
+  var url="";
   try{
-    var renderData=Object.assign({},data||{});
-    renderData.photos=(renderData.photos||[]).filter(function(p){return p&&p.src}).slice(0,4);
-    preview.innerHTML=nfWacPreviewHtml(renderData);
+    /* Preview and Share/Download must use the exact same Canvas build. */
+    var built=await nfWacBuildStable();
+    url=URL.createObjectURL(built.blob);
+    preview.innerHTML="";
+    var img=document.createElement("img");
+    img.alt="Customer WhatsApp Card";
+    img.src=url;
+    img.style.cssText="display:block;width:100%;height:auto;max-width:1024px;margin:0 auto;border-radius:14px;background:#fff;";
+    preview.appendChild(img);
+    img.onload=function(){setTimeout(function(){try{URL.revokeObjectURL(url)}catch(_){}},1000);};
   }catch(err){
+    if(url)try{URL.revokeObjectURL(url)}catch(_){}
     console.error("WhatsApp card preview build failed",err);
     preview.innerHTML="<div style=\"padding:30px;text-align:center;font-weight:800;color:#6b6376\">Card preview உருவாக்க முடியவில்லை.</div>";
   }
@@ -6971,7 +6980,7 @@ window.openCustomerWhatsAppCard=async function(id){
     var photos=await nfWacResolvePhotos(activeCustomerId);
     if(!nfWacHistoryOpen)return;
     data.photos=Array.isArray(photos)?photos:[];
-    nfWacPreviewExact(data,preview);
+    await nfWacPreviewExact(data,preview);
   }catch(err){
     console.error("WhatsApp card preview build failed",err);
     preview.innerHTML="<div class=\"nf-wac-preview-loading\">Card preview உருவாக்க முடியவில்லை.</div>";
