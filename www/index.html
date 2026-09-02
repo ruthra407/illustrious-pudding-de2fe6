@@ -680,7 +680,7 @@ body.nf-photo-preview-scroll-locked{
     <button id="passwordResetBtn" class="btn primary" type="submit">🔄 Update Password</button>
     <div id="passwordResetMsg" class="msg"></div>
   </form>
-</div><div class="passkeyPanel"><button id="passkeyLoginBtn" class="btn secondary" type="button">🔐 Sign in with Passkey</button><div id="passkeyLoginHint" class="passkeyHint">முதலில் ஒருமுறை Email + Password மூலம் Login செய்து Passkey உருவாக்குங்கள். அதன் பிறகு இந்த சாதனத்தின் Fingerprint / Face / Screen Lock மூலம் unlock செய்யலாம்.</div></div></section></div><div id="app" class="hidden"><header class="topbar"><button id="menuBtn" class="iconbtn mobileOnly">☰</button><div class="brandBlock"><h1>NEW FASHION TAILORING</h1><small>ONLINE MANAGEMENT · <span id="liveClock">--:--:--</span></small></div><button id="backBtn" class="iconbtn" title="Back" aria-label="Back">‹</button><div class="spacer"></div><div id="userChip" class="userchip"></div><button id="passkeySetupBtn" class="iconbtn" title="Passkey" aria-label="Passkey">🔑</button><button id="reloadBtn" class="iconbtn" title="Refresh">↻</button><button id="logoutBtn" class="iconbtn" title="Logout">⎋</button></header><div class="layout"><aside id="sidebar" class="sidebar"><button class="navbtn dashboardNav active nf-sidebar-hidden-nav" data-view="dashboard" aria-hidden="true" tabindex="-1">📊 <span>Dashboard</span></button><div id="nfSidebarCustomerListWrap" aria-label="Customer list"><div class="nfSidebarCustomerListHead">👥 Customer List</div><div id="nfSidebarCustomerList" class="nfSidebarCustomerList"></div></div><button class="navbtn" data-view="orders">🧾 Orders</button><button class="navbtn" data-view="customers">👥 Customers</button><button class="navbtn logout" id="sideLogout">⎋ Logout</button></aside><main class="main"><section id="view-dashboard" class="view active">
+</div><div class="passkeyPanel"><button id="passkeyLoginBtn" class="btn secondary" type="button">🔐 Sign in with Passkey</button><div id="passkeyLoginHint" class="passkeyHint">முதலில் ஒருமுறை Email + Password மூலம் Login செய்து Passkey உருவாக்குங்கள். அதன் பிறகு இந்த சாதனத்தின் Fingerprint / Face / Screen Lock மூலம் unlock செய்யலாம்.</div></div></section></div><div id="app" class="hidden"><header class="topbar"><button id="menuBtn" class="iconbtn mobileOnly">☰</button><div class="brandBlock"><h1>NEW FASHION TAILORING</h1><small>ONLINE MANAGEMENT · <span id="liveClock">--:--:--</span></small></div><button id="backBtn" class="iconbtn" title="Back" aria-label="Back">‹</button><div class="spacer"></div><div id="userChip" class="userchip"></div><button id="passkeySetupBtn" class="iconbtn" title="Passkey" aria-label="Passkey">🔑</button><button id="reloadBtn" class="iconbtn" title="Refresh">↻</button><button id="logoutBtn" class="iconbtn" title="Logout">⎋</button></header><div class="layout"><aside id="sidebar" class="sidebar"><button class="navbtn dashboardNav active nf-sidebar-hidden-nav" data-view="dashboard" aria-hidden="true" tabindex="-1">📊 <span>Dashboard</span></button><div id="nfSidebarCustomerListWrap" aria-label="Customer list"><div class="nfSidebarCustomerListHead">👥 Customer List</div><div id="nfSidebarCustomerList" class="nfSidebarCustomerList"></div></div><button class="navbtn" data-view="orders">🧾 Orders</button><button class="navbtn" data-view="customers">👥 Customers</button><button class="navbtn logout" id="sideLogout">⎋ Logout</button><button class="navbtn nf-exit-app" id="sideExitApp" type="button">🚪 Exit App</button></aside><main class="main"><section id="view-dashboard" class="view active">
 <div id="nfHomeNotificationPanel" class="nf-home-notification-panel" hidden role="dialog" aria-modal="true" aria-labelledby="nfHomeNotificationPanelTitle">
   <div class="nf-home-notification-panel-box">
     <div class="nf-home-notification-panel-head"><div><h3 id="nfHomeNotificationPanelTitle">🔔 Notification Center</h3><p>எல்லா active customers-ன் இன்றைய நிலவரம்</p></div><button type="button" class="nf-home-notification-close" onclick="closeNFNotificationPanel()" aria-label="Close">×</button></div>
@@ -9269,5 +9269,153 @@ window.addEventListener("keydown",function(e){if(e.key==="Escape")window.closeCu
 
     return openNow();
   };
+})();
+</script>
+
+
+<style id="nf-apk-refresh-exit-v1">
+  .nf-pull-refresh-indicator{
+    position:fixed;left:50%;top:8px;transform:translate(-50%,-70px);
+    z-index:100000;background:#30272c;color:#fff;border-radius:999px;
+    padding:8px 14px;font-size:13px;font-weight:800;box-shadow:0 6px 18px rgba(0,0,0,.22);
+    transition:transform .18s ease;pointer-events:none
+  }
+  .nf-pull-refresh-indicator.show{transform:translate(-50%,0)}
+  .nf-pull-refresh-indicator.done{background:#16794c}
+  .nf-exit-app{color:#ffd7d7!important}
+</style>
+
+<script id="nf-apk-refresh-exit-v1-js">
+(function(){
+  "use strict";
+
+  /* Android APK: pull down from the top of any page to refresh. */
+  var indicator=null, startY=0, pulling=false, refreshing=false;
+  var threshold=72;
+
+  function getIndicator(){
+    if(indicator) return indicator;
+    indicator=document.createElement("div");
+    indicator.className="nf-pull-refresh-indicator";
+    indicator.textContent="↓ இழுத்து Refresh";
+    document.body.appendChild(indicator);
+    return indicator;
+  }
+
+  function getScrollTop(){
+    var main=document.querySelector(".main");
+    if(main && main.scrollTop>0) return main.scrollTop;
+    var active=document.querySelector(".view.active");
+    if(active && active.scrollTop>0) return active.scrollTop;
+    return Math.max(0,document.scrollingElement ? document.scrollingElement.scrollTop : window.pageYOffset||0);
+  }
+
+  function isExcludedTarget(target){
+    if(!target || !target.closest) return false;
+    return !!target.closest("input,textarea,select,button,a,[contenteditable='true'],.modalbox,.tablewrap");
+  }
+
+  document.addEventListener("touchstart",function(e){
+    if(refreshing || !e.touches || e.touches.length!==1) return;
+    if(window.innerWidth>900 || isExcludedTarget(e.target)) return;
+    if(getScrollTop()>2) return;
+    startY=e.touches[0].clientY;
+    pulling=true;
+  },{passive:true});
+
+  document.addEventListener("touchmove",function(e){
+    if(!pulling || refreshing || !e.touches || e.touches.length!==1) return;
+    var dy=e.touches[0].clientY-startY;
+    if(dy<=0){pulling=false;return;}
+    if(getScrollTop()>2){pulling=false;return;}
+    var show=Math.min(dy,100);
+    var el=getIndicator();
+    el.style.transform="translate(-50%,"+(-70+show*0.7)+"px)";
+    el.textContent=dy>=threshold ? "↑ விடு — Refresh" : "↓ இழுத்து Refresh";
+    if(dy>=18) e.preventDefault();
+  },{passive:false});
+
+  document.addEventListener("touchend",async function(e){
+    if(!pulling || refreshing) return;
+    var endY=e.changedTouches && e.changedTouches[0] ? e.changedTouches[0].clientY : startY;
+    var dy=endY-startY;
+    pulling=false;
+    if(dy<threshold) {
+      if(indicator){indicator.style.transform="translate(-50%,-70px)";}
+      return;
+    }
+    refreshing=true;
+    var el=getIndicator();
+    el.classList.add("show");
+    el.style.transform="translate(-50%,0)";
+    el.textContent="⟳ Refreshing…";
+    try{
+      if(typeof window.loadAll === "function") await window.loadAll(true);
+      else window.location.reload();
+      el.classList.add("done");
+      el.textContent="✓ Updated";
+    }catch(err){
+      console.error("Pull refresh failed",err);
+      el.textContent="⚠ Refresh failed";
+    }
+    setTimeout(function(){
+      if(indicator){indicator.classList.remove("show","done");indicator.style.transform="translate(-50%,-70px)";}
+      refreshing=false;
+    },700);
+  },{passive:true});
+
+  /* Android APK: explicit Exit App button + double Android back gesture. */
+  async function nfExitApp(){
+    try{
+      var cap=window.Capacitor;
+      var app=cap && cap.Plugins && cap.Plugins.App;
+      if(app && typeof app.exitApp === "function"){
+        await app.exitApp();
+        return;
+      }
+      if(window.navigator && typeof window.navigator.app!=="undefined" && typeof window.navigator.app.exitApp==="function"){
+        window.navigator.app.exitApp();
+        return;
+      }
+      if(typeof toast === "function") toast("இந்த APK-ல் Exit வசதி இல்லை.",true);
+    }catch(err){
+      console.error("Exit App failed",err);
+      if(typeof toast === "function") toast("Exit செய்ய முடியவில்லை.",true);
+    }
+  }
+  window.nfExitApp=nfExitApp;
+
+  function installExitButton(){
+    var btn=document.getElementById("sideExitApp");
+    if(btn && !btn.__nfExitBound){
+      btn.__nfExitBound=true;
+      btn.addEventListener("click",function(e){e.preventDefault();e.stopPropagation();nfExitApp();});
+    }
+  }
+
+  function installBackButton(){
+    var cap=window.Capacitor;
+    var app=cap && cap.Plugins && cap.Plugins.App;
+    if(!app || typeof app.addListener!=="function" || app.__nfBackInstalled) return;
+    app.__nfBackInstalled=true;
+    var lastBack=0;
+    app.addListener("backButton",function(){
+      var sidebar=document.getElementById("sidebar");
+      if(sidebar && sidebar.classList.contains("open")){
+        sidebar.classList.remove("open");
+        return;
+      }
+      var now=Date.now();
+      if(now-lastBack<1500){nfExitApp();lastBack=0;return;}
+      lastBack=now;
+      if(typeof toast === "function") toast("மீண்டும் Back அழுத்தினால் App Exit ஆகும்.");
+    });
+  }
+
+  function install(){installExitButton();installBackButton();}
+  if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",install,{once:true});
+  else install();
+  setTimeout(install,500);
+  setTimeout(install,1500);
 })();
 </script>
