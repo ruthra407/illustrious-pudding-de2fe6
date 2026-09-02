@@ -6962,7 +6962,7 @@ function nfWacSvg(data,photoHref){
   var photoRows=Math.ceil(photos.length/2);
   var photoAreaH=photos.length?(photoRows*photoCellH+Math.max(0,photoRows-1)*photoGapY):0;
   var datesY=photoY+photoAreaH+24, datesH=110;
-  var calcY=1252, calcHeaderH=70, calcColsH=56, calcRowsH=Math.max(1,rows.length)*rowH, totalH=82, calcH=calcHeaderH+calcColsH+calcRowsH+totalH;
+  var calcY=datesY+datesH+24, calcHeaderH=70, calcColsH=56, calcRowsH=Math.max(1,rows.length)*rowH, totalH=82, calcH=calcHeaderH+calcColsH+calcRowsH+totalH;
   var payY=calcY+calcH+16, payH=152;
   var noteH=data.note?96:0; var footerY=payY+payH+18+noteH, footerH=144;
   var bottomY=footerY+footerH+10, bottomH=58;
@@ -7813,6 +7813,131 @@ window.addEventListener("keydown",function(e){if(e.key==="Escape")window.closeCu
   },2500);
 
   window.nfRunBackgroundDeltaSync=backgroundDeltaRefresh;
+})();
+</script>
+
+<script id="nf-final-refresh-wac-fix-v1">
+(function(){
+  "use strict";
+  if(window.__NF_FINAL_REFRESH_WAC_FIX_V1)return;
+  window.__NF_FINAL_REFRESH_WAC_FIX_V1=true;
+
+  /* Refresh: wait for the real cloud delta sync, then repaint the current UI. */
+  function installRealRefresh(){
+    if(typeof window.nfRunBackgroundDeltaSync!=="function"){
+      setTimeout(installRealRefresh,100);
+      return;
+    }
+    window.loadAll=async function(){
+      if(!window.state || !state.user)return;
+      try{if(typeof renderAll==="function")renderAll();}catch(e){console.warn("Refresh local render:",e)}
+      try{if(typeof nfLocalSave==="function")nfLocalSave();}catch(e){}
+      if(navigator.onLine){
+        await window.nfRunBackgroundDeltaSync();
+        try{if(typeof nfHydrateCloudClothPhotos==="function")await nfHydrateCloudClothPhotos();}catch(e){console.warn("Refresh cloth photo hydration:",e)}
+      }
+      try{if(typeof renderAll==="function")renderAll();}catch(e){console.warn("Refresh final render:",e)}
+      try{if(typeof nfLocalSave==="function")nfLocalSave();}catch(e){}
+    };
+  }
+  installRealRefresh();
+  setTimeout(installRealRefresh,300);
+  setTimeout(installRealRefresh,1000);
+
+  /* WhatsApp card: embed photos as data URLs before putting them inside SVG.
+     This avoids broken <image> elements for blob:/R2 URLs in Android WebView. */
+  function blobToDataUrl(blob){
+    return new Promise(function(resolve,reject){
+      var r=new FileReader();
+      r.onload=function(){resolve(String(r.result||""))};
+      r.onerror=function(){reject(r.error||new Error("file-reader-failed"))};
+      r.readAsDataURL(blob);
+    });
+  }
+  async function photoToDataUrl(src){
+    src=String(src||"");
+    if(!src)return "";
+    if(src.indexOf("data:")===0)return src;
+    try{
+      var res=await fetch(src,{cache:"no-store"});
+      if(!res.ok)throw new Error("photo-http-"+res.status);
+      return await blobToDataUrl(await res.blob());
+    }catch(e){
+      console.warn("WAC photo embed failed:",src,e);
+      return "";
+    }
+  }
+  async function resolvePhotoHrefs(photos){
+    var list=(Array.isArray(photos)?photos:[]).filter(function(p){return p&&p.src}).slice(0,4);
+    return Promise.all(list.map(function(p){return photoToDataUrl(p.src)}));
+  }
+  window.nfWacPhotoHref=async function(photo){return photoToDataUrl(photo&&photo.src||"")};
+
+  /* Cleaner vertical rhythm: photo block -> dates -> garment table, never overlap. */
+  function patchSvgLayout(){
+    if(typeof window.nfWacSvg!=="function")return;
+    /* The original function uses dynamic photo height but had a fixed calcY.
+       Replace that fixed position with the actual end of the dates block. */
+    var src=String(window.nfWacSvg);
+    if(src.indexOf("var calcY=1252")<0)return;
+    /* Do not replace the live function body at runtime; mark that source is fixed
+       only when the HTML patch below has already been applied. */
+  }
+
+  window.nfWacPreviewExact=async function(data,preview){
+    if(!preview)return;
+    try{
+      preview.innerHTML='<div style="padding:34px;text-align:center;font-weight:850;color:#6b6376">⏳ Card photo loading...</div>';
+      var d=data||{};
+      var photos=(d.photos||[]).filter(function(p){return p&&p.src}).slice(0,4);
+      if(!photos.length){
+        try{photos=await nfWacResolvePhotos(activeCustomerId);}catch(e){photos=[];}
+        d=Object.assign({},d,{photos:photos});
+      }
+      var hrefs=await resolvePhotoHrefs(photos);
+      var good=[];
+      for(var i=0;i<photos.length;i++)if(hrefs[i])good.push(photos[i]);
+      var goodHrefs=hrefs.filter(Boolean);
+      d=Object.assign({},d,{photos:good});
+      var svg=nfWacSvg(d,goodHrefs);
+      var blob=new Blob([svg],{type:"image/svg+xml"});
+      var url=URL.createObjectURL(blob),img=new Image();
+      img.className="nf-wac-preview-card-image";
+      img.alt="WhatsApp Customer Card Preview";
+      img.decoding="async";
+      img.onload=function(){URL.revokeObjectURL(url);preview.innerHTML="";preview.appendChild(img)};
+      img.onerror=function(){URL.revokeObjectURL(url);preview.innerHTML='<div style="padding:30px;text-align:center;font-weight:800;color:#b42318">Card preview உருவாக்க முடியவில்லை.</div>'};
+      img.src=url;
+    }catch(err){
+      console.error("WAC preview fix failed",err);
+      preview.innerHTML='<div style="padding:30px;text-align:center;font-weight:800;color:#b42318">Card preview உருவாக்க முடியவில்லை.</div>';
+    }
+  };
+
+  /* Make share/download use the same reliable embedded-photo path. */
+  window.shareCustomerWhatsAppCard=async function(){
+    if(!activeCustomerId)return;
+    var data=nfWacSummary(activeCustomerId);
+    try{data.photos=await nfWacResolvePhotos(activeCustomerId)}catch(e){data.photos=[]}
+    var text=nfWacText(data),phone=String(data.c&&data.c.phone||"").replace(/\D/g,"");
+    try{
+      var hrefs=await resolvePhotoHrefs(data.photos);
+      var svg=nfWacSvg(Object.assign({},data,{photos:data.photos.filter(function(_,i){return !!hrefs[i]})}),hrefs.filter(Boolean));
+      var blob=new Blob([svg],{type:"image/svg+xml"}),url=URL.createObjectURL(blob),img=new Image();
+      img.decoding="async";img.src=url;
+      await new Promise(function(resolve,reject){img.onload=resolve;img.onerror=reject});
+      var viewW=Number(svg.match(/width="([0-9]+)"/)?.[1]||1022),viewH=Number(svg.match(/height="([0-9]+)"/)?.[1]||6000),scale=Math.min(1,900/viewW);
+      var canvas=document.createElement("canvas");canvas.width=Math.max(1,Math.round(viewW*scale));canvas.height=Math.max(1,Math.round(viewH*scale));
+      var ctx=canvas.getContext("2d",{alpha:false});ctx.fillStyle="#fff";ctx.fillRect(0,0,canvas.width,canvas.height);ctx.drawImage(img,0,0,canvas.width,canvas.height);URL.revokeObjectURL(url);
+      var jpg=await new Promise(function(resolve){canvas.toBlob(resolve,"image/jpeg",0.68)});if(!jpg)throw new Error("jpeg-failed");
+      var file=new File([jpg],"NEW_FASHION_TAILORING_CUSTOMER_CARD.jpg",{type:"image/jpeg"});
+      if(typeof navigator.share==="function"){try{await navigator.share({title:"NEW FASHION TAILORING – CUSTOMER CARD",text:text,files:[file]});return}catch(e){}}
+      var wa=phone?"https://wa.me/"+phone+"?text="+encodeURIComponent(text):"https://wa.me/?text="+encodeURIComponent(text);window.open(wa,"_blank","noopener");
+    }catch(err){
+      console.warn("WAC share fix failed",err);
+      var wa2=phone?"https://wa.me/"+phone+"?text="+encodeURIComponent(text):"https://wa.me/?text="+encodeURIComponent(text);window.open(wa2,"_blank","noopener");
+    }
+  };
 })();
 </script>
 
