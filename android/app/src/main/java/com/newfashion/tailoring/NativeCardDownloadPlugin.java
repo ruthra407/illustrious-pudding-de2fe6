@@ -7,7 +7,6 @@ import android.content.ContentValues;
 import android.net.Uri;
 import android.os.Build;
 import android.provider.MediaStore;
-import android.util.Base64;
 
 import androidx.core.app.NotificationCompat;
 
@@ -17,6 +16,7 @@ import com.getcapacitor.PluginCall;
 import com.getcapacitor.annotation.CapacitorPlugin;
 import com.getcapacitor.PluginMethod;
 
+import java.io.InputStream;
 import java.io.OutputStream;
 
 @CapacitorPlugin(name = "NativeCardDownload")
@@ -26,117 +26,102 @@ public class NativeCardDownloadPlugin extends Plugin {
     private static final int NOTIFICATION_ID = 2001;
 
     @PluginMethod
-    public void saveCard(PluginCall call) {
-
-        String filename = call.getString("filename");
-        String base64 = call.getString("base64");
+    public void saveCardFromUri(PluginCall call) {
+        String uriString = call.getString("uri");
+        String filename = call.getString("filename", "NEW_FASHION_TAILORING_CUSTOMER_CARD.jpg");
         String mimeType = call.getString("mimeType", "image/jpeg");
 
-        if (filename == null || filename.isEmpty()) {
-            call.reject("Missing filename");
-            return;
-        }
-
-        if (base64 == null || base64.isEmpty()) {
-            call.reject("Missing base64 image");
+        if (uriString == null || uriString.trim().isEmpty()) {
+            call.reject("Missing card file URI");
             return;
         }
 
         try {
-            byte[] data = Base64.decode(base64, Base64.DEFAULT);
-
+            Uri sourceUri = Uri.parse(uriString);
             ContentResolver resolver = getContext().getContentResolver();
 
             ContentValues values = new ContentValues();
             values.put(MediaStore.Downloads.DISPLAY_NAME, filename);
             values.put(MediaStore.Downloads.MIME_TYPE, mimeType);
-            values.put(
-                MediaStore.Downloads.RELATIVE_PATH,
-                "Download/New Fashion Tailoring"
-            );
-            values.put(MediaStore.Downloads.IS_PENDING, 1);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                values.put(MediaStore.Downloads.RELATIVE_PATH, "Download/New Fashion Tailoring");
+                values.put(MediaStore.Downloads.IS_PENDING, 1);
+            }
 
-            Uri uri = resolver.insert(
-                MediaStore.Downloads.EXTERNAL_CONTENT_URI,
-                values
-            );
-
-            if (uri == null) {
+            Uri targetUri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values);
+            if (targetUri == null) {
                 call.reject("Could not create download file");
                 return;
             }
 
-            try (OutputStream output = resolver.openOutputStream(uri)) {
+            try (InputStream input = resolver.openInputStream(sourceUri);
+                 OutputStream output = resolver.openOutputStream(targetUri)) {
 
-                if (output == null) {
-                    resolver.delete(uri, null, null);
-                    call.reject("Could not open download stream");
+                if (input == null || output == null) {
+                    resolver.delete(targetUri, null, null);
+                    call.reject("Could not open card file");
                     return;
                 }
 
-                output.write(data);
+                byte[] buffer = new byte[64 * 1024];
+                int read;
+                while ((read = input.read(buffer)) != -1) {
+                    output.write(buffer, 0, read);
+                }
                 output.flush();
             }
 
-            ContentValues done = new ContentValues();
-            done.put(MediaStore.Downloads.IS_PENDING, 0);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                ContentValues done = new ContentValues();
+                done.put(MediaStore.Downloads.IS_PENDING, 0);
+                resolver.update(targetUri, done, null, null);
+            }
 
-            resolver.update(uri, done, null, null);
-
-            // Download notification
-            showDownloadNotification(filename, uri);
+            showDownloadNotification(filename);
 
             JSObject result = new JSObject();
             result.put("ok", true);
-            result.put("uri", uri.toString());
+            result.put("uri", targetUri.toString());
             result.put("filename", filename);
-
             call.resolve(result);
 
         } catch (Exception e) {
-            call.reject(
-                "Card download failed: " + e.getMessage(),
-                e
-            );
+            call.reject("Card download failed: " + e.getMessage(), e);
         }
     }
 
-    private void showDownloadNotification(String filename, Uri uri) {
+    // Keep the old API available for compatibility with older HTML builds.
+    @PluginMethod
+    public void saveCard(PluginCall call) {
+        call.reject("Legacy saveCard API disabled for V18; use saveCardFromUri");
+    }
 
-        NotificationManager manager =
-            (NotificationManager) getContext()
-                .getSystemService(NotificationManager.class);
+    private void showDownloadNotification(String filename) {
+        try {
+            NotificationManager manager =
+                    (NotificationManager) getContext().getSystemService(NotificationManager.class);
+            if (manager == null) return;
 
-        if (manager == null) return;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                NotificationChannel channel = new NotificationChannel(
+                        CHANNEL_ID,
+                        "Card Downloads",
+                        NotificationManager.IMPORTANCE_DEFAULT
+                );
+                channel.setDescription("Customer card download notifications");
+                manager.createNotificationChannel(channel);
+            }
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationCompat.Builder builder = new NotificationCompat.Builder(getContext(), CHANNEL_ID)
+                    .setSmallIcon(android.R.drawable.stat_sys_download_done)
+                    .setContentTitle("Card Download Complete")
+                    .setContentText(filename)
+                    .setAutoCancel(true)
+                    .setPriority(NotificationCompat.PRIORITY_DEFAULT);
 
-            NotificationChannel channel = new NotificationChannel(
-                CHANNEL_ID,
-                "Card Downloads",
-                NotificationManager.IMPORTANCE_DEFAULT
-            );
-
-            channel.setDescription(
-                "Customer card download notifications"
-            );
-
-            manager.createNotificationChannel(channel);
+            manager.notify(NOTIFICATION_ID, builder.build());
+        } catch (Exception ignored) {
+            // Notification failure must never turn a successful file save into a failed download.
         }
-
-        NotificationCompat.Builder builder =
-            new NotificationCompat.Builder(
-                getContext(),
-                CHANNEL_ID
-            )
-            .setSmallIcon(
-                android.R.drawable.stat_sys_download_done
-            )
-            .setContentTitle("Card Download Complete")
-            .setContentText(filename)
-            .setAutoCancel(true)
-            .setPriority(NotificationCompat.PRIORITY_DEFAULT);
-
-        manager.notify(NOTIFICATION_ID, builder.build());
     }
 }
