@@ -2,17 +2,20 @@ package com.newfashion.tailoring;
 
 // FIXED: Capacitor PluginMethod import verified
 
+import android.Manifest;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Environment;
 import android.provider.MediaStore;
 
+import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
 
 import com.getcapacitor.JSObject;
@@ -172,6 +175,17 @@ public class NativeCardDownloadPlugin extends Plugin {
                     openIntent,
                     flags
             );
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                    ActivityCompat.checkSelfPermission(getContext(), Manifest.permission.POST_NOTIFICATIONS)
+                            != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(
+                        getActivity(),
+                        new String[]{Manifest.permission.POST_NOTIFICATIONS},
+                        4201
+                );
+                return;
+            }
 
             NotificationCompat.Builder builder =
                     new NotificationCompat.Builder(getContext(), CHANNEL_ID)
