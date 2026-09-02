@@ -9,8 +9,8 @@ import androidx.core.content.FileProvider;
 
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
+import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
-import com.getcapacitor.annotation.PluginMethod;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -35,9 +35,7 @@ public class NativeCardSharePlugin extends Plugin {
 
         try {
 
-            // ---------------------------------------------------------
             // 1. Sanitize filename
-            // ---------------------------------------------------------
             filename = new File(filename).getName();
 
             if (filename.isEmpty()) {
@@ -45,9 +43,7 @@ public class NativeCardSharePlugin extends Plugin {
                         "NEW_FASHION_TAILORING_CUSTOMER_CARD.jpg";
             }
 
-            // ---------------------------------------------------------
             // 2. Base64 → JPG bytes
-            // ---------------------------------------------------------
             byte[] data = Base64.decode(
                     base64,
                     Base64.DEFAULT
@@ -58,9 +54,7 @@ public class NativeCardSharePlugin extends Plugin {
                 return;
             }
 
-            // ---------------------------------------------------------
             // 3. App cache/shared_cards
-            // ---------------------------------------------------------
             File shareDir = new File(
                     getContext().getCacheDir(),
                     "shared_cards"
@@ -73,9 +67,7 @@ public class NativeCardSharePlugin extends Plugin {
                 return;
             }
 
-            // ---------------------------------------------------------
             // 4. Write JPG
-            // ---------------------------------------------------------
             File imageFile = new File(
                     shareDir,
                     filename
@@ -88,9 +80,7 @@ public class NativeCardSharePlugin extends Plugin {
                 output.flush();
             }
 
-            // ---------------------------------------------------------
             // 5. Secure content:// URI
-            // ---------------------------------------------------------
             Uri contentUri = FileProvider.getUriForFile(
                     getContext(),
                     getContext().getPackageName()
@@ -98,13 +88,7 @@ public class NativeCardSharePlugin extends Plugin {
                     imageFile
             );
 
-            // ---------------------------------------------------------
             // 6. Native Android image share
-            //
-            // IMPORTANT:
-            // EXTRA_TEXT is deliberately NOT used.
-            // Therefore only the card image is shared.
-            // ---------------------------------------------------------
             Intent shareIntent =
                     new Intent(Intent.ACTION_SEND);
 
@@ -119,7 +103,6 @@ public class NativeCardSharePlugin extends Plugin {
                     Intent.FLAG_GRANT_READ_URI_PERMISSION
             );
 
-            // Important for newer Android versions
             shareIntent.setClipData(
                     ClipData.newRawUri(
                             "Customer Card",
@@ -127,9 +110,7 @@ public class NativeCardSharePlugin extends Plugin {
                     )
             );
 
-            // ---------------------------------------------------------
             // 7. Native Android Share Sheet
-            // ---------------------------------------------------------
             Intent chooser = Intent.createChooser(
                     shareIntent,
                     "Share Customer Card"
