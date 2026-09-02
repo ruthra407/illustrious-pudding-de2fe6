@@ -7099,33 +7099,51 @@ function nfWacSvg(data,photoHref){
   return svg;
 }
 window.shareCustomerWhatsAppCard=async function(){
-  if(!activeCustomerId)return;
-  var data=nfWacSummary(activeCustomerId);
-  var photos=(data.photos||[]).filter(function(p){return p&&p.src}).slice(0,4);
-  if(!photos.length){try{data.photos=await nfWacResolvePhotos(activeCustomerId);}catch(e){data.photos=[];}}
-  else data.photos=photos;
-  var text=nfWacText(data),phone=String(data.c.phone||"").replace(/\D/g,"");
+  if(!activeCustomerId){
+    if(typeof toast==='function')toast("Customer Card முதலில் திறக்கவும்.",true);
+    return;
+  }
+  var btn=document.querySelector(".nf-wac-share"),oldText=btn?btn.textContent:"";
+  if(btn){btn.disabled=true;btn.textContent="⏳ Preparing...";}
   try{
-    var usable=(data.photos||[]).filter(function(p){return p&&p.src}).slice(0,4);
-    var photoUrls=await Promise.all(usable.map(nfWacPhotoHref));
-    var svg=nfWacSvg(data,photoUrls),blob=new Blob([svg],{type:"image/svg+xml"}),url=URL.createObjectURL(blob),img=new Image();
+    var data=nfWacSummary(activeCustomerId);
+    data.photos=await nfWacResolvePhotos(activeCustomerId);
+    data.photos=(data.photos||[]).filter(function(p){return p&&p.src}).slice(0,4);
+    var photoUrls=await nfWacPhotoDataUrls(data.photos);
+    data.photos=data.photos.map(function(p,i){return Object.assign({},p,{src:photoUrls[i]||p.src});});
+    var text=nfWacText(data),phone=String(data.c&&data.c.phone||"").replace(/\D/g,"");
+    var svg=nfWacSvg(data,photoUrls);
+    var svgBlob=new Blob([svg],{type:"image/svg+xml"});
+    var url=URL.createObjectURL(svgBlob),img=new Image();
     img.decoding="async";img.src=url;
     await new Promise(function(resolve,reject){img.onload=resolve;img.onerror=reject});
-    var viewW=Number(svg.match(/width="([0-9]+)"/)?.[1]||1022),viewH=Number(svg.match(/height="([0-9]+)"/)?.[1]||6000);
-    var maxW=900,scale=Math.min(1,maxW/viewW),canvas=document.createElement("canvas");
-    canvas.width=Math.max(1,Math.round(viewW*scale));canvas.height=Math.max(1,Math.round(viewH*scale));
-    var ctx=canvas.getContext("2d",{alpha:false});ctx.fillStyle="#fff";ctx.fillRect(0,0,canvas.width,canvas.height);ctx.drawImage(img,0,0,canvas.width,canvas.height);
-    URL.revokeObjectURL(url);photoUrls.forEach(function(u){if(u&&u.startsWith("blob:"))URL.revokeObjectURL(u);});
-    var jpg=await new Promise(function(resolve){canvas.toBlob(resolve,"image/jpeg",0.68)});
+    var viewW=Number(svg.match(/width="([0-9]+)"/)?.[1]||1022);
+    var viewH=Number(svg.match(/height="([0-9]+)"/)?.[1]||6000);
+    var maxW=1200,scale=Math.min(1,maxW/viewW),canvas=document.createElement("canvas");
+    canvas.width=Math.max(1,Math.round(viewW*scale));
+    canvas.height=Math.max(1,Math.round(viewH*scale));
+    var ctx=canvas.getContext("2d",{alpha:false});
+    ctx.fillStyle="#fff";ctx.fillRect(0,0,canvas.width,canvas.height);
+    ctx.drawImage(img,0,0,canvas.width,canvas.height);
+    URL.revokeObjectURL(url);
+    var jpg=await new Promise(function(resolve){canvas.toBlob(resolve,"image/jpeg",0.86)});
     if(!jpg)throw new Error("jpeg-failed");
-    var file=new File([jpg],"NEW_FASHION_TAILORING_CUSTOMER_CARD.jpg",{type:"image/jpeg"});
-    if(typeof navigator.share==="function"){
-      try{await navigator.share({title:"NEW FASHION TAILORING – CUSTOMER CARD",text:text,files:[file]});return;}catch(shareErr){console.warn("WhatsApp image share rejected:",shareErr);}
+    var base64=await nfBlobBase64(jpg);
+    var cap=window.Capacitor;
+    var plugin=cap&&cap.Plugins&&cap.Plugins.NativeCardShare;
+    if(!plugin && cap && typeof cap.registerPlugin==="function"){
+      try{plugin=cap.registerPlugin("NativeCardShare");}catch(_){}
     }
-    var wa=phone?"https://wa.me/"+phone+"?text="+encodeURIComponent(text):"https://wa.me/?text="+encodeURIComponent(text);window.open(wa,"_blank","noopener");
+    if(!plugin || typeof plugin.shareCard!=="function")throw new Error("native-card-share-plugin-missing");
+    await plugin.shareCard({
+      filename:"NEW_FASHION_TAILORING_CUSTOMER_CARD.jpg",
+      base64:base64,mimeType:"image/jpeg",text:text,phone:phone
+    });
   }catch(err){
-    console.warn("WhatsApp card image share failed",err);
-    var wa2=phone?"https://wa.me/"+phone+"?text="+encodeURIComponent(text):"https://wa.me/?text="+encodeURIComponent(text);window.open(wa2,"_blank","noopener");
+    console.error("Native WhatsApp card share failed",err);
+    if(typeof toast==='function')toast("❌ Customer Card image share ஆகவில்லை. மீண்டும் முயற்சிக்கவும்.",true);
+  }finally{
+    if(btn){btn.disabled=false;btn.textContent=oldText||"🟢 WhatsApp Card";}
   }
 };
 window.downloadCustomerWhatsAppCard=async function(){
