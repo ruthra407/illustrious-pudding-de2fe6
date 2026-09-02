@@ -713,10 +713,7 @@ body.nf-photo-preview-scroll-locked{
   font-weight:800!important;
 }
 </style>
-<style id="nf-wac-final-typography-photo-fix">
-/* Final WhatsApp card-only override. Embedded brand/phone assets are untouched. */
-.nf-wac-preview-card-image{image-rendering:auto!important;}
-</style><style id="nf-four-cloth-photo-layout">
+<style id="nf-four-cloth-photo-layout">
 /* V2075: exactly four equal customer cloth-photo slots. */
 .nf-customer-cloth-photos{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important;width:100%!important}
 .nf-customer-cloth-photos .nf-cloth-photo-item{min-width:0!important}
@@ -6865,15 +6862,20 @@ function nfWacRows(os){
 }
 async function nfWacResolvePhotos(id){
   var key=String(id||"");
-  try{
-    if(typeof initCustomerClothPhotoStore==="function") await initCustomerClothPhotoStore();
-  }catch(e){console.warn("WhatsApp card photo store init skipped:",e)}
+  /* Read the already-rendered/local photo list first. Do not block the card
+     export on cloud-store initialization when photos are already available. */
   var photos=typeof customerClothPhotos==="function"?customerClothPhotos(key):[];
-  if(!photos.some(function(p){return p&&p.src}) && typeof nfHydrateCloudClothPhotos==="function"){
-    try{await nfHydrateCloudClothPhotos();}catch(e){console.warn("WhatsApp card cloud photo hydration skipped:",e)}
+  if(Array.isArray(photos)&&photos.some(function(p){return p&&p.src})) return photos;
+  if(typeof initCustomerClothPhotoStore==="function"){
+    try{await nfWacWithTimeout(initCustomerClothPhotoStore(),1500,"photo-store-init");}catch(e){console.warn("WhatsApp card photo store init timeout/skipped:",e)}
+  }
+  photos=typeof customerClothPhotos==="function"?customerClothPhotos(key):photos;
+  if(Array.isArray(photos)&&photos.some(function(p){return p&&p.src})) return photos;
+  if(typeof nfHydrateCloudClothPhotos==="function"){
+    try{await nfWacWithTimeout(nfHydrateCloudClothPhotos(),3000,"cloud-photo-hydrate");}catch(e){console.warn("WhatsApp card cloud photo hydration timeout/skipped:",e)}
     photos=typeof customerClothPhotos==="function"?customerClothPhotos(key):photos;
   }
-  return photos;
+  return Array.isArray(photos)?photos:[];
 }
 
 function nfWacSummary(id){
@@ -6890,7 +6892,6 @@ function nfWacSummary(id){
   var total=Number(st.total||0),paid=Number(st.paid||0),balance=Number(st.balance||Math.max(0,total-paid));
   return {c:c,os:os,st:st,rows:rows,photos:photos,clothDate:first.cloth_received_date||first.order_date,deliveryDate:delivery.delivery_date,note:note};
 }
-function nfWacPhotoTag(p,cls,alt){return p&&p.src?'<img class="'+cls+'" src="'+nfWacEsc(p.src)+'" alt="'+nfWacEsc(alt||"Customer cloth photo")+'">':''}
 function nfWacPreviewHtml(data){
   var c=data.c||{},st=data.st||{},rows=data.rows||[],village=nfCustomerVillage(c,activeCustomerId)||"ஊர் இல்லை";
   var photos=(data.photos||[]).filter(function(p){return p&&p.src}).slice(0,4);
@@ -6914,10 +6915,6 @@ function nfWacUnlockPage(){
   document.documentElement.classList.remove("nf-wac-page-locked");
   document.body.classList.remove("nf-wac-page-locked");
 }
-function nfWacPhotoHref(photo){
-  if(!photo||!photo.src)return "";
-  return String(photo.src);
-}
 function nfWacWithTimeout(promise,ms,label){
   return Promise.race([
     promise,
@@ -6940,7 +6937,14 @@ async function nfWacPhotoDataUrls(photos){
     if(!src||/^data:image\//i.test(src))return src;
     try{
       var b=await nfWacFetchBlob(src,5000);
-      return await new Promise(function(resolve,reject){var fr=new FileReader();fr.onload=function(){resolve(String(fr.result||""))};fr.onerror=reject;fr.readAsDataURL(b);});
+      return await new Promise(function(resolve,reject){
+        var fr=new FileReader(),done=false;
+        var timer=setTimeout(function(){if(done)return;done=true;try{fr.abort()}catch(_){}reject(new Error("photo-filereader-timeout"));},5000);
+        fr.onload=function(){if(done)return;done=true;clearTimeout(timer);resolve(String(fr.result||""));};
+        fr.onerror=function(e){if(done)return;done=true;clearTimeout(timer);reject(e||new Error("photo-filereader-failed"));};
+        fr.onabort=function(){if(done)return;done=true;clearTimeout(timer);reject(new Error("photo-filereader-aborted"));};
+        try{fr.readAsDataURL(b);}catch(e){if(done)return;done=true;clearTimeout(timer);reject(e);}
+      });
     }catch(e){console.warn("Photo embed failed/timeout; omitting photo from exported card",e);return "";}
   }));
 }
@@ -7096,18 +7100,16 @@ function nfWacSvg(data,photoHref){
 
   function blobBase64(blob){
     return new Promise(function(resolve,reject){
-      var r=new FileReader();
-      r.onload=function(){var s=String(r.result||""),i=s.indexOf(",");resolve(i>=0?s.slice(i+1):s)};
-      r.onerror=reject;
+      var r=new FileReader(),done=false,timer=setTimeout(function(){if(done)return;done=true;try{r.abort()}catch(_){}reject(new Error("blob-base64-timeout"));},8000);
+      r.onload=function(){if(done)return;done=true;clearTimeout(timer);var s=String(r.result||""),i=s.indexOf(",");resolve(i>=0?s.slice(i+1):s)};
+      r.onerror=function(e){if(done)return;done=true;clearTimeout(timer);reject(e||new Error("blob-base64-read-failed"));};
+      r.onabort=function(){if(done)return;done=true;clearTimeout(timer);reject(new Error("blob-base64-aborted"));};
       r.readAsDataURL(blob);
     });
   }
 
   async function buildCustomerCardBlob(){
     if(!activeCustomerId) throw new Error("no-customer");
-    if(typeof initCustomerClothPhotoStore==='function'){
-      try{await initCustomerClothPhotoStore();}catch(e){}
-    }
     var data=nfWacSummary(activeCustomerId);
     data.photos=await nfWacResolvePhotos(activeCustomerId);
     data.photos=(data.photos||[]).filter(function(p){return p&&p.src}).slice(0,4);
@@ -7148,7 +7150,10 @@ function nfWacSvg(data,photoHref){
     ctx.fillStyle="#fff";ctx.fillRect(0,0,canvas.width,canvas.height);
     ctx.drawImage(img,0,0,canvas.width,canvas.height);
     URL.revokeObjectURL(url);
-    var jpg=await new Promise(function(resolve){canvas.toBlob(resolve,"image/jpeg",0.86);});
+    var jpg=await new Promise(function(resolve,reject){
+      var done=false,timer=setTimeout(function(){if(done)return;done=true;reject(new Error("jpeg-encode-timeout"));},8000);
+      try{canvas.toBlob(function(b){if(done)return;done=true;clearTimeout(timer);resolve(b);},"image/jpeg",0.86);}catch(e){if(done)return;done=true;clearTimeout(timer);reject(e);}
+    });
     if(!jpg) throw new Error("jpeg-failed");
     return {blob:jpg,data:data,text:nfWacText(data),phone:String(data.c&&data.c.phone||"").replace(/\D/g,"")};
   }
@@ -7160,16 +7165,15 @@ function nfWacSvg(data,photoHref){
     }
     if(fs && typeof fs.writeFile==="function"){
       try{
-        await fs.writeFile({path:filename,directory:"DOCUMENTS",data:await blobBase64(blob),recursive:true});
+        var b64=await blobBase64(blob);
+        await nfWacWithTimeout(fs.writeFile({path:filename,directory:"DOCUMENTS",data:b64,recursive:true}),8000,"filesystem-save");
         return "native";
-      }catch(e){console.warn("Capacitor Filesystem save unavailable; using browser download",e)}
+      }catch(e){console.warn("Capacitor Filesystem save unavailable/timeout; using browser download",e)}
     }
     var url=URL.createObjectURL(blob),a=document.createElement("a");
-    a.href=url;a.download=filename;a.rel="noopener";
-    a.style.display="none";
+    a.href=url;a.download=filename;a.rel="noopener";a.style.display="none";
     document.body.appendChild(a);
-    a.click();
-    setTimeout(function(){try{a.remove();}catch(_){}URL.revokeObjectURL(url);},3000);
+    try{a.click();}finally{setTimeout(function(){try{a.remove()}catch(_){}try{URL.revokeObjectURL(url)}catch(_){}},3000);}
     return "browser";
   }
 
@@ -7189,10 +7193,11 @@ function nfWacSvg(data,photoHref){
     if(!fs && cap && typeof cap.registerPlugin==="function"){try{fs=cap.registerPlugin("Filesystem")}catch(e){}}
     if(!share || typeof share.share!=="function" || !fs || typeof fs.writeFile!=="function") throw new Error("capacitor-file-share-unavailable");
     var name="NEW_FASHION_TAILORING_CUSTOMER_CARD_"+Date.now()+".jpg";
-    var saved=await fs.writeFile({path:name,directory:"CACHE",data:await blobBase64(built.blob),recursive:true});
+    var b64=await blobBase64(built.blob);
+    var saved=await nfWacWithTimeout(fs.writeFile({path:name,directory:"CACHE",data:b64,recursive:true}),8000,"filesystem-share-save");
     var uri=saved&&saved.uri?String(saved.uri):"";
     if(!uri)throw new Error("filesystem-uri-unavailable");
-    await share.share({title:"NEW FASHION TAILORING – CUSTOMER CARD",text:built.text,url:uri,dialogTitle:"Share Customer Card"});
+    await nfWacWithTimeout(share.share({title:"NEW FASHION TAILORING – CUSTOMER CARD",text:built.text,url:uri,dialogTitle:"Share Customer Card"}),10000,"capacitor-share");
     return "file";
   }
 
@@ -7213,7 +7218,7 @@ function nfWacSvg(data,photoHref){
     var btn=document.querySelector(".nf-wac-share"),old=btn?btn.textContent:"";
     if(btn){btn.disabled=true;btn.textContent="⏳ Preparing...";}
     try{
-      var built=await buildCustomerCardBlob();
+      var built=await nfWacWithTimeout(buildCustomerCardBlob(),30000,"card-build");
       var plugin=capPlugin("NativeCardShare");
       if(plugin && typeof plugin.shareCard==="function"){
         try{
@@ -7247,7 +7252,7 @@ function nfWacSvg(data,photoHref){
     var btn=document.querySelector(".nf-wac-download"),old=btn?btn.textContent:"";
     if(btn){btn.disabled=true;btn.textContent="⏳ Saving...";}
     try{
-      var built=await buildCustomerCardBlob();
+      var built=await nfWacWithTimeout(buildCustomerCardBlob(),30000,"card-build");
       var plugin=capPlugin("NativeCardDownload");
       if(plugin && typeof plugin.saveCard==="function"){
         try{
@@ -7522,15 +7527,6 @@ window.addEventListener("keydown",function(e){if(e.key==="Escape")window.closeCu
     window.__nfV201Timer=setTimeout(refresh,80);
   });
   if(document.body) observer.observe(document.body,{childList:true,subtree:true});
-})();
-</script>
-<script id="v40083-clean-audit">
-(function(){
-  "use strict";
-  /* No customer-card renderer is replaced here. This is deliberately a
-     non-invasive audit marker so future patches do not silently stack a new
-     renderer over this V400.83 card. */
-  window.__nfV40083CustomerCardReadable=true;
 })();
 </script>
 <style>
