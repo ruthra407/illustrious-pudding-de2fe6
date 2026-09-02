@@ -1,6 +1,12 @@
 {
   "name": "illustrious-pudding-de2fe6",
   "compatibility_date": "2026-09-02",
+  "r2_buckets": [
+    {
+      "binding": "MY_BUCKET",
+      "bucket_name": "new-fashion-tailoring"
+    }
+  ],
   "assets": {
     "directory": "./www"
   }
