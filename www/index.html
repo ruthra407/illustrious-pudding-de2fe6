@@ -7134,8 +7134,11 @@ function nfWacSvg(data,photoHref){
     var footerY=(photos.length?photoY+photoGridH:photoTitleY)+14,footerH=116;
     var H=footerY+footerH+16;
     var canvas=document.createElement("canvas");
-    canvas.width=W; canvas.height=H;
+    /* Mobile-safe export width: keep the generated card within typical phone/WebView width. */
+    var EXPORT_SCALE=0.703125; /* 720 / 1024 */
+    canvas.width=Math.round(W*EXPORT_SCALE); canvas.height=Math.round(H*EXPORT_SCALE);
     var ctx=canvas.getContext("2d");
+    ctx.scale(EXPORT_SCALE,EXPORT_SCALE);
     if(!ctx) throw new Error("canvas-context-unavailable");
     ctx.fillStyle="#fff";ctx.fillRect(0,0,W,H);
 
