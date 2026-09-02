@@ -29,7 +29,7 @@ import java.io.FileInputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 
-@CapacitorPlugin(name = "NativeCardDownload")
+@CapacitorPlugin(name = "NativeCardDownload", requestCodes = {4201})
 public class NativeCardDownloadPlugin extends Plugin {
 
     private static final String CHANNEL_ID = "card_downloads";
@@ -218,12 +218,13 @@ try {
     }
 
     @Override
-    protected void handleOnRequestPermissionsResult(
+    @SuppressWarnings("deprecation")
+    protected void handleRequestPermissionsResult(
             int requestCode,
             String[] permissions,
             int[] grantResults
     ) {
-        super.handleOnRequestPermissionsResult(requestCode, permissions, grantResults);
+        super.handleRequestPermissionsResult(requestCode, permissions, grantResults);
 
         if (requestCode == 4201 &&
                 Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
