@@ -1509,9 +1509,6 @@ const r=new FileReader();r.onload=()=>{
    into localStorage. Existing V400.81 photos are migrated once. */
 const NF_CLOTH_PHOTO_DB="nf_customer_cloth_photos_v2";
 const NF_CLOTH_PHOTO_STORE="photos";
-/* V600.3 — Customer cloth photos now use Cloudflare Worker + R2.
-   Local IndexedDB remains the first/local copy. */
-const NF_CLOTH_PHOTO_BUCKET="new-fashion-tailoring";
 const nfClothPhotoCache=Object.create(null);
 const nfClothPhotoCloudPathCache=Object.create(null);
 let nfCloudPhotoHydrationPromise=null;
@@ -1521,7 +1518,7 @@ function nfCloudPhotoPath(id,slot){
   return String(id)+"/photo-"+(Number(slot)+1);
 }
 function nfR2PhotoUrl(path){
-  return location.origin+"/api/r2/"+String(path).split("/").map(encodeURIComponent).join("/");
+  return new URL("/api/r2/"+encodeURIComponent(String(path||"")),window.location.origin).href;
 }
 function nfDataUrlToBlob(dataUrl){
   try{
@@ -1548,29 +1545,30 @@ async function nfUploadCustomerClothPhoto(id,slot,fileOrBlob,contentType){
   try{
     const path=nfCloudPhotoPath(id,slot);
     const cloudBlob=await nfCompressPhotoForCloud(fileOrBlob);
-    const res=await fetch("/api/r2/"+path.split("/").map(encodeURIComponent).join("/"),{
+    const res=await fetch(nfR2PhotoUrl(path),{
       method:"PUT",
-      headers:{"Content-Type":(cloudBlob&&cloudBlob.type)||contentType||"image/jpeg"},
+      headers:{"Content-Type":(cloudBlob?.type||contentType||"image/jpeg")},
       body:cloudBlob
     });
-    if(!res.ok)throw new Error(await res.text()||("R2 upload failed: "+res.status));
+    if(!res.ok)throw new Error("R2 upload failed ("+res.status+")");
     nfClothPhotoCloudPathCache[String(id)+":"+slot]=path;
     return path;
   }catch(err){
     nfCloudPhotoLastError=String(err?.message||err||"Unknown R2 error");
-    console.warn("Cloud customer photo upload failed:",nfCloudPhotoLastError);
+    console.warn("R2 customer photo upload failed:",nfCloudPhotoLastError);
     return null;
   }
 }
+
 async function nfCheckCustomerClothPhotoStorage(){
   nfCloudPhotoLastError="";
   try{
-    const res=await fetch("/api/r2-test",{cache:"no-store"});
-    if(!res.ok)throw new Error(await res.text()||("R2 test failed: "+res.status));
-    return {ok:true,data:[]};
+    const res=await fetch(nfR2PhotoUrl("r2-test.txt"),{method:"GET",cache:"no-store"});
+    if(res.ok || res.status===404)return {ok:true};
+    throw new Error("R2 endpoint returned "+res.status);
   }catch(err){
     nfCloudPhotoLastError=String(err?.message||err||"Unknown R2 error");
-    console.warn("Customer cloth photo storage check failed:",nfCloudPhotoLastError);
+    console.warn("R2 customer cloth photo storage check failed:",nfCloudPhotoLastError);
     return {ok:false,error:nfCloudPhotoLastError};
   }
 }
@@ -1579,8 +1577,9 @@ async function nfGetCustomerClothPhotoUrl(path){
   return nfR2PhotoUrl(path);
 }
 async function nfHydrateCloudClothPhotos(){
-  if(window.__nfPhotoHydratedAt && (Date.now()-window.__nfPhotoHydratedAt)<15000)return;
-  window.__nfPhotoHydratedAt=Date.now();
+  if(window.__nfPhotoHydratedAt && (Date.now()-window.__nfPhotoHydratedAt)<15000) return;
+  window.__nfPhotoHydratedAt = Date.now();
+
   if(nfCloudPhotoHydrationPromise)return nfCloudPhotoHydrationPromise;
   nfCloudPhotoHydrationPromise=(async function(){
     const customers=Array.isArray(state.customers)?state.customers:[];
@@ -1590,6 +1589,7 @@ async function nfHydrateCloudClothPhotos(){
       const id=String(c.id||"");
       if(!id)continue;
       const local=customerClothPhotos(id);
+
       /* First push photos that still exist only in this browser/device. */
       for(let slot=0;slot<4;slot++){
         const p=local[slot];
@@ -1609,30 +1609,31 @@ async function nfHydrateCloudClothPhotos(){
           }
         }
       }
-      /* Then probe the four known R2 keys so a fresh APK/browser can restore photos. */
+
+      /* Then pull R2 photos so a fresh APK/browser gets the same photos. */
       for(let slot=0;slot<4;slot++){
         const path=nfCloudPhotoPath(id,slot);
+        const url=await nfGetCustomerClothPhotoUrl(path);
+        if(!url)continue;
         try{
-          const res=await fetch(nfR2PhotoUrl(path),{cache:"no-store"});
+          const res=await fetch(url,{method:"GET",cache:"no-store"});
           if(!res.ok)continue;
-          const url=nfR2PhotoUrl(path);
-          const current=customerClothPhotos(id)[slot];
-          if(current?.src && String(current.src).startsWith("data:")){
-            if(!current.cloudPath){current.cloudPath=path;try{await nfIdbPut({id:id,photos:customerClothPhotos(id)})}catch(_){}
-            }
-            nfClothPhotoCloudPathCache[id+":"+slot]=path;
-            continue;
-          }
-          if(!current || current.cloudPath!==path || current.src!==url){
-            const next=customerClothPhotos(id);
-            next[slot]={src:url,name:"Customer cloth photo "+(slot+1),savedAt:new Date().toISOString(),cloudPath:path,originalType:res.headers.get("content-type")||"image/*"};
-            nfClothPhotoCache[id]=next;
-            nfClothPhotoCloudPathCache[id+":"+slot]=path;
-            try{await nfIdbPut({id:id,photos:next});}catch(_){}
-            changed=true;
-          }
-        }catch(err){
-          console.warn("R2 customer photo hydration skipped:",err?.message||err);
+        }catch(_){continue}
+
+        const current=customerClothPhotos(id)[slot];
+        /* Keep the local original on this device. Cloud URL is only a fallback. */
+        if(current?.src && String(current.src).startsWith("data:")){
+          if(!current.cloudPath){current.cloudPath=path;try{await nfIdbPut({id:id,photos:customerClothPhotos(id)})}catch(_){}}
+          nfClothPhotoCloudPathCache[id+":"+slot]=path;
+          continue;
+        }
+        if(!current || current.cloudPath!==path || current.src!==url){
+          const next=customerClothPhotos(id);
+          next[slot]={src:url,name:"Customer cloth photo "+(slot+1),savedAt:new Date().toISOString(),cloudPath:path,originalType:"image/*"};
+          nfClothPhotoCache[id]=next;
+          nfClothPhotoCloudPathCache[id+":"+slot]=path;
+          try{await nfIdbPut({id:id,photos:next});}catch(_){}
+          changed=true;
         }
       }
     }
@@ -1799,7 +1800,12 @@ async function nfRunPendingPhotoDeletes(){
  try{
   const arr=JSON.parse(localStorage.getItem("nf_pending_photo_deletes")||"[]");
   const keep=[];
-  for(const path of arr){try{const res=await fetch("/api/r2/"+String(path).split("/").map(encodeURIComponent).join("/"),{method:"DELETE"});if(!res.ok)keep.push(path)}catch(_){keep.push(path)}}
+  for(const path of arr){
+   try{
+    const res=await fetch(nfR2PhotoUrl(path),{method:"DELETE"});
+    if(!res.ok)keep.push(path);
+   }catch(_){keep.push(path)}
+  }
   localStorage.setItem("nf_pending_photo_deletes",JSON.stringify(keep));
  }catch(_){}
 }
