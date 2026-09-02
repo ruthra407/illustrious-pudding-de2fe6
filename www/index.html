@@ -7132,13 +7132,15 @@ function nfWacSvg(data,photoHref){
     var photoRows=photos.length?Math.ceil(photos.length/2):0;
     var photoGridH=photoRows?photoRows*cellH+(photoRows-1)*gap+20:0;
     var footerY=(photos.length?photoY+photoGridH:photoTitleY)+14,footerH=116;
-    var H=footerY+footerH+16;
+    var CONTENT_H=footerY+footerH+16;
+    /* Exact export target: fixed 1024 x 2078 px. V25 layout already fits this
+       height at its maximum supported 9 rows + 4 photos. */
+    var H=2078;
+    if(CONTENT_H>H) throw new Error("customer-card-content-exceeds-1024x2078");
     var canvas=document.createElement("canvas");
-    /* Mobile-safe export width: keep the generated card within typical phone/WebView width. */
-    var EXPORT_SCALE=0.625; /* 640 / 1024 - phone-safe export width */
-    canvas.width=Math.round(W*EXPORT_SCALE); canvas.height=Math.round(H*EXPORT_SCALE);
+    canvas.width=1024;
+    canvas.height=2078;
     var ctx=canvas.getContext("2d");
-    ctx.scale(EXPORT_SCALE,EXPORT_SCALE);
     if(!ctx) throw new Error("canvas-context-unavailable");
     ctx.fillStyle="#fff";ctx.fillRect(0,0,W,H);
 
