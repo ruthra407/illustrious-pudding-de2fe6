@@ -764,30 +764,7 @@ body.nf-photo-preview-scroll-locked{
 .nf-wac-live-photo-grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:9px!important}
 .nf-wac-live-photo-grid .p{aspect-ratio:4/3!important}
 </style>
-<script id="nf-native-file-share-core">
-(function(){
-  "use strict";
-  window.nfNative=function(){var c=window.Capacitor||{},p=c.Plugins||{};return {share:p.Share||null,fs:p.Filesystem||null,save:p.NativeCardDownload||null};};
-  window.nfBlobBase64=function(blob){return new Promise(function(resolve,reject){var r=new FileReader();r.onload=function(){var x=String(r.result||""),i=x.indexOf(",");resolve(i>=0?x.slice(i+1):x)};r.onerror=reject;r.readAsDataURL(blob);});};
-  window.nfNativeSaveBlob=async function(blob,filename,mime){
-    var n=nfNative(),data=await nfBlobBase64(blob);
-    if(n.save&&typeof n.save.saveCard==="function"){
-      await n.save.saveCard({filename:filename,base64:data,mimeType:mime||blob.type||"application/octet-stream"}); return true;
-    }
-    if(n.fs&&typeof n.fs.writeFile==="function"){
-      var Directory=n.fs.Directory||{};
-      await n.fs.writeFile({path:filename,data:data,directory:Directory.Documents||"DOCUMENTS",recursive:true}); return true;
-    }
-    throw new Error("Native file save plugin unavailable");
-  };
-  window.nfNativeShareBlob=async function(blob,filename,title,text,mime){
-    var n=nfNative(),data=await nfBlobBase64(blob);
-    if(!n.share||typeof n.share.share!=="function") throw new Error("Native Share plugin unavailable");
-    var uri="data:"+(mime||blob.type||"application/octet-stream")+";base64,"+data;
-    await n.share.share({title:title||filename,text:text||"",url:uri,dialogTitle:title||"Share"}); return true;
-  };
-})();
-</script></head><body><div id="loginPage" class="loginpage"><section class="loginbox"><div class="brand">NEW FASHION</div><div class="gold">TAILORING INDUSTRY</div><div class="sub">Online Tailoring Management Software</div><form id="loginForm"><div class="field"><label>Email</label><input id="loginEmail" class="input" type="email" autocomplete="email" required placeholder="உங்கள் Email"></div><div class="field"><label>Password</label><input id="loginPassword" class="input" type="password" autocomplete="current-password" required placeholder="Password"></div><button class="btn primary" id="loginBtn" type="submit">🔐 LOGIN</button><div id="loginMsg" class="msg"></div></form><button id="resetPasswordBtn" class="btn primary nf-reset-password-btn" type="button">🔄 RESET PASSWORD</button>
+</head><body><div id="loginPage" class="loginpage"><section class="loginbox"><div class="brand">NEW FASHION</div><div class="gold">TAILORING INDUSTRY</div><div class="sub">Online Tailoring Management Software</div><form id="loginForm"><div class="field"><label>Email</label><input id="loginEmail" class="input" type="email" autocomplete="email" required placeholder="உங்கள் Email"></div><div class="field"><label>Password</label><input id="loginPassword" class="input" type="password" autocomplete="current-password" required placeholder="Password"></div><button class="btn primary" id="loginBtn" type="submit">🔐 LOGIN</button><div id="loginMsg" class="msg"></div></form><button id="resetPasswordBtn" class="btn primary nf-reset-password-btn" type="button">🔄 RESET PASSWORD</button>
 <div class="nf-forgot-row">
   <button id="forgotBtn" class="btn secondary nf-forgot-btn" type="button">Forgot password?</button>
 </div>
@@ -7274,8 +7251,68 @@ window.downloadCustomerWhatsAppCard=async function(){
     var photoUrls=await nfWacPhotoDataUrls(data.photos);
     data.photos=data.photos.map(function(p,i){return Object.assign({},p,{src:photoUrls[i]||p.src});});
 
-    await nfNativeSaveBlob(jpg,"NEW_FASHION_TAILORING_CUSTOMER_CARD.jpg","image/jpeg");
-    if(typeof toast==='function')toast("✅ Card App storage-ல் save செய்யப்பட்டது.");
+    /* Keep native Android saving when available. */
+    var cap=window.Capacitor;
+    var plugin=cap&&cap.Plugins&&cap.Plugins.NativeCardDownload;
+    if(!plugin&&cap&&typeof cap.registerPlugin==="function"){
+      try{plugin=cap.registerPlugin("NativeCardDownload");}catch(_){}
+    }
+    if(plugin&&typeof plugin.saveCard==="function"){
+      var svg=nfWacSvg(data,photoUrls);
+      var svgBlob=new Blob([svg],{type:"image/svg+xml"});
+      var svgUrl=URL.createObjectURL(svgBlob),img=new Image();
+      img.decoding="async";img.src=svgUrl;
+      await new Promise(function(resolve,reject){img.onload=resolve;img.onerror=reject});
+      var viewW=Number(svg.match(/width="([0-9]+)"/)?.[1]||3072);
+      var viewH=Number(svg.match(/height="([0-9]+)"/)?.[1]||3000);
+      var maxW=1200,scale=Math.min(1,maxW/viewW),canvas=document.createElement("canvas");
+      canvas.width=Math.max(1,Math.round(viewW*scale));
+      canvas.height=Math.max(1,Math.round(viewH*scale));
+      var ctx=canvas.getContext("2d",{alpha:false});
+      ctx.fillStyle="#fff";ctx.fillRect(0,0,canvas.width,canvas.height);
+      ctx.drawImage(img,0,0,canvas.width,canvas.height);
+      URL.revokeObjectURL(svgUrl);
+      var jpg=await new Promise(function(resolve){canvas.toBlob(resolve,"image/jpeg",0.85)});
+      if(!jpg)throw new Error("jpeg-failed");
+      var base64=await new Promise(function(resolve,reject){
+        var r=new FileReader();
+        r.onload=function(){var s=String(r.result||""),comma=s.indexOf(",");resolve(comma>=0?s.slice(comma+1):s)};
+        r.onerror=reject;r.readAsDataURL(jpg);
+      });
+      await plugin.saveCard({
+        filename:"NEW_FASHION_TAILORING_CUSTOMER_CARD.jpg",
+        base64:base64,mimeType:"image/jpeg"
+      });
+      if(typeof toast==='function')toast("✅ Card Downloads-ல் save செய்யப்பட்டது.");
+      return;
+    }
+
+    /* Browser/WebView fallback: save the same rendered card as JPEG.
+       The old fallback downloaded SVG, which is unreliable in Android WebView. */
+    var svgFallback=nfWacSvg(data,photoUrls);
+    var svgBlobFallback=new Blob([svgFallback],{type:"image/svg+xml"});
+    var svgUrlFallback=URL.createObjectURL(svgBlobFallback),imgFallback=new Image();
+    imgFallback.decoding="async";imgFallback.src=svgUrlFallback;
+    await new Promise(function(resolve,reject){imgFallback.onload=resolve;imgFallback.onerror=reject});
+    var fw=Number(svgFallback.match(/width="([0-9]+)"/)?.[1]||3072);
+    var fh=Number(svgFallback.match(/height="([0-9]+)"/)?.[1]||3000);
+    var fs=Math.min(1,1200/fw),fc=document.createElement("canvas");
+    fc.width=Math.max(1,Math.round(fw*fs));
+    fc.height=Math.max(1,Math.round(fh*fs));
+    var fctx=fc.getContext("2d",{alpha:false});
+    fctx.fillStyle="#fff";fctx.fillRect(0,0,fc.width,fc.height);
+    fctx.drawImage(imgFallback,0,0,fc.width,fc.height);
+    URL.revokeObjectURL(svgUrlFallback);
+    var fallbackJpg=await new Promise(function(resolve){fc.toBlob(resolve,"image/jpeg",0.86)});
+    if(!fallbackJpg)throw new Error("jpeg-failed");
+    var fallbackUrl=URL.createObjectURL(fallbackJpg);
+    var a=document.createElement("a");
+    a.href=fallbackUrl;
+    a.download="NEW_FASHION_TAILORING_CUSTOMER_CARD.jpg";
+    a.style.display="none";
+    document.body.appendChild(a);a.click();a.remove();
+    setTimeout(function(){URL.revokeObjectURL(fallbackUrl)},1500);
+    if(typeof toast==='function')toast("✅ Customer Card JPG Download செய்யப்பட்டுவிட்டது.");
   }catch(err){
     console.error("WhatsApp card download failed",err);
     if(typeof toast==='function')toast("❌ Customer Card save ஆகவில்லை. மீண்டும் முயற்சி செய்யுங்கள்.",true);
@@ -7856,6 +7893,130 @@ window.addEventListener("keydown",function(e){if(e.key==="Escape")window.closeCu
   });
 })();
 </script>
+
+<script id="nf-v999-native-only-download-share">
+(function(){
+  "use strict";
+
+  function capPlugin(name){
+    var cap=window.Capacitor;
+    var p=cap&&cap.Plugins&&cap.Plugins[name];
+    if(!p && cap && typeof cap.registerPlugin==="function"){
+      try{ p=cap.registerPlugin(name); }catch(e){}
+    }
+    return p;
+  }
+
+  function blobBase64(blob){
+    return new Promise(function(resolve,reject){
+      var r=new FileReader();
+      r.onload=function(){var s=String(r.result||""),i=s.indexOf(",");resolve(i>=0?s.slice(i+1):s)};
+      r.onerror=reject;
+      r.readAsDataURL(blob);
+    });
+  }
+
+  async function buildCustomerCardBlob(){
+    if(!activeCustomerId) throw new Error("no-customer");
+    if(typeof initCustomerClothPhotoStore==='function'){
+      try{await initCustomerClothPhotoStore();}catch(e){}
+    }
+    var data=nfWacSummary(activeCustomerId);
+    data.photos=await nfWacResolvePhotos(activeCustomerId);
+    data.photos=(data.photos||[]).filter(function(p){return p&&p.src}).slice(0,4);
+    var photoUrls=await nfWacPhotoDataUrls(data.photos);
+    data.photos=data.photos.map(function(p,i){return Object.assign({},p,{src:photoUrls[i]||p.src});});
+    var svg=nfWacSvg(data,photoUrls);
+    var blob=new Blob([svg],{type:"image/svg+xml"});
+    var url=URL.createObjectURL(blob),img=new Image();
+    img.decoding="async";
+    img.src=url;
+    await new Promise(function(resolve,reject){img.onload=resolve;img.onerror=reject;});
+    var viewW=Number((svg.match(/width="([0-9]+)"/)||[])[1]||3072);
+    var viewH=Number((svg.match(/height="([0-9]+)"/)||[])[1]||3000);
+    var scale=Math.min(1,1200/viewW);
+    var canvas=document.createElement("canvas");
+    canvas.width=Math.max(1,Math.round(viewW*scale));
+    canvas.height=Math.max(1,Math.round(viewH*scale));
+    var ctx=canvas.getContext("2d",{alpha:false});
+    ctx.fillStyle="#fff";ctx.fillRect(0,0,canvas.width,canvas.height);
+    ctx.drawImage(img,0,0,canvas.width,canvas.height);
+    URL.revokeObjectURL(url);
+    var jpg=await new Promise(function(resolve){canvas.toBlob(resolve,"image/jpeg",0.86);});
+    if(!jpg) throw new Error("jpeg-failed");
+    return {blob:jpg,data:data,text:nfWacText(data),phone:String(data.c&&data.c.phone||"").replace(/\D/g,"")};
+  }
+
+  /* App-only text sharing: Android native Share sheet. No wa.me/window.open. */
+  window.shareCustomerWhatsAppText=async function(){
+    if(!activeCustomerId){if(typeof toast==='function')toast("Customer Card முதலில் திறக்கவும்.",true);return;}
+    var btn=document.querySelector(".nf-wac-text"),old=btn?btn.textContent:"";
+    if(btn){btn.disabled=true;btn.textContent="⏳ Sharing...";}
+    try{
+      var data=nfWacSummary(activeCustomerId);
+      var text=nfWacText(data);
+      var share=capPlugin("Share");
+      if(!share || typeof share.share!=="function") throw new Error("native-share-plugin-missing");
+      await share.share({title:"NEW FASHION TAILORING – CUSTOMER",text:text,dialogTitle:"Share Customer Details"});
+    }catch(err){
+      if(err && err.name==="AbortError") return;
+      console.error("Native text share failed",err);
+      if(typeof toast==='function')toast("❌ App Native Share plugin கிடைக்கவில்லை. Android app-ஐ rebuild செய்ய வேண்டும்.",true);
+    }finally{
+      if(btn){btn.disabled=false;btn.textContent=old||"💬 Text மட்டும்";}
+    }
+  };
+
+  /* App-only image sharing: custom Android bridge. Never fall back to browser sharing. */
+  window.shareCustomerWhatsAppCard=async function(){
+    if(!activeCustomerId){if(typeof toast==='function')toast("Customer Card முதலில் திறக்கவும்.",true);return;}
+    var btn=document.querySelector(".nf-wac-share"),old=btn?btn.textContent:"";
+    if(btn){btn.disabled=true;btn.textContent="⏳ Preparing...";}
+    try{
+      var built=await buildCustomerCardBlob();
+      var plugin=capPlugin("NativeCardShare");
+      if(!plugin || typeof plugin.shareCard!=="function") throw new Error("native-card-share-plugin-missing");
+      await plugin.shareCard({
+        filename:"NEW_FASHION_TAILORING_CUSTOMER_CARD.jpg",
+        base64:await blobBase64(built.blob),
+        mimeType:"image/jpeg",
+        text:built.text,
+        phone:built.phone
+      });
+    }catch(err){
+      if(err && err.name==="AbortError") return;
+      console.error("Native customer-card share failed",err);
+      if(typeof toast==='function')toast("❌ Customer Card share ஆகவில்லை. Android native share plugin-ஐ check செய்யுங்கள்.",true);
+    }finally{
+      if(btn){btn.disabled=false;btn.textContent=old||"🟢 WhatsApp Card";}
+    }
+  };
+
+  /* App-only download: Android native storage bridge. Never create an <a download>. */
+  window.downloadCustomerWhatsAppCard=async function(){
+    if(!activeCustomerId){if(typeof toast==='function')toast("Customer Card முதலில் திறக்கவும்.",true);return;}
+    var btn=document.querySelector(".nf-wac-download"),old=btn?btn.textContent:"";
+    if(btn){btn.disabled=true;btn.textContent="⏳ Saving...";}
+    try{
+      var built=await buildCustomerCardBlob();
+      var plugin=capPlugin("NativeCardDownload");
+      if(!plugin || typeof plugin.saveCard!=="function") throw new Error("native-card-download-plugin-missing");
+      await plugin.saveCard({
+        filename:"NEW_FASHION_TAILORING_CUSTOMER_CARD.jpg",
+        base64:await blobBase64(built.blob),
+        mimeType:"image/jpeg"
+      });
+      if(typeof toast==='function')toast("✅ Card Android app storage-ல் save செய்யப்பட்டது.");
+    }catch(err){
+      console.error("Native customer-card download failed",err);
+      if(typeof toast==='function')toast("❌ Customer Card save ஆகவில்லை. Android native download plugin-ஐ check செய்யுங்கள்.",true);
+    }finally{
+      if(btn){btn.disabled=false;btn.textContent=old||"⬇️ Download Card";}
+    }
+  };
+})();
+</script>
+
 </body>
 <script id="nf-final-local-first-delta-layer">
 (function(){
