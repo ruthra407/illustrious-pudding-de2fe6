@@ -7172,34 +7172,46 @@ function nfWacSvg(data,photoHref){
     }
 
     rr(margin,headerY,inner,headerH,20,grad(margin,headerY,inner,"#130a2a","#b20b59"),"#f3ca42",3);
-    txt("NEW FASHION TAILORING",W/2,92,38,950,"#fff","center");
-    txt("CUSTOMER • ORDER • CARD",W/2,134,22,950,"#ffd83d","center");
-    txt("☎",W/2,190,27,950,"#fff","center");
-    txt("SHOP PHONE NUMBER",W/2,178,14,950,"#ffd83d","center");
-    txt("8524931003",W/2,225,36,950,"#fff","center");
+
+    /* Header-only enhancement: keep all card data/layout unchanged.
+       Add a simple built-in tailoring logo badge, enlarge the heading,
+       and move the shop phone to a large top-right corner block. */
+    ctx.save();
+    ctx.beginPath();ctx.arc(88,92,48,0,Math.PI*2);ctx.fillStyle="#f3ca42";ctx.fill();
+    ctx.beginPath();ctx.arc(88,92,42,0,Math.PI*2);ctx.fillStyle="#2a123f";ctx.fill();
+    txt("✂",88,82,31,950,"#ffd83d","center");
+    txt("NFT",88,112,15,950,"#fff","center");
+    ctx.restore();
+
+    txt("NEW FASHION TAILORING",545,88,42,950,"#fff","center");
+    txt("CUSTOMER • ORDER • CARD",545,130,24,950,"#ffd83d","center");
+
+    rr(695,158,285,78,18,"rgba(0,0,0,.22)","#f3ca42",2);
+    txt("SHOP PHONE NUMBER",837,176,14,950,"#ffd83d","center");
+    txt("8524931003",837,213,42,950,"#fff","center");
 
     rr(margin,detailY,inner,detailH,16,"#fff","#6c4df6",3);
     rr(margin,detailY,inner,54,16,grad(margin,detailY,inner,"#7112c4","#d30a61"),null,0);
     txt("👤  CUSTOMER DETAILS",48,340,22,950,"#fff","left");
     ctx.strokeStyle="#d2c8dd";ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(349,detailY+54);ctx.lineTo(349,detailY+detailH);ctx.moveTo(681,detailY+54);ctx.lineTo(681,detailY+detailH);ctx.stroke();
     var c=data.c||{},st=data.st||{},village=nfCustomerVillage(c,activeCustomerId)||"ஊர் இல்லை";
-    txt("பெயர் / Name",72,365,17,950,"#4f2d87");txt(c.name||"Customer",72,410,24,950,"#171923");
-    txt("ஊர் / Place",383,365,17,950,"#b71955");txt(village,383,410,24,950,"#087744");
-    txt("முகவரி / Address",713,365,17,950,"#4f2d87");txt(c.address||"முகவரி இல்லை",713,410,21,950,"#171923");
+    txt("பெயர் / Name",72,365,17,950,"#39245f");txt(c.name||"Customer",72,410,24,950,"#171923");
+    txt("ஊர் / Place",383,365,17,950,"#8f1647");txt(village,383,410,24,950,"#087744");
+    txt("முகவரி / Address",713,365,17,950,"#39245f");txt(c.address||"முகவரி இல்லை",713,410,21,950,"#171923");
 
-    rr(18,datesY,480,datesH,16,"#fff","#6c4df6",3);txt("📅",50,492,30,900,"#4f2d87");txt("துணி கொடுத்த தேதி",100,480,17,950,"#4f2d87");txt(nfWacDate(data.clothDate),100,520,25,950,"#171923");
-    rr(526,datesY,480,datesH,16,"#fff","#c41d64",3);txt("🚚",558,492,30,900,"#c41d64");txt("Delivery Date",608,480,17,950,"#a21851");txt(nfWacDate(data.deliveryDate),608,520,25,950,"#087744");
+    rr(18,datesY,480,datesH,16,"#fff","#6c4df6",3);txt("📅",50,492,30,900,"#4f2d87");txt("துணி கொடுத்த தேதி",100,480,17,950,"#39245f");txt(nfWacDate(data.clothDate),100,520,25,950,"#171923");
+    rr(526,datesY,480,datesH,16,"#fff","#c41d64",3);txt("🚚",558,492,30,900,"#c41d64");txt("Delivery Date",608,480,17,950,"#8f1647");txt(nfWacDate(data.deliveryDate),608,520,25,950,"#087744");
 
     rr(18,calcY,inner,calcH,16,"#fff","#6c4df6",3);rr(18,calcY,inner,calcHead,16,grad(18,calcY,inner,"#24105b","#c90c5b"),null,0);
     txt("👗  GARMENT DETAILS & CALCULATION",40,calcY+30,22,950,"#fff");
     ctx.fillStyle="#f7f4ff";ctx.fillRect(18,calcY+calcHead,inner,calcCols);
-    txt("#",55,calcY+calcHead+24,18,950,"#4f2d87","center");txt("துணி ஐட்டம் / Item",100,calcY+calcHead+24,18,950,"#211a2d");txt("QTY",565,calcY+calcHead+24,18,950,"#173b8f","center");txt("RATE (₹)",760,calcY+calcHead+24,18,950,"#a21851","center");txt("AMOUNT (₹)",940,calcY+calcHead+24,18,950,"#087744","center");
-    rows.forEach(function(x,i){var yy=calcY+calcHead+calcCols+27+i*rowH;rr(32,yy-31,960,50,8,i%2?"#fff":"#faf8ff","#ddd7e2",1);txt(i+1,55,yy,20,950,"#4f2d87","center");txt(x.name,90,yy,20,950,"#171923");txt(x.qty,565,yy,20,950,"#173b8f","center");txt(money(x.rate),760,yy,20,950,"#b52c68","center");txt(money(x.qty*x.rate),940,yy,20,950,"#087744","center")});
+    txt("#",55,calcY+calcHead+24,18,950,"#302246","center");txt("துணி ஐட்டம் / Item",100,calcY+calcHead+24,18,950,"#17131e");txt("QTY",565,calcY+calcHead+24,18,950,"#17336f","center");txt("RATE (₹)",760,calcY+calcHead+24,18,950,"#8f1647","center");txt("AMOUNT (₹)",940,calcY+calcHead+24,18,950,"#075d36","center");
+    rows.forEach(function(x,i){var yy=calcY+calcHead+calcCols+27+i*rowH;rr(32,yy-31,960,50,8,i%2?"#fff":"#faf8ff","#ddd7e2",1);txt(i+1,55,yy,20,950,"#39245f","center");txt(x.name,90,yy,20,950,"#111318");txt(x.qty,565,yy,20,950,"#17336f","center");txt(money(x.rate),760,yy,20,950,"#941b50","center");txt(money(x.qty*x.rate),940,yy,20,950,"#075d36","center")});
     ctx.fillStyle=grad(18,calcY+calcH-totalH,inner,"#24105b","#c90c5b");ctx.fillRect(18,calcY+calcH-totalH,inner,totalH);txt("GRAND TOTAL",40,calcY+calcH-32,22,950,"#fff");txt(money(st.total),970,calcY+calcH-32,31,950,"#fff","right");
 
-    rr(18,payY,316,payH,14,"#fff","#6c4df6",2);txt("💼",40,payY+45,30,950,"#4f2d87");txt("TOTAL AMOUNT",90,payY+36,15,950,"#4f2d87");txt(money(st.total),90,payY+72,24,950,"#171923");
-    rr(354,payY,316,payH,14,"#f7fff9","#4aa875",2);txt("💳",376,payY+45,30,950,"#25804e");txt("PAID AMOUNT",426,payY+36,15,950,"#25804e");txt(money(st.paid),426,payY+72,24,950,"#087744");
-    rr(690,payY,316,payH,14,"#fff9f5","#ef6b40",2);txt("💰",712,payY+45,30,950,"#e64d21");txt("BALANCE AMOUNT",762,payY+36,15,950,"#d9421d");txt(money(st.balance),762,payY+72,24,950,"#d9421d");
+    rr(18,payY,316,payH,14,"#fff","#6c4df6",2);txt("💼",40,payY+45,30,950,"#4f2d87");txt("TOTAL AMOUNT",90,payY+36,15,950,"#39245f");txt(money(st.total),90,payY+72,24,950,"#171923");
+    rr(354,payY,316,payH,14,"#f7fff9","#4aa875",2);txt("💳",376,payY+45,30,950,"#25804e");txt("PAID AMOUNT",426,payY+36,15,950,"#17663f");txt(money(st.paid),426,payY+72,24,950,"#087744");
+    rr(690,payY,316,payH,14,"#fff9f5","#ef6b40",2);txt("💰",712,payY+45,30,950,"#e64d21");txt("BALANCE AMOUNT",762,payY+36,15,950,"#b9381c");txt(money(st.balance),762,payY+72,24,950,"#d9421d");
 
     rr(18,photoTitleY,inner,48,13,grad(18,photoTitleY,inner,"#7112c4","#d30a61"),null,0);txt("🖼  CUSTOMER GIVEN CLOTH PHOTOS (4 SLOTS)",40,photoTitleY+25,22,950,"#fff");
     for(var i=0;i<photos.length;i++){
