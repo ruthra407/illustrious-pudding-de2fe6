@@ -6976,11 +6976,7 @@ window.openCustomerWhatsAppCard=async function(id){
   overlay.setAttribute("aria-hidden","false");
   preview.innerHTML="<div class=\"nf-wac-preview-loading\">📸 Customer photos loading...</div>";
   try{
-    var data=nfWacSummary(activeCustomerId);
-    var photos=await nfWacResolvePhotos(activeCustomerId);
-    if(!nfWacHistoryOpen)return;
-    data.photos=Array.isArray(photos)?photos:[];
-    await nfWacPreviewExact(data,preview);
+    await nfWacPreviewExact(null,preview);
   }catch(err){
     console.error("WhatsApp card preview build failed",err);
     preview.innerHTML="<div class=\"nf-wac-preview-loading\">Card preview உருவாக்க முடியவில்லை.</div>";
@@ -7142,13 +7138,11 @@ function nfWacSvg(data,photoHref){
     var photoGridH=photoRows?photoRows*cellH+(photoRows-1)*gap+20:0;
     var footerY=(photos.length?photoY+photoGridH:photoTitleY)+14,footerH=116;
     var CONTENT_H=footerY+footerH+16;
-    /* Exact export target: fixed 1024 x 2078 px. V25 layout already fits this
-       height at its maximum supported 9 rows + 4 photos. */
-    var H=2078;
-    if(CONTENT_H>H) throw new Error("customer-card-content-exceeds-1024x2078");
+    /* Export only the actual card content; keep the existing 1024px width. */
+    var H=CONTENT_H;
     var canvas=document.createElement("canvas");
     canvas.width=1024;
-    canvas.height=2078;
+    canvas.height=H;
     var ctx=canvas.getContext("2d");
     if(!ctx) throw new Error("canvas-context-unavailable");
     ctx.fillStyle="#fff";ctx.fillRect(0,0,W,H);
@@ -7278,10 +7272,18 @@ function nfWacSvg(data,photoHref){
 
 
 
+  var nfWacBuiltCache=Object.create(null);
+
   async function nfWacBuildStable(){
     if(!activeCustomerId) throw new Error("no-customer");
-    /* One single build path for both buttons. */
-    return await nfWacWithTimeout(buildCustomerCardBlob(),30000,"card-build");
+    /* Reuse the already-rendered card for the same customer. */
+    if(nfWacBuiltCache[activeCustomerId]) return nfWacBuiltCache[activeCustomerId];
+    var built=await nfWacWithTimeout(buildCustomerCardBlob(),30000,"card-build");
+    nfWacBuiltCache[activeCustomerId]=built;
+    /* Prepare Base64 in the background while the preview is visible,
+       so Share/Download does not have to start that conversion after tap. */
+    built._nativeBase64Promise=blobBase64(built.blob).catch(function(){return null;});
+    return built;
   }
 
   async function nfWacNativePlugin(name){
@@ -7295,27 +7297,10 @@ function nfWacSvg(data,photoHref){
     return null;
   }
 
-  async function nfWacSaveToFilesystem(blob,filename){
-    var cap=window.Capacitor,fs=cap&&cap.Plugins&&cap.Plugins.Filesystem;
-    if(!fs && cap && typeof cap.registerPlugin==="function"){
-      try{fs=cap.registerPlugin("Filesystem");}catch(e){}
-    }
-    if(!fs || typeof fs.writeFile!=="function") throw new Error("filesystem-plugin-unavailable");
-    var b64=await blobBase64(blob);
-    var saved=await nfWacWithTimeout(fs.writeFile({path:filename,directory:"CACHE",data:b64,recursive:true}),12000,"filesystem-write");
-    if(!saved || !saved.uri) throw new Error("filesystem-uri-unavailable");
-    return String(saved.uri);
-  }
-
-  async function nfWacPrepareNativeFile(built){
-    var filename="NEW_FASHION_TAILORING_CUSTOMER_CARD_"+Date.now()+".jpg";
-    return await nfWacSaveToFilesystem(built.blob,filename);
-  }
-
   async function nfWacShareFileNative(built){
     var native=await nfWacNativePlugin("NativeCardShare");
     if(!native || typeof native.shareCardFromBase64!=="function") throw new Error("native-share-base64-method-unavailable");
-    var b64=await blobBase64(built.blob);
+    var b64=built._nativeBase64 || (built._nativeBase64=await built._nativeBase64Promise || blobBase64(built.blob));
     await nfWacWithTimeout(
       native.shareCardFromBase64({
         base64:b64,
@@ -7385,7 +7370,7 @@ function nfWacSvg(data,photoHref){
       var native=await nfWacNativePlugin("NativeCardDownload");
       if(native && typeof native.saveCardFromBase64==="function"){
         try{
-          var b64=await blobBase64(built.blob);
+          var b64=built._nativeBase64 || (built._nativeBase64=await built._nativeBase64Promise || blobBase64(built.blob));
           await nfWacWithTimeout(
             native.saveCardFromBase64({
               base64:b64,
