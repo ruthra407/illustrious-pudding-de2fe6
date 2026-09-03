@@ -8235,7 +8235,96 @@ window.addEventListener("keydown",function(e){if(e.key==="Escape")window.closeCu
 .nf-card-design-photos span{display:block;font-size:10px;font-weight:850;margin-bottom:4px;color:#595264}
 .nf-card-design-photos img{width:100%;height:120px;object-fit:cover;border-radius:9px;border:1px solid #e3ddec;display:block}
 @media(max-width:560px){.nf-customer-design-head{flex-direction:column}.nf-customer-design-status span{font-size:10px}.nf-card-design-photos{grid-template-columns:1fr 1fr}.nf-card-design-photos img{height:105px}}
-</style></body></html><script id="nf-v52-dashboard-scroll-fix-js">
+</style>
+<style id="nf-v42-design-photo-order">
+/* V42 — Design 1/2/3: details first, photos below */
+#app [id^="quick-order-"] .nf-design-slot-card{display:flex!important;flex-direction:column!important;align-items:stretch!important;gap:0!important}
+#app [id^="quick-order-"] .nf-design-slot-card h5{order:1!important}
+#app [id^="quick-order-"] .nf-design-slot-card>.nf-di-name{order:3!important}
+#app [id^="quick-order-"] .nf-design-slot-card>label:nth-of-type(1){order:2!important}
+#app [id^="quick-order-"] .nf-design-slot-card>label:nth-of-type(2){order:4!important;margin-top:7px!important}
+#app [id^="quick-order-"] .nf-design-slot-card>.nf-di-qty{order:5!important}
+#app [id^="quick-order-"] .nf-design-slot-card>label:nth-of-type(3){order:6!important;margin-top:7px!important}
+#app [id^="quick-order-"] .nf-design-slot-card>.nf-di-handover{order:7!important}
+#app [id^="quick-order-"] .nf-design-slot-card>.nf-di-remaining{order:8!important}
+#app [id^="quick-order-"] .nf-design-slot-card>label:nth-of-type(4){order:9!important;margin-top:7px!important}
+#app [id^="quick-order-"] .nf-design-slot-card>.nf-di-rate{order:10!important}
+#app [id^="quick-order-"] .nf-design-slot-card>label:nth-of-type(5){order:11!important;margin-top:7px!important}
+#app [id^="quick-order-"] .nf-design-slot-card>.nf-di-handover-date{order:12!important}
+#app [id^="quick-order-"] .nf-design-slot-card>.nf-design-slot-sub{order:13!important}
+#app [id^="quick-order-"] .nf-design-slot-card>.nf-design-photo-pair{order:20!important;margin-top:11px!important}
+#app [id^="quick-order-"] .nf-design-photo-slot{position:relative!important}
+#app [id^="quick-order-"] .nf-di-photo-preview{cursor:pointer!important}
+.nf-v42-photo-actions{display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;margin-top:6px}
+.nf-v42-photo-actions button{min-height:38px;border:1px solid #ddd5e8;border-radius:10px;background:#fff;color:#332a40;font-weight:850;font-size:11px}
+.nf-v42-photo-actions button:active{transform:scale(.98)}
+#nfV42DesignPreview{position:fixed;inset:0;z-index:9999;background:#000;display:none;align-items:center;justify-content:center;touch-action:none}
+#nfV42DesignPreview.open{display:flex}
+#nfV42DesignPreview .nf-v42-preview-img{max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain;transform-origin:center;user-select:none;-webkit-user-select:none;will-change:transform}
+#nfV42DesignPreview .nf-v42-preview-close{position:absolute;top:max(12px,env(safe-area-inset-top));right:12px;width:44px;height:44px;border:0;border-radius:50%;background:rgba(255,255,255,.9);font-size:27px;font-weight:900;z-index:3}
+#nfV42DesignPreview .nf-v42-preview-caption{position:absolute;left:12px;right:12px;bottom:max(12px,env(safe-area-inset-bottom));text-align:center;color:#fff;font-weight:850;font-size:13px;text-shadow:0 1px 4px #000}
+#nfV42DesignPreview .nf-v42-preview-count{position:absolute;top:max(14px,env(safe-area-inset-top));left:12px;color:#fff;font-weight:900;font-size:13px;text-shadow:0 1px 4px #000}
+</style>
+<script id="nf-v42-design-photo-preview">
+(function(){
+'use strict';
+function ensureOverlay(){
+ let o=document.getElementById('nfV42DesignPreview');
+ if(o)return o;
+ o=document.createElement('div');o.id='nfV42DesignPreview';
+ o.innerHTML='<button class="nf-v42-preview-close" type="button" aria-label="Close">×</button><div class="nf-v42-preview-count"></div><img class="nf-v42-preview-img" alt="Design photo preview"><div class="nf-v42-preview-caption"></div>';
+ document.body.appendChild(o);
+ o.querySelector('.nf-v42-preview-close').addEventListener('click',closePreview);
+ o.addEventListener('click',function(e){if(e.target===o)closePreview()});
+ return o;
+}
+let items=[],idx=0,scale=1,x=0,y=0,startX=0,startY=0,startScale=1,pinchStart=0,drag=false,swipeX=0;
+function apply(){const im=ensureOverlay().querySelector('.nf-v42-preview-img');im.style.transform='translate3d('+x+'px,'+y+'px,0) scale('+scale+')'}
+function render(){const o=ensureOverlay(),im=o.querySelector('.nf-v42-preview-img'),cap=o.querySelector('.nf-v42-preview-caption'),cnt=o.querySelector('.nf-v42-preview-count');const it=items[idx];if(!it){closePreview();return}im.src=it.src;im.alt=it.label;cap.textContent=it.label;cnt.textContent=(idx+1)+' / '+items.length;scale=1;x=0;y=0;apply();}
+function openPreview(list,i){items=list||[];idx=Math.max(0,Math.min(Number(i)||0,items.length-1));if(!items.length)return;ensureOverlay().classList.add('open');render();}
+function closePreview(){const o=document.getElementById('nfV42DesignPreview');if(o)o.classList.remove('open');items=[];idx=0}
+function decorateCard(card){
+ const pair=card.querySelector('.nf-design-photo-pair');if(!pair)return;
+ pair.querySelectorAll('.nf-design-photo-slot').forEach(function(slot){
+   const preview=slot.querySelector('.nf-di-photo-preview');
+   if(!preview)return;
+   let actions=slot.querySelector('.nf-v42-photo-actions');
+   if(!actions){actions=document.createElement('div');actions.className='nf-v42-photo-actions';slot.appendChild(actions)}
+   const kind=slot.classList.contains('nf-di-design-preview')?'design':(slot.querySelector('.nf-di-design-preview')?'cloth':'cloth');
+   const key=kind==='design'?'designPhoto':'clothPhoto';
+   actions.innerHTML='';
+   const pv=document.createElement('button');pv.type='button';pv.textContent='👁️ Preview';pv.onclick=function(){
+     const root=card.closest('.nf-design-3slot');const all=[];
+     root.querySelectorAll('.nf-design-slot-card').forEach(function(c,ci){[['cloth','.nf-di-cloth-preview','🥻 Reference'],['design','.nf-di-design-preview','🎨 Design']].forEach(function(a){const im=c.querySelector(a[1]+' img');if(im)all.push({src:im.src,label:'Design '+(ci+1)+' · '+a[2]})})});
+     const currentSrc=preview.querySelector('img')?.src;const at=Math.max(0,all.findIndex(z=>z.src===currentSrc));openPreview(all,at);
+   };actions.appendChild(pv);
+   const del=document.createElement('button');del.type='button';del.textContent='🗑️ Delete';del.onclick=function(){
+     if(!confirm('இந்த photo-வை Delete செய்யவா?'))return;
+     card.dataset[key]='';preview.innerHTML='<div class="nf-di-photo-empty">📷<br>Photo Slot</div>';
+     updateQuick(card.closest('[id^=quick-order-]')?.id?.replace('quick-order-','')||'');
+   };actions.appendChild(del);
+   const has=!!preview.querySelector('img');pv.style.display=has?'':'none';del.style.display=has?'':'none';
+   preview.onclick=function(){if(pv.style.display!=='none')pv.click()};
+ });
+}
+function decorateAll(){document.querySelectorAll('.nf-design-slot-card').forEach(decorateCard)}
+window.nfV42DecorateDesignPhotos=decorateAll;
+const oldBuild=window.buildQuick;
+if(typeof oldBuild==='function'&&!oldBuild.__nfV42){window.buildQuick=function(){const r=oldBuild.apply(this,arguments);setTimeout(decorateAll,0);return r};window.buildQuick.__nfV42=true}
+const oldRender=window.renderQuickDesignRates;
+if(typeof oldRender==='function'&&!oldRender.__nfV42){window.renderQuickDesignRates=function(){const r=oldRender.apply(this,arguments);setTimeout(decorateAll,0);return r};window.renderQuickDesignRates.__nfV42=true}
+const oldPick=window.nfPickDesignPhoto;
+if(typeof oldPick==='function'&&!oldPick.__nfV42){window.nfPickDesignPhoto=async function(){const r=await oldPick.apply(this,arguments);setTimeout(decorateAll,80);return r};window.nfPickDesignPhoto.__nfV42=true}
+let ts=null;
+const o=ensureOverlay();
+o.addEventListener('touchstart',function(e){if(e.touches.length===1){ts={x:e.touches[0].clientX,y:e.touches[0].clientY};swipeX=e.touches[0].clientX;drag=scale>1.01;startX=x;startY=y}else if(e.touches.length===2){const a=e.touches[0],b=e.touches[1];pinchStart=Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY);startScale=scale}},{passive:true});
+o.addEventListener('touchmove',function(e){if(e.touches.length===2){const a=e.touches[0],b=e.touches[1],d=Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY);scale=Math.max(1,Math.min(4,startScale*(d/(pinchStart||d))));apply();e.preventDefault()}else if(e.touches.length===1&&drag){x=startX+(e.touches[0].clientX-ts.x);y=startY+(e.touches[0].clientY-ts.y);apply();e.preventDefault()}},{passive:false});
+o.addEventListener('touchend',function(e){if(ts&&e.changedTouches[0]&&scale<=1.01){const dx=e.changedTouches[0].clientX-ts.x;if(Math.abs(dx)>90){closePreview()}}ts=null;drag=false;},{passive:true});
+document.addEventListener('keydown',function(e){if(e.key==='Escape')closePreview()});
+setTimeout(decorateAll,100);
+})();
+</script>
+</body></html><script id="nf-v52-dashboard-scroll-fix-js">
 (function(){
   "use strict";
   function syncDashboardMode(){
