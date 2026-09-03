@@ -7302,7 +7302,7 @@ function nfWacSvg(data,photoHref){
     }
     if(!fs || typeof fs.writeFile!=="function") throw new Error("filesystem-plugin-unavailable");
     var b64=await blobBase64(blob);
-    var saved=await nfWacWithTimeout(fs.writeFile({path:filename,directory:"CACHE",data:b64,recursive:true}),5000,"filesystem-write");
+    var saved=await nfWacWithTimeout(fs.writeFile({path:filename,directory:"CACHE",data:b64,recursive:true}),12000,"filesystem-write");
     if(!saved || !saved.uri) throw new Error("filesystem-uri-unavailable");
     return String(saved.uri);
   }
@@ -7313,10 +7313,20 @@ function nfWacSvg(data,photoHref){
   }
 
   async function nfWacShareFileNative(built){
-    var uri=await nfWacPrepareNativeFile(built);
     var native=await nfWacNativePlugin("NativeCardShare");
-    if(!native || typeof native.shareCardFromUri!=="function") throw new Error("native-share-uri-method-unavailable");
-    await nfWacWithTimeout(native.shareCardFromUri({uri:uri,filename:"NEW_FASHION_TAILORING_CUSTOMER_CARD.jpg",mimeType:"image/jpeg",text:built.text,phone:built.phone}),3000,"native-share-uri");
+    if(!native || typeof native.shareCardFromBase64!=="function") throw new Error("native-share-base64-method-unavailable");
+    var b64=await blobBase64(built.blob);
+    await nfWacWithTimeout(
+      native.shareCardFromBase64({
+        base64:b64,
+        filename:"NEW_FASHION_TAILORING_CUSTOMER_CARD.jpg",
+        mimeType:"image/jpeg",
+        text:built.text,
+        phone:built.phone
+      }),
+      5000,
+      "native-share-base64"
+    );
     return true;
   }
 
@@ -7327,7 +7337,7 @@ function nfWacSvg(data,photoHref){
     if(typeof navigator.canShare==="function"){
       try{if(!navigator.canShare({files:[file]})) throw new Error("web-file-share-unavailable");}catch(e){throw e;}
     }
-    await nfWacWithTimeout(navigator.share({title:"NEW FASHION TAILORING – CUSTOMER CARD",text:built.text,files:[file]}),3000,"web-file-share");
+    await nfWacWithTimeout(navigator.share({title:"NEW FASHION TAILORING – CUSTOMER CARD",text:built.text,files:[file]}),10000,"web-file-share");
     return true;
   }
 
@@ -7350,7 +7360,7 @@ function nfWacSvg(data,photoHref){
       var built=await nfWacBuildStable();
       if(btn)btn.textContent="📤 Sharing...";
 
-      /* Native plugin: pass a small file URI, not a huge Base64 payload. */
+      /* Android: send the generated JPG directly to the native plugin. No Capacitor Filesystem URI step. */
       try{await nfWacShareFileNative(built);return;}catch(e){console.warn("Native URI share failed; trying standard share",e)}
       try{await nfWacWebFileShare(built);return;}catch(e){console.warn("Web file share unavailable",e)}
 
@@ -7373,21 +7383,22 @@ function nfWacSvg(data,photoHref){
       if(btn)btn.textContent="💾 Saving file...";
 
       var native=await nfWacNativePlugin("NativeCardDownload");
-      if(native && typeof native.saveCardFromUri==="function"){
+      if(native && typeof native.saveCardFromBase64==="function"){
         try{
-          var uri=await nfWacPrepareNativeFile(built);
-          await nfWacWithTimeout(native.saveCardFromUri({uri:uri,filename:"NEW_FASHION_TAILORING_CUSTOMER_CARD.jpg",mimeType:"image/jpeg"}),3000,"native-download-uri");
+          var b64=await blobBase64(built.blob);
+          await nfWacWithTimeout(
+            native.saveCardFromBase64({
+              base64:b64,
+              filename:"NEW_FASHION_TAILORING_CUSTOMER_CARD.jpg",
+              mimeType:"image/jpeg"
+            }),
+            5000,
+            "native-download-base64"
+          );
           if(typeof toast==='function')toast("✅ Customer Card save செய்யப்பட்டது.");
           return;
-        }catch(e){console.warn("Native URI download failed; filesystem fallback",e)}
+        }catch(e){console.warn("Direct native download failed; opening fallback image",e)}
       }
-
-      try{
-        var savedUri=await nfWacSaveToFilesystem(built.blob,"NEW_FASHION_TAILORING_CUSTOMER_CARD_"+Date.now()+".jpg");
-        try{window.open(savedUri,"_blank");}catch(_){}
-        if(typeof toast==='function')toast("⚠️ Card file app cache-ல் தயாராக உள்ளது. Open செய்து Save செய்யுங்கள்.",false);
-        return;
-      }catch(e){console.warn("Filesystem download unavailable",e)}
 
       nfWacOpenImageForManualSave(built.blob,"NEW_FASHION_TAILORING_CUSTOMER_CARD.jpg");
       if(typeof toast==='function')toast("⚠️ Card image தயாராக உள்ளது. Open ஆன image-ஐ Save செய்யுங்கள்.",false);
