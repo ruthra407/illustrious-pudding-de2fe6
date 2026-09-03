@@ -1,22 +1,20 @@
 package com.newfashion.tailoring;
 
-// FIXED: Capacitor PluginMethod import verified
-
+import android.Manifest;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
-import android.Manifest;
-import android.content.pm.PackageManager;
 import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Environment;
 import android.provider.MediaStore;
 
-import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
+import androidx.core.content.ContextCompat;
 
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
@@ -25,24 +23,21 @@ import com.getcapacitor.annotation.CapacitorPlugin;
 import com.getcapacitor.PluginMethod;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 
-@CapacitorPlugin(name = "NativeCardDownload", requestCodes = {4201})
+@CapacitorPlugin(name = "NativeCardDownload")
 public class NativeCardDownloadPlugin extends Plugin {
 
     private static final String CHANNEL_ID = "card_downloads";
     private static final int NOTIFICATION_ID = 2001;
 
-    private String pendingNotificationFilename;
-    private Uri pendingNotificationUri;
-    private String pendingNotificationMimeType;
-
     @PluginMethod
     public void saveCardFromUri(PluginCall call) {
         String uriString = call.getString("uri");
-        String filename = call.getString("filename", "NEW_FASHION_TAILORING_CUSTOMER_CARD.jpg");
+        String filename = safeFilename(
+                call.getString("filename", "NEW_FASHION_TAILORING_CUSTOMER_CARD.jpg")
+        );
         String mimeType = call.getString("mimeType", "image/jpeg");
 
         if (uriString == null || uriString.trim().isEmpty()) {
@@ -60,8 +55,10 @@ public class NativeCardDownloadPlugin extends Plugin {
                 ContentValues values = new ContentValues();
                 values.put(MediaStore.Images.Media.DISPLAY_NAME, filename);
                 values.put(MediaStore.Images.Media.MIME_TYPE, mimeType);
-                values.put(MediaStore.Images.Media.RELATIVE_PATH,
-                        Environment.DIRECTORY_PICTURES + "/New Fashion Tailoring");
+                values.put(
+                        MediaStore.Images.Media.RELATIVE_PATH,
+                        Environment.DIRECTORY_PICTURES + "/New Fashion Tailoring"
+                );
                 values.put(MediaStore.Images.Media.IS_PENDING, 1);
 
                 targetUri = resolver.insert(
@@ -81,11 +78,11 @@ public class NativeCardDownloadPlugin extends Plugin {
                 resolver.update(targetUri, done, null, null);
 
             } else {
-                // Legacy Android: save into public Pictures and let MediaScanner index it.
                 File pictures = Environment.getExternalStoragePublicDirectory(
                         Environment.DIRECTORY_PICTURES
                 );
                 File folder = new File(pictures, "New Fashion Tailoring");
+
                 if (!folder.exists() && !folder.mkdirs()) {
                     call.reject("Could not create Pictures folder");
                     return;
@@ -95,78 +92,109 @@ public class NativeCardDownloadPlugin extends Plugin {
                 copyUriToFile(sourceUri, targetFile);
                 targetUri = Uri.fromFile(targetFile);
 
-                getContext().sendBroadcast(new Intent(
-                        Intent.ACTION_MEDIA_SCANNER_SCAN_FILE,
-                        targetUri
-                ));
+                getContext().sendBroadcast(
+                        new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, targetUri)
+                );
             }
 
-            showDownloadNotification(filename, targetUri, mimeType);
+            // IMPORTANT:
+            // File save success is independent from notification permission.
+            // Never report a failed download just because notification permission is denied.
+            showDownloadNotificationIfAllowed(filename, targetUri, mimeType);
 
             JSObject result = new JSObject();
             result.put("ok", true);
             result.put("uri", targetUri.toString());
             result.put("filename", filename);
             result.put("location", "Pictures/New Fashion Tailoring");
+            result.put("notificationShown", canPostNotifications());
+
             call.resolve(result);
 
         } catch (Exception e) {
             if (targetUri != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 try {
-                    getContext().getContentResolver().delete(targetUri, null, null);
-                } catch (Exception ignored) { }
+                    resolverDelete(targetUri);
+                } catch (Exception ignored) {
+                }
             }
-            call.reject("Card download failed: " + e.getMessage(), e);
+            call.reject(
+                    "Card download failed: " +
+                    (e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage()),
+                    e
+            );
         }
     }
 
     private void copyUriToUri(Uri source, Uri target) throws Exception {
         ContentResolver resolver = getContext().getContentResolver();
+
         try (InputStream input = resolver.openInputStream(source);
              OutputStream output = resolver.openOutputStream(target)) {
-            if (input == null || output == null) throw new Exception("Could not open card file");
+
+            if (input == null || output == null) {
+                throw new Exception("Could not open card file");
+            }
+
             byte[] buffer = new byte[64 * 1024];
             int read;
+
             while ((read = input.read(buffer)) != -1) {
                 output.write(buffer, 0, read);
             }
+
             output.flush();
         }
     }
 
     private void copyUriToFile(Uri source, File target) throws Exception {
         ContentResolver resolver = getContext().getContentResolver();
+
         try (InputStream input = resolver.openInputStream(source);
              OutputStream output = new java.io.FileOutputStream(target)) {
-            if (input == null) throw new Exception("Could not open card file");
+
+            if (input == null) {
+                throw new Exception("Could not open card file");
+            }
+
             byte[] buffer = new byte[64 * 1024];
             int read;
+
             while ((read = input.read(buffer)) != -1) {
                 output.write(buffer, 0, read);
             }
+
             output.flush();
         }
     }
 
-    private void showDownloadNotification(String filename, Uri imageUri, String mimeType) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-                ActivityCompat.checkSelfPermission(getContext(), Manifest.permission.POST_NOTIFICATIONS)
-                        != PackageManager.PERMISSION_GRANTED) {
-            pendingNotificationFilename = filename;
-            pendingNotificationUri = imageUri;
-            pendingNotificationMimeType = mimeType;
+    private boolean canPostNotifications() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+            return true;
+        }
 
-            ActivityCompat.requestPermissions(
-                    getActivity(),
-                    new String[]{Manifest.permission.POST_NOTIFICATIONS},
-                    4201
-            );
+        return ContextCompat.checkSelfPermission(
+                getContext(),
+                Manifest.permission.POST_NOTIFICATIONS
+        ) == PackageManager.PERMISSION_GRANTED;
+    }
+
+    private void showDownloadNotificationIfAllowed(
+            String filename,
+            Uri imageUri,
+            String mimeType
+    ) {
+        // Do NOT request permission from inside this plugin.
+        // MainActivity already handles POST_NOTIFICATIONS.
+        if (!canPostNotifications()) {
             return;
         }
 
-try {
+        try {
             NotificationManager manager =
-                    (NotificationManager) getContext().getSystemService(NotificationManager.class);
+                    (NotificationManager) getContext()
+                            .getSystemService(NotificationManager.class);
+
             if (manager == null) return;
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -199,50 +227,53 @@ try {
                     new NotificationCompat.Builder(getContext(), CHANNEL_ID)
                             .setSmallIcon(android.R.drawable.stat_sys_download_done)
                             .setContentTitle("Card Download Complete")
-                            .setContentText("Tap to open the card in Gallery")
+                            .setContentText("Customer card saved successfully")
                             .setContentIntent(pendingIntent)
                             .setAutoCancel(true)
                             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-                            .setStyle(new NotificationCompat.BigTextStyle()
-                                    .bigText(filename + "\nPictures/New Fashion Tailoring"));
+                            .setStyle(
+                                    new NotificationCompat.BigTextStyle()
+                                            .bigText(
+                                                    filename +
+                                                    "\nPictures/New Fashion Tailoring"
+                                            )
+                            );
 
             manager.notify(NOTIFICATION_ID, builder.build());
-        } catch (Exception ignored) {
-            // Notification failure must never turn a successful file save into a failed download.
+
+        } catch (Exception e) {
+            // Notification failure must never make a successful file save fail.
+            android.util.Log.e(
+                    "NativeCardDownload",
+                    "Notification failed",
+                    e
+            );
         }
+    }
+
+    private void resolverDelete(Uri uri) {
+        try {
+            getContext().getContentResolver().delete(uri, null, null);
+        } catch (Exception ignored) {
+        }
+    }
+
+    private String safeFilename(String filename) {
+        if (filename == null || filename.trim().isEmpty()) {
+            return "NEW_FASHION_TAILORING_CUSTOMER_CARD.jpg";
+        }
+
+        String clean = new File(filename).getName();
+
+        if (clean.isEmpty()) {
+            return "NEW_FASHION_TAILORING_CUSTOMER_CARD.jpg";
+        }
+
+        return clean;
     }
 
     @PluginMethod
     public void saveCard(PluginCall call) {
         call.reject("Legacy saveCard API disabled; use saveCardFromUri");
-    }
-
-    @Override
-    @SuppressWarnings("deprecation")
-    protected void handleRequestPermissionsResult(
-            int requestCode,
-            String[] permissions,
-            int[] grantResults
-    ) {
-        super.handleRequestPermissionsResult(requestCode, permissions, grantResults);
-
-        if (requestCode == 4201 &&
-                Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-                ActivityCompat.checkSelfPermission(
-                        getContext(),
-                        Manifest.permission.POST_NOTIFICATIONS
-                ) == PackageManager.PERMISSION_GRANTED &&
-                pendingNotificationUri != null) {
-
-            showDownloadNotification(
-                    pendingNotificationFilename,
-                    pendingNotificationUri,
-                    pendingNotificationMimeType
-            );
-
-            pendingNotificationFilename = null;
-            pendingNotificationUri = null;
-            pendingNotificationMimeType = null;
-        }
     }
 }
