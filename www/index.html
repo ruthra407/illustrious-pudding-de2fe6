@@ -7172,7 +7172,7 @@ function nfWacSvg(data,photoHref){
     }
     function drawCover(im,x,y,w,h,r){
       ctx.save();rr(x,y,w,h,r,"#fff");ctx.clip();
-      var s=Math.max(w/im.width,h/im.height),dw=im.width*s,dh=im.height*s;
+      var s=Math.min(w/im.width,h/im.height),dw=im.width*s,dh=im.height*s;
       ctx.drawImage(im,x+(w-dw)/2,y+(h-dh)/2,dw,dh);ctx.restore();
       rr(x,y,w,h,r,null,"#d36b9c",3);
     }
@@ -7314,7 +7314,7 @@ function nfWacSvg(data,photoHref){
 
   async function nfWacShareFileNative(built){
     var uri=await nfWacPrepareNativeFile(built);
-    var native=nfWacNativePlugin("NativeCardShare");
+    var native=await nfWacNativePlugin("NativeCardShare");
     if(!native || typeof native.shareCardFromUri!=="function") throw new Error("native-share-uri-method-unavailable");
     await nfWacWithTimeout(native.shareCardFromUri({uri:uri,filename:"NEW_FASHION_TAILORING_CUSTOMER_CARD.jpg",mimeType:"image/jpeg",text:built.text,phone:built.phone}),10000,"native-share-uri");
     return true;
@@ -7372,7 +7372,7 @@ function nfWacSvg(data,photoHref){
       var built=await nfWacBuildStable();
       if(btn)btn.textContent="💾 Saving file...";
 
-      var native=nfWacNativePlugin("NativeCardDownload");
+      var native=await nfWacNativePlugin("NativeCardDownload");
       if(native && typeof native.saveCardFromUri==="function"){
         try{
           var uri=await nfWacPrepareNativeFile(built);
