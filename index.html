@@ -9039,16 +9039,6 @@ window.addEventListener("keydown",function(e){if(e.key==="Escape")window.closeCu
     form.__nfV10099SubmitHook=true;
   }
 
-  // Refresh the Payment page whenever the app reloads its data.
-  const oldLoadAll=window.loadAll;
-  if(typeof oldLoadAll==="function" && !oldLoadAll.__nfV10099){
-    const wrappedLoad=async function(){
-      const r=await oldLoadAll.apply(this,arguments);
-      return r;
-    };
-    wrappedLoad.__nfV10099=true;
-    window.loadAll=wrappedLoad;
-  }
 })();
 </script><script id="v100100-payment-total-sync">
 (function(){
@@ -9539,7 +9529,8 @@ window.addEventListener("keydown",function(e){if(e.key==="Escape")window.closeCu
   "use strict";
 
   var indicator=null,startY=0,pulling=false,refreshing=false;
-  var threshold=105;
+  /* Deliberately requires a clear, deliberate pull. */
+  var threshold=130;
 
   function getIndicator(){
     if(indicator)return indicator;
@@ -9561,7 +9552,7 @@ window.addEventListener("keydown",function(e){if(e.key==="Escape")window.closeCu
 
   function excluded(target){
     return !!(target&&target.closest&&target.closest(
-      "input,textarea,select,button,a,[contenteditable='true'],.modalbox,.tablewrap"
+      "input,textarea,select,button,a,[contenteditable='true'],.modalbox,.tablewrap,#sidebar,#drawer"
     ));
   }
 
@@ -9585,19 +9576,18 @@ window.addEventListener("keydown",function(e){if(e.key==="Escape")window.closeCu
     if(dy<=0||!pageAtTop()){pulling=false;hideIndicator();return;}
 
     var el=getIndicator();
-    var progress=Math.min(1,dy/threshold);
+    /* Slight resistance keeps the gesture smooth and prevents tiny pulls. */
+    var effective=Math.min(threshold,dy*.82);
+    var progress=Math.min(1,effective/threshold);
     var scale=.78+(progress*.22);
     var lift=-72+(progress*72);
     el.style.transform="translate(-50%,"+lift+"px) scale("+scale+")";
-    el.style.opacity=String(.25+(progress*.75));
+    el.style.opacity=String(.18+(progress*.82));
     el.classList.toggle("ready",dy>=threshold);
-    if(dy>=threshold){
-      el.innerHTML='<span class="nf-pull-arrow" aria-hidden="true"></span>';
-    }
     if(dy>8)e.preventDefault();
   },{passive:false});
 
-  document.addEventListener("touchend",async function(e){
+  document.addEventListener("touchend",function(e){
     if(!pulling||refreshing)return;
     var endY=e.changedTouches&&e.changedTouches[0]?e.changedTouches[0].clientY:startY;
     var dy=endY-startY;
@@ -9611,27 +9601,8 @@ window.addEventListener("keydown",function(e){if(e.key==="Escape")window.closeCu
     el.classList.add("refreshing");
     el.innerHTML="";
 
-    try{
-      if(typeof window.loadAll==="function"){
-        await window.loadAll(true);
-      }else{
-        window.location.reload();
-        return;
-      }
-      el.classList.remove("refreshing");
-      el.classList.add("done");
-      setTimeout(hideIndicator,700);
-    }catch(err){
-      console.error("Pull refresh failed",err);
-      el.classList.remove("refreshing");
-      el.classList.add("done");
-      el.style.borderColor="#d92f3f";
-      el.style.color="#d92f3f";
-      el.innerHTML='<span style="font-size:22px;font-weight:950">!</span>';
-      setTimeout(hideIndicator,900);
-    }finally{
-      setTimeout(function(){refreshing=false},750);
-    }
+    /* This is a real page reload, not a loadAll() override/data refresh. */
+    window.location.reload();
   },{passive:true});
 
   async function nfExitApp(){
@@ -9648,50 +9619,6 @@ window.addEventListener("keydown",function(e){if(e.key==="Escape")window.closeCu
     }
   }
   window.nfExitApp=nfExitApp;
-
-  function installExitButton(){
-    var btn=document.getElementById("sideExitApp");
-    if(btn&&!btn.__nfExitBound){
-      btn.__nfExitBound=true;
-      btn.addEventListener("click",function(e){
-        e.preventDefault();e.stopPropagation();nfExitApp();
-      });
-    }
-  }
-
-  function installBackButton(){
-    var cap=window.Capacitor,app=cap&&cap.Plugins&&cap.Plugins.App;
-    if(!app||typeof app.addListener!=="function"||app.__nfBackInstalled)return;
-    app.__nfBackInstalled=true;
-    var lastBack=0;
-    app.addListener("backButton",function(){
-      if(window.nfWacHistoryOpen===true || (typeof nfWacHistoryOpen!=="undefined" && nfWacHistoryOpen)){
-        if(typeof window.closeCustomerWhatsAppCard==="function"){window.closeCustomerWhatsAppCard();return;}
-      }
-      var sidebar=document.getElementById("sidebar");
-      if(sidebar&&sidebar.classList.contains("open")){
-        sidebar.classList.remove("open");
-        return;
-      }
-      var currentView=history.state?.view||"dashboard";
-      if(currentView!=="dashboard"){
-        lastBack=0;
-        if(history.length>1)history.back();
-        else if(typeof goView==="function")goView("dashboard");
-        return;
-      }
-      var now=Date.now();
-      if(now-lastBack<1500){nfExitApp();lastBack=0;return;}
-      lastBack=now;
-      if(typeof toast==="function")toast("மீண்டும் Back அழுத்தினால் App Exit ஆகும்.");
-    });
-  }
-
-  function install(){installExitButton();installBackButton();}
-  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",install,{once:true});
-  else install();
-  setTimeout(install,500);
-  setTimeout(install,1500);
 })();
 </script>
 
