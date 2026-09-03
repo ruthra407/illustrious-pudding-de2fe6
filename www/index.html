@@ -7173,123 +7173,31 @@ function nfWacSvg(data,photoHref){
 
     rr(margin,headerY,inner,headerH,20,grad(margin,headerY,inner,"#130a2a","#b20b59"),"#f3ca42",3);
 
-    /* V40 — PROFESSIONAL HEADER MERGED INTO V39
-   Only the header drawing is changed. All lower card logic/layout stays intact. */
-
+    /* HEADER ONLY — V39: large bordered typography + sewing-machine NFT logo */
     ctx.save();
 
     rr(margin,headerY,inner,headerH,20,
-       grad(margin,headerY,inner,"#12052d","#c9005d"),
-       "#f3ca42",4);
+       grad(margin,headerY,inner,"#120827","#d10a63"),"#f3ca42",3);
 
-    /* ===== PROFESSIONAL TAILORING LOGO — LEFT ===== */
-    var logoX=105;
-    var logoY=headerY + headerH/2;
+    /* LEFT LOGO: sewing machine + NFT */
+    var lx=88, ly=138;
+    ctx.beginPath(); ctx.arc(lx,ly,68,0,Math.PI*2);
+    ctx.fillStyle="#f3ca42"; ctx.fill();
+    ctx.beginPath(); ctx.arc(lx,ly,61,0,Math.PI*2);
+    ctx.fillStyle="#24103d"; ctx.fill();
 
-    ctx.beginPath();
-    ctx.arc(logoX,logoY,82,0,Math.PI*2);
-    ctx.fillStyle="#f3ca42";
-    ctx.fill();
-
-    ctx.beginPath();
-    ctx.arc(logoX,logoY,74,0,Math.PI*2);
-    ctx.fillStyle="#190a32";
-    ctx.fill();
-
-    /* Sewing machine emblem */
     ctx.save();
-    ctx.strokeStyle="#ffd83d";
-    ctx.lineWidth=8;
-    ctx.lineCap="round";
-    ctx.lineJoin="round";
-
+    ctx.strokeStyle="#ffd83d"; ctx.lineWidth=6;
+    ctx.lineCap="round"; ctx.lineJoin="round";
     ctx.beginPath();
-    ctx.moveTo(logoX-48,logoY+28);
-    ctx.lineTo(logoX+48,logoY+28);
-    ctx.moveTo(logoX-38,logoY+28);
-    ctx.lineTo(logoX-38,logoY-20);
-    ctx.lineTo(logoX-5,logoY-20);
-    ctx.lineTo(logoX+10,logoY-43);
-    ctx.lineTo(logoX+39,logoY-43);
-    ctx.lineTo(logoX+39,logoY-5);
-    ctx.lineTo(logoX+8,logoY-5);
-    ctx.lineTo(logoX+8,logoY+28);
+    ctx.moveTo(lx-34,ly+20); ctx.lineTo(lx+35,ly+20);
+    ctx.moveTo(lx-28,ly+20); ctx.lineTo(lx-28,ly-15);
+    ctx.lineTo(lx-7,ly-15); ctx.lineTo(lx+5,ly-31);
+    ctx.lineTo(lx+27,ly-31); ctx.lineTo(lx+27,ly-5);
+    ctx.lineTo(lx+8,ly-5); ctx.lineTo(lx+8,ly+20);
     ctx.stroke();
-
-    ctx.beginPath();
-    ctx.arc(logoX+24,logoY-25,8,0,Math.PI*2);
-    ctx.stroke();
-
-    ctx.beginPath();
-    ctx.arc(logoX-12,logoY+10,9,0,Math.PI*2);
-    ctx.stroke();
-
-    ctx.restore();
-
-    txt("NFT",logoX,logoY+58,24,950,"#ffffff","center");
-
-
-    /* ===== PROFESSIONAL HEADING ===== */
-    function professionalHeading(text,x,y,size,fill,stroke){
-        ctx.save();
-        ctx.font="900 "+size+"px Noto Sans Tamil, Arial, sans-serif";
-        ctx.textAlign="center";
-        ctx.textBaseline="middle";
-        ctx.lineJoin="round";
-        ctx.lineWidth=5;
-        ctx.strokeStyle=stroke;
-        ctx.fillStyle=fill;
-
-        ctx.shadowColor="rgba(0,0,0,.55)";
-        ctx.shadowBlur=5;
-        ctx.shadowOffsetX=0;
-        ctx.shadowOffsetY=4;
-
-        ctx.strokeText(text,x,y);
-        ctx.fillText(text,x,y);
-
-        ctx.restore();
-    }
-
-
-    /* Main brand heading */
-    professionalHeading(
-        "NEW FASHION TAILORING",
-        610,67,48,
-        "#ffffff","#3b1555"
-    );
-
-
-    /* Place */
-    professionalHeading(
-        "PONNAMARAVATHY",
-        610,114,44,
-        "#ffd83d","#7b1749"
-    );
-
-
-    /* WhatsApp + Number */
-    ctx.beginPath();
-    ctx.arc(450,162,24,0,Math.PI*2);
-    ctx.fillStyle="#25D366";
-    ctx.fill();
-
-    txt("⌕",450,170,25,950,"#ffffff","center");
-
-    professionalHeading(
-        "8524931003",
-        610,165,45,
-        "#25D366","#073d25"
-    );
-
-
-    /* Customer Card */
-    professionalHeading(
-        "CUSTOMER CARD",
-        610,220,44,
-        "#ff9bd8","#64133f"
-    );
-
+    ctx.beginPath(); ctx.arc(lx+18,ly-17,6,0,Math.PI*2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(lx-10,ly+7,7,0,Math.PI*2); ctx.stroke();
     ctx.restore();
     txt("NFT",lx,ly+46,19,950,"#ffffff","center");
 
