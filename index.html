@@ -7208,7 +7208,7 @@ function nfWacSvg(data,photoHref){
     }
     rr(18,footerY,inner,footerH,18,grad(18,footerY,inner,"#25104d","#a80a5b"),"#e8bf40",2);txt("Thank you for choosing us!",W/2,footerY+35,25,950,"#ffd84c","center");txt("NEW FASHION TAILORING",W/2,footerY+67,20,950,"#fff","center");txt("☎  PHONE: 8524931003",W/2,footerY+101,21,950,"#fff","center");
 
-    var jpg=await new Promise(function(resolve,reject){var done=false,t=setTimeout(function(){if(done)return;done=true;reject(new Error("jpeg-encode-timeout"));},8000);try{canvas.toBlob(function(b){if(done)return;done=true;clearTimeout(t);resolve(b);},"image/jpeg",0.86);}catch(e){if(done)return;done=true;clearTimeout(t);reject(e);}});
+    var jpg=await new Promise(function(resolve,reject){var done=false,t=setTimeout(function(){if(done)return;done=true;reject(new Error("jpeg-encode-timeout"));},8000);try{canvas.toBlob(function(b){if(done)return;done=true;clearTimeout(t);resolve(b);},"image/jpeg",0.95);}catch(e){if(done)return;done=true;clearTimeout(t);reject(e);}});
     if(!jpg) throw new Error("jpeg-failed");
     return {blob:jpg,data:data,text:nfWacText(data),phone:String(data.c&&data.c.phone||"").replace(/\D/g,"")};
   }
