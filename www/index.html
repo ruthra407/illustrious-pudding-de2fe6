@@ -7173,29 +7173,30 @@ function nfWacSvg(data,photoHref){
 
     rr(margin,headerY,inner,headerH,20,grad(margin,headerY,inner,"#130a2a","#b20b59"),"#f3ca42",3);
 
-    /* Header-only redesign requested by the user.
-       IMPORTANT: customer/order/date/payment/photo/footer content below is untouched. */
+    /* Header-only redesign: all content below the header remains untouched.
+       Four header lines use the same font size; only text width differs.
+       Tailoring logo stays on the left; WhatsApp mark stays with the phone. */
     ctx.save();
 
-    /* Tailoring logo — larger, left corner */
-    ctx.beginPath();ctx.arc(100,112,70,0,Math.PI*2);ctx.fillStyle="#f3ca42";ctx.fill();
-    ctx.beginPath();ctx.arc(100,112,62,0,Math.PI*2);ctx.fillStyle="#24103f";ctx.fill();
-    txt("✂",100,99,42,950,"#ffd83d","center");
-    txt("NFT",100,137,21,950,"#fff","center");
+    /* Left tailoring logo */
+    ctx.beginPath(); ctx.arc(88,138,60,0,Math.PI*2); ctx.fillStyle="#f3ca42"; ctx.fill();
+    ctx.beginPath(); ctx.arc(88,138,53,0,Math.PI*2); ctx.fillStyle="#2a123f"; ctx.fill();
+    txt("✂",88,128,38,950,"#ffd83d","center");
+    txt("NFT",88,160,16,950,"#fff","center");
 
-    /* Main title */
-    txt("NEW FASHION TAILORING",520,70,47,950,"#fff","center");
-    txt("Ponnamaravathy",520,112,30,950,"#ffd83d","center");
-    txt("CUSTOMER CARD",520,153,28,950,"#fff","center");
+    /* Same font size for every header line */
+    txt("NEW FASHION TAILORING",550,72,34,950,"#ffffff","center");
+    txt("PONNAMARAVATHY",550,116,34,950,"#ffd83d","center");
 
-    /* WhatsApp-style green logo + phone number; no word 'Phone' */
-    ctx.beginPath();ctx.arc(720,202,29,0,Math.PI*2);ctx.fillStyle="#25D366";ctx.fill();
-    txt("☎",720,202,28,950,"#fff","center");
-    txt("8524931003",850,203,43,950,"#fff","center");
+    /* WhatsApp mark + phone in one line */
+    ctx.beginPath(); ctx.arc(455,160,17,0,Math.PI*2); ctx.fillStyle="#25D366"; ctx.fill();
+    txt("⌕",455,167,19,950,"#ffffff","center");
+    txt("8524931003",480,170,34,950,"#25D366","left");
+
+    txt("CUSTOMER CARD",550,214,34,950,"#ff8bd1","center");
 
     ctx.restore();
-
-    rr(margin,detailY,inner,detailH,16,"#fff","#6c4df6",3);
+rr(margin,detailY,inner,detailH,16,"#fff","#6c4df6",3);
     rr(margin,detailY,inner,54,16,grad(margin,detailY,inner,"#7112c4","#d30a61"),null,0);
     txt("👤  CUSTOMER DETAILS",48,340,22,950,"#fff","left");
     ctx.strokeStyle="#d2c8dd";ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(349,detailY+54);ctx.lineTo(349,detailY+detailH);ctx.moveTo(681,detailY+54);ctx.lineTo(681,detailY+detailH);ctx.stroke();
