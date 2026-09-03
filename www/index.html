@@ -7302,7 +7302,7 @@ function nfWacSvg(data,photoHref){
     }
     if(!fs || typeof fs.writeFile!=="function") throw new Error("filesystem-plugin-unavailable");
     var b64=await blobBase64(blob);
-    var saved=await nfWacWithTimeout(fs.writeFile({path:filename,directory:"CACHE",data:b64,recursive:true}),12000,"filesystem-write");
+    var saved=await nfWacWithTimeout(fs.writeFile({path:filename,directory:"CACHE",data:b64,recursive:true}),5000,"filesystem-write");
     if(!saved || !saved.uri) throw new Error("filesystem-uri-unavailable");
     return String(saved.uri);
   }
@@ -7316,7 +7316,7 @@ function nfWacSvg(data,photoHref){
     var uri=await nfWacPrepareNativeFile(built);
     var native=await nfWacNativePlugin("NativeCardShare");
     if(!native || typeof native.shareCardFromUri!=="function") throw new Error("native-share-uri-method-unavailable");
-    await nfWacWithTimeout(native.shareCardFromUri({uri:uri,filename:"NEW_FASHION_TAILORING_CUSTOMER_CARD.jpg",mimeType:"image/jpeg",text:built.text,phone:built.phone}),10000,"native-share-uri");
+    await nfWacWithTimeout(native.shareCardFromUri({uri:uri,filename:"NEW_FASHION_TAILORING_CUSTOMER_CARD.jpg",mimeType:"image/jpeg",text:built.text,phone:built.phone}),3000,"native-share-uri");
     return true;
   }
 
@@ -7327,7 +7327,7 @@ function nfWacSvg(data,photoHref){
     if(typeof navigator.canShare==="function"){
       try{if(!navigator.canShare({files:[file]})) throw new Error("web-file-share-unavailable");}catch(e){throw e;}
     }
-    await nfWacWithTimeout(navigator.share({title:"NEW FASHION TAILORING – CUSTOMER CARD",text:built.text,files:[file]}),10000,"web-file-share");
+    await nfWacWithTimeout(navigator.share({title:"NEW FASHION TAILORING – CUSTOMER CARD",text:built.text,files:[file]}),3000,"web-file-share");
     return true;
   }
 
@@ -7376,7 +7376,7 @@ function nfWacSvg(data,photoHref){
       if(native && typeof native.saveCardFromUri==="function"){
         try{
           var uri=await nfWacPrepareNativeFile(built);
-          await nfWacWithTimeout(native.saveCardFromUri({uri:uri,filename:"NEW_FASHION_TAILORING_CUSTOMER_CARD.jpg",mimeType:"image/jpeg"}),10000,"native-download-uri");
+          await nfWacWithTimeout(native.saveCardFromUri({uri:uri,filename:"NEW_FASHION_TAILORING_CUSTOMER_CARD.jpg",mimeType:"image/jpeg"}),3000,"native-download-uri");
           if(typeof toast==='function')toast("✅ Customer Card save செய்யப்பட்டது.");
           return;
         }catch(e){console.warn("Native URI download failed; filesystem fallback",e)}
