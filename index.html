@@ -7173,27 +7173,31 @@ function nfWacSvg(data,photoHref){
 
     rr(margin,headerY,inner,headerH,20,grad(margin,headerY,inner,"#130a2a","#b20b59"),"#f3ca42",3);
 
-    /* Header-only redesign: all content below the header remains untouched.
-       Four header lines use the same font size; only text width differs.
-       Tailoring logo stays on the left; WhatsApp mark stays with the phone. */
+    /* Header-only redesign: filled premium box, clear logo and non-overlapping typography. */
     ctx.save();
 
-    /* Left tailoring logo */
-    ctx.beginPath(); ctx.arc(88,138,60,0,Math.PI*2); ctx.fillStyle="#f3ca42"; ctx.fill();
-    ctx.beginPath(); ctx.arc(88,138,53,0,Math.PI*2); ctx.fillStyle="#2a123f"; ctx.fill();
-    txt("✂",88,128,38,950,"#ffd83d","center");
-    txt("NFT",88,160,16,950,"#fff","center");
+    /* Full header fill */
+    rr(margin,headerY,inner,headerH,20,grad(margin,headerY,inner,"#180b35","#d10b62"),"#f3ca42",3);
 
-    /* Same font size for every header line */
-    txt("NEW FASHION TAILORING",550,72,34,950,"#ffffff","center");
-    txt("PONNAMARAVATHY",550,116,34,950,"#ffd83d","center");
+    /* Left tailoring logo badge */
+    ctx.beginPath(); ctx.arc(88,138,62,0,Math.PI*2);
+    ctx.fillStyle="#f3ca42"; ctx.fill();
+    ctx.beginPath(); ctx.arc(88,138,55,0,Math.PI*2);
+    ctx.fillStyle="#24103d"; ctx.fill();
+    txt("✂",88,126,38,950,"#ffd83d","center");
+    txt("NFT",88,161,18,950,"#ffffff","center");
 
-    /* WhatsApp mark + phone in one line */
-    ctx.beginPath(); ctx.arc(455,160,17,0,Math.PI*2); ctx.fillStyle="#25D366"; ctx.fill();
-    txt("⌕",455,167,19,950,"#ffffff","center");
-    txt("8524931003",480,170,34,950,"#25D366","left");
+    /* Header stack: same large readable scale, each line separated */
+    txt("NEW FASHION TAILORING",550,68,38,950,"#ffffff","center");
+    txt("PONNAMARAVATHY",550,111,38,950,"#ffd83d","center");
 
-    txt("CUSTOMER CARD",550,214,34,950,"#ff8bd1","center");
+    /* WhatsApp icon + number */
+    ctx.beginPath(); ctx.arc(468,157,20,0,Math.PI*2);
+    ctx.fillStyle="#25D366"; ctx.fill();
+    txt("⌕",468,164,22,950,"#ffffff","center");
+    txt("8524931003",498,169,38,950,"#25D366","left");
+
+    txt("CUSTOMER CARD",550,218,38,950,"#ffffff","center");
 
     ctx.restore();
 rr(margin,detailY,inner,detailH,16,"#fff","#6c4df6",3);
