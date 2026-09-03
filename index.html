@@ -7173,22 +7173,27 @@ function nfWacSvg(data,photoHref){
 
     rr(margin,headerY,inner,headerH,20,grad(margin,headerY,inner,"#130a2a","#b20b59"),"#f3ca42",3);
 
-    /* Header-only enhancement: keep all card data/layout unchanged.
-       Add a simple built-in tailoring logo badge, enlarge the heading,
-       and move the shop phone to a large top-right corner block. */
+    /* Header-only redesign requested by the user.
+       IMPORTANT: customer/order/date/payment/photo/footer content below is untouched. */
     ctx.save();
-    ctx.beginPath();ctx.arc(88,92,48,0,Math.PI*2);ctx.fillStyle="#f3ca42";ctx.fill();
-    ctx.beginPath();ctx.arc(88,92,42,0,Math.PI*2);ctx.fillStyle="#2a123f";ctx.fill();
-    txt("✂",88,82,31,950,"#ffd83d","center");
-    txt("NFT",88,112,15,950,"#fff","center");
+
+    /* Tailoring logo — larger, left corner */
+    ctx.beginPath();ctx.arc(100,112,70,0,Math.PI*2);ctx.fillStyle="#f3ca42";ctx.fill();
+    ctx.beginPath();ctx.arc(100,112,62,0,Math.PI*2);ctx.fillStyle="#24103f";ctx.fill();
+    txt("✂",100,99,42,950,"#ffd83d","center");
+    txt("NFT",100,137,21,950,"#fff","center");
+
+    /* Main title */
+    txt("NEW FASHION TAILORING",520,70,47,950,"#fff","center");
+    txt("Ponnamaravathy",520,112,30,950,"#ffd83d","center");
+    txt("CUSTOMER CARD",520,153,28,950,"#fff","center");
+
+    /* WhatsApp-style green logo + phone number; no word 'Phone' */
+    ctx.beginPath();ctx.arc(720,202,29,0,Math.PI*2);ctx.fillStyle="#25D366";ctx.fill();
+    txt("☎",720,202,28,950,"#fff","center");
+    txt("8524931003",850,203,43,950,"#fff","center");
+
     ctx.restore();
-
-    txt("NEW FASHION TAILORING",545,88,42,950,"#fff","center");
-    txt("CUSTOMER • ORDER • CARD",545,130,24,950,"#ffd83d","center");
-
-    rr(695,158,285,78,18,"rgba(0,0,0,.22)","#f3ca42",2);
-    txt("SHOP PHONE NUMBER",837,176,14,950,"#ffd83d","center");
-    txt("8524931003",837,213,42,950,"#fff","center");
 
     rr(margin,detailY,inner,detailH,16,"#fff","#6c4df6",3);
     rr(margin,detailY,inner,54,16,grad(margin,detailY,inner,"#7112c4","#d30a61"),null,0);
