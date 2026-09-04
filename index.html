@@ -972,7 +972,7 @@ async function nfLocalFirstLoadAll(silent=false,forceCloud=false){
   const result=await Promise.allSettled(NF_TABLES.map(t=>nfRawFrom(t).select("*").order("created_at",{ascending:false})));
   result.forEach((r,i)=>{if(r.status==="fulfilled"&&!r.value.error)state[NF_TABLES[i]]=r.value.data||[]});
   try{renderAll()}catch(e){console.error("Cloud render error",e)}
-  try{await nfHydrateCloudClothPhotos()}catch(e){console.warn("R2 photo hydrate skipped",e)}
+  try{setTimeout(()=>{nfHydrateCloudClothPhotos().catch(e=>console.warn("R2 photo hydrate skipped",e))},0)}catch(e){}
  }else{
   /* Offline fallback only; cloud remains the primary source. */
   try{await nfLoadState(state.user.id);renderAll()}catch(e){console.warn("Offline local fallback unavailable",e)}
@@ -980,6 +980,23 @@ async function nfLocalFirstLoadAll(silent=false,forceCloud=false){
  await nfRunSync();
  setTimeout(()=>{try{nfHydrateCloudClothPhotos();nfRunPendingPhotoDeletes()}catch(_){ }},900);
 }
+/* Ensure first app open gets data even if initial auth/session event races startup. */
+(function(){
+  let bootTries=0;
+  function ensureInitialData(){
+    bootTries++;
+    try{
+      if(state?.user){
+        if(typeof loadAll==="function")loadAll(true).catch(e=>console.warn("Initial data load retry:",e));
+        return;
+      }
+    }catch(e){}
+    if(bootTries<12)setTimeout(ensureInitialData,250);
+  }
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",()=>setTimeout(ensureInitialData,0),{once:true});
+  else setTimeout(ensureInitialData,0);
+})();
+
 /* Login session already uses persistSession:true. Local data is loaded after auth. */
 
 const $=id=>document.getElementById(id);
