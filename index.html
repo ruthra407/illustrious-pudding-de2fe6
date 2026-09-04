@@ -1613,26 +1613,19 @@ async function nfCompressPhotoForCloud(blob,maxDim=1280,quality=0.65){
     const out=await new Promise(r=>c.toBlob(r,"image/jpeg",quality));bmp.close();return out||blob;
   }catch(_){return blob}
 }
-/* V47 — Common R2 photo uploader */
-async function nfUploadPhotoToR2(path,fileOrBlob,contentType){
-  if(!navigator.onLine)throw new Error("Internet connection required for R2 photo upload");
-  if(!fileOrBlob)throw new Error("no-photo");
-  const cloudBlob=await nfCompressPhotoForCloud(fileOrBlob);
-  const res=await fetch(nfR2PhotoUrl(path),{
-    method:"PUT",
-    headers:{"Content-Type":(cloudBlob?.type||contentType||"image/jpeg")},
-    body:cloudBlob
-  });
-  if(!res.ok)throw new Error("R2 upload failed ("+res.status+")");
-  return path;
-}
 async function nfUploadCustomerClothPhoto(id,slot,fileOrBlob,contentType){
   nfCloudPhotoLastError="";
   try{
     const path=nfCloudPhotoPath(id,slot);
-    const savedPath=await nfUploadPhotoToR2(path,fileOrBlob,contentType||"image/jpeg");
-    nfClothPhotoCloudPathCache[String(id)+":"+slot]=savedPath;
-    return savedPath;
+    const cloudBlob=await nfCompressPhotoForCloud(fileOrBlob);
+    const res=await fetch(nfR2PhotoUrl(path),{
+      method:"PUT",
+      headers:{"Content-Type":(cloudBlob?.type||contentType||"image/jpeg")},
+      body:cloudBlob
+    });
+    if(!res.ok)throw new Error("R2 upload failed ("+res.status+")");
+    nfClothPhotoCloudPathCache[String(id)+":"+slot]=path;
+    return path;
   }catch(err){
     nfCloudPhotoLastError=String(err?.message||err||"Unknown R2 error");
     console.warn("R2 customer photo upload failed:",nfCloudPhotoLastError);
@@ -5005,7 +4998,6 @@ window.renderPendingCustomerCard=function(){
 .nf-di-remaining{margin-top:6px;padding:7px 9px;border-radius:9px;background:#e9f8f2;color:#147453;font-size:12px;font-weight:850;text-align:center}
 @media(max-width:560px){.nf-design-photo-pair{grid-template-columns:1fr 1fr}.nf-di-photo-preview{height:145px}.nf-di-photo-actions .btn{font-size:11px;padding:8px 4px}}
 </style><style>.nf-design-3slot{margin-top:9px;padding:11px;border-radius:14px;border:1px solid #ddd5ff;background:linear-gradient(135deg,#f7f4ff,#fff1f7)}.nf-design-3slot-head{font-weight:900;font-size:14px;margin-bottom:7px}.nf-design-3slot-hint{font-size:11px;color:#6f6a7c;line-height:1.4;margin-bottom:8px}.nf-design-3slot-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.nf-design-slot-card{min-width:0;padding:9px;border:1px solid #e4def5;border-radius:12px;background:#fff}.nf-design-slot-card h5{margin:0 0 6px;font-size:12px;font-weight:900}.nf-design-slot-card label{display:block;font-size:10px;font-weight:800;color:#77758a;margin:5px 0 3px}.nf-design-slot-card input{width:100%;min-height:40px}.nf-design-slot-sub{margin-top:6px;padding:6px;border-radius:8px;background:#f7f7fb;text-align:right;font-size:11px;font-weight:850}.nf-design-3slot-total{display:flex;justify-content:space-between;gap:8px;margin-top:8px;padding:9px 10px;border-radius:10px;background:linear-gradient(135deg,#6c4df6,#ef4f8a);color:#fff;font-weight:900}@media (max-width:700px){.nf-design-3slot-grid{grid-template-columns:1fr}}.nf-orders-new-order-screen{z-index:80;align-items:flex-start;padding:0;background:rgba(26,20,38,.62);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}.nf-orders-new-order-box{width:min(820px,100%);height:100%;max-height:none;border-radius:0 0 22px 22px;padding:20px;overflow:auto;margin:0 auto}.nf-orders-new-order-box .modalhead{position:sticky;top:0;z-index:3;background:#fff;padding-bottom:12px}.nf-customer-page-actions{flex-direction:column}.nf-customer-page-actions .btn{min-width:180px}@media (min-width:760px){.nf-orders-new-order-box{height:auto;max-height:93vh;border-radius:20px;margin:3vh auto}.nf-orders-new-order-screen{align-items:center;padding:16px}}.nf-mobile-order-list{display:grid;gap:12px}.nf-mobile-order-card{background:rgba(255,255,255,.96);border:1px solid #e5e2ed;border-radius:20px;padding:15px;box-shadow:0 10px 28px rgba(40,38,68,.08);cursor:pointer;-webkit-tap-highlight-color:transparent}.nf-mobile-order-card:active{transform:scale(.995);box-shadow:0 5px 16px rgba(40,38,68,.10)}.nf-mobile-order-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding-bottom:10px;margin-bottom:2px;border-bottom:1px solid #eeeaf2}.nf-mobile-order-top>div{display:grid;gap:2px;min-width:0}.nf-mobile-order-label{font-size:11px;color:#77758a;font-weight:800}.nf-mobile-order-top strong{font-size:19px;overflow-wrap:anywhere}.nf-mobile-order-line{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid #f0edf4}.nf-mobile-order-line span{color:#686578;font-weight:750;flex:0 0 auto}.nf-mobile-order-line b{text-align:right;overflow-wrap:anywhere}.nf-mobile-order-line small{display:block;color:#77758a;font-weight:600;font-size:11px;margin-top:2px}.nf-mobile-order-status{display:flex;align-items:center;justify-content:space-between;gap:10px;padding-top:10px;font-weight:800}.nf-mobile-order-hint{margin-top:10px;text-align:center;font-size:11px;color:#77758a;font-weight:750}@media (min-width:701px){.nf-mobile-order-list{display:none!important}}.nf-order-full-details{display:none!important;align-items:flex-start!important;justify-content:center!important;padding:0!important;overflow:hidden!important;z-index:95!important}.nf-order-full-details.open{display:flex!important}.nf-order-full-details-box{width:min(900px,100%)!important;max-width:100%!important;max-height:96dvh!important;margin:0 auto!important;border-radius:0 0 24px 24px!important;overflow:auto!important;padding:18px!important;opacity:0;transform:translate3d(0,-105%,0)!important;transition:transform .38s cubic-bezier(.22,.8,.25,1),opacity .24s ease!important;will-change:transform,opacity}.nf-order-full-details.open .nf-order-full-details-box{opacity:1;transform:translate3d(0,0,0)!important}.nf-order-full-details-head{position:sticky;top:0;z-index:4;background:#fff;padding-bottom:12px;border-bottom:1px solid #eee8f0}.nf-order-full-details-head h3{font-size:22px!important;font-weight:950!important}.nf-order-detail-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px}.nf-order-detail-item{padding:12px;border:1px solid #e8eaf2;border-radius:13px;background:#faf9ff}.nf-order-detail-item.full{grid-column:1/-1}.nf-order-detail-label{display:block;font-size:11px;color:#747083;font-weight:800;margin-bottom:4px}.nf-order-detail-value{display:block;font-size:15px;font-weight:850;color:#20212a;overflow-wrap:anywhere}.nf-order-status-control{margin:0 0 14px;padding:14px;border:1px solid rgba(108,61,245,.14);border-radius:16px;background:linear-gradient(180deg,#faf8ff,#fff)}.nf-order-status-title{font-size:16px;font-weight:900;margin-bottom:10px}.nf-order-status-buttons{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.nf-status-btn{min-height:46px;font-weight:900;opacity:.78}.nf-status-btn.active{opacity:1;transform:translateY(-1px);box-shadow:0 7px 18px rgba(108,61,245,.18)}.nf-order-status-current{margin-top:9px;font-size:12px;color:#77758a}.nf-order-full-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.nf-order-row{cursor:pointer}.nf-order-row:hover td{background:#faf8ff}@media (max-width:560px){.nf-order-full-details-box{width:100%!important;max-height:94dvh!important;border-radius:0 0 18px 18px!important;padding:14px!important}.nf-order-detail-grid{grid-template-columns:1fr}.nf-order-detail-item.full{grid-column:auto}.nf-order-full-actions{flex-direction:column}.nf-order-full-actions .btn{width:100%}}</style><script id="nf-design-3slot-js">
-/* V48 — R2 design photo persistence + empty-state recovery */
 (function(){
 "use strict";
 const N=v=>{const n=Number(v);return Number.isFinite(n)?Math.max(0,n):0};
@@ -5055,7 +5047,7 @@ function slotMarkup(items){
   for(let i=0;i<3;i++){
     const x=items[i]||{name:"",qty:0,rate:0,handover:0,handoverDate:"",clothPhoto:"",designPhoto:""};
     const q=N(x.qty),ho=Math.min(q,N(x.handover));
-    const cp=nfDesignPhotoSrc(x.clothPhoto),dp=nfDesignPhotoSrc(x.designPhoto);
+    const cp=String(x.clothPhoto||""),dp=String(x.designPhoto||"");
     h+=`<div class="nf-design-slot-card" data-design-slot="${i+1}">
       <h5>🎨 Design ${i+1}</h5>
 
@@ -5113,8 +5105,8 @@ function readBox(box){
       rate:N(c.querySelector(".nf-di-rate")?.value),
       handover:handover,
       handoverDate:c.querySelector(".nf-di-handover-date")?.value||"",
-      clothPhoto:c.dataset.clothPhoto||nfLoadDesignPhotoDraft(c.closest("[id^=quick-order-]")?.id?.replace("quick-order-","")||"",Number(c.dataset.designSlot||1)-1,"cloth"),
-      designPhoto:c.dataset.designPhoto||nfLoadDesignPhotoDraft(c.closest("[id^=quick-order-]")?.id?.replace("quick-order-","")||"",Number(c.dataset.designSlot||1)-1,"design")
+      clothPhoto:c.dataset.clothPhoto||"",
+      designPhoto:c.dataset.designPhoto||""
     };
   });
 }
@@ -5134,49 +5126,38 @@ function recalcBox(box){
 
 window.nfDesignItems=designItemsFromOrder;
 
-function nfDesignPhotoDraftKey(customerId,slot,kind){
-  return "nf_design_r2_draft:"+String(customerId||"")+":"+Number(slot)+":"+(kind==="cloth"?"cloth":"design");
-}
-function nfSaveDesignPhotoDraft(customerId,slot,kind,path){
-  try{localStorage.setItem(nfDesignPhotoDraftKey(customerId,slot,kind),String(path||""));}catch(_){}
-}
-function nfLoadDesignPhotoDraft(customerId,slot,kind){
-  try{return localStorage.getItem(nfDesignPhotoDraftKey(customerId,slot,kind))||"";}catch(_){return ""}
-}
-function nfClearDesignPhotoDrafts(customerId){
-  try{for(let i=0;i<3;i++){localStorage.removeItem(nfDesignPhotoDraftKey(customerId,i,"cloth"));localStorage.removeItem(nfDesignPhotoDraftKey(customerId,i,"design"));}}catch(_){}
-}
-
-async function nfUploadDesignPhotoR2(customerId,slot,kind,file){
-  const safeCustomer=String(customerId||"unknown").replace(/[^a-zA-Z0-9_-]/g,"_");
-  const safeKind=kind==="cloth"?"cloth":"design";
-  const path="designs/"+safeCustomer+"/design-"+(Number(slot)+1)+"-"+safeKind+".jpg";
-  return nfUploadPhotoToR2(path,file,"image/jpeg");
-}
-function nfDesignPhotoSrc(pathOrUrl){
-  const s=String(pathOrUrl||"");
-  if(!s)return "";
-  if(/^https?:\/\//i.test(s) || /^data:/i.test(s))return s;
-  return nfR2PhotoUrl(s);
+async function nfCompressDesignPhoto(file){
+  return new Promise(function(resolve,reject){
+    if(!file)return reject(new Error("no-photo"));
+    const rd=new FileReader();
+    rd.onload=function(){
+      const im=new Image();
+      im.onload=function(){
+        const max=900,scale=Math.min(1,max/Math.max(im.width,im.height));
+        const c=document.createElement("canvas");
+        c.width=Math.max(1,Math.round(im.width*scale));
+        c.height=Math.max(1,Math.round(im.height*scale));
+        const cx=c.getContext("2d");cx.drawImage(im,0,0,c.width,c.height);
+        resolve(c.toDataURL("image/jpeg",0.80));
+      };
+      im.onerror=()=>reject(new Error("photo-read-failed"));
+      im.src=rd.result;
+    };
+    rd.onerror=()=>reject(new Error("photo-read-failed"));
+    rd.readAsDataURL(file);
+  });
 }
 window.nfPickDesignPhoto=async function(input,slot,kind){
   const file=input?.files?.[0];if(!file)return;
   const card=input.closest(".nf-design-slot-card");if(!card)return;
-  const quick=card.closest("[id^=quick-order-]");
-  const customerId=quick?.id?.replace("quick-order-","")||"";
   try{
-    toast("☁️ R2-க்கு photo upload ஆகிறது...");
-    const path=await nfUploadDesignPhotoR2(customerId,slot,kind,file);
-    const key=kind==="cloth"?"clothPhoto":"designPhoto";
-    card.dataset[key]=path;
-    nfSaveDesignPhotoDraft(customerId,slot,kind,path);
+    const data=await nfCompressDesignPhoto(file);
+    card.dataset[kind==="cloth"?"clothPhoto":"designPhoto"]=data;
     const preview=card.querySelector(kind==="cloth"?".nf-di-cloth-preview":".nf-di-design-preview");
-    if(preview)preview.innerHTML=`<img src="${E(nfDesignPhotoSrc(path))}" alt="${kind==="cloth"?"Cloth reference":"Design reference"}">`;
-    toast("☁️ R2-வில் Photo சேமிக்கப்பட்டது");
-    updateQuick(customerId);
-  }catch(e){
-    toast("R2 Photo upload failed: "+String(e?.message||e),true);
-  }
+    if(preview)preview.innerHTML=`<img src="${E(data)}" alt="${kind==="cloth"?"Cloth reference":"Design reference"}">`;
+    toast(kind==="cloth"?"🥻 Reference photo added":"🎨 Design photo added");
+    updateQuick(card.closest("[id^=quick-order-]")?.id?.replace("quick-order-","")||"");
+  }catch(e){toast("Photo load failed",true)}
   input.value="";
 };
 
@@ -5189,13 +5170,8 @@ function buildQuick(id,items){
   box.querySelectorAll("input").forEach(el=>el.addEventListener("input",()=>updateQuick(id)));
   box.querySelectorAll(".nf-design-slot-card").forEach((c,i)=>{
     const x=items[i]||{};
-    const cloth=String(x.clothPhoto||"")||nfLoadDesignPhotoDraft(id,i,"cloth");
-    const design=String(x.designPhoto||"")||nfLoadDesignPhotoDraft(id,i,"design");
-    c.dataset.clothPhoto=cloth;
-    c.dataset.designPhoto=design;
-    const cp=c.querySelector(".nf-di-cloth-preview"),dp=c.querySelector(".nf-di-design-preview");
-    if(cp&&cloth)cp.innerHTML=`<img src="${E(nfDesignPhotoSrc(cloth))}" alt="Cloth reference">`;
-    if(dp&&design)dp.innerHTML=`<img src="${E(nfDesignPhotoSrc(design))}" alt="Design reference">`;
+    c.dataset.clothPhoto=String(x.clothPhoto||"");
+    c.dataset.designPhoto=String(x.designPhoto||"");
   });
   updateQuick(id);
 }
@@ -5282,6 +5258,39 @@ if(typeof oldRenderCustomers==="function" && !window.__nfRenderCustomersDesignSl
       const q=document.getElementById("qo-design-"+c.id);
       if(q&&!document.querySelector("#quick-order-"+c.id+" .nf-design-3slot"))buildQuick(c.id,[]);
     });
+  };
+}
+
+const oldSave=window.saveQuickOrder;
+if(typeof oldSave==="function"){
+  window.saveQuickOrder=async function(id){
+    const host=document.getElementById("qo-design-rates-box-"+id);
+    const box=host?.querySelector(".nf-design-3slot");
+    const items=box?readBox(box).filter(x=>x.qty>0).slice(0,3):[];
+
+    if(box){
+      const d=recalcBox(box);
+      const designField=document.getElementById("qo-design-"+id);
+      if(designField){designField.value=d.qty;designField.readOnly=true;}
+      const designHandover=document.getElementById("qo-design-handover-"+id);
+      if(designHandover){designHandover.value=d.handover;}
+    }
+    const editId=host?.closest("#quick-order-"+id)?.dataset?.editOrderId||"";
+    const result=await oldSave.apply(this,arguments);
+    try{
+      let order=editId?(state.orders||[]).find(x=>x.id===editId):null;
+      if(!order)order=(state.orders||[]).filter(x=>x.customer_id===id).slice().sort((a,b)=>String(b.created_at||b.order_date||"").localeCompare(String(a.created_at||a.order_date||"")))[0];
+      if(order){
+        let notes=String(order.notes||"").replace(/\s*\|\s*DESIGN_ITEMS:\[[^\]]*\]/,"").trim();
+        if(items.length){
+          notes+=(notes?" | ":"")+"DESIGN_ITEMS:"+JSON.stringify(items);
+        }
+        const r=await supabaseClient.from("orders").update({notes}).eq("id",order.id);
+        if(r.error)throw r.error;
+        await loadAll(true);
+      }
+    }catch(e){toast("Design slot save failed: "+e.message,true)}
+    return result;
   };
 }
 
@@ -5960,13 +5969,6 @@ function nfFormatPaymentDate(v){return v?dateText(v):"—";}
       .replace(/^\s*\|\s*|\s*\|\s*$/g,"")
       .trim();
     if(advanceDate) notes+=(notes?" | ":"")+`ADVANCE_DATE:${advanceDate}`;
-    /* V48 FIX: persist the 3 design slots (including R2 photo paths) in the same order notes payload. */
-    const designHost=document.getElementById("qo-design-rates-box-"+id);
-    const designBox=designHost?.querySelector(".nf-design-3slot");
-    const designItems=designBox?readBox(designBox).filter(x=>x.qty>0).slice(0,3):[];
-    if(isBlouse&&designItems.length){
-      notes+=" | DESIGN_ITEMS:"+JSON.stringify(designItems);
-    }
     const storedGarment=isBlouse?"Blouse":"Chudi";
     const payload={customer_id:customerId,order_no:existing?.order_no||makeOrderNo(),garment_type:storedGarment,order_date:orderDate,cloth_received_date:cloth,delivery_date:delivery,quantity:qty,unit_price:qty?total/qty:0,total_amount:total,advance_amount:advance,balance_amount:Math.max(0,total-advance),status,rate_type:isBlouse?(s.normal>0?"normal":s.lining>0?"lining":s.design>0?"design":"normal"):"normal",lining_cloth_source:ls||null,lining_cloth_qty:lq,notes};
     try{
@@ -5975,7 +5977,6 @@ function nfFormatPaymentDate(v){return v?dateText(v):"—";}
         :await supabaseClient.from("orders").insert(payload).select("*").single();
       if(result.error)throw result.error;
       if(existing&&!result.data)throw new Error("Order update செய்யப்படவில்லை. Database UPDATE permission / RLS policy-ஐ சரிபார்க்க வேண்டும்.");
-      if(isBlouse&&designItems.length)nfClearDesignPhotoDrafts(customerId);
       // Keep the linked Payment records in sync with the Edit Order values.
       try{
         await window.nfSyncLinkedPaymentDates?.(
@@ -6084,7 +6085,7 @@ function nfFormatPaymentDate(v){return v?dateText(v):"—";}
           const nm=String(it.name||'').trim();
           const taken=Math.min(q,N(it.handover));
           const remaining=Math.max(0,q-taken);
-          const cp=nfDesignPhotoSrc(it.clothPhoto),dp=nfDesignPhotoSrc(it.designPhoto);
+          const cp=String(it.clothPhoto||''),dp=String(it.designPhoto||'');
           const photos=(cp||dp)?`<div class="nf-card-design-photos">${cp?`<div><span>🥻 Reference</span><img src="${esc(cp)}" alt="Design ${i+1} reference"></div>`:''}${dp?`<div><span>🎨 Design</span><img src="${esc(dp)}" alt="Design ${i+1} model"></div>`:''}</div>`:'';
           designRows+=`<div class="nf-customer-design-rate-row"><div class="nf-customer-design-head"><span class="rateLabel">🎨 Design ${i+1}${nm?' — '+esc(nm):''}</span><span class="rateMath">${q} × ${money(r)} = <b>${money(q*r)}</b></span></div><div class="nf-customer-design-status"><span>மொத்தம் <b>${q}</b></span><span>வாங்கிச் சென்றது <b>${taken}</b></span><span>மீதம் <b>${remaining}</b></span></div>${photos}</div>`;
         });
@@ -8145,13 +8146,11 @@ window.addEventListener("keydown",function(e){if(e.key==="Escape")window.closeCu
     if(!navigator.onLine || !window.supabaseClient) return {ok:false};
     try{
       var q=window.supabaseClient.from(table).select("*");
-      /* V48 FIX — if local state is empty, never use an old delta cursor.
-         Recover the complete table from Supabase first. */
-      var localArr=Array.isArray(state[table])?state[table]:[];
-      var forceFull=!localArr.length;
-      if(since && !forceFull){
+      if(since){
         q=q.gt("updated_at",since).order("updated_at",{ascending:true});
       }else{
+        // First refresh for this table: preserve the existing app behavior,
+        // but only this one table is fetched at a time.
         q=q.order("created_at",{ascending:true});
       }
       var r=await q;
