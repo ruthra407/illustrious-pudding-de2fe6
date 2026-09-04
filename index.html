@@ -5285,40 +5285,6 @@ if(typeof oldRenderCustomers==="function" && !window.__nfRenderCustomersDesignSl
   };
 }
 
-const oldSave=window.saveQuickOrder;
-if(typeof oldSave==="function"){
-  window.saveQuickOrder=async function(id){
-    const host=document.getElementById("qo-design-rates-box-"+id);
-    const box=host?.querySelector(".nf-design-3slot");
-    const items=box?readBox(box).filter(x=>x.qty>0).slice(0,3):[];
-
-    if(box){
-      const d=recalcBox(box);
-      const designField=document.getElementById("qo-design-"+id);
-      if(designField){designField.value=d.qty;designField.readOnly=true;}
-      const designHandover=document.getElementById("qo-design-handover-"+id);
-      if(designHandover){designHandover.value=d.handover;}
-    }
-    const editId=host?.closest("#quick-order-"+id)?.dataset?.editOrderId||"";
-    const result=await oldSave.apply(this,arguments);
-    try{
-      let order=editId?(state.orders||[]).find(x=>x.id===editId):null;
-      if(!order)order=(state.orders||[]).filter(x=>x.customer_id===id).slice().sort((a,b)=>String(b.created_at||b.order_date||"").localeCompare(String(a.created_at||a.order_date||"")))[0];
-      if(order){
-        let notes=String(order.notes||"").replace(/\s*\|\s*DESIGN_ITEMS:\[[^\]]*\]/,"").trim();
-        if(items.length){
-          notes+=(notes?" | ":"")+"DESIGN_ITEMS:"+JSON.stringify(items);
-        }
-        const r=await supabaseClient.from("orders").update({notes}).eq("id",order.id);
-        if(r.error)throw r.error;
-        await loadAll(true);
-        nfClearDesignPhotoDrafts(id);
-      }
-    }catch(e){toast("Design slot save failed: "+e.message,true)}
-    return result;
-  };
-}
-
 const oldOpen=window.openModal;
 if(typeof oldOpen==="function" && !window.__nfOpenModalCanonicalOrderEditor){
   window.__nfOpenModalCanonicalOrderEditor=true;
@@ -5994,6 +5960,13 @@ function nfFormatPaymentDate(v){return v?dateText(v):"—";}
       .replace(/^\s*\|\s*|\s*\|\s*$/g,"")
       .trim();
     if(advanceDate) notes+=(notes?" | ":"")+`ADVANCE_DATE:${advanceDate}`;
+    /* V48 FIX: persist the 3 design slots (including R2 photo paths) in the same order notes payload. */
+    const designHost=document.getElementById("qo-design-rates-box-"+id);
+    const designBox=designHost?.querySelector(".nf-design-3slot");
+    const designItems=designBox?readBox(designBox).filter(x=>x.qty>0).slice(0,3):[];
+    if(isBlouse&&designItems.length){
+      notes+=" | DESIGN_ITEMS:"+JSON.stringify(designItems);
+    }
     const storedGarment=isBlouse?"Blouse":"Chudi";
     const payload={customer_id:customerId,order_no:existing?.order_no||makeOrderNo(),garment_type:storedGarment,order_date:orderDate,cloth_received_date:cloth,delivery_date:delivery,quantity:qty,unit_price:qty?total/qty:0,total_amount:total,advance_amount:advance,balance_amount:Math.max(0,total-advance),status,rate_type:isBlouse?(s.normal>0?"normal":s.lining>0?"lining":s.design>0?"design":"normal"):"normal",lining_cloth_source:ls||null,lining_cloth_qty:lq,notes};
     try{
@@ -6002,6 +5975,7 @@ function nfFormatPaymentDate(v){return v?dateText(v):"—";}
         :await supabaseClient.from("orders").insert(payload).select("*").single();
       if(result.error)throw result.error;
       if(existing&&!result.data)throw new Error("Order update செய்யப்படவில்லை. Database UPDATE permission / RLS policy-ஐ சரிபார்க்க வேண்டும்.");
+      if(isBlouse&&designItems.length)nfClearDesignPhotoDrafts(customerId);
       // Keep the linked Payment records in sync with the Edit Order values.
       try{
         await window.nfSyncLinkedPaymentDates?.(
