@@ -9501,58 +9501,7 @@ setTimeout(decorateAll,100);
 </script>
 
 
-<script>
-(function(){
-  function installPhotoPreviewSwipe(){
-    var overlay=document.getElementById("nfPhotoPreviewOverlay");
-    if(!overlay||overlay.__nfSwipeInstalled)return;
-    overlay.__nfSwipeInstalled=true;
-    var sx=0,sy=0,tracking=false;
-    function canSwipe(){return !window.__nfPhotoZoomIsActive || !window.__nfPhotoZoomIsActive();}
-    overlay.addEventListener("touchstart",function(e){
-      if(e.touches.length!==1)return;
-      var t=e.touches[0]; sx=t.clientX; sy=t.clientY; tracking=true;
-    },{passive:true});
-    overlay.addEventListener("touchend",function(e){
-      if(!tracking)return; tracking=false;
-      var t=e.changedTouches[0],dx=t.clientX-sx,dy=t.clientY-sy;
-      if(Math.abs(dx)>=70 && Math.abs(dx)>Math.abs(dy)*1.15 && canSwipe()){
-        closeCustomerClothPhotoPreview();
-      }
-    },{passive:true});
-    overlay.addEventListener("pointerdown",function(e){
-      if(e.pointerType==="mouse")return;
-      sx=e.clientX; sy=e.clientY; tracking=true;
-    },{passive:true});
-    overlay.addEventListener("pointerup",function(e){
-      if(e.pointerType==="mouse"||!tracking)return; tracking=false;
-      var dx=e.clientX-sx,dy=e.clientY-sy;
-      if(Math.abs(dx)>=70 && Math.abs(dx)>Math.abs(dy)*1.15 && canSwipe()){
-        closeCustomerClothPhotoPreview();
-      }
-    },{passive:true});
-  }
-  var oldPreview=window.previewCustomerClothPhoto;
-  if(typeof oldPreview==="function"&&!oldPreview.__nfSwipeWrapped){
-    window.previewCustomerClothPhoto=function(){
-      var r=oldPreview.apply(this,arguments);
-      setTimeout(installPhotoPreviewSwipe,0);
-      return r;
-    };
-    window.previewCustomerClothPhoto.__nfSwipeWrapped=true;
-  }
-  var oldDesign=window.previewCustomerBlouseDesignPhoto;
-  if(typeof oldDesign==="function"&&!oldDesign.__nfSwipeWrapped){
-    window.previewCustomerBlouseDesignPhoto=function(){
-      var r=oldDesign.apply(this,arguments);
-      setTimeout(installPhotoPreviewSwipe,0);
-      return r;
-    };
-    window.previewCustomerBlouseDesignPhoto.__nfSwipeWrapped=true;
-  }
-  document.addEventListener("DOMContentLoaded",function(){setTimeout(installPhotoPreviewSwipe,300);});
-})();
-</script>
+
 
 <style id="nf-ultra6-photo-preview-fix">
 /* Ultra 6: photo preview must not scroll the page or play a page-slide effect. */
@@ -9564,44 +9513,71 @@ body.nf-photo-preview-scroll-locked{overscroll-behavior:none!important}
 (function(){
   "use strict";
 
-  /* Side-swipe only: handle the gesture at document-capture level so
-     other global touch handlers cannot swallow it. X-close is untouched. */
-  var sx=0,sy=0,tracking=false;
+  /* Side-swipe closes the open photo preview only. X-close and app history stay untouched. */
+  var sx=0,sy=0,tracking=false,pointerId=null;
+  var THRESHOLD=70;
   function getOverlay(){return document.getElementById("nfPhotoPreviewOverlay");}
   function active(){var o=getOverlay();return !!(o&&o.classList.contains("open"));}
-  function insideOverlay(target){
-    var o=getOverlay();
-    return !!(o&&target&&o.contains(target));
+  function canSwipe(){return !window.__nfPhotoZoomIsActive || !window.__nfPhotoZoomIsActive();}
+  function begin(x,y,id){
+    if(!active())return false;
+    sx=x; sy=y; tracking=true; pointerId=id==null?null:id;
+    return true;
   }
-  document.addEventListener("touchstart",function(e){
-    if(!active()||!insideOverlay(e.target)||!e.touches||e.touches.length!==1)return;
-    var t=e.touches[0]; sx=t.clientX; sy=t.clientY; tracking=true;
-    e.stopPropagation();
-  },{passive:false,capture:true});
+  function finish(x,y,e){
+    if(!tracking)return;
+    tracking=false; pointerId=null;
+    var dx=x-sx,dy=y-sy;
+    if(Math.abs(dx)>=THRESHOLD && Math.abs(dx)>Math.abs(dy)*1.15 && canSwipe() && active()){
+      if(e&&e.cancelable)e.preventDefault();
+      if(e&&e.stopImmediatePropagation)e.stopImmediatePropagation();
+      if(typeof window.closeCustomerClothPhotoPreview==="function")window.closeCustomerClothPhotoPreview();
+    }
+  }
 
-  document.addEventListener("touchmove",function(e){
-    if(!tracking||!e.touches||e.touches.length!==1)return;
+  window.addEventListener("pointerdown",function(e){
+    if(e.pointerType==="mouse")return;
+    if(begin(e.clientX,e.clientY,e.pointerId)){
+      try{e.target.setPointerCapture(e.pointerId);}catch(_){}
+    }
+  },{passive:false,capture:true});
+  window.addEventListener("pointermove",function(e){
+    if(!tracking||e.pointerId!==pointerId)return;
+    var dx=e.clientX-sx,dy=e.clientY-sy;
+    if(Math.abs(dx)>=8 && Math.abs(dx)>Math.abs(dy)*1.15){
+      if(e.cancelable)e.preventDefault();
+      e.stopImmediatePropagation();
+    }
+  },{passive:false,capture:true});
+  window.addEventListener("pointerup",function(e){
+    if(e.pointerId!==pointerId)return;
+    finish(e.clientX,e.clientY,e);
+  },{passive:false,capture:true});
+  window.addEventListener("pointercancel",function(e){
+    if(e.pointerId===pointerId){tracking=false;pointerId=null;}
+  },{passive:true,capture:true});
+
+  window.addEventListener("touchstart",function(e){
+    if(pointerId!==null||!e.touches||e.touches.length!==1)return;
+    var t=e.touches[0];
+    begin(t.clientX,t.clientY,null);
+  },{passive:false,capture:true});
+  window.addEventListener("touchmove",function(e){
+    if(pointerId!==null||!tracking||!e.touches||e.touches.length!==1)return;
     var t=e.touches[0],dx=t.clientX-sx,dy=t.clientY-sy;
     if(Math.abs(dx)>=8 && Math.abs(dx)>Math.abs(dy)*1.15){
       if(e.cancelable)e.preventDefault();
-      e.stopPropagation();
+      e.stopImmediatePropagation();
     }
   },{passive:false,capture:true});
-
-  document.addEventListener("touchend",function(e){
-    if(!tracking)return;
-    tracking=false;
+  window.addEventListener("touchend",function(e){
+    if(pointerId!==null||!tracking)return;
     var t=e.changedTouches&&e.changedTouches[0];
-    if(!t)return;
-    var dx=t.clientX-sx,dy=t.clientY-sy;
-    e.stopPropagation();
-    if(Math.abs(dx)>=70&&Math.abs(dx)>Math.abs(dy)*1.15&&active()){
-      if(e.cancelable)e.preventDefault();
-      if(typeof window.closeCustomerClothPhotoPreview==="function")window.closeCustomerClothPhotoPreview();
-    }
+    if(t)finish(t.clientX,t.clientY,e); else tracking=false;
   },{passive:false,capture:true});
-
-  document.addEventListener("touchcancel",function(){tracking=false;},{passive:true,capture:true});
+  window.addEventListener("touchcancel",function(){
+    if(pointerId===null){tracking=false;pointerId=null;}
+  },{passive:true,capture:true});
 
   /* Preserve the exact page position when the preview is closed. */
   var oldUnlock=window.nfUnlockPhotoPreviewScroll;
