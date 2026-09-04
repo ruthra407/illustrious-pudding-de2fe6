@@ -21,6 +21,8 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
 
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -30,18 +32,11 @@ jobs:
           cache: gradle
 
       - name: Install dependencies
-        run: npm install
-
-      - name: Install Capacitor Local Notifications
-        run: npm install --save @capacitor/local-notifications@8.2.1
-
-      - name: Install Capacitor App
-        run: npm install --save @capacitor/app@8.0.0
-
-      - name: Install Capacitor Contacts
         run: |
-          npm install --save @capacitor/contacts@1.0.1
-          npx cap sync android
+          npm install --no-audit --no-fund \
+            @capacitor/local-notifications@8.2.1 \
+            @capacitor/app@8.0.0 \
+            @capacitor/contacts@1.0.1
 
       - name: Sync root web files to www
         run: |
@@ -74,68 +69,34 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          for attempt in 1 2 3; do
-            echo "Sync/push attempt $attempt"
+          git add www/index.html
 
-            git fetch origin main
-            git reset --hard origin/main
+          if [ -f www/manifest.json ]; then
+            git add www/manifest.json
+          fi
 
-            test -f index.html
+          if [ -f www/icon-192.png ]; then
+            git add www/icon-192.png
+          fi
 
-            mkdir -p www
+          if [ -f www/icon-512.png ]; then
+            git add www/icon-512.png
+          fi
 
-            cp index.html www/index.html
-
-            if [ -f manifest.json ]; then
-              cp manifest.json www/manifest.json
-            fi
-
-            if [ -f icon-192.png ]; then
-              cp icon-192.png www/icon-192.png
-            fi
-
-            if [ -f icon-512.png ]; then
-              cp icon-512.png www/icon-512.png
-            fi
-
-            git add www/index.html
-
-            if [ -f www/manifest.json ]; then
-              git add www/manifest.json
-            fi
-
-            if [ -f www/icon-192.png ]; then
-              git add www/icon-192.png
-            fi
-
-            if [ -f www/icon-512.png ]; then
-              git add www/icon-512.png
-            fi
-
-            if git diff --cached --quiet; then
-              echo "www is already up to date."
-              exit 0
-            fi
-
-            git commit -m "Sync web files to www"
-
-            if git push origin HEAD:main; then
-              echo "www synchronization pushed successfully."
-              exit 0
-            fi
-
-            echo "Push rejected. Retrying with latest main..."
-            sleep 2
-          done
-
-          echo "ERROR: Failed to push synchronized www files after 3 attempts."
-          exit 1
+          if git diff --cached --quiet; then
+            echo "www is already up to date."
+          else
+            git commit -m "Sync web files to www [skip ci]"
+            git push origin HEAD:main
+          fi
 
       - name: Sync Capacitor Android
         run: npx cap sync android
 
       - name: Add Android permissions
         run: |
+          set -e
+
           python3 - <<'PY'
           from pathlib import Path
           import re
@@ -168,9 +129,10 @@ jobs:
               text = text[:pos] + insert + "\n" + text[pos:]
 
           manifest.write_text(text)
-          PY
 
-      - name: Restore new stable signing keystore
+          print("Android permissions verified/added.")
+
+      - name: Restore stable signing keystore
         env:
           KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
         run: |
@@ -188,12 +150,34 @@ jobs:
 
           test -s android/app/newfashion-release.jks
 
-          echo "New stable keystore restored."
+          echo "Stable keystore restored."
 
       - name: Configure Android signing
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
+          set -e
+
+          if [ -z "$KEYSTORE_PASSWORD" ]; then
+            echo "ERROR: ANDROID_KEYSTORE_PASSWORD is missing."
+            exit 1
+          fi
+
+          if [ -z "$KEY_ALIAS" ]; then
+            echo "ERROR: ANDROID_KEY_ALIAS is missing."
+            exit 1
+          fi
+
+          if [ -z "$KEY_PASSWORD" ]; then
+            echo "ERROR: ANDROID_KEY_PASSWORD is missing."
+            exit 1
+          fi
+
           python3 - <<'PY'
           from pathlib import Path
+          import os
           import re
 
           gradle = Path("android/app/build.gradle")
@@ -211,9 +195,9 @@ jobs:
               signingConfigs {
                   stable {
                       storeFile file("newfashion-release.jks")
-                      storePassword "newfashion123"
-                      keyAlias "newfashion"
-                      keyPassword "newfashion123"
+                      storePassword System.getenv("KEYSTORE_PASSWORD")
+                      keyAlias System.getenv("KEY_ALIAS")
+                      keyPassword System.getenv("KEY_PASSWORD")
                   }
               }
 
@@ -258,21 +242,27 @@ jobs:
 
           gradle.write_text(text)
 
-          print("Android signing configured.")
+          print("Android signing configured securely.")
           print("Keystore: newfashion-release.jks")
-          print("Alias: newfashion")
+          print("Alias:", os.environ["KEY_ALIAS"])
           PY
 
       - name: Set APK versionCode
         run: |
+          set -e
+
           python3 - <<'PY'
           from pathlib import Path
           import re
+          import os
 
           gradle = Path("android/app/build.gradle")
           text = gradle.read_text()
 
-          version_code = int("${{ github.run_number }}") + 1000
+          version_code = int(os.environ["GITHUB_RUN_NUMBER"]) + 1000
+
+          if not re.search(r"versionCode\s+\d+", text):
+              raise SystemExit("ERROR: versionCode not found.")
 
           text = re.sub(
               r"versionCode\s+\d+",
@@ -290,6 +280,9 @@ jobs:
         run: chmod +x android/gradlew
 
       - name: Verify stable signing key
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
         run: |
           set -e
 
@@ -297,14 +290,14 @@ jobs:
 
           keytool -list -v \
             -keystore android/app/newfashion-release.jks \
-            -storepass "newfashion123" \
-            -alias "newfashion"
+            -storepass "$KEYSTORE_PASSWORD" \
+            -alias "$KEY_ALIAS"
 
           echo "SIGNING KEY VERIFIED SUCCESSFULLY."
 
       - name: Build Debug APK
         working-directory: android
-        run: ./gradlew clean assembleDebug
+        run: ./gradlew assembleDebug --build-cache --parallel
 
       - name: Verify APK
         run: |
