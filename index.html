@@ -9563,48 +9563,45 @@ body.nf-photo-preview-scroll-locked{overscroll-behavior:none!important}
 <script id="nf-ultra6-photo-preview-fix-js">
 (function(){
   "use strict";
-  function install(){
-    var overlay=document.getElementById("nfPhotoPreviewOverlay");
-    if(!overlay||overlay.__nfUltra6Fix)return;
-    overlay.__nfUltra6Fix=true;
-    var sx=0,sy=0,tracking=false,moved=false;
-    function active(){return overlay.classList.contains("open");}
-    function begin(e){
-      if(!active()||!e.touches||e.touches.length!==1)return;
-      var t=e.touches[0]; sx=t.clientX; sy=t.clientY; tracking=true; moved=false;
-      e.stopPropagation();
-    }
-    function move(e){
-      if(!tracking||!e.touches||e.touches.length!==1)return;
-      var t=e.touches[0],dx=t.clientX-sx,dy=t.clientY-sy;
-      if(Math.abs(dx)>8||Math.abs(dy)>8)moved=true;
-      if(moved && Math.abs(dx)>Math.abs(dy)*1.15){
-        if(e.cancelable)e.preventDefault();
-        e.stopPropagation();
-      }
-    }
-    function end(e){
-      if(!tracking)return;
-      var t=e.changedTouches&&e.changedTouches[0];
-      tracking=false;
-      if(!t)return;
-      var dx=t.clientX-sx,dy=t.clientY-sy;
-      e.stopPropagation();
-      if(Math.abs(dx)>=70&&Math.abs(dx)>Math.abs(dy)*1.15){
-        if(e.cancelable)e.preventDefault();
-        if(typeof window.closeCustomerClothPhotoPreview==="function"){
-          window.closeCustomerClothPhotoPreview();
-        }
-      }
-    }
-    overlay.addEventListener("touchstart",begin,{passive:false,capture:true});
-    overlay.addEventListener("touchmove",move,{passive:false,capture:true});
-    overlay.addEventListener("touchend",end,{passive:false,capture:true});
-    overlay.addEventListener("touchcancel",function(){tracking=false;},{passive:true,capture:true});
+
+  /* Side-swipe only: handle the gesture at document-capture level so
+     other global touch handlers cannot swallow it. X-close is untouched. */
+  var sx=0,sy=0,tracking=false;
+  function getOverlay(){return document.getElementById("nfPhotoPreviewOverlay");}
+  function active(){var o=getOverlay();return !!(o&&o.classList.contains("open"));}
+  function insideOverlay(target){
+    var o=getOverlay();
+    return !!(o&&target&&o.contains(target));
   }
-  function boot(){install();setTimeout(install,300);setTimeout(install,800);}
-  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",boot,{once:true});
-  else boot();
+  document.addEventListener("touchstart",function(e){
+    if(!active()||!insideOverlay(e.target)||!e.touches||e.touches.length!==1)return;
+    var t=e.touches[0]; sx=t.clientX; sy=t.clientY; tracking=true;
+    e.stopPropagation();
+  },{passive:false,capture:true});
+
+  document.addEventListener("touchmove",function(e){
+    if(!tracking||!e.touches||e.touches.length!==1)return;
+    var t=e.touches[0],dx=t.clientX-sx,dy=t.clientY-sy;
+    if(Math.abs(dx)>=8 && Math.abs(dx)>Math.abs(dy)*1.15){
+      if(e.cancelable)e.preventDefault();
+      e.stopPropagation();
+    }
+  },{passive:false,capture:true});
+
+  document.addEventListener("touchend",function(e){
+    if(!tracking)return;
+    tracking=false;
+    var t=e.changedTouches&&e.changedTouches[0];
+    if(!t)return;
+    var dx=t.clientX-sx,dy=t.clientY-sy;
+    e.stopPropagation();
+    if(Math.abs(dx)>=70&&Math.abs(dx)>Math.abs(dy)*1.15&&active()){
+      if(e.cancelable)e.preventDefault();
+      if(typeof window.closeCustomerClothPhotoPreview==="function")window.closeCustomerClothPhotoPreview();
+    }
+  },{passive:false,capture:true});
+
+  document.addEventListener("touchcancel",function(){tracking=false;},{passive:true,capture:true});
 
   /* Preserve the exact page position when the preview is closed. */
   var oldUnlock=window.nfUnlockPhotoPreviewScroll;
