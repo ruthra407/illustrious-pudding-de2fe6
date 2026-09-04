@@ -1613,19 +1613,26 @@ async function nfCompressPhotoForCloud(blob,maxDim=1280,quality=0.65){
     const out=await new Promise(r=>c.toBlob(r,"image/jpeg",quality));bmp.close();return out||blob;
   }catch(_){return blob}
 }
+/* V47 — Common R2 photo uploader */
+async function nfUploadPhotoToR2(path,fileOrBlob,contentType){
+  if(!navigator.onLine)throw new Error("Internet connection required for R2 photo upload");
+  if(!fileOrBlob)throw new Error("no-photo");
+  const cloudBlob=await nfCompressPhotoForCloud(fileOrBlob);
+  const res=await fetch(nfR2PhotoUrl(path),{
+    method:"PUT",
+    headers:{"Content-Type":(cloudBlob?.type||contentType||"image/jpeg")},
+    body:cloudBlob
+  });
+  if(!res.ok)throw new Error("R2 upload failed ("+res.status+")");
+  return path;
+}
 async function nfUploadCustomerClothPhoto(id,slot,fileOrBlob,contentType){
   nfCloudPhotoLastError="";
   try{
     const path=nfCloudPhotoPath(id,slot);
-    const cloudBlob=await nfCompressPhotoForCloud(fileOrBlob);
-    const res=await fetch(nfR2PhotoUrl(path),{
-      method:"PUT",
-      headers:{"Content-Type":(cloudBlob?.type||contentType||"image/jpeg")},
-      body:cloudBlob
-    });
-    if(!res.ok)throw new Error("R2 upload failed ("+res.status+")");
-    nfClothPhotoCloudPathCache[String(id)+":"+slot]=path;
-    return path;
+    const savedPath=await nfUploadPhotoToR2(path,fileOrBlob,contentType||"image/jpeg");
+    nfClothPhotoCloudPathCache[String(id)+":"+slot]=savedPath;
+    return savedPath;
   }catch(err){
     nfCloudPhotoLastError=String(err?.message||err||"Unknown R2 error");
     console.warn("R2 customer photo upload failed:",nfCloudPhotoLastError);
@@ -5047,7 +5054,7 @@ function slotMarkup(items){
   for(let i=0;i<3;i++){
     const x=items[i]||{name:"",qty:0,rate:0,handover:0,handoverDate:"",clothPhoto:"",designPhoto:""};
     const q=N(x.qty),ho=Math.min(q,N(x.handover));
-    const cp=String(x.clothPhoto||""),dp=String(x.designPhoto||"");
+    const cp=nfDesignPhotoSrc(x.clothPhoto),dp=nfDesignPhotoSrc(x.designPhoto);
     h+=`<div class="nf-design-slot-card" data-design-slot="${i+1}">
       <h5>🎨 Design ${i+1}</h5>
 
@@ -5126,38 +5133,35 @@ function recalcBox(box){
 
 window.nfDesignItems=designItemsFromOrder;
 
-async function nfCompressDesignPhoto(file){
-  return new Promise(function(resolve,reject){
-    if(!file)return reject(new Error("no-photo"));
-    const rd=new FileReader();
-    rd.onload=function(){
-      const im=new Image();
-      im.onload=function(){
-        const max=900,scale=Math.min(1,max/Math.max(im.width,im.height));
-        const c=document.createElement("canvas");
-        c.width=Math.max(1,Math.round(im.width*scale));
-        c.height=Math.max(1,Math.round(im.height*scale));
-        const cx=c.getContext("2d");cx.drawImage(im,0,0,c.width,c.height);
-        resolve(c.toDataURL("image/jpeg",0.80));
-      };
-      im.onerror=()=>reject(new Error("photo-read-failed"));
-      im.src=rd.result;
-    };
-    rd.onerror=()=>reject(new Error("photo-read-failed"));
-    rd.readAsDataURL(file);
-  });
+async function nfUploadDesignPhotoR2(customerId,slot,kind,file){
+  const safeCustomer=String(customerId||"unknown").replace(/[^a-zA-Z0-9_-]/g,"_");
+  const safeKind=kind==="cloth"?"cloth":"design";
+  const path="designs/"+safeCustomer+"/design-"+(Number(slot)+1)+"-"+safeKind+".jpg";
+  return nfUploadPhotoToR2(path,file,"image/jpeg");
+}
+function nfDesignPhotoSrc(pathOrUrl){
+  const s=String(pathOrUrl||"");
+  if(!s)return "";
+  if(/^https?:\/\//i.test(s) || /^data:/i.test(s))return s;
+  return nfR2PhotoUrl(s);
 }
 window.nfPickDesignPhoto=async function(input,slot,kind){
   const file=input?.files?.[0];if(!file)return;
   const card=input.closest(".nf-design-slot-card");if(!card)return;
+  const quick=card.closest("[id^=quick-order-]");
+  const customerId=quick?.id?.replace("quick-order-","")||"";
   try{
-    const data=await nfCompressDesignPhoto(file);
-    card.dataset[kind==="cloth"?"clothPhoto":"designPhoto"]=data;
+    toast("☁️ R2-க்கு photo upload ஆகிறது...");
+    const path=await nfUploadDesignPhotoR2(customerId,slot,kind,file);
+    const key=kind==="cloth"?"clothPhoto":"designPhoto";
+    card.dataset[key]=path;
     const preview=card.querySelector(kind==="cloth"?".nf-di-cloth-preview":".nf-di-design-preview");
-    if(preview)preview.innerHTML=`<img src="${E(data)}" alt="${kind==="cloth"?"Cloth reference":"Design reference"}">`;
-    toast(kind==="cloth"?"🥻 Reference photo added":"🎨 Design photo added");
-    updateQuick(card.closest("[id^=quick-order-]")?.id?.replace("quick-order-","")||"");
-  }catch(e){toast("Photo load failed",true)}
+    if(preview)preview.innerHTML=`<img src="${E(nfDesignPhotoSrc(path))}" alt="${kind==="cloth"?"Cloth reference":"Design reference"}">`;
+    toast("☁️ R2-வில் Photo சேமிக்கப்பட்டது");
+    updateQuick(customerId);
+  }catch(e){
+    toast("R2 Photo upload failed: "+String(e?.message||e),true);
+  }
   input.value="";
 };
 
@@ -6085,7 +6089,7 @@ function nfFormatPaymentDate(v){return v?dateText(v):"—";}
           const nm=String(it.name||'').trim();
           const taken=Math.min(q,N(it.handover));
           const remaining=Math.max(0,q-taken);
-          const cp=String(it.clothPhoto||''),dp=String(it.designPhoto||'');
+          const cp=nfDesignPhotoSrc(it.clothPhoto),dp=nfDesignPhotoSrc(it.designPhoto);
           const photos=(cp||dp)?`<div class="nf-card-design-photos">${cp?`<div><span>🥻 Reference</span><img src="${esc(cp)}" alt="Design ${i+1} reference"></div>`:''}${dp?`<div><span>🎨 Design</span><img src="${esc(dp)}" alt="Design ${i+1} model"></div>`:''}</div>`:'';
           designRows+=`<div class="nf-customer-design-rate-row"><div class="nf-customer-design-head"><span class="rateLabel">🎨 Design ${i+1}${nm?' — '+esc(nm):''}</span><span class="rateMath">${q} × ${money(r)} = <b>${money(q*r)}</b></span></div><div class="nf-customer-design-status"><span>மொத்தம் <b>${q}</b></span><span>வாங்கிச் சென்றது <b>${taken}</b></span><span>மீதம் <b>${remaining}</b></span></div>${photos}</div>`;
         });
