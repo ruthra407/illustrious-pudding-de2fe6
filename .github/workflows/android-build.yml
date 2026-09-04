@@ -14,16 +14,27 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+
+      # --------------------------------------------------
+      # 1. Checkout
+      # --------------------------------------------------
       - name: Checkout
         uses: actions/checkout@v4
 
+
+      # --------------------------------------------------
+      # 2. Setup Node.js
+      # package-lock.json இல்லாததால் npm cache பயன்படுத்தவில்லை
+      # --------------------------------------------------
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
-          cache-dependency-path: package-lock.json
 
+
+      # --------------------------------------------------
+      # 3. Setup Java
+      # --------------------------------------------------
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
@@ -31,13 +42,27 @@ jobs:
           java-version: 21
           cache: gradle
 
+
+      # --------------------------------------------------
+      # 4. Install all Node / Capacitor dependencies
+      # --------------------------------------------------
       - name: Install dependencies
         run: |
-          npm install --no-audit --no-fund \
+          set -e
+
+          npm install --no-audit --no-fund
+
+          npm install --save --no-audit --no-fund \
             @capacitor/local-notifications@8.2.1 \
             @capacitor/app@8.0.0 \
             @capacitor/contacts@1.0.1
 
+          echo "Node and Capacitor dependencies installed successfully."
+
+
+      # --------------------------------------------------
+      # 5. Copy root web files -> www
+      # --------------------------------------------------
       - name: Sync root web files to www
         run: |
           set -e
@@ -62,6 +87,10 @@ jobs:
 
           echo "Web files synchronized successfully."
 
+
+      # --------------------------------------------------
+      # 6. Commit updated www files
+      # --------------------------------------------------
       - name: Commit synchronized www files
         run: |
           set -e
@@ -90,9 +119,20 @@ jobs:
             git push origin HEAD:main
           fi
 
-      - name: Sync Capacitor Android
-        run: npx cap sync android
 
+      # --------------------------------------------------
+      # 7. Capacitor Sync
+      # IMPORTANT: only ONE cap sync
+      # --------------------------------------------------
+      - name: Sync Capacitor Android
+        run: |
+          set -e
+          npx cap sync android
+
+
+      # --------------------------------------------------
+      # 8. Add Android permissions
+      # --------------------------------------------------
       - name: Add Android permissions
         run: |
           set -e
@@ -102,6 +142,12 @@ jobs:
           import re
 
           manifest = Path("android/app/src/main/AndroidManifest.xml")
+
+          if not manifest.exists():
+              raise SystemExit(
+                  "ERROR: AndroidManifest.xml not found."
+              )
+
           text = manifest.read_text()
 
           permissions = [
@@ -110,10 +156,16 @@ jobs:
               "android.permission.WRITE_CONTACTS",
           ]
 
-          match = re.search(r"<manifest\b[^>]*>", text, re.S)
+          match = re.search(
+              r"<manifest\b[^>]*>",
+              text,
+              re.S
+          )
 
           if not match:
-              raise SystemExit("ERROR: manifest tag not found.")
+              raise SystemExit(
+                  "ERROR: <manifest> tag not found."
+              )
 
           insert = ""
 
@@ -125,13 +177,22 @@ jobs:
                   )
 
           if insert:
-              pos = match.end()
-              text = text[:pos] + insert + "\n" + text[pos:]
+              position = match.end()
+              text = (
+                  text[:position]
+                  + insert
+                  + "\n"
+                  + text[position:]
+              )
 
           manifest.write_text(text)
 
           print("Android permissions verified/added.")
 
+
+      # --------------------------------------------------
+      # 9. Restore stable signing keystore
+      # --------------------------------------------------
       - name: Restore stable signing keystore
         env:
           KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
@@ -150,8 +211,13 @@ jobs:
 
           test -s android/app/newfashion-release.jks
 
-          echo "Stable keystore restored."
+          echo "Stable keystore restored successfully."
 
+
+      # --------------------------------------------------
+      # 10. Configure Android signing
+      # Passwords are taken from GitHub Secrets
+      # --------------------------------------------------
       - name: Configure Android signing
         env:
           KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
@@ -181,8 +247,15 @@ jobs:
           import re
 
           gradle = Path("android/app/build.gradle")
+
+          if not gradle.exists():
+              raise SystemExit(
+                  "ERROR: android/app/build.gradle not found."
+              )
+
           text = gradle.read_text()
 
+          # Remove an existing signingConfigs block
           text = re.sub(
               r'\n\s*signingConfigs\s*\{.*?\n\s*\}\s*\n(?=\s*buildTypes\s*\{)',
               '\n',
@@ -204,12 +277,18 @@ jobs:
           '''
 
           if "signingConfigs {" not in text:
+              if "    buildTypes {" not in text:
+                  raise SystemExit(
+                      "ERROR: buildTypes block not found."
+                  )
+
               text = text.replace(
                   "    buildTypes {",
                   signing + "    buildTypes {",
                   1
               )
 
+          # Sign debug APK with stable key
           text = re.sub(
               r'(debug\s*\{)(?!\s*signingConfig)',
               r'\1\n            signingConfig signingConfigs.stable',
@@ -217,6 +296,7 @@ jobs:
               count=1
           )
 
+          # Sign release with stable key
           release_match = re.search(
               r'release\s*\{.*?\n\s*\}',
               text,
@@ -247,6 +327,10 @@ jobs:
           print("Alias:", os.environ["KEY_ALIAS"])
           PY
 
+
+      # --------------------------------------------------
+      # 11. Set unique APK versionCode
+      # --------------------------------------------------
       - name: Set APK versionCode
         run: |
           set -e
@@ -257,12 +341,20 @@ jobs:
           import os
 
           gradle = Path("android/app/build.gradle")
+
           text = gradle.read_text()
 
-          version_code = int(os.environ["GITHUB_RUN_NUMBER"]) + 1000
+          version_code = int(
+              os.environ["GITHUB_RUN_NUMBER"]
+          ) + 1000
 
-          if not re.search(r"versionCode\s+\d+", text):
-              raise SystemExit("ERROR: versionCode not found.")
+          if not re.search(
+              r"versionCode\s+\d+",
+              text
+          ):
+              raise SystemExit(
+                  "ERROR: versionCode not found."
+              )
 
           text = re.sub(
               r"versionCode\s+\d+",
@@ -273,12 +365,23 @@ jobs:
 
           gradle.write_text(text)
 
-          print(f"APK versionCode set to {version_code}.")
+          print(
+              f"APK versionCode set to {version_code}."
+          )
           PY
 
-      - name: Make Gradle Wrapper executable
-        run: chmod +x android/gradlew
 
+      # --------------------------------------------------
+      # 12. Make Gradle executable
+      # --------------------------------------------------
+      - name: Make Gradle Wrapper executable
+        run: |
+          chmod +x android/gradlew
+
+
+      # --------------------------------------------------
+      # 13. Verify signing key
+      # --------------------------------------------------
       - name: Verify stable signing key
         env:
           KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
@@ -295,18 +398,39 @@ jobs:
 
           echo "SIGNING KEY VERIFIED SUCCESSFULLY."
 
+
+      # --------------------------------------------------
+      # 14. Build Debug APK
+      # NO clean -> faster build
+      # --------------------------------------------------
       - name: Build Debug APK
         working-directory: android
-        run: ./gradlew assembleDebug --build-cache --parallel
+        run: |
+          ./gradlew assembleDebug \
+            --build-cache \
+            --parallel
 
+
+      # --------------------------------------------------
+      # 15. Verify APK
+      # --------------------------------------------------
       - name: Verify APK
         run: |
           set -e
 
-          test -f android/app/build/outputs/apk/debug/app-debug.apk
+          APK="android/app/build/outputs/apk/debug/app-debug.apk"
+
+          test -f "$APK"
 
           echo "APK build successful."
+          echo "APK location: $APK"
 
+          ls -lh "$APK"
+
+
+      # --------------------------------------------------
+      # 16. Upload APK
+      # --------------------------------------------------
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
