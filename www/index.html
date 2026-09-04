@@ -941,6 +941,9 @@ window.addEventListener("online",()=>{nfScheduleSync();setTimeout(nfRunPendingPh
 supabaseClient.from=function(table){return nfLocalBuilder(table)};
 async function nfLocalFirstLoadAll(silent=false,forceCloud=false){
  if(!state.user)return;
+ /* Restore customer photo metadata from IndexedDB before the first render.
+    This keeps saved photos visible after refresh/reopen, including offline. */
+ try{await initCustomerClothPhotoStore();}catch(e){console.warn("Customer photo store init skipped",e)}
  /* Cloud is the source of truth. Local IndexedDB is not required for recovery. */
  if(navigator.onLine){
   const result=await Promise.allSettled(NF_TABLES.map(t=>nfRawFrom(t).select("*").order("created_at",{ascending:false})));
@@ -1807,8 +1810,9 @@ async function initCustomerClothPhotoStore(){
 }
 function customerClothPhotos(id){
   const key=String(id);
-  const arr=nfClothPhotoCache[key];
-  return Array.from({length:4},(_,i)=>arr?.[i]||null);
+  const rec=nfClothPhotoCache[key];
+  const photos=Array.isArray(rec) ? rec : (Array.isArray(rec?.photos) ? rec.photos : []);
+  return Array.from({length:4},(_,i)=>photos[i]||null);
 }
 function customerBlouseDesignPhotos(id){
   const key=String(id);
@@ -1873,7 +1877,9 @@ async function saveCustomerClothPhoto(id,slot,file){
       originalType:file.type,
       originalSize:file.size
     };
-    nfClothPhotoCache[String(id)]=arr;
+    const existingRec=nfClothPhotoCache[String(id)]||{};
+    const existingDesigns=Array.isArray(existingRec?.blouseDesigns)?existingRec.blouseDesigns:Array(8).fill(null);
+    nfClothPhotoCache[String(id)]={photos:arr,blouseDesigns:existingDesigns};
     nfClothPhotoCloudPathCache[String(id)+":"+slot]=path;
     toast(`Customer துணி photo ${slot+1} cloud-ல் சேமிக்கப்பட்டது. ☁️`);
     renderCustomers();
