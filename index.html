@@ -1395,12 +1395,49 @@ function cleanPaymentNotes(v){
     .replace(/[ \t]{2,}/g," ")
     .trim();
 }
+function nfExtractMarkerJsonArray(notes, marker){
+  const s=String(notes||"");
+  const markerText=String(marker||"");
+  const start=s.indexOf(markerText);
+  if(start<0)return null;
+  const open=s.indexOf("[", start+markerText.length);
+  if(open<0)return null;
+  let depth=0, inString=false, escaped=false;
+  for(let i=open;i<s.length;i++){
+    const ch=s[i];
+    if(inString){
+      if(escaped){escaped=false;continue;}
+      if(ch==="\\"){escaped=true;continue;}
+      if(ch==='"')inString=false;
+      continue;
+    }
+    if(ch==='"'){inString=true;continue;}
+    if(ch==='[')depth++;
+    else if(ch===']'){
+      depth--;
+      if(depth===0){
+        const raw=s.slice(open,i+1);
+        try{return {value:JSON.parse(raw),start,end:i+1,raw:markerText+raw};}catch(_){return null;}
+      }
+    }
+  }
+  return null;
+}
+function nfRemoveMarkerJsonArray(notes, marker){
+  const s=String(notes||"");
+  const hit=nfExtractMarkerJsonArray(s, marker);
+  if(!hit)return s;
+  let a=hit.start, b=hit.end;
+  if(/\s*\|\s*$/.test(s.slice(0,a))) a=s.lastIndexOf("|",a);
+  else if(/^\s*\|\s*/.test(s.slice(b))) b=s.indexOf("|",b)+1;
+  return (s.slice(0,a)+s.slice(b)).replace(/\s*\|\s*\|\s*/g," | ").replace(/^\s*\|\s*|\s*\|\s*$/g,"").trim();
+}
 function cleanOrderNotes(v){
-  return String(v||"")
+  const cleanedDesignItems=nfRemoveMarkerJsonArray(String(v||""),"DESIGN_ITEMS:");
+  return cleanedDesignItems
     .replace(/(?:^|\s*\|\s*)BLOUSE_SPLIT:\{[^}]+\}/g,"")
     .replace(/(?:^|\s*\|\s*)BLOUSE_RATES:\{[^}]+\}/g,"")
     .replace(/(?:^|\s*\|\s*)DESIGN_RATES:\[[^\]]*\]/g,"")
-    .replace(/(?:^|\s*\|\s*)DESIGN_ITEMS:\[[^\]]*\]/g,"")
     .replace(/(?:^|\s*\|\s*)BLOUSE_HANDOVER:\{[^}]+\}/g,"")
     .replace(/(?:^|\s*\|\s*)GARMENT_HANDOVER:\{[^}]+\}/g,"")
     .replace(/(?:^|\s*\|\s*)GARMENT_SPLIT:\{[^}]+\}/g,"")
@@ -1423,7 +1460,6 @@ function orderNotesWithAlteration(rawNotes,alterationNotes){
     /BLOUSE_SPLIT:\{[^}]+\}/g,
     /BLOUSE_RATES:\{[^}]+\}/g,
     /DESIGN_RATES:\[[^\]]*\]/g,
-    /DESIGN_ITEMS:\[[^\]]*\]/g,
     /BLOUSE_HANDOVER:\{[^}]+\}/g,
     /GARMENT_HANDOVER:\{[^}]+\}/g,
     /GARMENT_SPLIT:\{[^}]+\}/g,
@@ -5006,17 +5042,23 @@ const E=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt
 
 function designItemsFromOrder(o){
   const notes=String(o?.notes||"");
-  const m=notes.match(/DESIGN_ITEMS:(\[[^\]]*\])/);
+  const m=nfExtractMarkerJsonArray(notes,"DESIGN_ITEMS:");
   if(m){try{
-    const a=JSON.parse(m[1]);
+    const a=m.value;
     if(Array.isArray(a))return a.slice(0,3).map(x=>({
       name:String(x?.name||""),
       qty:N(x?.qty),
       rate:N(x?.rate),
       handover:N(x?.handover),
       handoverDate:String(x?.handoverDate||""),
-      clothPhoto:String(x?.clothPhoto||""),
-      designPhoto:String(x?.designPhoto||"")
+      const cp=String(x?.clothPhoto||"");
+      const dp=String(x?.designPhoto||"");
+      const cpp=String(x?.clothPhotoPath||"");
+      const dpp=String(x?.designPhotoPath||"");
+      clothPhoto:cpp ? nfR2Url(cpp) : cp,
+      designPhoto:dpp ? nfR2Url(dpp) : dp,
+      clothPhotoPath:cpp,
+      designPhotoPath:dpp
     }));
   }catch(e){}}
   const rm=notes.match(/DESIGN_RATES:(\[[^\]]*\])/);
@@ -5106,7 +5148,9 @@ function readBox(box){
       handover:handover,
       handoverDate:c.querySelector(".nf-di-handover-date")?.value||"",
       clothPhoto:c.dataset.clothPhoto||"",
-      designPhoto:c.dataset.designPhoto||""
+      designPhoto:c.dataset.designPhoto||"",
+      clothPhotoPath:c.dataset.clothPhotoPath||"",
+      designPhotoPath:c.dataset.designPhotoPath||""
     };
   });
 }
@@ -5237,6 +5281,8 @@ window.renderQuickDesignRates=function(id,rates){
       cards[i].querySelector(".nf-di-handover-date").value=current[i].handoverDate||"";
       cards[i].dataset.clothPhoto=current[i].clothPhoto||"";
       cards[i].dataset.designPhoto=current[i].designPhoto||"";
+      cards[i].dataset.clothPhotoPath=current[i].clothPhotoPath||"";
+      cards[i].dataset.designPhotoPath=current[i].designPhotoPath||"";
     }
   });
   cards.forEach(c=>c.querySelectorAll("input").forEach(el=>el.addEventListener("input",()=>updateQuick(id))));
@@ -5260,39 +5306,6 @@ if(typeof oldRenderCustomers==="function" && !window.__nfRenderCustomersDesignSl
       const q=document.getElementById("qo-design-"+c.id);
       if(q&&!document.querySelector("#quick-order-"+c.id+" .nf-design-3slot"))buildQuick(c.id,[]);
     });
-  };
-}
-
-const oldSave=window.saveQuickOrder;
-if(typeof oldSave==="function"){
-  window.saveQuickOrder=async function(id){
-    const host=document.getElementById("qo-design-rates-box-"+id);
-    const box=host?.querySelector(".nf-design-3slot");
-    const items=box?readBox(box).filter(x=>x.qty>0).slice(0,3):[];
-
-    if(box){
-      const d=recalcBox(box);
-      const designField=document.getElementById("qo-design-"+id);
-      if(designField){designField.value=d.qty;designField.readOnly=true;}
-      const designHandover=document.getElementById("qo-design-handover-"+id);
-      if(designHandover){designHandover.value=d.handover;}
-    }
-    const editId=host?.closest("#quick-order-"+id)?.dataset?.editOrderId||"";
-    const result=await oldSave.apply(this,arguments);
-    try{
-      let order=editId?(state.orders||[]).find(x=>x.id===editId):null;
-      if(!order)order=(state.orders||[]).filter(x=>x.customer_id===id).slice().sort((a,b)=>String(b.created_at||b.order_date||"").localeCompare(String(a.created_at||a.order_date||"")))[0];
-      if(order){
-        let notes=String(order.notes||"").replace(/\s*\|\s*DESIGN_ITEMS:\[[^\]]*\]/,"").trim();
-        if(items.length){
-          notes+=(notes?" | ":"")+"DESIGN_ITEMS:"+JSON.stringify(items);
-        }
-        const r=await supabaseClient.from("orders").update({notes}).eq("id",order.id);
-        if(r.error)throw r.error;
-        await loadAll(true);
-      }
-    }catch(e){toast("Design slot save failed: "+e.message,true)}
-    return result;
   };
 }
 
@@ -8549,37 +8562,6 @@ setTimeout(decorateAll,100);
     });
   };
 
-  const oldDesignItemsFromOrder = window.nfDesignItems;
-  window.nfDesignItems = function(o){
-    const notes = String(o?.notes || "");
-    const m = notes.match(/DESIGN_ITEMS:(\[[^\]]*\])/);
-    if(m){
-      try{
-        const a = JSON.parse(m[1]);
-        if(Array.isArray(a)){
-          return a.slice(0,3).map(function(x){
-            const cp = String(x?.clothPhoto || "");
-            const dp = String(x?.designPhoto || "");
-            const cpp = String(x?.clothPhotoPath || "");
-            const dpp = String(x?.designPhotoPath || "");
-            return {
-              name: String(x?.name || ""),
-              qty: typeof N === "function" ? N(x?.qty) : Math.max(0,Number(x?.qty||0)),
-              rate: typeof N === "function" ? N(x?.rate) : Math.max(0,Number(x?.rate||0)),
-              handover: typeof N === "function" ? N(x?.handover) : Math.max(0,Number(x?.handover||0)),
-              handoverDate: String(x?.handoverDate || ""),
-              clothPhoto: cpp ? nfR2Url(cpp) : cp,
-              designPhoto: dpp ? nfR2Url(dpp) : dp,
-              clothPhotoPath: cpp,
-              designPhotoPath: dpp
-            };
-          });
-        }
-      }catch(_){}
-    }
-    return oldDesignItemsFromOrder ? oldDesignItemsFromOrder(o) : [];
-  };
-
   window.nfPickDesignPhoto = async function(input, slot, kind){
     const file = input?.files?.[0];
     if(!file) return;
@@ -8663,58 +8645,59 @@ setTimeout(decorateAll,100);
     }
   };
 
-  /* Existing Design 1/2/3 base64 -> R2 migration when the order is saved. */
+  /* Edit Order Design photos: migrate legacy data + save DESIGN_ITEMS in one wrapper. */
   const oldSaveQuickOrder = window.saveQuickOrder;
   if(typeof oldSaveQuickOrder === "function"){
     window.saveQuickOrder = async function(id){
       const host = document.getElementById("qo-design-rates-box-" + id);
       const box = host?.querySelector(".nf-design-3slot");
+      const orderId = host?.closest("#quick-order-" + id)?.dataset?.editOrderId || "";
+
       if(box){
         const cards = Array.from(box.querySelectorAll(".nf-design-slot-card"));
-        const orderId = host?.closest("#quick-order-" + id)?.dataset?.editOrderId || "";
-
         for(let i=0;i<cards.length;i++){
           const c = cards[i];
-          const pairs = [
-            ["cloth", "clothPhoto", "clothPhotoPath"],
-            ["design", "designPhoto", "designPhotoPath"]
-          ];
-
-          for(const pair of pairs){
-            const kind = pair[0], valueKey = pair[1], pathKey = pair[2];
-            const current = String(c.dataset[valueKey] || "");
-            const currentPath = String(c.dataset[pathKey] || "");
-
-            if(current && current.startsWith("data:") && !currentPath){
-              try{
-                const blob = nfDataUrlBlob(current);
-                if(!blob) continue;
-
-                const draftKey = c.dataset.nfDraftKey ||
-                  (window.crypto?.randomUUID ? crypto.randomUUID() :
-                    String(Date.now()) + "-" + Math.random().toString(36).slice(2));
-                c.dataset.nfDraftKey = draftKey;
-
-                const path = nfOrderPhotoPath(
-                  id, orderId, draftKey, i, kind
-                );
-
-                await nfR2Upload(path, blob, blob.type || "image/jpeg");
-
-                c.dataset[pathKey] = path;
-                c.dataset[valueKey] = nfR2Url(path);
-              }catch(err){
-                console.error("Legacy design photo migration failed:", err);
-                throw new Error(
-                  "Design photo R2 migration failed. Order save நிறுத்தப்பட்டது."
-                );
-              }
+          for(const pair of [["cloth","clothPhoto","clothPhotoPath"],["design","designPhoto","designPhotoPath"]]){
+            const kind=pair[0], valueKey=pair[1], pathKey=pair[2];
+            const current=String(c.dataset[valueKey]||"");
+            const currentPath=String(c.dataset[pathKey]||"");
+            if(current.startsWith("data:") && !currentPath){
+              const blob=nfDataUrlBlob(current);
+              if(!blob) continue;
+              const draftKey=c.dataset.nfDraftKey || (window.crypto?.randomUUID ? crypto.randomUUID() : String(Date.now())+"-"+Math.random().toString(36).slice(2));
+              c.dataset.nfDraftKey=draftKey;
+              const path=nfOrderPhotoPath(id,orderId,draftKey,i,kind);
+              await nfR2Upload(path,blob,blob.type||"image/jpeg");
+              c.dataset[pathKey]=path;
+              c.dataset[valueKey]=nfR2Url(path);
             }
           }
         }
       }
 
-      return oldSaveQuickOrder.apply(this, arguments);
+      if(box){
+        const d=recalcBox(box);
+        const designField=document.getElementById("qo-design-"+id);
+        if(designField){designField.value=d.qty;designField.readOnly=true;}
+        const designHandover=document.getElementById("qo-design-handover-"+id);
+        if(designHandover)designHandover.value=d.handover;
+      }
+
+      const items=box ? readBox(box).filter(x=>x.qty>0).slice(0,3) : [];
+      const result=await oldSaveQuickOrder.apply(this,arguments);
+
+      try{
+        let order=orderId ? (state.orders||[]).find(x=>String(x.id)===String(orderId)) : null;
+        if(!order) order=(state.orders||[]).filter(x=>String(x.customer_id)===String(id)).slice().sort((a,b)=>String(b.created_at||b.order_date||"").localeCompare(String(a.created_at||a.order_date||"")))[0];
+        if(order){
+          let notes=nfRemoveMarkerJsonArray(String(order.notes||""),"DESIGN_ITEMS:");
+          if(items.length) notes+=(notes?" | ":"")+"DESIGN_ITEMS:"+JSON.stringify(items);
+          const r=await supabaseClient.from("orders").update({notes}).eq("id",order.id);
+          if(r.error)throw r.error;
+          await loadAll(true);
+        }
+      }catch(e){toast("Design photo save failed: "+e.message,true); throw e;}
+      return result;
     };
   }
 
