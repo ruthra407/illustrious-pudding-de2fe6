@@ -44,20 +44,18 @@ jobs:
 
 
       # --------------------------------------------------
-      # 4. Install all Node / Capacitor dependencies
+      # 4. Install Node + Capacitor dependencies
       # --------------------------------------------------
       - name: Install dependencies
         run: |
           set -e
 
-          npm install --no-audit --no-fund
-
-          npm install --save --no-audit --no-fund \
+          npm install --no-audit --no-fund \
             @capacitor/local-notifications@8.2.1 \
             @capacitor/app@8.0.0 \
             @capacitor/contacts@1.0.1
 
-          echo "Node and Capacitor dependencies installed successfully."
+          echo "Dependencies installed successfully."
 
 
       # --------------------------------------------------
@@ -89,7 +87,7 @@ jobs:
 
 
       # --------------------------------------------------
-      # 6. Commit updated www files
+      # 6. Commit synchronized www files
       # --------------------------------------------------
       - name: Commit synchronized www files
         run: |
@@ -121,12 +119,13 @@ jobs:
 
 
       # --------------------------------------------------
-      # 7. Capacitor Sync
-      # IMPORTANT: only ONE cap sync
+      # 7. Capacitor Android Sync
+      # ONLY ONE cap sync
       # --------------------------------------------------
       - name: Sync Capacitor Android
         run: |
           set -e
+
           npx cap sync android
 
 
@@ -141,7 +140,9 @@ jobs:
           from pathlib import Path
           import re
 
-          manifest = Path("android/app/src/main/AndroidManifest.xml")
+          manifest = Path(
+              "android/app/src/main/AndroidManifest.xml"
+          )
 
           if not manifest.exists():
               raise SystemExit(
@@ -178,6 +179,7 @@ jobs:
 
           if insert:
               position = match.end()
+
               text = (
                   text[:position]
                   + insert
@@ -187,7 +189,10 @@ jobs:
 
           manifest.write_text(text)
 
-          print("Android permissions verified/added.")
+          print(
+              "Android permissions verified/added."
+          )
+          PY
 
 
       # --------------------------------------------------
@@ -216,37 +221,19 @@ jobs:
 
       # --------------------------------------------------
       # 10. Configure Android signing
-      # Passwords are taken from GitHub Secrets
+      # Original stable key values preserved
       # --------------------------------------------------
       - name: Configure Android signing
-        env:
-          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
           set -e
 
-          if [ -z "$KEYSTORE_PASSWORD" ]; then
-            echo "ERROR: ANDROID_KEYSTORE_PASSWORD is missing."
-            exit 1
-          fi
-
-          if [ -z "$KEY_ALIAS" ]; then
-            echo "ERROR: ANDROID_KEY_ALIAS is missing."
-            exit 1
-          fi
-
-          if [ -z "$KEY_PASSWORD" ]; then
-            echo "ERROR: ANDROID_KEY_PASSWORD is missing."
-            exit 1
-          fi
-
           python3 - <<'PY'
           from pathlib import Path
-          import os
           import re
 
-          gradle = Path("android/app/build.gradle")
+          gradle = Path(
+              "android/app/build.gradle"
+          )
 
           if not gradle.exists():
               raise SystemExit(
@@ -255,7 +242,7 @@ jobs:
 
           text = gradle.read_text()
 
-          # Remove an existing signingConfigs block
+          # Remove existing signingConfigs block
           text = re.sub(
               r'\n\s*signingConfigs\s*\{.*?\n\s*\}\s*\n(?=\s*buildTypes\s*\{)',
               '\n',
@@ -268,9 +255,9 @@ jobs:
               signingConfigs {
                   stable {
                       storeFile file("newfashion-release.jks")
-                      storePassword System.getenv("KEYSTORE_PASSWORD")
-                      keyAlias System.getenv("KEY_ALIAS")
-                      keyPassword System.getenv("KEY_PASSWORD")
+                      storePassword "newfashion123"
+                      keyAlias "newfashion"
+                      keyPassword "newfashion123"
                   }
               }
 
@@ -288,7 +275,7 @@ jobs:
                   1
               )
 
-          # Sign debug APK with stable key
+          # Debug APK uses stable signing key
           text = re.sub(
               r'(debug\s*\{)(?!\s*signingConfig)',
               r'\1\n            signingConfig signingConfigs.stable',
@@ -296,7 +283,7 @@ jobs:
               count=1
           )
 
-          # Sign release with stable key
+          # Release APK uses stable signing key
           release_match = re.search(
               r'release\s*\{.*?\n\s*\}',
               text,
@@ -306,7 +293,10 @@ jobs:
           if release_match:
               release_block = release_match.group(0)
 
-              if "signingConfig signingConfigs.stable" not in release_block:
+              if (
+                  "signingConfig signingConfigs.stable"
+                  not in release_block
+              ):
                   release_block = release_block.replace(
                       "release {",
                       "release {\n"
@@ -322,14 +312,18 @@ jobs:
 
           gradle.write_text(text)
 
-          print("Android signing configured securely.")
-          print("Keystore: newfashion-release.jks")
-          print("Alias:", os.environ["KEY_ALIAS"])
+          print("Android signing configured.")
+          print(
+              "Keystore: newfashion-release.jks"
+          )
+          print(
+              "Alias: newfashion"
+          )
           PY
 
 
       # --------------------------------------------------
-      # 11. Set unique APK versionCode
+      # 11. Set APK versionCode
       # --------------------------------------------------
       - name: Set APK versionCode
         run: |
@@ -340,13 +334,16 @@ jobs:
           import re
           import os
 
-          gradle = Path("android/app/build.gradle")
+          gradle = Path(
+              "android/app/build.gradle"
+          )
 
           text = gradle.read_text()
 
-          version_code = int(
-              os.environ["GITHUB_RUN_NUMBER"]
-          ) + 1000
+          version_code = (
+              int(os.environ["GITHUB_RUN_NUMBER"])
+              + 1000
+          )
 
           if not re.search(
               r"versionCode\s+\d+",
@@ -372,7 +369,7 @@ jobs:
 
 
       # --------------------------------------------------
-      # 12. Make Gradle executable
+      # 12. Make Gradle Wrapper executable
       # --------------------------------------------------
       - name: Make Gradle Wrapper executable
         run: |
@@ -380,28 +377,26 @@ jobs:
 
 
       # --------------------------------------------------
-      # 13. Verify signing key
+      # 13. Verify stable signing key
       # --------------------------------------------------
       - name: Verify stable signing key
-        env:
-          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
         run: |
           set -e
 
-          test -f android/app/newfashion-release.jks
+          test -f \
+            android/app/newfashion-release.jks
 
           keytool -list -v \
             -keystore android/app/newfashion-release.jks \
-            -storepass "$KEYSTORE_PASSWORD" \
-            -alias "$KEY_ALIAS"
+            -storepass "newfashion123" \
+            -alias "newfashion"
 
           echo "SIGNING KEY VERIFIED SUCCESSFULLY."
 
 
       # --------------------------------------------------
       # 14. Build Debug APK
-      # NO clean -> faster build
+      # clean intentionally removed for faster build
       # --------------------------------------------------
       - name: Build Debug APK
         working-directory: android
@@ -423,7 +418,9 @@ jobs:
           test -f "$APK"
 
           echo "APK build successful."
-          echo "APK location: $APK"
+
+          echo "APK location:"
+          echo "$APK"
 
           ls -lh "$APK"
 
