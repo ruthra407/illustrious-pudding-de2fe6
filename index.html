@@ -11830,7 +11830,9 @@ body.nf-photo-preview-scroll-locked{overscroll-behavior:none!important}
         var kid=esc140(k.id);
         return `<div class="nf140-child"><div class="nf140-child-info"><b>${esc140(k.name||"Customer")}</b><small>📞 ${esc140(k.phone||"Phone இல்லை")}</small></div><div class="nf140-child-actions"><button type="button" class="nf140-child-edit" data-nf140-edit="${kid}">✏️</button><button type="button" class="nf140-child-delete" data-nf140-delete="${kid}">🗑️</button></div></div>`;
       }).join("");
-      return html.replace("</article>",`<section class="nf140-group"><div class="nf140-group-title">👥 Additional Customers</div>${rows}</section></article>`);
+      /* V1.14 FIX: Do not inject the legacy nf140 group here. The final nf113
+         customer-card decorator is the single owner of the visible Additional Customers section. */
+      return html;
     };
     window.customerCard.__nf140=true;
   }
