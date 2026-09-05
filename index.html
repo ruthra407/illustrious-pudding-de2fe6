@@ -12019,489 +12019,7 @@ setTimeout(decorateAll,100);
     window.renderCustomers.__nf170=true;
   }
 })();
-</script>
-
-
-<script id="nf-v180-final-multiple-clean-js">
-(function(){
-  "use strict";
-  if(window.__nfV180Installed)return;
-  window.__nfV180Installed=true;
-  var PREFIXES=["NF_MULTI_PARENT:","NF_PARENT_CUSTOMER:"];
-  function esc180(v){return typeof esc==="function"?esc(v==null?"":String(v)):String(v==null?"":v).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]});}
-  function parentId180(c){
-    var n=String(c&&c.notes||"");
-    for(var i=0;i<PREFIXES.length;i++){
-      var m=n.match(new RegExp("(?:^|\\|\\s*)"+PREFIXES[i].replace(":","\\:")+"([^|\\s]+)"));
-      if(m)return String(m[1]);
-    }
-    return "";
-  }
-  function child180(c){return !!parentId180(c)}
-  function all180(){return Array.isArray(state&&state.customers)?state.customers:[]}
-  function base180(){return all180().filter(function(c){return !child180(c)})}
-  function kids180(id){return all180().filter(function(c){return parentId180(c)===String(id)})}
-  function sid180(v){return String(v==null?"":v).replace(/\\/g,"\\\\").replace(/'/g,"\\'")}
-
-  /* HOME: Additional Customers must NOT be shown as a separate Home section. */
-  var oldDashCard=window.dashboardCustomerCard;
-  if(typeof oldDashCard==="function"&&!oldDashCard.__nfV180){
-    window.dashboardCustomerCard=function(){
-      var html=oldDashCard.apply(this,arguments);
-      html=html.replace(/<section[^>]*class="[^"]*nf150-home-group[^"]*"[\s\S]*?<\/section>/gi,"");
-      html=html.replace(/<section[^>]*class="[^"]*nf140-group[^"]*"[\s\S]*?<\/section>/gi,"");
-      return html;
-    };
-    window.dashboardCustomerCard.__nfV180=true;
-  }
-
-  /* HOME: only Main Customers are rendered. */
-  var oldDashRender=window.renderDashboardCustomers;
-  if(typeof oldDashRender==="function"&&!oldDashRender.__nfV180){
-    window.renderDashboardCustomers=function(){
-      var box=document.getElementById("dashboardCustomersList");
-      if(!box){return oldDashRender.apply(this,arguments)}
-      var all=base180().slice();
-      try{all.sort(dashboardCustomerSort)}catch(e){all.sort(function(a,b){return String(a.name||"").localeCompare(String(b.name||""),"ta",{numeric:true,sensitivity:"base"})})}
-      var fresh=all.filter(function(c){try{return dashboardCustomerCategory(c)==="new"}catch(e){return true}});
-      var delivered=all.filter(function(c){try{return dashboardCustomerCategory(c)==="delivered"}catch(e){return false}});
-      var a=document.getElementById("dchCountAll"),n=document.getElementById("dchCountNew"),d=document.getElementById("dchCountDelivered");
-      if(a)a.textContent=all.length;if(n)n.textContent=fresh.length;if(d)d.textContent=delivered.length;
-      var tab=window.dashboardCustomerTab||"all";
-      var source=tab==="new"?fresh:tab==="delivered"?delivered:all;
-      box.innerHTML=source.length?source.map(function(c,i){return window.dashboardCustomerCard(c,i,tab==="delivered"?"delivered":"new");}).join(""):"<div class=\"nf-dch-empty\">Customers இன்னும் சேர்க்கப்படவில்லை.</div>";
-    };
-    window.renderDashboardCustomers.__nfV180=true;
-  }
-
-  /* SIDEBAR / CUSTOMER LIST: Additional Customers are never listed independently. */
-  window.renderSidebarCustomerList=function(){
-    var box=document.getElementById("nfSidebarCustomerList");if(!box)return;
-    var seen={};
-    var customers=base180().filter(function(c){var id=String(c&&c.id||"");if(!id||seen[id])return false;seen[id]=1;return true});
-    try{customers.sort(dashboardCustomerSort)}catch(e){customers.sort(function(a,b){return String(a.name||"").localeCompare(String(b.name||""),"ta",{numeric:true,sensitivity:"base"})})}
-    box.innerHTML=customers.length?customers.map(function(c,i){var id=sid180(c.id),name=esc180(c.name||"Customer"),phone=esc180(c.phone||"Phone இல்லை");return '<button type="button" class="nfSidebarCustomerRow" onclick="openSidebarCustomer(\''+id+'\')" aria-label="'+name+' '+phone+'"><span class="nfSidebarCustomerNo">'+(i+1)+'</span><span class="nfSidebarCustomerMain"><span class="nfSidebarCustomerName">'+name+'</span><span class="nfSidebarCustomerPhone">📞 '+phone+'</span></span><span class="nfSidebarCustomerArrow">›</span></button>'}).join(""):"<div style=\"padding:20px 10px;text-align:center;color:#d9d3e7;font-weight:800\">👥 Customer இன்னும் சேர்க்கப்படவில்லை.</div>";
-  };
-  window.renderMyCustomersSlideMenu=function(){
-    var list=document.getElementById("nfCustomerSlideList");if(!list)return;
-    var seen={};var customers=base180().filter(function(c){var id=String(c&&c.id||"");if(!id||seen[id])return false;seen[id]=1;return true});
-    customers.sort(function(a,b){return String(a.name||"").localeCompare(String(b.name||""),"ta",{numeric:true,sensitivity:"base"})});
-    list.innerHTML=customers.length?customers.map(function(c,i){var id=sid180(c.id);return '<button type="button" class="nf-customer-slide-row" onclick="openCustomerFromMyCustomersMenu(\''+id+'\')"><span class="nf-customer-slide-no">'+(i+1)+'</span><span class="nf-customer-slide-main"><span class="nf-customer-slide-name">'+esc180(c.name||"Customer")+'</span><span class="nf-customer-slide-phone">📞 '+esc180(c.phone||"Phone இல்லை")+'</span></span><span class="nf-customer-slide-arrow">›</span></button>'}).join(""):"<div class=\"nf-customer-slide-empty\">👥 Customer இன்னும் சேர்க்கப்படவில்லை.</div>";
-  };
-
-  /* CUSTOMER CARD: add the group here, and nowhere else. */
-  function appendGroupToCard180(card,id){
-    if(!card||!id)return;
-    var old=card.querySelector(".nf180-group,.nf140-group,.nf150-home-group");
-    if(old)old.remove();
-    var kids=kids180(id);if(!kids.length)return;
-    var section=document.createElement("section");section.className="nf180-group";
-    var title=document.createElement("div");title.className="nf180-group-title";title.textContent="👥 Additional Customers · "+kids.length+" பேர்";section.appendChild(title);
-    kids.forEach(function(k){
-      var row=document.createElement("div");row.className="nf180-person";
-      var info=document.createElement("div");info.className="nf180-person-info";info.innerHTML='<b>'+esc180(k.name||"Customer")+'</b><small>📞 '+esc180(k.phone||"Phone இல்லை")+'</small>';
-      var acts=document.createElement("div");acts.className="nf180-person-actions";
-      var eb=document.createElement("button");eb.type="button";eb.className="nf180-edit";eb.textContent="✏️ Edit Order";eb.onclick=function(e){e.stopPropagation();nfMultiCustomerEditOrder(String(k.id))};
-      var db=document.createElement("button");db.type="button";db.className="nf180-delete";db.textContent="🗑️ Delete";db.onclick=function(e){e.stopPropagation();deleteCustomer(String(k.id))};
-      acts.appendChild(eb);acts.appendChild(db);row.appendChild(info);row.appendChild(acts);section.appendChild(row);
-    });
-    card.appendChild(section);
-  }
-  var oldRenderCustomers=window.renderCustomers;
-  if(typeof oldRenderCustomers==="function"&&!oldRenderCustomers.__nfV180){
-    window.renderCustomers=function(){
-      var r=oldRenderCustomers.apply(this,arguments);
-      setTimeout(function(){document.querySelectorAll("#customersTable .customerCard").forEach(function(card){var id=card.id.replace(/^customer-card-/i,"");if(id&&!all180().some(function(c){return String(c.id)===String(id)&&child180(c)}))appendGroupToCard180(card,id)});},0);
-      return r;
-    };
-    window.renderCustomers.__nfV180=true;
-  }
-
-  function refresh180(){try{renderSidebarCustomerList()}catch(e){}try{renderMyCustomersSlideMenu()}catch(e){}try{if(typeof renderDashboardCustomers==="function")renderDashboardCustomers()}catch(e){}}
-  document.addEventListener("DOMContentLoaded",function(){setTimeout(refresh180,100);setTimeout(refresh180,700)}, {once:true});
-  var oldLoad=window.loadAll;
-  if(typeof oldLoad==="function"&&!oldLoad.__nfV180){
-    var wrapped=async function(){var r=await oldLoad.apply(this,arguments);setTimeout(refresh180,0);setTimeout(function(){if(typeof renderCustomers==="function")renderCustomers()},20);return r};
-    wrapped.__nfV180=true;window.loadAll=wrapped;
-  }
-  setInterval(function(){if(document.getElementById("nfSidebarCustomerList")||document.getElementById("nfCustomerSlideList"))refresh180()},3000);
-})();
-</script>
-
-
-
-
-<script id="nf-v190-neworder-multi-home-js">
-(function(){
-  "use strict";
-
-  /* V1.9: Home grouping + New Order Multi Customer selector only. */
-
-  var PREFIX_RE=/(?:^|\|\s*)(?:NF_MULTI_PARENT|NF_PARENT_CUSTOMER):\s*([^|\s]+)/i;
-
-  function allCustomers(){
-    return (typeof state!=="undefined" && Array.isArray(state.customers))
-      ? state.customers : [];
-  }
-  function parentId(c){
-    var m=String(c&&c.notes||"").match(PREFIX_RE);
-    return m?String(m[1]):"";
-  }
-  function isChild(c){return !!parentId(c);}
-  function mainCustomers(){
-    return allCustomers().filter(function(c){return !isChild(c);});
-  }
-  function linkedGroup(customerId){
-    var sid=String(customerId||"");
-    var selected=allCustomers().find(function(c){return String(c&&c.id||"")===sid;});
-    if(!selected)return [];
-    var mainId=parentId(selected)||sid;
-    var main=allCustomers().find(function(c){return String(c&&c.id||"")===mainId;});
-    if(!main)return [selected];
-    return [main].concat(allCustomers().filter(function(c){return parentId(c)===mainId;}));
-  }
-  function esc190(v){
-    if(typeof esc==="function")return esc(v==null?"":String(v));
-    return String(v==null?"":v).replace(/[&<>"']/g,function(ch){
-      return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"};
-    });
-  }
-  function optionHTML(list,selected){
-    var sid=String(selected||"");
-    return list.map(function(c){
-      var id=String(c&&c.id||"");
-      return '<option value="'+esc190(id)+'" '+(id===sid?'selected':'')+'>'+
-             esc190(c&&c.name||"Customer")+'</option>';
-    }).join("");
-  }
-
-  /* HOME: one Main Customer card, with all linked Additional Customers inside it. */
-  function makeHomeGroup(mainId){
-    var kids=allCustomers().filter(function(c){return parentId(c)===String(mainId);});
-    if(!kids.length)return null;
-
-    var section=document.createElement("section");
-    section.className="nf190-home-group";
-    section.addEventListener("click",function(e){e.stopPropagation();});
-
-    var title=document.createElement("div");
-    title.className="nf190-home-title";
-    title.textContent="👥 Additional Customers · "+kids.length+" பேர்";
-    section.appendChild(title);
-
-    kids.forEach(function(k){
-      var row=document.createElement("div");
-      row.className="nf190-home-person";
-
-      var name=document.createElement("div");
-      name.className="nf190-home-person-name";
-      name.textContent="👤 "+String(k.name||"Customer");
-
-      var phone=document.createElement("div");
-      phone.className="nf190-home-person-phone";
-      phone.textContent="📞 "+String(k.phone||"Phone இல்லை");
-
-      row.appendChild(name);
-      row.appendChild(phone);
-      section.appendChild(row);
-    });
-    return section;
-  }
-
-  var oldDashboardCard=window.dashboardCustomerCard;
-  if(typeof oldDashboardCard==="function"&&!oldDashboardCard.__nfV190Home){
-    window.dashboardCustomerCard=function(c,index,category){
-      var html=oldDashboardCard.apply(this,arguments);
-      if(!c||isChild(c))return html;
-      try{
-        var holder=document.createElement("div");
-        holder.innerHTML=html;
-        var card=holder.querySelector(".nf-dch-card")||
-                  holder.querySelector("article")||
-                  holder.firstElementChild;
-        if(!card)return html;
-
-        card.querySelectorAll(
-          ".nf190-home-group,.nf180-group,.nf150-home-group,.nf140-group"
-        ).forEach(function(el){el.remove();});
-
-        var group=makeHomeGroup(c.id);
-        if(group)card.appendChild(group);
-        return card.outerHTML;
-      }catch(err){
-        console.warn("V1.9 Home grouping:",err);
-        return html;
-      }
-    };
-    window.dashboardCustomerCard.__nfV190Home=true;
-  }
-
-  /* NEW ORDER: first picker = Main Customers only. */
-  function applyInitialPicker(){
-    var select=document.getElementById("ordersQuickCustomerStartInline");
-    if(!select)return;
-    var current=String(select.value||"");
-    select.innerHTML='<option value="">Select customer</option>'+optionHTML(mainCustomers(),"");
-    if(current&&mainCustomers().some(function(c){return String(c.id)===current;}))
-      select.value=current;
-  }
-
-  /* NEW ORDER editor: selected Main + every linked Additional Customer only. */
-  function applyEditorPicker(customerId){
-    var sid=String(customerId||"");
-    if(!sid)return;
-    var list=linkedGroup(sid);
-    if(!list.length)return;
-
-    var select=document.getElementById("ordersQuickCustomerStart");
-    if(!select)return;
-
-    var current=String(select.value||sid);
-    if(!list.some(function(c){return String(c.id)===current;}))current=sid;
-
-    select.innerHTML='<option value="">Select customer</option>'+optionHTML(list,current);
-    select.value=current;
-  }
-
-  var oldOpen=window.openOrdersQuickAdd;
-  if(typeof oldOpen==="function"&&!oldOpen.__nfV190){
-    window.openOrdersQuickAdd=function(){
-      var r=oldOpen.apply(this,arguments);
-      setTimeout(applyInitialPicker,0);
-      setTimeout(applyInitialPicker,80);
-      return r;
-    };
-    window.openOrdersQuickAdd.__nfV190=true;
-  }
-
-  var oldMount=window.mountOrdersQuickForm;
-  if(typeof oldMount==="function"&&!oldMount.__nfV190){
-    window.mountOrdersQuickForm=function(customerId){
-      var r=oldMount.apply(this,arguments);
-      var sid=String(customerId||"");
-      setTimeout(function(){applyEditorPicker(sid);},0);
-      setTimeout(function(){applyEditorPicker(sid);},80);
-      setTimeout(function(){applyEditorPicker(sid);},200);
-      return r;
-    };
-    window.mountOrdersQuickForm.__nfV190=true;
-  }
-
-  document.addEventListener("change",function(e){
-    var t=e.target;
-    if(!t||t.id!=="ordersQuickCustomerStartInline")return;
-    var sid=String(t.value||"");
-    if(!sid)return;
-    setTimeout(function(){
-      if(typeof window.mountOrdersQuickForm==="function"){
-        try{window.mountOrdersQuickForm(sid);}catch(err){console.warn("V1.9 mount:",err);}
-      }
-      applyEditorPicker(sid);
-    },0);
-    setTimeout(function(){applyEditorPicker(sid);},100);
-  },true);
-
-  document.addEventListener("DOMContentLoaded",function(){
-    setTimeout(applyInitialPicker,150);
-    setTimeout(applyInitialPicker,600);
-  },{once:true});
-
-})();
-</script>
-
-
-<script id="nf-v110-multi-exact-js">
-(function(){
-  "use strict";
-  if(window.__nfV110Installed)return;
-  window.__nfV110Installed=true;
-
-  var PARENT_RE=/(?:^|\|\s*)(?:NF_MULTI_PARENT|NF_PARENT_CUSTOMER):\s*([^|\s]+)/i;
-
-  function customers(){return (typeof state!=="undefined"&&Array.isArray(state.customers))?state.customers:[];}
-  function parentId(c){var m=String(c&&c.notes||"").match(PARENT_RE);return m?String(m[1]):"";}
-  function child(c){return !!parentId(c);}
-  function norm(v){return String(v==null?"":v).trim().toLowerCase().replace(/\s+/g," ");}
-
-  /* Exact duplicate means same identity fields. We do not delete database rows. */
-  function mainKey(c){
-    return [norm(c&&c.name),norm(c&&c.phone),norm(c&&c.address),norm(c&&c.village)].join("¦");
-  }
-  function childKey(c){return [norm(c&&c.name),norm(c&&c.phone)].join("¦");}
-
-  function uniqueMains(){
-    var seen={};
-    return customers().filter(function(c){
-      if(child(c))return false;
-      var k=mainKey(c);
-      if(!k||seen[k])return false;
-      seen[k]=1;return true;
-    });
-  }
-  function uniqueKids(mainId){
-    var seen={};
-    return customers().filter(function(c){
-      if(parentId(c)!==String(mainId))return false;
-      var k=childKey(c);
-      if(!k||seen[k])return false;
-      seen[k]=1;return true;
-    });
-  }
-  function groupFor(id){
-    var sid=String(id||"");
-    var selected=customers().find(function(c){return String(c&&c.id||"")===sid;});
-    if(!selected)return [];
-    var mid=parentId(selected)||sid;
-    var main=customers().find(function(c){return String(c&&c.id||"")===mid&&!child(c);});
-    if(!main)return [selected];
-    var result=[main];
-    var seen={};seen[mainKey(main)]=1;
-    uniqueKids(mid).forEach(function(k){
-      var key=childKey(k);if(!seen["kid:"+key]){seen["kid:"+key]=1;result.push(k);}
-    });
-    return result;
-  }
-  function esc110(v){
-    if(typeof esc==="function")return esc(v==null?"":String(v));
-    return String(v==null?"":v).replace(/[&<>"']/g,function(ch){return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[ch];});
-  }
-
-  /* HOME: render each unique Main Customer once, then put unique children inside it. */
-  var oldDashRender=window.renderDashboardCustomers;
-  if(typeof oldDashRender==="function"&&!oldDashRender.__nfV110){
-    window.renderDashboardCustomers=function(){
-      var box=document.getElementById("dashboardCustomersList");
-      if(!box)return oldDashRender.apply(this,arguments);
-      var all=uniqueMains().slice();
-      try{all.sort(dashboardCustomerSort);}catch(e){all.sort(function(a,b){return norm(a.name).localeCompare(norm(b.name));});}
-      var fresh=all.filter(function(c){try{return dashboardCustomerCategory(c)==="new";}catch(e){return true;}});
-      var delivered=all.filter(function(c){try{return dashboardCustomerCategory(c)==="delivered";}catch(e){return false;}});
-      var a=document.getElementById("dchCountAll"),n=document.getElementById("dchCountNew"),d=document.getElementById("dchCountDelivered");
-      if(a)a.textContent=all.length;if(n)n.textContent=fresh.length;if(d)d.textContent=delivered.length;
-      var tab=window.dashboardCustomerTab||"all";
-      var source=tab==="new"?fresh:tab==="delivered"?delivered:all;
-      box.innerHTML=source.length?source.map(function(c,i){return window.dashboardCustomerCard(c,i,tab==="delivered"?"delivered":"new");}).join(""):"<div class=\"nf-dch-empty\">Customers இன்னும் சேர்க்கப்படவில்லை.</div>";
-    };
-    window.renderDashboardCustomers.__nfV110=true;
-  }
-
-  function addHomeGroup(card,mainId){
-    if(!card)return;
-    card.querySelectorAll(".nf110-home-group,.nf190-home-group,.nf180-group,.nf150-home-group,.nf140-group").forEach(function(x){x.remove();});
-    var kids=uniqueKids(mainId);if(!kids.length)return;
-    var sec=document.createElement("section");sec.className="nf110-home-group";
-    sec.addEventListener("click",function(e){e.stopPropagation();});
-    var title=document.createElement("div");title.className="nf110-home-title";title.textContent="👥 Additional Customers · "+kids.length+" பேர்";sec.appendChild(title);
-    kids.forEach(function(k){
-      var row=document.createElement("div");row.className="nf110-home-person";
-      var nm=document.createElement("div");nm.className="nf110-home-person-name";nm.textContent="👤 "+String(k.name||"Customer");
-      var ph=document.createElement("div");ph.className="nf110-home-person-phone";ph.textContent="📞 "+String(k.phone||"Phone இல்லை");
-      row.appendChild(nm);row.appendChild(ph);sec.appendChild(row);
-    });
-    card.appendChild(sec);
-  }
-
-  /* Final dashboard-card wrapper. It removes every older Multi group before adding exactly one. */
-  var oldCard=window.dashboardCustomerCard;
-  if(typeof oldCard==="function"&&!oldCard.__nfV110){
-    window.dashboardCustomerCard=function(c,index,category){
-      var html=oldCard.apply(this,arguments);
-      if(!c||child(c))return html;
-      try{
-        var holder=document.createElement("div");holder.innerHTML=html;
-        var card=holder.querySelector(".nf-dch-card");if(!card)return html;
-        addHomeGroup(card,c.id);
-        return card.outerHTML;
-      }catch(e){return html;}
-    };
-    window.dashboardCustomerCard.__nfV110=true;
-  }
-
-  /* CUSTOMER CARD: replace the old raw group with the exact unique group. */
-  function fixCustomerCards(){
-    document.querySelectorAll("#customersTable .customerCard").forEach(function(card){
-      var id=String(card.id||"").replace(/^customer-card-/i,"");
-      if(!id)return;
-      var c=customers().find(function(x){return String(x.id)===id;});
-      if(!c||child(c))return;
-      var kids=uniqueKids(id);
-      var old=card.querySelector(".nf180-group,.nf190-home-group,.nf110-home-group,.nf150-home-group,.nf140-group");
-      if(old)old.remove();
-      if(!kids.length)return;
-
-      var sec=document.createElement("section");sec.className="nf180-group";
-      var title=document.createElement("div");title.className="nf180-group-title";title.textContent="👥 Additional Customers · "+kids.length+" பேர்";sec.appendChild(title);
-      kids.forEach(function(k){
-        var row=document.createElement("div");row.className="nf180-person";
-        var info=document.createElement("div");info.className="nf180-person-info";
-        info.innerHTML='<b>'+esc110(k.name||"Customer")+'</b><small>📞 '+esc110(k.phone||"Phone இல்லை")+'</small>';
-        var acts=document.createElement("div");acts.className="nf180-person-actions";
-        var eb=document.createElement("button");eb.type="button";eb.className="nf180-edit";eb.textContent="✏️ Edit Order";eb.onclick=function(e){e.stopPropagation();if(typeof nfMultiCustomerEditOrder==="function")nfMultiCustomerEditOrder(String(k.id));};
-        var db=document.createElement("button");db.type="button";db.className="nf180-delete";db.textContent="🗑️ Delete";db.onclick=function(e){e.stopPropagation();if(typeof deleteCustomer==="function")deleteCustomer(String(k.id));};
-        acts.appendChild(eb);acts.appendChild(db);row.appendChild(info);row.appendChild(acts);sec.appendChild(row);
-      });
-      card.appendChild(sec);
-    });
-  }
-  var oldRenderCustomers=window.renderCustomers;
-  if(typeof oldRenderCustomers==="function"&&!oldRenderCustomers.__nfV110){
-    window.renderCustomers=function(){var r=oldRenderCustomers.apply(this,arguments);setTimeout(fixCustomerCards,0);setTimeout(fixCustomerCards,80);return r;};
-    window.renderCustomers.__nfV110=true;
-  }
-
-  /* NEW ORDER: Main-only first picker; then exactly that group's Main + children. */
-  function fillSelect(select,list,selected){
-    if(!select)return;
-    var sid=String(selected||"");
-    select.innerHTML='<option value="">Select customer</option>'+list.map(function(c){
-      var id=String(c.id||"");
-      return '<option value="'+esc110(id)+'" '+(id===sid?'selected':'')+'>'+esc110(c.name||"Customer")+'</option>';
-    }).join("");
-    if(sid&&list.some(function(c){return String(c.id)===sid;}))select.value=sid;
-  }
-  function fixInitial(){
-    var s=document.getElementById("ordersQuickCustomerStartInline");if(!s)return;
-    var current=String(s.value||"");
-    fillSelect(s,uniqueMains(),"");
-    if(current&&uniqueMains().some(function(c){return String(c.id)===current;}))s.value=current;
-  }
-  function fixEditor(customerId){
-    var s=document.getElementById("ordersQuickCustomerStart");if(!s)return;
-    var sid=String(customerId||s.value||"");if(!sid)return;
-    var list=groupFor(sid);if(!list.length)return;
-    var current=String(s.value||sid);
-    if(!list.some(function(c){return String(c.id)===current;}))current=sid;
-    fillSelect(s,list,current);
-  }
-  function runFix(){fixInitial();var s=document.getElementById("ordersQuickCustomerStart");if(s)fixEditor(s.value);}
-
-  document.addEventListener("change",function(e){
-    var t=e.target;if(!t)return;
-    if(t.id==="ordersQuickCustomerStartInline"){
-      var sid=String(t.value||"");
-      if(sid){setTimeout(function(){fixEditor(sid);},0);setTimeout(function(){fixEditor(sid);},120);}
-    }else if(t.id==="ordersQuickCustomerStart"){
-      setTimeout(function(){fixEditor(t.value);},0);
-    }
-  },true);
-
-  document.addEventListener("DOMContentLoaded",function(){
-    setTimeout(runFix,120);setTimeout(runFix,600);setTimeout(fixCustomerCards,700);
-  },{once:true});
-
-  var oldLoad=window.loadAll;
-  if(typeof oldLoad==="function"&&!oldLoad.__nfV110){
-    window.loadAll=async function(){var r=await oldLoad.apply(this,arguments);setTimeout(function(){try{renderDashboardCustomers();}catch(e){}try{renderCustomers();}catch(e){}runFix();},80);return r;};
-    window.loadAll.__nfV110=true;
-  }
-
-})();
-</script>
-
-
-
-
-<script id="nf-v111-edit-multi-js">
+</script><script id="nf-v111-edit-multi-js">
 (function(){
   "use strict";
   if(window.__nfV111Installed)return;
@@ -12687,118 +12205,7 @@ setTimeout(decorateAll,100);
   }
 
 })();
-</script>
-
-
-<script id="nf-v114-single-multi-layout-fix">
-(function(){
-  "use strict";
-  var RE=/(?:^|\|\s*)(?:NF_MULTI_PARENT|NF_PARENT_CUSTOMER):\s*([^|\s]+)/i;
-  var OLD_GROUPS=[
-    ".nf112-group",".nf180-group",".nf190-home-group",".nf110-home-group",
-    ".nf150-home-group",".nf140-group",".nf113-home-group",".nf113-customer-group",
-    ".nf170-group",".nf111-group"
-  ].join(",");
-  function all(){return (typeof state!=="undefined"&&Array.isArray(state.customers))?state.customers:[];}
-  function parentId(c){var m=String(c&&c.notes||"").match(RE);return m?String(m[1]):"";}
-  function isChild(c){return !!parentId(c);}
-  function kids(id){
-    var seen={};
-    return all().filter(function(c){
-      if(parentId(c)!==String(id))return false;
-      var k=String(c&&c.id||"");
-      if(!k||seen[k])return false;
-      seen[k]=1; return true;
-    });
-  }
-  function esc(v){
-    if(typeof window.esc==="function")return window.esc(v==null?"":String(v));
-    return String(v==null?"":v).replace(/[&<>"']/g,function(ch){return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[ch];});
-  }
-  function customerGroup(id){
-    var list=kids(id); if(!list.length)return null;
-    var sec=document.createElement("section"); sec.className="nf114-customer-group";
-    sec.innerHTML='<div class="nf114-group-head"><div class="nf114-group-title">👥 Additional Customers <span>· '+list.length+' பேர்</span></div><span class="nf114-tag">ADDITIONAL</span></div>';
-    list.forEach(function(k){
-      var row=document.createElement("div"); row.className="nf114-person";
-      row.innerHTML='<div class="nf114-person-info"><span class="nf114-person-tag">ADDITIONAL</span><b>'+esc(k.name||"Customer")+'</b><small>📞 '+esc(k.phone||"Phone இல்லை")+'</small></div>'+
-        '<div class="nf114-actions"><button type="button" class="nf114-edit">✏️ Edit Order</button><button type="button" class="nf114-delete">🗑️ Delete</button></div>';
-      row.querySelector(".nf114-edit").onclick=function(e){e.preventDefault();e.stopPropagation();if(typeof window.nfMultiCustomerEditOrder==="function")window.nfMultiCustomerEditOrder(String(k.id));};
-      row.querySelector(".nf114-delete").onclick=function(e){e.preventDefault();e.stopPropagation();if(typeof window.deleteCustomer==="function")window.deleteCustomer(String(k.id));};
-      sec.appendChild(row);
-    });
-    return sec;
-  }
-  function cleanCard(card,id){
-    if(!card)return;
-    card.querySelectorAll(OLD_GROUPS).forEach(function(x){x.remove();});
-    var c=all().find(function(x){return String(x&&x.id||"")===String(id);});
-    if(!c||isChild(c))return;
-    var group=customerGroup(id); if(!group)return;
-    var cash=card.querySelector(".nf-cash-collection");
-    if(cash)cash.parentNode.insertBefore(group,cash);
-    else card.appendChild(group);
-  }
-  function cleanCustomerHTML(html,id){
-    try{
-      var holder=document.createElement("div"); holder.innerHTML=html;
-      var card=holder.querySelector(".customerCard");
-      if(card){cleanCard(card,id);return card.outerHTML;}
-    }catch(e){}
-    return html;
-  }
-  var baseCustomerCard=window.customerCard;
-  if(typeof baseCustomerCard==="function"&&!baseCustomerCard.__nfV114){
-    window.customerCard=function(id){
-      var html=baseCustomerCard.apply(this,arguments);
-      return cleanCustomerHTML(html,id);
-    };
-    window.customerCard.__nfV114=true;
-  }
-
-  function homeGroup(id){
-    var list=kids(id); if(!list.length)return null;
-    var sec=document.createElement("section"); sec.className="nf114-home-group";
-    sec.innerHTML='<div class="nf114-home-head"><div class="nf114-home-title">👥 <b>Additional Customers</b> <span>· '+list.length+' பேர்</span></div><span class="nf114-home-tag">MAIN CUSTOMER GROUP</span></div>';
-    list.forEach(function(k){
-      var row=document.createElement("div"); row.className="nf114-home-person";
-      row.innerHTML='<div><span class="nf114-home-person-tag">ADDITIONAL</span><b>'+esc(k.name||"Customer")+'</b></div><span>📞 '+esc(k.phone||"Phone இல்லை")+'</span>';
-      sec.appendChild(row);
-    });
-    return sec;
-  }
-  function cleanHomeCard(card,c){
-    if(!card)return;
-    card.querySelectorAll(OLD_GROUPS+",.nf114-home-group").forEach(function(x){x.remove();});
-    if(isChild(c))return;
-    var group=homeGroup(c.id); if(!group)return;
-    var identity=card.querySelector(".nf-dch-identity");
-    if(identity)identity.appendChild(group); else card.appendChild(group);
-  }
-  var baseDash=window.dashboardCustomerCard;
-  if(typeof baseDash==="function"&&!baseDash.__nfV114){
-    window.dashboardCustomerCard=function(c,index,category){
-      if(c&&isChild(c))return "";
-      var html=baseDash.apply(this,arguments);
-      try{
-        var holder=document.createElement("div"); holder.innerHTML=html;
-        var card=holder.querySelector(".nf-dch-card");
-        if(card)cleanHomeCard(card,c);
-        return card?card.outerHTML:html;
-      }catch(e){return html;}
-    };
-    window.dashboardCustomerCard.__nfV114=true;
-  }
-
-  function refresh(){
-    try{if(typeof renderCustomers==="function")renderCustomers();}catch(e){}
-    try{if(typeof renderDashboardCustomers==="function")renderDashboardCustomers();}catch(e){}
-  }
-  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",function(){setTimeout(refresh,50);},{once:true});
-  else setTimeout(refresh,50);
-})();
-</script>
-<style id="nf-v114-single-multi-layout-css">
+</script><style id="nf-v114-single-multi-layout-css">
 .nf114-customer-group{margin:12px 0 0;padding:12px;border:2px solid transparent;border-radius:17px;background:linear-gradient(145deg,#faf7ff,#fff7fb) padding-box,linear-gradient(135deg,#7050e8,#e34d8d) border-box;box-shadow:0 8px 22px rgba(89,56,145,.10);position:relative;overflow:hidden}
 .nf114-customer-group:before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:linear-gradient(180deg,#6545e8,#e94678,#f2a52b)}
 .nf114-group-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding-bottom:8px;border-bottom:1px solid rgba(108,69,232,.13)}
@@ -12811,4 +12218,140 @@ setTimeout(decorateAll,100);
 .nf114-home-head{display:flex;align-items:center;justify-content:space-between;gap:7px;margin-bottom:4px}.nf114-home-title{font-size:12px;color:#4d2e8e}.nf114-home-title span{font-weight:800;color:#776b87}
 .nf114-home-person{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 0;border-top:1px solid rgba(108,69,232,.12);font-size:11px}.nf114-home-person b{display:block;margin-top:3px;font-size:12px;color:#30263d}.nf114-home-person>span{color:#706879;white-space:nowrap}.nf114-home-person-tag{font-size:8px;padding:2px 5px;border-radius:999px;background:#fff;color:#6944c8;border:1px solid rgba(108,69,232,.18);font-weight:950}
 @media(max-width:560px){.nf114-customer-group{padding:10px;margin-top:9px}.nf114-group-title{font-size:14px}.nf114-person{gap:7px;padding:8px 0}.nf114-actions{gap:4px}.nf114-actions button{padding:7px 8px;font-size:11px}.nf114-home-group{margin-top:7px;padding:8px}.nf114-home-person{padding:5px 0}}
+</style>
+<script id="nf-v116-stable-multi-customer-fix">
+(function(){
+  "use strict";
+  var PARENT_RE=/(?:^|\|\s*)(?:NF_MULTI_PARENT|NF_PARENT_CUSTOMER):\s*([^|\s]+)/i;
+  function all(){return (typeof state!=="undefined"&&Array.isArray(state.customers))?state.customers:[];}
+  function parentId(c){var m=String(c&&c.notes||"").match(PARENT_RE);return m?String(m[1]):"";}
+  function isChild(c){return !!parentId(c);}
+  function mains(){var seen={};return all().filter(function(c){if(isChild(c))return false;var id=String(c&&c.id||"");if(!id||seen[id])return false;seen[id]=1;return true;});}
+  function kids(id){var seen={};return all().filter(function(c){if(parentId(c)!==String(id))return false;var k=String(c&&c.id||"");if(!k||seen[k])return false;seen[k]=1;return true;});}
+  function groupFor(id){var sid=String(id||"");var c=all().find(function(x){return String(x&&x.id||"")===sid;});if(!c)return[];var mid=parentId(c)||sid;var main=all().find(function(x){return String(x&&x.id||"")===mid&&!isChild(x);});if(!main)return[c];return [main].concat(kids(mid));}
+  function esc(v){return typeof window.esc==="function"?window.esc(v==null?"":String(v)):String(v==null?"":v).replace(/[&<>"']/g,function(ch){return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[ch];});}
+  var OLD_GROUPS=[
+    ".nf112-group",".nf180-group",".nf190-home-group",".nf110-home-group",
+    ".nf150-home-group",".nf140-group",".nf113-home-group",".nf113-customer-group",
+    ".nf170-group",".nf111-group",".nf114-customer-group",".nf114-home-group"
+  ].join(",");
+
+  function customerGroup(id){
+    var list=kids(id);if(!list.length)return null;
+    var sec=document.createElement("section");sec.className="nf116-customer-group";
+    sec.innerHTML='<div class="nf116-group-head"><div class="nf116-group-title">👥 Additional Customers <span>· '+list.length+' பேர்</span></div><span class="nf116-tag">ADDITIONAL</span></div>';
+    list.forEach(function(k){
+      var row=document.createElement("div");row.className="nf116-person";
+      row.innerHTML='<div class="nf116-person-info"><span class="nf116-person-tag">ADDITIONAL</span><b>'+esc(k.name||"Customer")+'</b><small>📞 '+esc(k.phone||"Phone இல்லை")+'</small></div><div class="nf116-actions"><button type="button" class="nf116-edit">✏️ Edit Order</button><button type="button" class="nf116-delete">🗑️ Delete</button></div>';
+      row.querySelector(".nf116-edit").onclick=function(e){e.preventDefault();e.stopPropagation();if(typeof window.nfMultiCustomerEditOrder==="function")window.nfMultiCustomerEditOrder(String(k.id));};
+      row.querySelector(".nf116-delete").onclick=function(e){e.preventDefault();e.stopPropagation();if(typeof window.deleteCustomer==="function")window.deleteCustomer(String(k.id));};
+      sec.appendChild(row);
+    });
+    return sec;
+  }
+  function cleanCustomerCard(card,id){
+    if(!card)return;
+    card.querySelectorAll(OLD_GROUPS).forEach(function(x){x.remove();});
+    var c=all().find(function(x){return String(x&&x.id||"")===String(id);});
+    if(!c||isChild(c))return;
+    var group=customerGroup(id);if(!group)return;
+    var anchor=card.querySelector(".nf-cash-collection");
+    if(anchor&&anchor.parentNode)anchor.parentNode.insertBefore(group,anchor);else card.appendChild(group);
+  }
+  function wrapCustomerCard(){
+    var base=window.customerCard;
+    if(typeof base!=="function"||base.__nfV116)return;
+    var wrapped=function(id){var html=base.apply(this,arguments);try{var h=document.createElement("div");h.innerHTML=html;var card=h.querySelector(".customerCard");if(card){cleanCustomerCard(card,id);return card.outerHTML;}}catch(e){}return html;};
+    wrapped.__nfV116=true;window.customerCard=wrapped;
+  }
+  wrapCustomerCard();
+
+  function homeGroup(id){
+    var list=kids(id);if(!list.length)return null;
+    var sec=document.createElement("section");sec.className="nf116-home-group";
+    sec.innerHTML='<div class="nf116-home-head"><div class="nf116-home-title">👥 <b>Additional Customers</b> <span>· '+list.length+' பேர்</span></div><span class="nf116-home-tag">MAIN CUSTOMER GROUP</span></div>';
+    list.forEach(function(k){
+      var row=document.createElement("div");row.className="nf116-home-person";
+      row.innerHTML='<div><span class="nf116-home-person-tag">ADDITIONAL</span><b>'+esc(k.name||"Customer")+'</b></div><span>📞 '+esc(k.phone||"Phone இல்லை")+'</span>';
+      sec.appendChild(row);
+    });
+    return sec;
+  }
+  function cleanHomeCard(card,c){
+    if(!card)return;
+    card.querySelectorAll(OLD_GROUPS+",.nf116-home-group").forEach(function(x){x.remove();});
+    if(!c||isChild(c))return;
+    var g=homeGroup(c.id);if(!g)return;
+    var identity=card.querySelector(".nf-dch-identity");
+    if(identity)identity.appendChild(g);else card.appendChild(g);
+  }
+  function wrapDashboardCard(){
+    var base=window.dashboardCustomerCard;
+    if(typeof base!=="function"||base.__nfV116)return;
+    var wrapped=function(c,index,category){
+      if(c&&isChild(c))return "";
+      var html=base.apply(this,arguments);
+      try{var h=document.createElement("div");h.innerHTML=html;var card=h.querySelector(".nf-dch-card")||h.querySelector("article");if(card){cleanHomeCard(card,c);return card.outerHTML;}}catch(e){}
+      return html;
+    };
+    wrapped.__nfV116=true;window.dashboardCustomerCard=wrapped;
+  }
+  wrapDashboardCard();
+
+  function renderCustomersStable(){
+    var box=document.getElementById("customersTable");if(!box)return;
+    var q=(document.getElementById("customerSearch")?.value||"").toLowerCase();
+    var list=mains().filter(function(c){return [c.name,c.phone,c.address,c.village].join(" ").toLowerCase().includes(q);});
+    box.innerHTML=list.length?list.map(function(c){return window.customerCard(c.id);}).join(""):"<div class=\"card empty\" style=\"grid-column:1/-1\">No customers found.</div>";
+    /* Never leave the whole page hidden if an old focus target no longer exists. */
+    var view=document.getElementById("view-customers");
+    if(view&&view.classList.contains("nf-customer-focus-mode")){
+      var target=document.getElementById("customer-card-"+String(window.__nfV116FocusId||""));
+      if(target){target.classList.add("nf-customer-focus-selected");}
+      else view.classList.remove("nf-customer-focus-mode");
+    }
+  }
+  window.renderCustomers=renderCustomersStable;window.renderCustomers.__nfV116=true;
+
+  function renderDashboardStable(){
+    var box=document.getElementById("dashboardCustomersList");if(!box)return;
+    var list=mains().slice();
+    try{list.sort(dashboardCustomerSort);}catch(e){}
+    var fresh=list.filter(function(c){try{return dashboardCustomerCategory(c)==="new";}catch(e){return true;}});
+    var delivered=list.filter(function(c){try{return dashboardCustomerCategory(c)==="delivered";}catch(e){return false;}});
+    var a=document.getElementById("dchCountAll"),n=document.getElementById("dchCountNew"),d=document.getElementById("dchCountDelivered");
+    if(a)a.textContent=list.length;if(n)n.textContent=fresh.length;if(d)d.textContent=delivered.length;
+    var tab=window.dashboardCustomerTab||"all",source=tab==="new"?fresh:tab==="delivered"?delivered:list;
+    box.innerHTML=source.length?source.map(function(c,i){return window.dashboardCustomerCard(c,i,tab==="delivered"?"delivered":"new");}).join(""):"<div class=\"nf-dch-empty\">Customers இன்னும் சேர்க்கப்படவில்லை.</div>";
+  }
+  window.renderDashboardCustomers=renderDashboardStable;window.renderDashboardCustomers.__nfV116=true;
+
+  function renderSidebar(){
+    var box=document.getElementById("nfSidebarCustomerList");if(box){var list=mains();try{list.sort(dashboardCustomerSort);}catch(e){}box.innerHTML=list.length?list.map(function(c,i){return '<button type="button" class="nfSidebarCustomerRow" onclick="openSidebarCustomer(\''+String(c.id).replace(/\\/g,"\\\\").replace(/'/g,"\\'")+'\')"><span class="nfSidebarCustomerNo">'+(i+1)+'</span><span class="nfSidebarCustomerMain"><span class="nfSidebarCustomerName">'+esc(c.name||"Customer")+'</span><span class="nfSidebarCustomerPhone">📞 '+esc(c.phone||"Phone இல்லை")+'</span></span><span class="nfSidebarCustomerArrow">›</span></button>';}).join(""):"<div style=\"padding:20px 10px;text-align:center;color:#d9d3e7;font-weight:800\">👥 Customer இன்னும் சேர்க்கப்படவில்லை.</div>";}
+    var slide=document.getElementById("nfCustomerSlideList");if(slide){var s=mains();try{s.sort(function(a,b){return String(a.name||"").localeCompare(String(b.name||""),"ta",{numeric:true,sensitivity:"base"});});}catch(e){}slide.innerHTML=s.map(function(c,i){return '<button type="button" class="nf-customer-slide-row" style="--nf-row-index:'+Math.min(i,20)+'" onclick="openCustomerFromMyCustomersMenu(\''+String(c.id).replace(/\\/g,"\\\\").replace(/'/g,"\\'")+'\')"><span class="nf-customer-slide-no">'+(i+1)+'</span><span class="nf-customer-slide-main"><span class="nf-customer-slide-name">'+esc(c.name||"Customer")+'</span><span class="nf-customer-slide-phone">📞 '+esc(c.phone||"Phone இல்லை")+'</span></span><span class="nf-customer-slide-arrow">›</span></button>';}).join("");}
+  }
+  window.renderSidebarCustomerList=renderSidebar;window.renderMyCustomersSlideMenu=renderSidebar;
+
+  function fillOrderSelect(select,list,selected){if(!select)return;var sid=String(selected||"");select.innerHTML='<option value="">Select customer</option>'+list.map(function(c){return '<option value="'+esc(c.id)+'" '+(String(c.id)===sid?'selected':'')+'>'+esc(c.name||"Customer")+'</option>';}).join("");if(sid&&list.some(function(c){return String(c.id)===sid;}))select.value=sid;}
+  function fixOrderSelectors(){
+    var initial=document.getElementById("ordersQuickCustomerStartInline");if(initial){var cur=String(initial.value||"");fillOrderSelect(initial,mains(),cur);}
+    var editor=document.getElementById("ordersQuickCustomerStart");if(editor){var sid=String(editor.value||"");if(sid)fillOrderSelect(editor,groupFor(sid),sid);}
+  }
+  var oldOpenQuick=window.openOrdersQuickAdd;
+  if(typeof oldOpenQuick==="function"&&!oldOpenQuick.__nfV116){window.openOrdersQuickAdd=function(){var r=oldOpenQuick.apply(this,arguments);setTimeout(fixOrderSelectors,0);setTimeout(fixOrderSelectors,80);return r;};window.openOrdersQuickAdd.__nfV116=true;}
+  var oldMount=window.mountOrdersQuickForm;
+  if(typeof oldMount==="function"&&!oldMount.__nfV116){window.mountOrdersQuickForm=function(customerId){var r=oldMount.apply(this,arguments);setTimeout(function(){var s=document.getElementById("ordersQuickCustomerStart");if(s)fillOrderSelect(s,groupFor(String(customerId||s.value||"")),String(customerId||s.value||""));},0);return r;};window.mountOrdersQuickForm.__nfV116=true;}
+  document.addEventListener("change",function(e){if(e.target?.id==="ordersQuickCustomerStartInline"){setTimeout(fixOrderSelectors,0);setTimeout(fixOrderSelectors,120);}else if(e.target?.id==="ordersQuickCustomerStart"){setTimeout(fixOrderSelectors,0);}},true);
+
+  /* Keep focus state safe across any background re-render. */
+  var oldGo=window.goToCustomer;
+  if(typeof oldGo==="function"&&!oldGo.__nfV116){window.goToCustomer=function(id){var sid=String(id||"");var c=all().find(function(x){return String(x&&x.id||"")===sid;});var mainId=c?(parentId(c)||sid):sid;window.__nfV116FocusId=mainId;return oldGo.call(this,mainId);};window.goToCustomer.__nfV116=true;}
+  document.addEventListener("click",function(e){var b=e.target.closest?.('[data-view="customers"]');if(b)window.__nfV116FocusId="";},true);
+
+  function refresh(){try{renderCustomersStable();}catch(e){}try{renderDashboardStable();}catch(e){}try{renderSidebar();}catch(e){}try{fixOrderSelectors();}catch(e){}}
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",function(){setTimeout(refresh,80);setTimeout(refresh,350);},{once:true});else setTimeout(refresh,80);
+})();
+</script>
+<style id="nf-v116-stable-multi-customer-css">
+.nf116-customer-group{margin:10px 0 12px;padding:12px;border:2px solid transparent;border-radius:17px;background:linear-gradient(145deg,#faf7ff,#fff7fb) padding-box,linear-gradient(135deg,#7050e8,#e34d8d) border-box;box-shadow:0 8px 22px rgba(89,56,145,.10);position:relative;overflow:hidden}.nf116-customer-group:before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:linear-gradient(180deg,#6545e8,#e94678,#f2a52b)}.nf116-group-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding-bottom:8px;border-bottom:1px solid rgba(108,69,232,.13)}.nf116-group-title{font-size:15px;font-weight:950;color:#4d2e8e}.nf116-group-title span{font-weight:800;color:#776b87}.nf116-tag,.nf116-person-tag,.nf116-home-tag{display:inline-flex;align-items:center;padding:4px 7px;border-radius:999px;background:linear-gradient(135deg,#eee8ff,#ffeaf2);color:#5c3bb0;font-size:9px;font-weight:950;letter-spacing:.25px;white-space:nowrap}.nf116-person{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 0;border-top:1px solid #e6dff0}.nf116-person:first-of-type{border-top:0}.nf116-person-info{min-width:0;flex:1}.nf116-person-info b{display:block;margin-top:3px;font-size:15px;color:#2b2530;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.nf116-person-info small{display:block;margin-top:2px;font-size:12px;color:#6d6672}.nf116-actions{display:flex;gap:6px;flex:0 0 auto}.nf116-actions button{border:0;border-radius:10px;padding:8px 10px;font-weight:900;cursor:pointer;white-space:nowrap}.nf116-edit{background:#eee8ff;color:#5131a0}.nf116-delete{background:#ffe9ed;color:#b32645}.nf116-home-group{margin-top:8px;padding:9px 10px;border:1.5px solid transparent;border-radius:13px;background:linear-gradient(135deg,#f4efff,#fff0f7) padding-box,linear-gradient(135deg,#7a55ef,#e54d91) border-box;box-shadow:0 5px 15px rgba(89,56,145,.08)}.nf116-home-head{display:flex;align-items:center;justify-content:space-between;gap:7px;margin-bottom:4px}.nf116-home-title{font-size:12px;color:#4d2e8e}.nf116-home-title span{font-weight:800;color:#776b87}.nf116-home-person{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 0;border-top:1px solid rgba(108,69,232,.12);font-size:11px}.nf116-home-person b{display:block;margin-top:3px;font-size:12px;color:#30263d}.nf116-home-person>span{color:#706879;white-space:nowrap}.nf116-home-person-tag{font-size:8px;padding:2px 5px;border-radius:999px;background:#fff;color:#6944c8;border:1px solid rgba(108,69,232,.18);font-weight:950}@media(max-width:560px){.nf116-customer-group{padding:10px;margin-top:8px}.nf116-group-title{font-size:14px}.nf116-person{gap:7px;padding:8px 0}.nf116-actions{gap:4px}.nf116-actions button{padding:7px 8px;font-size:11px}.nf116-home-group{margin-top:7px;padding:8px}.nf116-home-person{padding:5px 0}}
 </style>
