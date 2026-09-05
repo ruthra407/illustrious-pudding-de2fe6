@@ -2718,6 +2718,7 @@ function mountOrdersQuickForm(customerId){
    updateChudiLiningLabel(key);
 
    if(typeof window.renderQuickDesignRates==="function")window.renderQuickDesignRates(key,[]);
+   if(typeof ensureQuickPersonSelect==="function")ensureQuickPersonSelect(key,"p1",customerId);
  }
 }
 function openOrdersQuickAdd(){
@@ -6039,6 +6040,7 @@ function nfFormatPaymentDate(v){return v?dateText(v):"—";}
     var save=box.querySelector(".nf-quick-save-btn");
     if(save)save.textContent="💾 Update Order";
     populateQuickOrderEditor(key,o);
+    if(typeof ensureQuickPersonSelect==="function")ensureQuickPersonSelect(key,getOrderPersonId(o),o.customer_id);
     updateQuickGarment(key);
     updateChudiLiningLabel(key);
     var screenTitle=$("ordersNewOrderScreenTitle");
@@ -9899,7 +9901,7 @@ function personStats(id,pid){
  return {orders,normal,lining,design,chudi,total,paid,balance:Math.max(0,total-paid)};
 }
 function personSelectOptions(id,current){return getPersons(id).map(p=>`<option value="${safe(p.id)}" ${String(p.id)===String(current||"")?"selected":""}>${safe(p.name)}</option>`).join("")}
-function ensureQuickPersonSelect(id,current){const el=$("qo-person-"+id);if(!el)return;el.innerHTML=personSelectOptions(id,current);if(!el.value){el.value=getPersons(id)[0]?.id||"p1"}}
+function ensureQuickPersonSelect(id,current,customerId){const el=$("qo-person-"+id);if(!el)return;const cid=String(customerId||id);el.innerHTML=personSelectOptions(cid,current);if(!el.value){el.value=getPersons(cid)[0]?.id||"p1"}}
 function injectCustomerPersonsField(){
  const fields=$("formFields");if(!fields)return;fields.querySelector("[data-nf-persons-field]")?.remove();
  const id=state.editing?.id,persons=id?getPersons(id):[{id:"p1",name:"நபர் 1"}];
@@ -9929,7 +9931,7 @@ function wrapCustomerCard(){const base=window.customerCard;if(typeof base!=="fun
 function wrapOpenModal(){const base=window.openModal;if(typeof base!=="function"||base.__nfPersonWrapped)return;window.openModal=function(type,id){const r=base.apply(this,arguments);setTimeout(()=>{if(type==="customer")injectCustomerPersonsField();if(type==="order")injectOrderPersonField();if(type==="payment"){const sel=$("formFields")?.querySelector('[name="order_id"]');if(sel)[...sel.options].forEach(opt=>{const o=(state.orders||[]).find(x=>String(x.id)===String(opt.value));if(o){const p=getPersons(o.customer_id).find(x=>String(x.id)===getOrderPersonId(o));if(p)opt.textContent=opt.textContent+" · 👤 "+p.name}})}},25);return r};window.openModal.__nfPersonWrapped=true}
 function wrapSaveQuick(){const base=window.saveQuickOrder;if(typeof base!=="function"||base.__nfPersonWrapped)return;window.saveQuickOrder=async function(id,customerId){const pid=$("qo-person-"+id)?.value||"p1",notes=$("qo-notes-"+id);if(notes)notes.value=appendOrderPersonMarker(notes.value,pid);try{return await base.apply(this,arguments)}finally{if(notes)notes.value=cleanNotesWithoutPerson(notes.value)}};window.saveQuickOrder.__nfPersonWrapped=true}
 function wrapRenderCustomers(){const base=window.renderCustomers;if(typeof base!=="function"||base.__nfPersonWrapped)return;window.renderCustomers=function(){const r=base.apply(this,arguments);setTimeout(()=>{(state.customers||[]).forEach(c=>renderPersonPanel(c.id))},0);return r};window.renderCustomers.__nfPersonWrapped=true}
-function wrapPopulate(){const base=window.populateQuickOrderEditor;if(typeof base!=="function"||base.__nfPersonWrapped)return;window.populateQuickOrderEditor=function(id,o){const r=base.apply(this,arguments);setTimeout(()=>ensureQuickPersonSelect(id,getOrderPersonId(o)),20);return r};window.populateQuickOrderEditor.__nfPersonWrapped=true}
+function wrapPopulate(){const base=window.populateQuickOrderEditor;if(typeof base!=="function"||base.__nfPersonWrapped)return;window.populateQuickOrderEditor=function(id,o){const r=base.apply(this,arguments);const cid=o?.customer_id||id;setTimeout(()=>ensureQuickPersonSelect(id,getOrderPersonId(o),cid),20);return r};window.populateQuickOrderEditor.__nfPersonWrapped=true}
 function wrapClear(){const base=window.clearQuickOrderEditor;if(typeof base!=="function"||base.__nfPersonWrapped)return;window.clearQuickOrderEditor=function(id){const r=base.apply(this,arguments);setTimeout(()=>ensureQuickPersonSelect(id,getPersons(id)[0]?.id||"p1"),20);return r};window.clearQuickOrderEditor.__nfPersonWrapped=true}
 let pendingCustomerPersons=null;
 function install(){wrapCustomerCard();wrapOpenModal();wrapSaveQuick();wrapRenderCustomers();wrapPopulate();wrapClear();const form=$("dataForm");if(form&&!form.__nfPersonCapture){form.addEventListener("submit",function(){if(state.editing?.type==="customer"){const inp=$("nfCustomerPersonsInput"),names=String(inp?.value||"").split(",").map(x=>x.trim()).filter(Boolean);pendingCustomerPersons={names:names.length?names:["நபர் 1"],started:Date.now(),editingId:state.editing.id||null}}if(state.editing?.type==="order"){const sel=$("nfOrderPersonSelect"),pid=sel?.value||"p1",notes=$("formFields")?.querySelector('[name="notes"]');if(notes)notes.value=appendOrderPersonMarker(notes.value,pid)}},true);form.__nfPersonCapture=true}}
@@ -11643,6 +11645,9 @@ document.addEventListener("DOMContentLoaded",()=>{setTimeout(install,100);setTim
     function apply(){
       tries++;
       var sel=document.getElementById("qo-person-"+customerId);
+      if(!sel){
+        sel=document.querySelector("#ordersNewOrderScreen select[id^=\"qo-person-\"]");
+      }
       if(sel){
         sel.value=String(pid);
         try{
