@@ -12199,3 +12199,201 @@ body.nf-photo-preview-scroll-locked{overscroll-behavior:none!important}
 })();
 </script>
 
+<style id="nf-v110-multi-exact-css">
+/* V1.10 — exact Multi Customer group display; no duplicate people/cards. */
+.nf110-home-group{margin:10px 0 0;padding:10px 12px;border:2px solid rgba(108,77,246,.20);border-radius:15px;background:linear-gradient(135deg,#faf7ff,#fff8fb)}
+.nf110-home-title{margin:0 0 5px;font-size:13px;line-height:1.25;font-weight:950;color:#4d2e8e}
+.nf110-home-person{display:flex;align-items:center;gap:8px;padding:7px 0;border-top:1px solid rgba(108,77,246,.12)}
+.nf110-home-person:first-of-type{border-top:0}
+.nf110-home-person-name{min-width:0;flex:1;font-weight:850;color:#30263d;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nf110-home-person-phone{flex:0 0 auto;font-size:11px;color:#706879;white-space:nowrap}
+@media(max-width:560px){.nf110-home-group{margin-top:8px;padding:9px 10px}.nf110-home-person{padding:6px 0}.nf110-home-person-name{font-size:13px}.nf110-home-person-phone{font-size:10px}}
+</style>
+<script id="nf-v110-multi-exact-js">
+(function(){
+  "use strict";
+  if(window.__nfV110Installed)return;
+  window.__nfV110Installed=true;
+
+  var PARENT_RE=/(?:^|\|\s*)(?:NF_MULTI_PARENT|NF_PARENT_CUSTOMER):\s*([^|\s]+)/i;
+
+  function customers(){return (typeof state!=="undefined"&&Array.isArray(state.customers))?state.customers:[];}
+  function parentId(c){var m=String(c&&c.notes||"").match(PARENT_RE);return m?String(m[1]):"";}
+  function child(c){return !!parentId(c);}
+  function norm(v){return String(v==null?"":v).trim().toLowerCase().replace(/\s+/g," ");}
+
+  /* Exact duplicate means same identity fields. We do not delete database rows. */
+  function mainKey(c){
+    return [norm(c&&c.name),norm(c&&c.phone),norm(c&&c.address),norm(c&&c.village)].join("¦");
+  }
+  function childKey(c){return [norm(c&&c.name),norm(c&&c.phone)].join("¦");}
+
+  function uniqueMains(){
+    var seen={};
+    return customers().filter(function(c){
+      if(child(c))return false;
+      var k=mainKey(c);
+      if(!k||seen[k])return false;
+      seen[k]=1;return true;
+    });
+  }
+  function uniqueKids(mainId){
+    var seen={};
+    return customers().filter(function(c){
+      if(parentId(c)!==String(mainId))return false;
+      var k=childKey(c);
+      if(!k||seen[k])return false;
+      seen[k]=1;return true;
+    });
+  }
+  function groupFor(id){
+    var sid=String(id||"");
+    var selected=customers().find(function(c){return String(c&&c.id||"")===sid;});
+    if(!selected)return [];
+    var mid=parentId(selected)||sid;
+    var main=customers().find(function(c){return String(c&&c.id||"")===mid&&!child(c);});
+    if(!main)return [selected];
+    var result=[main];
+    var seen={};seen[mainKey(main)]=1;
+    uniqueKids(mid).forEach(function(k){
+      var key=childKey(k);if(!seen["kid:"+key]){seen["kid:"+key]=1;result.push(k);}
+    });
+    return result;
+  }
+  function esc110(v){
+    if(typeof esc==="function")return esc(v==null?"":String(v));
+    return String(v==null?"":v).replace(/[&<>"']/g,function(ch){return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[ch];});
+  }
+
+  /* HOME: render each unique Main Customer once, then put unique children inside it. */
+  var oldDashRender=window.renderDashboardCustomers;
+  if(typeof oldDashRender==="function"&&!oldDashRender.__nfV110){
+    window.renderDashboardCustomers=function(){
+      var box=document.getElementById("dashboardCustomersList");
+      if(!box)return oldDashRender.apply(this,arguments);
+      var all=uniqueMains().slice();
+      try{all.sort(dashboardCustomerSort);}catch(e){all.sort(function(a,b){return norm(a.name).localeCompare(norm(b.name));});}
+      var fresh=all.filter(function(c){try{return dashboardCustomerCategory(c)==="new";}catch(e){return true;}});
+      var delivered=all.filter(function(c){try{return dashboardCustomerCategory(c)==="delivered";}catch(e){return false;}});
+      var a=document.getElementById("dchCountAll"),n=document.getElementById("dchCountNew"),d=document.getElementById("dchCountDelivered");
+      if(a)a.textContent=all.length;if(n)n.textContent=fresh.length;if(d)d.textContent=delivered.length;
+      var tab=window.dashboardCustomerTab||"all";
+      var source=tab==="new"?fresh:tab==="delivered"?delivered:all;
+      box.innerHTML=source.length?source.map(function(c,i){return window.dashboardCustomerCard(c,i,tab==="delivered"?"delivered":"new");}).join(""):"<div class=\"nf-dch-empty\">Customers இன்னும் சேர்க்கப்படவில்லை.</div>";
+    };
+    window.renderDashboardCustomers.__nfV110=true;
+  }
+
+  function addHomeGroup(card,mainId){
+    if(!card)return;
+    card.querySelectorAll(".nf110-home-group,.nf190-home-group,.nf180-group,.nf150-home-group,.nf140-group").forEach(function(x){x.remove();});
+    var kids=uniqueKids(mainId);if(!kids.length)return;
+    var sec=document.createElement("section");sec.className="nf110-home-group";
+    sec.addEventListener("click",function(e){e.stopPropagation();});
+    var title=document.createElement("div");title.className="nf110-home-title";title.textContent="👥 Additional Customers · "+kids.length+" பேர்";sec.appendChild(title);
+    kids.forEach(function(k){
+      var row=document.createElement("div");row.className="nf110-home-person";
+      var nm=document.createElement("div");nm.className="nf110-home-person-name";nm.textContent="👤 "+String(k.name||"Customer");
+      var ph=document.createElement("div");ph.className="nf110-home-person-phone";ph.textContent="📞 "+String(k.phone||"Phone இல்லை");
+      row.appendChild(nm);row.appendChild(ph);sec.appendChild(row);
+    });
+    card.appendChild(sec);
+  }
+
+  /* Final dashboard-card wrapper. It removes every older Multi group before adding exactly one. */
+  var oldCard=window.dashboardCustomerCard;
+  if(typeof oldCard==="function"&&!oldCard.__nfV110){
+    window.dashboardCustomerCard=function(c,index,category){
+      var html=oldCard.apply(this,arguments);
+      if(!c||child(c))return html;
+      try{
+        var holder=document.createElement("div");holder.innerHTML=html;
+        var card=holder.querySelector(".nf-dch-card");if(!card)return html;
+        addHomeGroup(card,c.id);
+        return card.outerHTML;
+      }catch(e){return html;}
+    };
+    window.dashboardCustomerCard.__nfV110=true;
+  }
+
+  /* CUSTOMER CARD: replace the old raw group with the exact unique group. */
+  function fixCustomerCards(){
+    document.querySelectorAll("#customersTable .customerCard").forEach(function(card){
+      var id=String(card.id||"").replace(/^customer-card-/i,"");
+      if(!id)return;
+      var c=customers().find(function(x){return String(x.id)===id;});
+      if(!c||child(c))return;
+      var kids=uniqueKids(id);
+      var old=card.querySelector(".nf180-group,.nf190-home-group,.nf110-home-group,.nf150-home-group,.nf140-group");
+      if(old)old.remove();
+      if(!kids.length)return;
+
+      var sec=document.createElement("section");sec.className="nf180-group";
+      var title=document.createElement("div");title.className="nf180-group-title";title.textContent="👥 Additional Customers · "+kids.length+" பேர்";sec.appendChild(title);
+      kids.forEach(function(k){
+        var row=document.createElement("div");row.className="nf180-person";
+        var info=document.createElement("div");info.className="nf180-person-info";
+        info.innerHTML='<b>'+esc110(k.name||"Customer")+'</b><small>📞 '+esc110(k.phone||"Phone இல்லை")+'</small>';
+        var acts=document.createElement("div");acts.className="nf180-person-actions";
+        var eb=document.createElement("button");eb.type="button";eb.className="nf180-edit";eb.textContent="✏️ Edit Order";eb.onclick=function(e){e.stopPropagation();if(typeof nfMultiCustomerEditOrder==="function")nfMultiCustomerEditOrder(String(k.id));};
+        var db=document.createElement("button");db.type="button";db.className="nf180-delete";db.textContent="🗑️ Delete";db.onclick=function(e){e.stopPropagation();if(typeof deleteCustomer==="function")deleteCustomer(String(k.id));};
+        acts.appendChild(eb);acts.appendChild(db);row.appendChild(info);row.appendChild(acts);sec.appendChild(row);
+      });
+      card.appendChild(sec);
+    });
+  }
+  var oldRenderCustomers=window.renderCustomers;
+  if(typeof oldRenderCustomers==="function"&&!oldRenderCustomers.__nfV110){
+    window.renderCustomers=function(){var r=oldRenderCustomers.apply(this,arguments);setTimeout(fixCustomerCards,0);setTimeout(fixCustomerCards,80);return r;};
+    window.renderCustomers.__nfV110=true;
+  }
+
+  /* NEW ORDER: Main-only first picker; then exactly that group's Main + children. */
+  function fillSelect(select,list,selected){
+    if(!select)return;
+    var sid=String(selected||"");
+    select.innerHTML='<option value="">Select customer</option>'+list.map(function(c){
+      var id=String(c.id||"");
+      return '<option value="'+esc110(id)+'" '+(id===sid?'selected':'')+'>'+esc110(c.name||"Customer")+'</option>';
+    }).join("");
+    if(sid&&list.some(function(c){return String(c.id)===sid;}))select.value=sid;
+  }
+  function fixInitial(){
+    var s=document.getElementById("ordersQuickCustomerStartInline");if(!s)return;
+    var current=String(s.value||"");
+    fillSelect(s,uniqueMains(),"");
+    if(current&&uniqueMains().some(function(c){return String(c.id)===current;}))s.value=current;
+  }
+  function fixEditor(customerId){
+    var s=document.getElementById("ordersQuickCustomerStart");if(!s)return;
+    var sid=String(customerId||s.value||"");if(!sid)return;
+    var list=groupFor(sid);if(!list.length)return;
+    var current=String(s.value||sid);
+    if(!list.some(function(c){return String(c.id)===current;}))current=sid;
+    fillSelect(s,list,current);
+  }
+  function runFix(){fixInitial();var s=document.getElementById("ordersQuickCustomerStart");if(s)fixEditor(s.value);}
+
+  document.addEventListener("change",function(e){
+    var t=e.target;if(!t)return;
+    if(t.id==="ordersQuickCustomerStartInline"){
+      var sid=String(t.value||"");
+      if(sid){setTimeout(function(){fixEditor(sid);},0);setTimeout(function(){fixEditor(sid);},120);}
+    }else if(t.id==="ordersQuickCustomerStart"){
+      setTimeout(function(){fixEditor(t.value);},0);
+    }
+  },true);
+
+  document.addEventListener("DOMContentLoaded",function(){
+    setTimeout(runFix,120);setTimeout(runFix,600);setTimeout(fixCustomerCards,700);
+  },{once:true});
+
+  var oldLoad=window.loadAll;
+  if(typeof oldLoad==="function"&&!oldLoad.__nfV110){
+    window.loadAll=async function(){var r=await oldLoad.apply(this,arguments);setTimeout(function(){try{renderDashboardCustomers();}catch(e){}try{renderCustomers();}catch(e){}runFix();},80);return r;};
+    window.loadAll.__nfV110=true;
+  }
+
+})();
+</script>
+
