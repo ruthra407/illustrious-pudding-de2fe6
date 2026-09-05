@@ -11422,7 +11422,7 @@ body.nf-photo-preview-scroll-locked{overscroll-behavior:none!important}
     if(!input) return true;
     if(input.dataset && input.dataset.nfR2Managed === "true") return true;
     var oc=input.getAttribute("onchange")||"";
-    return /nfPickDesignPhoto|uploadCustomerDesign|replaceSelectedCustomerDesign|nfUpload|nfSaveProfilePhoto|saveProfilePhoto|saveCustomerClothPhoto|saveCustomerBlouseDesignPhoto/i.test(oc);
+    return /nfPickDesignPhoto|uploadCustomerDesign|replaceSelectedCustomerDesign|nfUpload|nfSaveProfilePhoto|saveProfilePhoto|saveCustomerClothPhoto|saveCustomerBlouseDesignPhoto|saveCustomerDeliveryPhoto/i.test(oc);
   }
 
   window.nfUploadFuturePhotoToR2 = async function(input, file, category){
