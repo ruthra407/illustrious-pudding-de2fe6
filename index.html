@@ -9916,7 +9916,7 @@ function injectOrderPersonField(){
 }
 function renderPersonPanel(id){
  const host=$("nfPersonPanel-"+id);if(!host)return;const persons=getPersons(id);
- host.innerHTML=`<div class="nf-person-head"><h4>👥 இந்த customer-ன் துணிகள் — ${persons.length} பேர்</h4><button type="button" class="nf-person-add" onclick="nfAddPerson('${safe(id)}')">＋ நபரை சேர்க்க</button></div><div class="nf-person-list">${persons.map((p,i)=>{const st=personStats(id,p.id);return `<div class="nf-person-card"><div class="nf-person-card-top"><div class="nf-person-avatar">👤</div><div class="nf-person-name">நபர் ${i+1} — ${safe(p.name)}</div><div class="nf-person-actions"><button type="button" class="nf-person-edit" onclick="nfRenamePerson('${safe(id)}','${safe(p.id)}')">✏️</button><button type="button" class="nf-person-order" onclick="nfOpenPersonOrder('${safe(id)}','${safe(p.id)}')">＋ Order</button></div></div><div class="nf-person-meta"><div class="nf-person-stat"><b>${st.normal}</b><span>Normal</span></div><div class="nf-person-stat"><b>${st.lining}</b><span>Lining</span></div><div class="nf-person-stat"><b>${st.design}</b><span>Design</span></div></div><div class="nf-person-orders">🧾 ${st.orders.length} order · 💰 ${money(st.total)} · Paid ${money(st.paid)} · Balance ${money(st.balance)}</div></div>`}).join("")}</div>`;
+ host.innerHTML=`<div class="nf-person-head"><div><h4>👥 இந்த customer-ன் துணிகள் — ${persons.length} பேர்</h4><div class="nf-person-note">Order / Edit Order / Payment — மேலே இருக்கும் ஒரே existing flow-வுடன் sync ஆகும்.</div></div><button type="button" class="nf-person-add" onclick="nfAddPerson('${safe(id)}')">＋ நபரை சேர்க்க</button></div><div class="nf-person-list">${persons.map((p,i)=>{const st=personStats(id,p.id);return `<div class="nf-person-card"><div class="nf-person-card-top"><div class="nf-person-avatar">👤</div><div class="nf-person-name">நபர் ${i+1} — ${safe(p.name)}</div></div><div class="nf-person-meta"><div class="nf-person-stat"><b>${st.normal}</b><span>Normal</span></div><div class="nf-person-stat"><b>${st.lining}</b><span>Lining</span></div><div class="nf-person-stat"><b>${st.design}</b><span>Design</span></div></div><div class="nf-person-orders">🧾 ${st.orders.length} order · 💰 ${money(st.total)} · Paid ${money(st.paid)} · Balance ${money(st.balance)}</div></div>`}).join("")}</div>`;
 }
 async function nfSavePersons(id,persons,refresh){
  const c=getCustomer(id);if(!c)return;const clean=stripPersonMarker(c.notes||""),next=[clean,personsMarker(persons)].filter(Boolean).join(" | ");
@@ -9938,6 +9938,11 @@ const timer=setInterval(()=>{install();finalizePendingCustomer().catch(()=>{});i
 document.addEventListener("DOMContentLoaded",()=>{setTimeout(install,100);setTimeout(()=>{(state.customers||[]).forEach(c=>renderPersonPanel(c.id))},500)},{once:true});
 })();
 </script>
+
+<style id="nf-person-single-order-ui">
+.nf-person-note{margin-top:3px;font-size:11px;font-weight:750;color:#756b82;line-height:1.35}
+.nf-person-actions{display:none!important}
+</style>
 </body></html><script id="nf-v52-dashboard-scroll-fix-js">
 (function(){
   "use strict";
