@@ -11503,201 +11503,251 @@ body.nf-photo-preview-scroll-locked{overscroll-behavior:none!important}
 })();
 </script>
 
-<script id="nf-multiple-customer-step2">
+<style id="nf-v130-multiple-customer-css">
+.nf-mc-mode-box{margin-bottom:14px;padding:12px;border:2px solid #d8ccef;border-radius:18px;background:linear-gradient(135deg,#faf7ff,#fff8fb)}
+.nf-mc-mode-title{font-size:17px;font-weight:950;color:#2b2340;margin-bottom:9px}
+.nf-mc-mode-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.nf-mc-mode-btn{min-height:54px;border:2px solid #ded5ed;border-radius:15px;background:#fff;color:#3d3548;font-size:16px;font-weight:950;cursor:pointer}
+.nf-mc-mode-btn.active{border-color:#6b45e8;background:linear-gradient(135deg,#f1ebff,#fff1fa);color:#4d2ca0;box-shadow:0 5px 14px rgba(90,55,170,.12)}
+.nf-mc-note{margin-top:9px;color:#6d6575;font-size:12px;line-height:1.45;font-weight:750}
+.nf-mc-panel{margin-top:12px;padding:14px;border:2px solid #cfdcf2;border-radius:20px;background:linear-gradient(145deg,#f7fbff,#fff)}
+.nf-mc-panel h4{margin:0 0 10px;color:#30263d;font-size:20px;font-weight:950}
+.nf-mc-person{margin-top:10px;padding:12px;border:2px solid #efd7e4;border-radius:17px;background:linear-gradient(145deg,#fff8fb,#fff)}
+.nf-mc-person-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+.nf-mc-person-head strong{font-size:16px;color:#572d52;font-weight:950}
+.nf-mc-remove{border:0;border-radius:9px;background:#ffecef;color:#b32645;font-weight:900;padding:6px 9px;cursor:pointer}
+.nf-mc-add{margin-top:10px;min-height:42px;padding:7px 14px;border:1px solid #c8b7ed;border-radius:12px;background:#f3efff;color:#5531a4;font-size:14px;font-weight:950;cursor:pointer}
+.nf-mc-hint{margin-top:8px;color:#6c6472;font-size:11px;font-weight:750}
+.nf-mc-group{margin:10px 0 0;padding:10px;border:2px solid #d5c6f1;border-radius:15px;background:linear-gradient(145deg,#faf7ff,#fff)}
+.nf-mc-group-title{font-size:14px;font-weight:950;color:#4d2e8e;margin-bottom:7px}
+.nf-mc-child{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 0;border-top:1px solid #e6dff0}
+.nf-mc-child:first-child{border-top:0}
+.nf-mc-child-info{min-width:0}.nf-mc-child-info b{display:block;color:#2b2530;font-size:14px}.nf-mc-child-info small{display:block;color:#6d6672;font-size:11px;margin-top:2px}
+.nf-mc-child-actions{display:flex;gap:5px;flex:0 0 auto}.nf-mc-child-actions button{min-width:34px;height:34px;border:0;border-radius:9px;font-weight:900;cursor:pointer}.nf-mc-child-edit{background:#eee8ff;color:#5131a0}.nf-mc-child-delete{background:#ffe9ed;color:#b32645}
+@media(max-width:560px){.nf-mc-mode-btn{font-size:14px;min-height:50px}.nf-mc-panel{padding:11px}.nf-mc-panel h4{font-size:18px}}
+</style>
+<script id="nf-v130-multiple-customer-js">
 (function(){
-  'use strict';
-  if(window.__nfMultipleCustomerStep2)return;
-  window.__nfMultipleCustomerStep2=true;
+  "use strict";
+  var PARENT_PREFIX="NF_MULTI_PARENT:";
+  var MODE_KEY="nfCustomerMode";
+  var multipleOpen=false;
+  var originalOpenModal=window.openModal;
+  if(typeof originalOpenModal!=="function") return;
 
-  const parentPrefix='NF_PARENT_CUSTOMER:';
-  const escLocal=(v)=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
-  const getParentId=(c)=>{
-    const m=String(c?.notes||'').match(/(?:^|\|)\s*NF_PARENT_CUSTOMER:([^|\s]+)/);
-    return m?m[1].trim():'';
+  function escv(v){return typeof esc==="function"?esc(v):String(v??"").replace(/[&<>\"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]});}
+  function parentId(c){
+    var m=String(c?.notes||"").match(/(?:^|\|\s*)NF_MULTI_PARENT:([^|\s]+)/);
+    return m?String(m[1]):"";
+  }
+  function isChild(c){return !!parentId(c);}
+  function cleanParentNotes(v){return String(v||"").replace(/\s*\|\s*NF_MULTI_PARENT:[^|\s]+/g,"").replace(/^NF_MULTI_PARENT:[^|\s]+\s*\|?\s*/g,"").trim();}
+  function childList(mainId){return (state.customers||[]).filter(function(c){return parentId(c)===String(mainId);});}
+  function baseCustomers(){return (state.customers||[]).filter(function(c){return !isChild(c);});}
+
+  function field(name){return document.querySelector('#formFields [name="'+name+'"]');}
+  function modeBox(){return document.getElementById("nf-mc-mode-box");}
+
+  function personMarkup(index){
+    return '<div class="nf-mc-person" data-nf-person="'+index+'">'+
+      '<div class="nf-mc-person-head"><strong>Additional Customer '+index+'</strong>'+(index>1?'<button type="button" class="nf-mc-remove" data-nf-remove="'+index+'">Remove</button>':'')+'</div>'+
+      '<div class="field"><label>Customer Name</label><input class="input nf-mc-name" type="text" autocomplete="name" placeholder="பெயர்"></div>'+
+      '<div class="field"><label>Phone</label><input class="input nf-mc-phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="Phone Number"></div>'+
+    '</div>';
+  }
+
+  function addPerson(auto){
+    var panel=document.getElementById("nf-mc-people"); if(!panel)return;
+    var n=panel.querySelectorAll(".nf-mc-person").length+1;
+    panel.insertAdjacentHTML("beforeend",personMarkup(n));
+    var person=panel.querySelector('[data-nf-person="'+n+'"]');
+    var phone=person?.querySelector(".nf-mc-phone");
+    phone?.addEventListener("input",function(){
+      if(String(this.value||"").trim()){
+        var persons=panel.querySelectorAll(".nf-mc-person");
+        if(persons.length===n) addPerson(true);
+      }
+    });
+    if(auto && phone) phone.focus();
+  }
+
+  function ensureInitialPerson(){
+    var panel=document.getElementById("nf-mc-people");
+    if(panel && !panel.querySelector(".nf-mc-person")) addPerson(false);
+  }
+
+  function setMode(mode){
+    multipleOpen=mode==="multiple";
+    var single=document.getElementById("nf-mc-single-btn"),multi=document.getElementById("nf-mc-multi-btn");
+    single?.classList.toggle("active",!multipleOpen); multi?.classList.toggle("active",multipleOpen);
+    var originalFields=document.getElementById("nf-mc-original-fields");
+    var panel=document.getElementById("nf-mc-panel");
+    if(originalFields) originalFields.style.display=multipleOpen?"none":"";
+    if(panel) panel.style.display=multipleOpen?"block":"none";
+    if(!multipleOpen){
+      var form=document.getElementById("formFields");
+      if(form) form.querySelectorAll("[data-nf-multiple-only]").forEach(function(x){x.style.display="none";});
+    }else ensureInitialPerson();
+    window[MODE_KEY]=mode;
+  }
+
+  function buildUI(){
+    if(state.editing?.type!=="customer" || state.editing?.id) return;
+    var form=document.getElementById("formFields"); if(!form || document.getElementById("nf-mc-mode-box"))return;
+    var old=Array.from(form.children);
+    var oldWrap=document.createElement("div"); oldWrap.id="nf-mc-original-fields"; oldWrap.setAttribute("data-nf-multiple-only","false");
+    old.forEach(function(x){oldWrap.appendChild(x);});
+    form.appendChild(oldWrap);
+    var box=document.createElement("div"); box.id="nf-mc-mode-box"; box.className="nf-mc-mode-box";
+    box.innerHTML='<div class="nf-mc-mode-title">Customer Type</div><div class="nf-mc-mode-grid">'+
+      '<button type="button" class="nf-mc-mode-btn active" id="nf-mc-single-btn">👤 Single Customer</button>'+
+      '<button type="button" class="nf-mc-mode-btn" id="nf-mc-multi-btn">👥 Multiple Customer</button>'+
+      '</div><div class="nf-mc-note">Single Customer வழக்கம் போலவே Save ஆகும். Multiple Customer-ல் Main Customer + Additional Customers ஒரே screen-ல் பதிவு செய்யலாம்.</div>';
+    form.insertBefore(box,form.firstChild);
+    var panel=document.createElement("div"); panel.id="nf-mc-panel"; panel.className="nf-mc-panel"; panel.style.display="none";
+    panel.innerHTML='<h4>👤 Main Customer</h4>'+ 
+      '<div class="field"><label>Customer Name</label><input class="input" id="nf-mc-main-name" type="text" autocomplete="name" required></div>'+ 
+      '<div class="field"><label>Phone</label><input class="input" id="nf-mc-main-phone" type="tel" inputmode="tel" autocomplete="tel"></div>'+ 
+      '<div class="field"><label>Address</label><input class="input" id="nf-mc-main-address" type="text"></div>'+ 
+      '<div class="field"><label>ஊர் / Village</label><input class="input" id="nf-mc-main-village" type="text"></div>'+ 
+      '<div class="field"><label>Alteration Notes</label><textarea class="input" id="nf-mc-main-notes"></textarea></div>'+ 
+      '<div class="nf-mc-group"><div class="nf-mc-group-title">👥 Additional Customers</div><div id="nf-mc-people"></div><button type="button" class="nf-mc-add" id="nf-mc-add-btn">＋ Add Customer</button><div class="nf-mc-hint">Phone number கொடுத்தவுடன் அடுத்த slot தானாக உருவாகும்.</div></div>';
+    form.insertBefore(panel,form.firstChild.nextSibling);
+    document.getElementById("nf-mc-single-btn").onclick=function(){setMode("single");};
+    document.getElementById("nf-mc-multi-btn").onclick=function(){setMode("multiple");};
+    document.getElementById("nf-mc-add-btn").onclick=function(){addPerson(true);};
+    panel.addEventListener("click",function(e){
+      var b=e.target.closest("[data-nf-remove]"); if(!b)return;
+      var n=b.getAttribute("data-nf-remove"),p=panel.querySelector('[data-nf-person="'+n+'"]'); if(p)p.remove();
+      Array.from(panel.querySelectorAll(".nf-mc-person")).forEach(function(x,i){var idx=i+1;x.setAttribute("data-nf-person",idx);var h=x.querySelector("strong");if(h)h.textContent="Additional Customer "+idx;var rb=x.querySelector("[data-nf-remove]");if(rb)rb.setAttribute("data-nf-remove",idx);});
+    });
+    setMode("single");
+  }
+
+  window.openModal=function(type,id){
+    multipleOpen=false;
+    var r=originalOpenModal.apply(this,arguments);
+    if(type==="customer" && !id){setTimeout(buildUI,0);}
+    if(type==="customer" && id){
+      setTimeout(function(){
+        var c=(state.customers||[]).find(function(x){return String(x.id)===String(id);});
+        if(isChild(c)){var n=field("notes");if(n)n.value=cleanParentNotes(n.value||"");}
+      },0);
+    }
+    return r;
   };
-  const isLinked=(c)=>!!getParentId(c);
-  const baseCustomers=()=>Array.isArray(state?.customers)?state.customers.filter(c=>!isLinked(c)):[];
 
-  function currentMode(){return document.getElementById('nfCustomerModeMultiple')?.classList.contains('active')?'multiple':'single'}
-
-  function buildModeUI(){
-    const fields=document.getElementById('formFields');
-    if(!fields || state.editing?.type!=='customer')return;
-    if(document.getElementById('nfCustomerModeBox'))return;
-
-    const originalHTML=fields.innerHTML;
-    fields.dataset.nfOriginalCustomerHTML=originalHTML;
-    fields.dataset.nfModeReady='1';
-
-    const box=document.createElement('div');
-    box.id='nfCustomerModeBox';
-    box.className='field full';
-    box.innerHTML=`
-      <div class="nf-mc-mode-title">Customer Type</div>
-      <div class="nf-mc-mode-grid">
-        <button type="button" id="nfCustomerModeSingle" class="nf-mc-mode-btn active">👤 <span>Single Customer</span></button>
-        <button type="button" id="nfCustomerModeMultiple" class="nf-mc-mode-btn">👥 <span>Add to Existing Customer</span></button>
-      </div>
-      <div class="nf-mc-mode-hint">Single Customer வழக்கம் போலவே இருக்கும். Multiple Customer-ல் ஏற்கனவே உள்ள Main Customer-க்கு புதிய person மட்டும் link செய்யப்படும்.</div>`;
-    fields.prepend(box);
-
-    const extra=document.createElement('div');
-    extra.id='nfMultipleCustomerFields';
-    extra.className='field full nf-mc-extra hidden';
-    extra.innerHTML=`
-      <div class="nf-mc-main-box">
-        <label>Main Customer</label>
-        <select class="input" id="nfMainCustomerSelect">
-          <option value="">Select main customer</option>
-        </select>
-        <div class="hint">இவர் ஏற்கனவே இருக்கும் Main / Base Customer. புதிய person இவருடன் மட்டும் link ஆகும்.</div>
-      </div>
-      <div class="nf-mc-person-box">
-        <h4>Additional Person</h4>
-        <div class="field"><label>Additional Person Name</label><input class="input" id="nfAdditionalPersonName" type="text" autocomplete="name"></div>
-        <div class="field"><label>Phone</label><input class="input" id="nfAdditionalPersonPhone" type="tel" inputmode="tel" autocomplete="tel"></div>
-        <div class="field"><label>Address</label><input class="input" id="nfAdditionalPersonAddress" type="text"></div>
-        <div class="field"><label>ஊர் / Village</label><input class="input" id="nfAdditionalPersonVillage" type="text"></div>
-        <div class="field"><label>Alteration Notes</label><textarea class="input" id="nfAdditionalPersonNotes"></textarea></div>
-      </div>`;
-    fields.insertBefore(extra,fields.children[1]||null);
-
-    const single=document.getElementById('nfCustomerModeSingle');
-    const multiple=document.getElementById('nfCustomerModeMultiple');
-    const main=document.getElementById('nfMainCustomerSelect');
-
-    function fillMain(){
-      if(!main)return;
-      const old=main.value;
-      const list=baseCustomers();
-      main.innerHTML='<option value="">Select main customer</option>'+list.map(c=>`<option value="${escLocal(c.id)}">${escLocal(c.name||'Customer')}${c.phone?' — '+escLocal(c.phone):''}</option>`).join('');
-      if(list.some(c=>String(c.id)===String(old)))main.value=old;
+  async function saveMultiple(){
+    var mainName=String(document.getElementById("nf-mc-main-name")?.value||"").trim();
+    var mainPhone=String(document.getElementById("nf-mc-main-phone")?.value||"").trim();
+    var mainAddress=String(document.getElementById("nf-mc-main-address")?.value||"").trim();
+    var mainVillage=String(document.getElementById("nf-mc-main-village")?.value||"").trim();
+    var mainNotes=String(document.getElementById("nf-mc-main-notes")?.value||"").trim();
+    if(!mainName){formMsg.textContent="Main Customer பெயர் கொடுக்க வேண்டும்.";formMsg.className="msg error";return;}
+    var persons=Array.from(document.querySelectorAll("#nf-mc-people .nf-mc-person")).map(function(p){return {name:String(p.querySelector(".nf-mc-name")?.value||"").trim(),phone:String(p.querySelector(".nf-mc-phone")?.value||"").trim()};});
+    persons=persons.filter(function(p){return p.name||p.phone;});
+    for(var i=0;i<persons.length;i++){
+      if(!persons[i].name || !persons[i].phone){formMsg.textContent="Additional Customer "+(i+1)+"-க்கு பெயரும் Phone number-மும் கொடுக்க வேண்டும்.";formMsg.className="msg error";return;}
     }
-    function setMode(mode){
-      const multi=mode==='multiple';
-      single.classList.toggle('active',!multi);multiple.classList.toggle('active',multi);
-      extra.classList.toggle('hidden',!multi);
-      Array.from(fields.children).forEach((el,i)=>{
-        if(el===box||el===extra)return;
-        el.classList.toggle('hidden',multi);
-      });
-      if(multi){fillMain(); main?.focus();}
-    }
-    single.addEventListener('click',()=>setMode('single'));
-    multiple.addEventListener('click',()=>setMode('multiple'));
-    setMode('single');
-    window.__nfCustomerSetMode=setMode;
-    window.__nfCustomerFillMain=fillMain;
-  }
-
-  const originalOpenModal=window.openModal;
-  if(typeof originalOpenModal==='function'){
-    window.openModal=function(type,id){
-      const r=originalOpenModal.apply(this,arguments);
-      if(type==='customer' && !id){
-        setTimeout(buildModeUI,0);
-      }
-      return r;
-    };
-  }
-
-  document.addEventListener('submit',async function(e){
-    if(e.target?.id!=='dataForm' || currentMode()!=='multiple')return;
-    e.preventDefault();
-    e.stopImmediatePropagation();
-
-    const form=e.target;
-    const mainId=String(document.getElementById('nfMainCustomerSelect')?.value||'').trim();
-    const name=String(document.getElementById('nfAdditionalPersonName')?.value||'').trim();
-    const phone=String(document.getElementById('nfAdditionalPersonPhone')?.value||'').trim();
-    const address=String(document.getElementById('nfAdditionalPersonAddress')?.value||'').trim();
-    const village=String(document.getElementById('nfAdditionalPersonVillage')?.value||'').trim();
-    const userNotes=String(document.getElementById('nfAdditionalPersonNotes')?.value||'').trim();
-    const msg=document.getElementById('formMsg');
-    const btn=document.getElementById('saveBtn');
-    if(!mainId){if(msg){msg.textContent='Main Customer தேர்வு செய்ய வேண்டும்.';msg.className='msg error';}return;}
-    if(!name){if(msg){msg.textContent='Additional Person Name கொடுக்க வேண்டும்.';msg.className='msg error';}return;}
-
-    const mainCustomer=(state.customers||[]).find(c=>String(c.id)===mainId);
-    if(!mainCustomer || isLinked(mainCustomer)){
-      if(msg){msg.textContent='Main Customer சரியாக தேர்வு செய்ய வேண்டும்.';msg.className='msg error';}
-      return;
-    }
-
-    const villageMarker=typeof nfEncodeVillageMarker==='function'?nfEncodeVillageMarker(village):(village?'VILLAGE:'+village:'');
-    const notes=[userNotes, villageMarker, parentPrefix+mainId].filter(Boolean).join(' | ')||null;
-    const payload={name,phone:phone||null,address:address||null,notes};
-    btn?.setAttribute('disabled','disabled');
-    if(btn)btn.textContent='Saving...';
+    if(!persons.length){formMsg.textContent="குறைந்தது ஒரு Additional Customer சேர்க்க வேண்டும்.";formMsg.className="msg error";return;}
+    var b=document.getElementById("saveBtn");b.disabled=true;b.textContent="Saving...";
+    var created=[];
     try{
-      const result=await supabaseClient.from('customers').insert(payload).select().single();
-      if(result.error)throw result.error;
-      const saved=result.data;
-      state.customers=[saved,...(state.customers||[])];
-      closeModal(true);
-      toast('Additional Person saved. New Order திறக்கப்படுகிறது…');
-      if(typeof openOrdersNewOrderForCustomer==='function'){
-        openOrdersNewOrderForCustomer(String(saved.id));
-      }else if(typeof goView==='function'){
-        goView('orders',true);
+      var mainPayload={name:mainName,phone:mainPhone||null,address:mainAddress||null,notes:mainNotes||null};
+      var mainResult=await supabaseClient.from("customers").insert(mainPayload).select().single();
+      if(mainResult.error)throw mainResult.error;
+      var main=mainResult.data; created.push(main);
+      localStorage.setItem("nf_village_"+main.id,mainVillage);
+      try{var vr=await supabaseClient.from("customers").update({village:mainVillage}).eq("id",main.id);if(vr.error)console.warn("Multiple main village column unavailable:",vr.error.message);}catch(_){ }
+      for(var j=0;j<persons.length;j++){
+        var childPayload={name:persons[j].name,phone:persons[j].phone,address:null,notes:PARENT_PREFIX+String(main.id)};
+        var cr=await supabaseClient.from("customers").insert(childPayload).select().single();
+        if(cr.error)throw cr.error;
+        created.push(cr.data);
       }
-      loadAll(true).catch(err=>console.error('Background refresh after linked customer save:',err));
+      state.customers=[main].concat(created.slice(1)).concat((state.customers||[]));
+      closeModal(true);
+      if(typeof loadAll==="function") await loadAll(true); else if(typeof renderAll==="function")renderAll();
+      toast("Multiple Customer saved. Main Customer ready.");
+      if(typeof openOrdersNewOrderForCustomer==="function")openOrdersNewOrderForCustomer(String(main.id));
     }catch(err){
-      if(msg){msg.textContent='Save failed: '+(err?.message||err);msg.className='msg error';}
-    }finally{
-      if(btn){btn.removeAttribute('disabled');btn.textContent='Save';}
-    }
+      console.error("Multiple Customer save failed:",err);
+      try{for(var k=created.length-1;k>=0;k--){if(created[k]?.id)await supabaseClient.from("customers").delete().eq("id",created[k].id);}}catch(rollbackErr){console.error("Multiple Customer rollback failed:",rollbackErr);}
+      formMsg.textContent="Multiple Customer Save failed: "+(err?.message||err);formMsg.className="msg error";
+    }finally{b.disabled=false;b.textContent="Save";}
+  }
+
+  document.getElementById("dataForm")?.addEventListener("submit",function(e){
+    if(state.editing?.type!=="customer")return;
+    if(!multipleOpen)return;
+    e.preventDefault();e.stopImmediatePropagation();
+    saveMultiple();
   },true);
 
-  // Keep linked people out of the normal Customer Cards list.
-  const originalRenderCustomers=window.renderCustomers;
-  if(typeof originalRenderCustomers==='function'){
+  /* Preserve the parent link whenever an Additional Customer is edited. */
+  document.getElementById("dataForm")?.addEventListener("submit",function(e){
+    if(!state.editing || state.editing.type!=="customer" || !state.editing.id || multipleOpen)return;
+    var c=(state.customers||[]).find(function(x){return String(x.id)===String(state.editing.id);});
+    if(!isChild(c))return;
+    var n=field("notes"); if(n)n.value=[String(n.value||"").trim(),PARENT_PREFIX+parentId(c)].filter(Boolean).join(" | ");
+  },true);
+
+  /* Preserve the parent link when an Additional Customer's order updates its notes. */
+  document.getElementById("dataForm")?.addEventListener("submit",function(e){
+    if(!state.editing || state.editing.type!=="order")return;
+    var cid=String(document.querySelector('#formFields [name="customer_id"]')?.value||"");
+    var c=(state.customers||[]).find(function(x){return String(x.id)===cid;});
+    if(!isChild(c))return;
+    var n=document.querySelector('#formFields [name="notes"]');
+    if(n)n.value=[String(n.value||"").replace(new RegExp("\\s*\\|\\s*"+PARENT_PREFIX.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+"[^|\\s]+","g"),"").trim(),PARENT_PREFIX+parentId(c)].filter(Boolean).join(" | ");
+  },true);
+
+  /* Customer page: only Main/Single Customers are shown as cards. */
+  var baseRenderCustomers=window.renderCustomers;
+  if(typeof baseRenderCustomers==="function" && !baseRenderCustomers.__nfV130){
     window.renderCustomers=function(){
-      const q=(document.getElementById('customerSearch')?.value||'').toLowerCase();
-      const r=(state.customers||[]).filter(x=>!isLinked(x)&&[x.name,x.phone,x.address,x.village].join(' ').toLowerCase().includes(q));
-      const host=document.getElementById('customersTable');
-      if(host)host.innerHTML=r.length?r.map(x=>customerCard(x.id)).join(''):`<div class="card empty" style="grid-column:1/-1">No customers found.</div>`;
+      var q=(document.getElementById("customerSearch")?.value||"").toLowerCase();
+      var r=baseCustomers().filter(function(x){return [x.name,x.phone,x.address,x.village].join(" ").toLowerCase().includes(q);});
+      document.getElementById("customersTable").innerHTML=r.length?r.map(function(x){return customerCard(x.id);}).join(""):"<div class=\"card empty\" style=\"grid-column:1/-1\">No customers found.</div>";
     };
+    window.renderCustomers.__nfV130=true;
   }
 
-  // Make generic customer selectors show base customers, while still allowing a linked
-  // person's own order to remain selected when editing that order.
-  const originalInputHTML=window.inputHTML;
-  if(typeof originalInputHTML==='function'){
+  /* Add linked Additional Customer list inside the Main Customer card. */
+  var baseCard=window.customerCard;
+  if(typeof baseCard==="function" && !baseCard.__nfV130){
+    window.customerCard=function(id){
+      var html=baseCard.apply(this,arguments),c=(state.customers||[]).find(function(x){return String(x.id)===String(id);});
+      if(!c || isChild(c))return html;
+      var kids=childList(id); if(!kids.length)return html;
+      var rows=kids.map(function(k){return '<div class="nf-mc-child"><div class="nf-mc-child-info"><b>'+escv(k.name||"Customer")+'</b><small>📞 '+escv(k.phone||"Phone இல்லை")+'</small></div><div class="nf-mc-child-actions"><button type="button" class="nf-mc-child-edit" onclick="openModal(\'customer\',\''+escv(k.id)+'\')" title="Edit">✏️</button><button type="button" class="nf-mc-child-delete" onclick="deleteCustomer(\''+escv(k.id)+'\')" title="Delete">🗑️</button></div></div>';}).join("");
+      var group='<section class="nf-mc-group" style="margin:10px 0 0"><div class="nf-mc-group-title">👥 Multiple Customer — Additional Customers</div>'+rows+'</section>';
+      return html.replace('</article>',group+'</article>');
+    };
+    window.customerCard.__nfV130=true;
+  }
+
+  /* Customer selectors: child customers remain selectable for their own orders. */
+  var baseInputHTML=window.inputHTML;
+  if(typeof baseInputHTML==="function" && !baseInputHTML.__nfV130){
     window.inputHTML=function(f,val){
-      if(f?.[2]==='customer'){
-        const selected=(state.customers||[]).find(c=>String(c.id)===String(val||''));
-        const includeSelected=!!selected&&isLinked(selected);
-        const list=(state.customers||[]).filter(c=>!isLinked(c)||includeSelected);
-        const [key,label,type,required]=f;
-        return `<div class="field"><label>${label}</label><select class="input" name="${key}" ${required?'required':''}><option value="">Select customer</option>${list.map(c=>`<option value="${escLocal(c.id)}" ${String(val||'')===String(c.id)?'selected':''}>${escLocal(c.name||'Customer')}${c.phone?' — '+escLocal(c.phone):''}</option>`).join('')}</select></div>`;
+      if(f[2]==="customer"){
+        var v=val??"";
+        var list=baseCustomers();
+        var selected=(state.customers||[]).find(function(c){return String(c.id)===String(v);});
+        if(selected && isChild(selected) && !list.some(function(c){return String(c.id)===String(selected.id);}))list.push(selected);
+        return '<div class="field"><label>'+f[1]+'</label><select class="input" name="'+f[0]+'" '+(f[3]?"required":"")+'><option value="">Select customer</option>'+list.map(function(c){return '<option value="'+escv(c.id)+'" '+(String(v)===String(c.id)?"selected":"")+'>'+escv(c.name)+(c.phone?' — '+escv(c.phone):'')+'</option>';}).join("")+'</select></div>';
       }
-      return originalInputHTML.apply(this,arguments);
+      return baseInputHTML.apply(this,arguments);
     };
+    window.inputHTML.__nfV130=true;
   }
 
-  // Strip the internal parent marker from any customer-card alteration note display.
-  window.nfStripParentMarker=function(notes){return String(notes||'').replace(/\s*\|?\s*NF_PARENT_CUSTOMER:[^|\s]+/g,'').trim();};
-
-  const style=document.createElement('style');
-  style.id='nf-multiple-customer-step2-css';
-  style.textContent=`
-    #nfCustomerModeBox{margin-bottom:10px}
-    .nf-mc-mode-title{font-size:18px;font-weight:900;margin-bottom:9px}
-    .nf-mc-mode-grid{display:grid;grid-template-columns:1fr;gap:10px}
-    .nf-mc-mode-btn{width:100%;padding:16px 18px;border:2px solid #d9d1e7;border-radius:20px;background:#fff;text-align:left;font-weight:900;font-size:17px;color:#2b2630;display:flex;align-items:center;gap:12px}
-    .nf-mc-mode-btn.active{border-color:#6c4df6;background:#f5f0ff;color:#41299c;box-shadow:0 0 0 3px rgba(108,77,246,.10)}
-    .nf-mc-mode-btn span{flex:1}
-    .nf-mc-mode-hint{margin-top:8px;color:#6f6870;font-size:13px;line-height:1.4}
-    .nf-mc-extra{padding:0!important}
-    .nf-mc-main-box,.nf-mc-person-box{border:2px solid #d9e0f0;border-radius:20px;padding:14px;background:#f8fbff;margin-top:10px}
-    .nf-mc-main-box label,.nf-mc-person-box label{display:block;font-weight:850;margin-bottom:7px;font-size:14px}
-    .nf-mc-person-box{border-color:#ead4e0;background:#fff9fc}
-    .nf-mc-person-box h4{margin:0 0 12px;font-size:18px;color:#5b3151}
-    .nf-mc-person-box .field{margin-top:10px}
-    @media(max-width:560px){.nf-mc-mode-btn{font-size:16px;padding:15px}.nf-mc-main-box,.nf-mc-person-box{padding:12px}}
-  `;
-  document.head.appendChild(style);
+  /* Re-render after sync so linked people appear under the correct Main Customer. */
+  var baseLoadAll=window.loadAll;
+  if(typeof baseLoadAll==="function" && !baseLoadAll.__nfV130){
+    window.loadAll=async function(){var r=await baseLoadAll.apply(this,arguments);try{if(typeof renderCustomers==="function")renderCustomers();}catch(e){console.warn("Multiple customer render:",e)}return r;};
+    window.loadAll.__nfV130=true;
+  }
 })();
 </script>
-
