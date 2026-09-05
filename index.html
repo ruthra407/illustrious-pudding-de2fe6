@@ -9866,6 +9866,182 @@ body.nf-photo-preview-scroll-locked{overscroll-behavior:none!important}
 .nf-delivery-grid{margin-top:6px!important}
 </style>
 
+
+<style id="nf-v150-multiple-group-clean-css">
+.nf150-home-group{margin:10px 0 0;padding:10px 12px;border:2px solid #d9c9f3;border-radius:15px;background:linear-gradient(135deg,#faf7ff,#fff8fb)}
+.nf150-home-group-title{font-weight:950;color:#4d2e8e;font-size:13px;margin-bottom:6px}
+.nf150-home-person{display:flex;align-items:center;gap:7px;padding:7px 0;border-top:1px solid #e8def4}
+.nf150-home-person:first-of-type{border-top:0}
+.nf150-home-person-name{min-width:0;flex:1;font-weight:850;color:#30263d;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nf150-home-person-phone{font-size:11px;color:#706879;white-space:nowrap}
+.nf150-home-person-actions{display:flex;gap:5px;flex:0 0 auto}
+.nf150-home-person-actions button{border:0;border-radius:9px;padding:6px 8px;font-weight:900;cursor:pointer}
+.nf150-home-edit{background:#eee8ff;color:#5131a0}.nf150-home-order{background:#e8f6ff;color:#12679a}
+</style>
+<script id="nf-v150-multiple-group-clean-js">
+(function(){
+  "use strict";
+  if(window.__nfV150Installed)return;
+  window.__nfV150Installed=true;
+  var PREFIX="NF_MULTI_PARENT:";
+  function esc150(v){return typeof esc==="function"?esc(v==null?"":String(v)):String(v==null?"":v).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]});}
+  function parentId150(c){var m=String(c&&c.notes||"").match(/(?:^|\|\s*)NF_MULTI_PARENT:([^|\s]+)/);return m?String(m[1]):"";}
+  function isChild150(c){return !!parentId150(c);}
+  function base150(){return (Array.isArray(state.customers)?state.customers:[]).filter(function(c){return !isChild150(c);});}
+  function kids150(id){return (Array.isArray(state.customers)?state.customers:[]).filter(function(c){return parentId150(c)===String(id);});}
+  function safeId150(id){return String(id||"").replace(/\\/g,"\\\\").replace(/'/g,"\\'");}
+
+  /* HOME: only Main/Base customers are cards. Additional customers live inside the Main card. */
+  var oldDashCard=window.dashboardCustomerCard;
+  if(typeof oldDashCard==="function"&&!oldDashCard.__nfV150){
+    window.dashboardCustomerCard=function(c,index,category){
+      var html=oldDashCard.apply(this,arguments);
+      if(!c||isChild150(c))return html;
+      var kids=kids150(c.id);
+      if(!kids.length)return html;
+      var rows=kids.map(function(k){
+        var id=safeId150(k.id);
+        return '<div class="nf150-home-person">'+
+          '<div class="nf150-home-person-name">👤 '+esc150(k.name||"Customer")+'</div>'+ 
+          '<div class="nf150-home-person-phone">📞 '+esc150(k.phone||"Phone இல்லை")+'</div>'+ 
+          '<div class="nf150-home-person-actions">'+
+            '<button type="button" class="nf150-home-edit" onclick="event.stopPropagation();openModal(\'customer\',\''+id+'\')">✏️</button>'+ 
+            '<button type="button" class="nf150-home-order" onclick="event.stopPropagation();openOrdersNewOrderForCustomer(\''+id+'\')">🧾</button>'+ 
+          '</div></div>';
+      }).join("");
+      var group='<section class="nf150-home-group" onclick="event.stopPropagation()"><div class="nf150-home-group-title">👥 Multiple Customer · '+kids.length+' பேர்</div>'+rows+'</section>';
+      return html.replace('</article>',group+'</article>');
+    };
+    window.dashboardCustomerCard.__nfV150=true;
+  }
+
+  /* HOME: filter/count only Main/Base customers. */
+  var oldRenderDash=window.renderDashboardCustomers;
+  if(typeof oldRenderDash==="function"&&!oldRenderDash.__nfV150){
+    window.renderDashboardCustomers=function(){
+      var box=document.getElementById("dashboardCustomersList");
+      if(!box){oldRenderDash.apply(this,arguments);return;}
+      var all=base150().slice().sort(dashboardCustomerSort);
+      var fresh=all.filter(function(c){return dashboardCustomerCategory(c)==="new"}).sort(dashboardCustomerSort);
+      var delivered=all.filter(function(c){return dashboardCustomerCategory(c)==="delivered"}).sort(dashboardDeliveredSort);
+      var a=document.getElementById("dchCountAll"),n=document.getElementById("dchCountNew"),d=document.getElementById("dchCountDelivered");
+      if(a)a.textContent=all.length;if(n)n.textContent=fresh.length;if(d)d.textContent=delivered.length;
+      var tab=window.dashboardCustomerTab||"all";
+      var source=tab==="new"?fresh:tab==="delivered"?delivered:all;
+      box.innerHTML=source.length?source.map(function(c,i){return window.dashboardCustomerCard(c,i,tab==="delivered"?"delivered":"new");}).join(""):('<div class="nf-dch-empty">'+(tab==="delivered"?"இன்னும் Delivered Customers இல்லை.":"Customers இன்னும் சேர்க்கப்படவில்லை.")+'</div>');
+    };
+    window.renderDashboardCustomers.__nfV150=true;
+  }
+
+  /* HOME left customer-name menu: only Main/Base customers. */
+  var oldSlide=window.renderMyCustomersSlideMenu;
+  if(typeof oldSlide==="function"&&!oldSlide.__nfV150){
+    window.renderMyCustomersSlideMenu=function(){
+      var list=document.getElementById("nfCustomerSlideList");if(!list)return;
+      var customers=base150().slice().sort(function(a,b){return String(a&&a.name||"").localeCompare(String(b&&b.name||""),"ta",{numeric:true,sensitivity:"base"});});
+      if(!customers.length){list.innerHTML='<div class="nf-customer-slide-empty">👥 Customer இன்னும் சேர்க்கப்படவில்லை.</div>';return;}
+      list.innerHTML=customers.map(function(c,i){var id=safeId150(c.id);return '<button type="button" class="nf-customer-slide-row" style="--nf-row-index:'+Math.min(i,20)+'" onclick="openCustomerFromMyCustomersMenu(\''+id+'\')"><span class="nf-customer-slide-no">'+(i+1)+'</span><span class="nf-customer-slide-main"><span class="nf-customer-slide-name">'+esc150(c.name||"Customer")+'</span><span class="nf-customer-slide-phone">📞 '+esc150(c.phone||"Phone இல்லை")+'</span></span><span class="nf-customer-slide-arrow">›</span></button>';}).join("");
+    };
+    window.renderMyCustomersSlideMenu.__nfV150=true;
+  }
+
+  /* ORDERS: preserve the existing renderer, but make its fallback customer list Base-only. */
+  var oldOrdersRender=window.renderOrders;
+  if(typeof oldOrdersRender==="function"&&!oldOrdersRender.__nfV150){
+    window.renderOrders=function(){
+      oldOrdersRender.apply(this,arguments);
+      var host=document.getElementById("ordersTable");if(!host)return;
+      var list=host.querySelector(".nf-orders-customer-list");if(!list)return;
+      var q=(document.getElementById("orderSearch")?.value||"").trim().toLowerCase();
+      var statusFilter=document.getElementById("orderStatusFilter")?.value||"";
+      var orderRows=(state.orders||[]).filter(function(o){return (!statusFilter||o.status===statusFilter)&&[o.order_no,customerName(o.customer_id),o.garment_type,o.status].join(" ").toLowerCase().includes(q);});
+      if(orderRows.length)return;
+      var cs=base150().filter(function(c){return !q||[c.name,c.phone,c.address,c.village].join(" ").toLowerCase().includes(q);});
+      var rows=cs.map(function(c){
+        var id=safeId150(c.id),orders=(state.orders||[]).filter(function(o){return String(o.customer_id)===String(c.id)}),active=orders.filter(function(o){return !isFinished(o)}),summary=orders.length?(active.length?(active.length+" pending order"):(orders.length+" order")):"இன்னும் order எடுக்கவில்லை";
+        return '<div class="nf-orders-customer-item"><div class="nf-orders-customer-avatar">👤</div><div class="nf-orders-customer-info"><strong>'+esc150(c.name||"Customer")+'</strong><small>'+esc150(summary)+'</small></div><div class="nf-orders-customer-actions"><button type="button" class="btn primary" onclick="openOrdersNewOrderForCustomer(\''+id+'\')">＋ New Order</button></div></div>';
+      }).join("");
+      list.innerHTML='<div class="nf-orders-customer-list-head"><strong>👥 Customer List</strong><span>'+cs.length+' customer</span></div>'+rows;
+    };
+    window.renderOrders.__nfV150=true;
+  }
+
+  /* New Order customer selectors: Base-only for new orders; preserve a selected child while editing that child's order. */
+  function options150(selected){
+    var arr=base150().slice(),sid=String(selected||"");
+    if(sid&&!arr.some(function(c){return String(c.id)===sid})){var picked=(state.customers||[]).find(function(c){return String(c.id)===sid});if(picked)arr.push(picked);}
+    return arr.map(function(c){return '<option value="'+esc150(c.id)+'" '+(String(c.id)===sid?'selected':'')+'>'+esc150(c.name||"Customer")+'</option>';}).join("");
+  }
+  var oldMount=window.mountOrdersQuickForm;
+  if(typeof oldMount==="function"&&!oldMount.__nfV150){
+    window.mountOrdersQuickForm=function(customerId){oldMount.apply(this,arguments);var sel=document.getElementById("ordersQuickCustomerStart");if(sel){var sid=String(customerId||"");sel.innerHTML='<option value="">Select customer</option>'+options150(sid);sel.value=sid;}};
+    window.mountOrdersQuickForm.__nfV150=true;
+  }
+  var oldOpenQuick=window.openOrdersQuickAdd;
+  if(typeof oldOpenQuick==="function"&&!oldOpenQuick.__nfV150){
+    window.openOrdersQuickAdd=function(){oldOpenQuick.apply(this,arguments);var sel=document.getElementById("ordersQuickCustomerStartInline");if(sel)sel.innerHTML='<option value="">Select customer</option>'+options150("");};
+    window.openOrdersQuickAdd.__nfV150=true;
+  }
+  var oldInput=window.inputHTML;
+  if(typeof oldInput==="function"&&!oldInput.__nfV150){
+    window.inputHTML=function(f,val){if(f&&f[0]==="customer"){var v=String(val||"");return '<div class="field"><label>'+esc150(f[1])+'</label><select class="input" name="'+esc150(f[0])+'" '+(f[3]?'required':'')+'><option value="">Select customer</option>'+options150(v)+'</select></div>';}return oldInput.apply(this,arguments);};
+    window.inputHTML.__nfV150=true;
+  }
+
+  /* Dashboard balance/statistics: count Main customers only. */
+  var oldDues=window.renderDashboardDues;
+  if(typeof oldDues==="function"&&!oldDues.__nfV150){
+    window.renderDashboardDues=function(){var rows=base150().map(function(c){return {c:c,s:customerStats(c.id)}}).filter(function(x){return x.s.balance>0}).sort(function(a,b){return b.s.balance-a.s.balance});var el=document.getElementById("dashboardDuesList");if(!el)return;el.innerHTML=rows.length?rows.slice(0,15).map(function(x){return '<div class="dueCustomer clickable" role="button" tabindex="0" onclick="goToCustomer(\''+safeId150(x.c.id)+'\')"><div class="dueName">👤 '+esc150(x.c.name)+'</div><b>'+money(x.s.balance)+'</b></div>';}).join(""):'<div class="empty">Customer balance இல்லை. 🎉</div>';};
+    window.renderDashboardDues.__nfV150=true;
+  }
+  var oldRenderDashAll=window.renderDashboard;
+  if(typeof oldRenderDashAll==="function"&&!oldRenderDashAll.__nfV150){
+    window.renderDashboard=function(){oldRenderDashAll.apply(this,arguments);var el=document.getElementById("statCustomers");if(el)el.textContent=String(base150().length);};
+    window.renderDashboard.__nfV150=true;
+  }
+
+  /* Keep the group relationship safe when order-save updates customer notes. */
+  var oldSaveOrder=window.saveQuickOrder;
+  if(typeof oldSaveOrder==="function"&&!oldSaveOrder.__nfV150){
+    window.saveQuickOrder=async function(id,customerId){
+      var cid=String(customerId||""),c=(state.customers||[]).find(function(x){return String(x.id)===cid}),marker=parentId150(c);
+      var result=await oldSaveOrder.apply(this,arguments);
+      if(marker&&cid){
+        try{
+          var fresh=(state.customers||[]).find(function(x){return String(x.id)===cid}),notes=String(fresh&&fresh.notes||"").trim();
+          if(notes.indexOf(PREFIX+marker)<0){
+            var clean=notes.replace(/(?:^|\|\s*)NF_MULTI_PARENT:[^|\s]+/g,"").replace(/^\s*\|\s*|\s*\|\s*$/g,"").trim();
+            var restored=(clean?clean+" | ":"")+PREFIX+marker;
+            var rr=await supabaseClient.from("customers").update({notes:restored}).eq("id",cid);
+            if(!rr.error&&fresh)fresh.notes=restored;
+          }
+        }catch(e){console.warn("Multiple parent marker restore:",e);}
+      }
+      return result;
+    };
+    window.saveQuickOrder.__nfV150=true;
+  }
+
+  /* Keep the group relationship safe when a linked customer is edited. */
+  var dataForm=document.getElementById("dataForm");
+  if(dataForm){
+    dataForm.addEventListener("submit",function(){
+      if(state.editing?.type!=="customer"||!state.editing?.id)return;
+      var c=(state.customers||[]).find(function(x){return String(x.id)===String(state.editing.id)}),marker=parentId150(c);if(!marker)return;
+      var id=String(state.editing.id),started=Date.now();
+      var timer=setInterval(async function(){
+        var fresh=(state.customers||[]).find(function(x){return String(x.id)===id});
+        if(fresh){
+          clearInterval(timer);var notes=String(fresh.notes||"");
+          if(notes.indexOf(PREFIX+marker)<0){var clean=notes.replace(/(?:^|\|\s*)NF_MULTI_PARENT:[^|\s]+/g,"").replace(/^\s*\|\s*|\s*\|\s*$/g,"").trim(),restored=(clean?clean+" | ":"")+PREFIX+marker;try{await supabaseClient.from("customers").update({notes:restored}).eq("id",id);fresh.notes=restored;}catch(e){console.warn("Multiple edit marker restore:",e);}}
+          return;
+        }
+        if(Date.now()-started>8000)clearInterval(timer);
+      },150);
+    },true);
+  }
+})();
+</script>
 </body></html><script id="nf-v52-dashboard-scroll-fix-js">
 (function(){
   "use strict";
