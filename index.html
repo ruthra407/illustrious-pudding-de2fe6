@@ -5926,7 +5926,7 @@ function nfFormatPaymentDate(v){return v?dateText(v):"—";}
   "use strict";
 
   function escSafe(v){
-    return typeof esc==='function'?esc(String(v==null?'':v)):String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]});
+    return typeof esc==="function"?esc(v):String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
   }
   function latestOrderForCustomer(customerId){
     return (state.orders||[]).filter(o=>String(o.customer_id)===String(customerId)).slice().sort((a,b)=>String(b.created_at||b.order_date||"").localeCompare(String(a.created_at||a.order_date||"")))[0]||null;
@@ -9866,310 +9866,6 @@ body.nf-photo-preview-scroll-locked{overscroll-behavior:none!important}
 .nf-delivery-grid{margin-top:6px!important}
 </style>
 
-
-<!-- NF MULTIPLE CUSTOMER V1 SAFE PATCH -->
-<style id="nf-multiple-customer-v1-style">
-.nf-mc-panel{margin-top:14px;padding:14px;border:1px solid #e2d9f2;border-radius:17px;background:linear-gradient(135deg,#fbf9ff,#fff7fb);box-shadow:0 7px 20px rgba(54,39,84,.06)}
-.nf-mc-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}.nf-mc-title{font-weight:950;font-size:16px}.nf-mc-sub{font-size:11px;color:#77758a;margin-top:2px}.nf-mc-add{white-space:nowrap}.nf-mc-person{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;padding:11px 0;border-top:1px solid #e8e0ee}.nf-mc-person:first-of-type{border-top:0}.nf-mc-name{font-weight:900;font-size:15px}.nf-mc-meta{font-size:11px;color:#77758a;margin-top:3px}.nf-mc-stats{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}.nf-mc-chip{padding:5px 7px;border-radius:9px;background:#fff;border:1px solid #e7e0ef;font-size:11px}.nf-mc-chip b{font-size:12px}.nf-mc-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}.nf-mc-actions .btn{min-height:38px;padding:7px 10px;font-size:12px}.nf-mc-total{margin-top:10px;padding:11px;border-radius:13px;background:#fff;border:1px solid #ddd3ee}.nf-mc-total-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:7px}.nf-mc-total-box{padding:8px;border-radius:10px;background:#f7f5fb;text-align:center}.nf-mc-total-box b{display:block;font-size:16px}.nf-mc-total-box span{font-size:10px;color:#77758a}.nf-mc-empty{font-size:12px;color:#77758a;padding:5px 0}.nf-mc-hint{margin-top:8px;font-size:11px;color:#6f6780;line-height:1.45}
-@media(max-width:560px){.nf-mc-panel{padding:12px}.nf-mc-person{grid-template-columns:1fr}.nf-mc-actions{justify-content:flex-start}.nf-mc-actions .btn{flex:1}.nf-mc-total-grid{grid-template-columns:1fr 1fr}}
-</style>
-<script id="nf-multiple-customer-v1-script">
-(function(){
-  'use strict';
-  if(window.__nfMultipleCustomerV1)return;
-  window.__nfMultipleCustomerV1=true;
-
-  var PARENT_MARKER='NF_LINKED_PARENT_B64:';
-
-  function escSafe(v){
-    return typeof esc==='function'?esc(String(v==null?'':v)):String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]});
-  }
-  function b64(v){try{return btoa(unescape(encodeURIComponent(String(v||''))))}catch(e){return ''}}
-  function unb64(v){try{return decodeURIComponent(escape(atob(String(v||''))))}catch(e){return ''}}
-  function parentIdOf(c){
-    var raw=String(c&&c.address||'');
-    var m=raw.match(new RegExp(PARENT_MARKER+'([A-Za-z0-9+/=]+)'));
-    return m?String(unb64(m[1])||''):'';
-  }
-  function markerFor(parentId){return parentId?PARENT_MARKER+b64(parentId):''}
-  function cleanAddress(v){return String(v||'').replace(/\s*NF_LINKED_PARENT_B64:[A-Za-z0-9+/=]+/g,'').replace(/\s*\|\s*\|\s*/g,' | ').replace(/^\s*\|\s*|\s*\|\s*$/g,'').trim()}
-  function isLinked(c){return !!parentIdOf(c)}
-  function customers(){return Array.isArray(state.customers)?state.customers:[]}
-  function findCustomer(id){return customers().find(function(c){return String(c&&c.id||'')===String(id||'')})}
-  function linkedOf(parentId){return customers().filter(function(c){return String(parentIdOf(c))===String(parentId||'')})}
-  function stats(id){try{return typeof customerStats==='function'?customerStats(id):{givenBlouse:0,chudi:0,saree:0,total:0}}catch(e){return {givenBlouse:0,chudi:0,saree:0,total:0}}}
-  function latest(id){try{return typeof latestCustomerOrder==='function'?latestCustomerOrder(id):null}catch(e){return null}}
-
-  window.nfIsLinkedCustomer=isLinked;
-  window.nfLinkedParentId=parentIdOf;
-
-  window.openAddLinkedCustomer=function(parentId){
-    var parent=findCustomer(parentId);
-    if(!parent){if(typeof toast==='function')toast('Main Customer கிடைக்கவில்லை.',true);return false}
-    window.__nfPendingLinkedParentId=String(parentId);
-    if(typeof openModal!=='function')return false;
-    openModal('customer');
-    setTimeout(function(){
-      var title=document.getElementById('modalTitle');
-      if(title)title.textContent='Add Linked Customer';
-      var address=document.querySelector('#formFields [name="address"]');
-      if(address)address.value='';
-      var fields=document.getElementById('formFields');
-      if(fields){
-        var hint=document.createElement('div');
-        hint.className='field full';
-        hint.innerHTML='<div class="nf-mc-hint">👥 <b>'+escSafe(parent.name||'Main Customer')+'</b> என்பவரின் account-க்கு இந்த பெயர் இணைக்கப்படும். இந்த பெயர் Single Customer list-ல் தனியாக காட்டப்படாது.</div>';
-        fields.appendChild(hint);
-      }
-    },40);
-    return true;
-  };
-
-  window.openLinkedCustomerOrder=function(personId){
-    var person=findCustomer(personId);
-    if(!person)return false;
-    var order=latest(personId);
-    if(order && typeof openOrdersEditOrder==='function'){
-      openOrdersEditOrder(String(order.id));
-      return true;
-    }
-    if(typeof openOrdersNewOrderForCustomer==='function'){
-      openOrdersNewOrderForCustomer(String(personId));
-      return true;
-    }
-    if(typeof openCustomerOrderEditor==='function'){
-      openCustomerOrderEditor(String(personId),order?String(order.id):'');
-      return true;
-    }
-    return false;
-  };
-
-  window.deleteLinkedCustomer=function(personId,parentId){
-    var person=findCustomer(personId);
-    if(!person)return;
-    if(String(parentIdOf(person))!==String(parentId||'')){if(typeof toast==='function')toast('இந்த person இந்த Main Customer-க்கு link செய்யப்படவில்லை.',true);return}
-    var orderList=(state.orders||[]).filter(function(o){return String(o.customer_id||'')===String(personId)});
-    var msg='“'+String(person.name||'Linked Customer')+'”-ஐ '+String((findCustomer(parentId)||{}).name||'Main Customer')+' account-லிருந்து delete செய்யவா?';
-    if(orderList.length)msg+='\
-\
-இந்த person-ன் existing order records-ம் delete ஆகும்.';
-    if(!confirm(msg))return;
-    if(typeof deleteCustomer==='function'){
-      deleteCustomer(String(personId));
-    }else if(typeof toast==='function'){
-      toast('Customer delete function கிடைக்கவில்லை.',true);
-    }
-  };
-
-  function linkedPersonHtml(person){
-    var id=String(person.id||'');
-    var st=stats(id),o=latest(id);
-    var orderText=o?('Order '+String(o.order_no||'')):'Order இல்லை';
-    var jsId=JSON.stringify(id);
-    return '<div class="nf-mc-person">'+
-      '<div><div class="nf-mc-name">'+escSafe(person.name||'Customer')+'</div>'+
-      '<div class="nf-mc-meta">'+escSafe(person.phone||'Phone இல்லை')+' · '+escSafe(orderText)+'</div>'+
-      '<div class="nf-mc-stats">'+
-      '<span class="nf-mc-chip">👗 Blouse <b>'+Number(st.givenBlouse||0)+'</b></span>'+
-      '<span class="nf-mc-chip">👚 Chudi <b>'+Number(st.chudi||0)+'</b></span>'+
-      '<span class="nf-mc-chip">🥻 Saree <b>'+Number(st.saree||0)+'</b></span>'+
-      '<span class="nf-mc-chip">💰 Total <b>'+escSafe(typeof money==='function'?money(st.total||0):String(st.total||0))+'</b></span>'+
-      '</div></div>'+
-      '<div class="nf-mc-actions">'+
-      '<button type="button" class="btn primary" onclick="event.stopPropagation();openLinkedCustomerOrder('+jsId+')">✏️ Edit Order</button>'+
-      '<button type="button" class="btn danger" onclick="event.stopPropagation();deleteLinkedCustomer('+jsId+','+JSON.stringify(parentIdOf(person))+')">🗑️ Delete</button>'+
-      '</div></div>';
-  }
-
-  function panelHtml(parent){
-    var links=linkedOf(parent.id), pid=String(parent.id||''), jsPid=JSON.stringify(pid);
-    if(!links.length){
-      return '';
-    }
-    var all=[parent].concat(links),sum={blouse:0,chudi:0,saree:0,total:0};
-    all.forEach(function(c){var st=stats(c.id);sum.blouse+=Number(st.givenBlouse||0);sum.chudi+=Number(st.chudi||0);sum.saree+=Number(st.saree||0);sum.total+=Number(st.total||0)});
-    return '<section class="nf-mc-panel"><div class="nf-mc-head"><div><div class="nf-mc-title">👥 Multiple Customer</div><div class="nf-mc-sub">Main Customer: <b>'+escSafe(parent.name||'Customer')+'</b></div></div><button type="button" class="btn primary nf-mc-add" onclick="event.stopPropagation();openAddLinkedCustomer('+jsPid+')">＋ Add Person</button></div>'+
-      '<div class="nf-mc-person"><div><div class="nf-mc-name">'+escSafe(parent.name||'Customer')+' <span class="nf-mc-chip">Main</span></div><div class="nf-mc-meta">Existing Single Customer · Blue Edit New Order unchanged</div></div></div>'+
-      links.map(linkedPersonHtml).join('')+
-      '<div class="nf-mc-total"><div class="nf-mc-title">Group Total</div><div class="nf-mc-total-grid">'+
-      '<div class="nf-mc-total-box"><b>'+sum.blouse+'</b><span>Blouse</span></div>'+
-      '<div class="nf-mc-total-box"><b>'+sum.chudi+'</b><span>Chudi</span></div>'+
-      '<div class="nf-mc-total-box"><b>'+sum.saree+'</b><span>Saree</span></div>'+
-      '<div class="nf-mc-total-box"><b>'+escSafe(typeof money==='function'?money(sum.total):String(sum.total))+'</b><span>Total</span></div>'+
-      '</div></div></section>';
-  }
-
-  var baseCard=window.customerCard;
-  if(typeof baseCard==='function' && !baseCard.__nfMultipleCustomerV1){
-    window.customerCard=function(id){
-      var html=baseCard.apply(this,arguments);
-      var c=findCustomer(id);
-      if(!c || isLinked(c))return html;
-      var panel=panelHtml(c);
-      return html.replace(/<\/article>\s*$/i,panel+'</article>');
-    };
-    window.customerCard.__nfMultipleCustomerV1=true;
-  }
-
-  var baseRenderCustomers=window.renderCustomers;
-  if(typeof baseRenderCustomers==='function' && !baseRenderCustomers.__nfMultipleCustomerV1){
-    window.renderCustomers=function(){
-      var search=document.getElementById('customerSearch');
-      var q=(search?.value||'').toLowerCase();
-      var host=document.getElementById('customersTable');
-      if(!host){return baseRenderCustomers.apply(this,arguments)}
-      var visible=customers().filter(function(c){
-        if(isLinked(c))return false;
-        return [c.name,c.phone,c.address,c.village].join(' ').toLowerCase().includes(q);
-      });
-      host.innerHTML=visible.length?visible.map(function(c){return window.customerCard(c.id)}).join(''):'<div class="card empty" style="grid-column:1/-1">No customers found.</div>';
-      return true;
-    };
-    window.renderCustomers.__nfMultipleCustomerV1=true;
-  }
-
-  var baseDashboard=window.renderDashboardCustomers;
-  if(typeof baseDashboard==='function' && !baseDashboard.__nfMultipleCustomerV1){
-    window.renderDashboardCustomers=function(){
-      var old=state.customers;
-      state.customers=customers().filter(function(c){return !isLinked(c)});
-      try{return baseDashboard.apply(this,arguments)}finally{state.customers=old}
-    };
-    window.renderDashboardCustomers.__nfMultipleCustomerV1=true;
-  }
-
-  var baseSlide=window.renderMyCustomersSlideMenu;
-  if(typeof baseSlide==='function' && !baseSlide.__nfMultipleCustomerV1){
-    window.renderMyCustomersSlideMenu=function(){
-      var old=state.customers;
-      state.customers=customers().filter(function(c){return !isLinked(c)});
-      try{return baseSlide.apply(this,arguments)}finally{state.customers=old}
-    };
-    window.renderMyCustomersSlideMenu.__nfMultipleCustomerV1=true;
-  }
-
-  var baseQuickAdd=window.openOrdersQuickAdd;
-  if(typeof baseQuickAdd==='function' && !baseQuickAdd.__nfMultipleCustomerV1){
-    window.openOrdersQuickAdd=function(){
-      var old=state.customers;
-      /* Existing Orders customer selector can still access linked people when an
-         explicit linked Edit/New Order entry point opens the existing screen. */
-      state.customers=customers();
-      try{return baseQuickAdd.apply(this,arguments)}finally{state.customers=old}
-    };
-    window.openOrdersQuickAdd.__nfMultipleCustomerV1=true;
-  }
-
-  var baseOpenNew=window.openOrdersNewOrderForCustomer;
-  if(typeof baseOpenNew==='function' && !baseOpenNew.__nfMultipleCustomerV1){
-    window.openOrdersNewOrderForCustomer=function(customerId){
-      if(window.__nfLinkedSaveInProgress){
-        var linkedSavedCustomer=findCustomer(customerId);
-        if(linkedSavedCustomer && isLinked(linkedSavedCustomer)){
-          window.__nfLinkedSaveInProgress=false;
-          window.__nfSkipLinkedAutoNewOrder=null;
-          if(typeof goView==='function')goView('customers',true);
-          setTimeout(function(){if(typeof renderCustomers==='function')renderCustomers()},80);
-          if(typeof toast==='function')toast('Linked Customer saved. Customer Card-ல் பார்க்கலாம்.');
-          return true;
-        }
-      }
-      return baseOpenNew.apply(this,arguments);
-    };
-    window.openOrdersNewOrderForCustomer.__nfMultipleCustomerV1=true;
-  }
-
-  var form=document.getElementById('dataForm');
-  if(form){
-    form.addEventListener('submit',function(){
-      if(!window.state || !state.editing || state.editing.type!=='customer')return;
-      var id=state.editing.id;
-      var address=form.querySelector('[name="address"]');
-      if(!address)return;
-      var current=String(address.value||'').trim();
-      if(!id && window.__nfPendingLinkedParentId){
-        var parent=String(window.__nfPendingLinkedParentId);
-        address.value=cleanAddress(current)+(current?' ':'')+markerFor(parent);
-        window.__nfLinkedSaveInProgress=true;
-        window.__nfSkipLinkedAutoNewOrder={customerId:'__PENDING__'};
-        window.__nfPendingLinkedParentId=parent;
-      }else if(id){
-        var existing=findCustomer(id),parentId=existing&&parentIdOf(existing);
-        if(parentId){
-          address.value=cleanAddress(current)+(cleanAddress(current)?' ':'')+markerFor(parentId);
-          window.__nfSkipLinkedAutoNewOrder={customerId:String(id)};
-        }
-      }
-    },true);
-  }
-
-  /* The customer-save handler calls openOrdersNewOrderForCustomer with the newly
-     created ID. Convert only the pending linked-person hand-off into a normal
-     Customer Card return; the existing Main Customer flow remains untouched. */
-  var pendingTimer=null;
-  function armLinkedAutoSkip(){
-    if(pendingTimer)clearTimeout(pendingTimer);
-    pendingTimer=setTimeout(function(){
-      if(window.__nfSkipLinkedAutoNewOrder && window.__nfSkipLinkedAutoNewOrder.customerId==='__PENDING__')window.__nfSkipLinkedAutoNewOrder=null;
-    },15000);
-  }
-  if(form){
-    form.addEventListener('submit',function(){
-      if(state?.editing?.type==='customer' && !state.editing.id && window.__nfPendingLinkedParentId)armLinkedAutoSkip();
-    },true);
-  }
-  var originalOpenModal=window.openModal;
-  if(typeof originalOpenModal==='function' && !originalOpenModal.__nfMultipleCustomerV1){
-    window.openModal=function(type,id){
-      var r=originalOpenModal.apply(this,arguments);
-      if(type==='customer' && !id){window.__nfLinkedSaveInProgress=false;}
-      if(type==='customer' && id){
-        setTimeout(function(){
-          var c=findCustomer(id),a=document.querySelector('#formFields [name="address"]');
-          if(c&&isLinked(c)&&a)a.value=cleanAddress(a.value);
-        },35);
-      }
-      return r;
-    };
-    window.openModal.__nfMultipleCustomerV1=true;
-  }
-
-  /* Resolve the pending newly-created linked customer's ID without touching the
-     existing save handler: it is the only customer added after the submit began. */
-  var pendingParentBeforeSubmit='';
-  if(form){
-    form.addEventListener('submit',function(){
-      if(state?.editing?.type==='customer' && !state.editing.id && window.__nfPendingLinkedParentId){
-        pendingParentBeforeSubmit=String(window.__nfPendingLinkedParentId);
-        window.__nfPendingLinkedParentId='';
-      }
-    },true);
-    form.addEventListener('submit',function(){
-      if(!pendingParentBeforeSubmit)return;
-      var started=Date.now();
-      var timer=setInterval(function(){
-        var fresh=customers().find(function(c){
-          return String(parentIdOf(c))===String(pendingParentBeforeSubmit);
-        });
-        if(fresh){
-          clearInterval(timer);
-          if(window.__nfSkipLinkedAutoNewOrder && window.__nfSkipLinkedAutoNewOrder.customerId==='__PENDING__')window.__nfSkipLinkedAutoNewOrder.customerId=String(fresh.id);
-          pendingParentBeforeSubmit='';
-        }else if(Date.now()-started>12000){
-          clearInterval(timer);
-          window.__nfSkipLinkedAutoNewOrder=null;
-          pendingParentBeforeSubmit='';
-        }
-      },120);
-    },false);
-  }
-
-  document.addEventListener('DOMContentLoaded',function(){
-    setTimeout(function(){if(typeof renderCustomers==='function')renderCustomers()},120);
-    setTimeout(function(){if(typeof renderCustomers==='function')renderCustomers()},500);
-  });
-})();
-</script>
 </body></html><script id="nf-v52-dashboard-scroll-fix-js">
 (function(){
   "use strict";
@@ -11805,4 +11501,378 @@ body.nf-photo-preview-scroll-locked{overscroll-behavior:none!important}
     return input;
   };
 })();
+
+<style id="nf-multiple-customer-css">
+.nf-customer-mode-wrap{margin-bottom:12px;padding:12px;border:1px solid #e6ddf5;border-radius:16px;background:linear-gradient(135deg,#faf7ff,#fff7fb)}
+.nf-customer-mode-title{font-weight:900;font-size:14px;margin-bottom:8px;color:#4d4160}
+.nf-customer-mode-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.nf-customer-mode-btn{min-height:48px;border:1px solid #ddd5eb;border-radius:12px;background:#f3eff8;color:#3f3648;font-weight:850;padding:9px}
+.nf-customer-mode-btn.active{color:#fff;border-color:transparent;background:linear-gradient(135deg,#6c45e8,#e94678);box-shadow:0 7px 16px rgba(108,69,232,.2)}
+.nf-customer-mode-hint{margin-top:8px;font-size:12px;color:#716879;line-height:1.4}
+.nf-multiple-customer-fields{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;padding-top:10px;border-top:1px dashed #ddd5eb}
+.nf-multiple-customer-fields .field.full{grid-column:1/-1}
+.nf-linked-people-panel,.nf-multi-calc-panel{margin-top:14px;border:1px solid #e6ddf5;border-radius:17px;padding:12px;background:linear-gradient(135deg,#faf8ff,#fff8fb)}
+.nf-linked-people-head,.nf-multi-calc-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:9px}
+.nf-linked-people-head b,.nf-multi-calc-head b{font-size:15px}
+.nf-linked-people-head small,.nf-multi-calc-head small{display:block;margin-top:3px;color:#777184;font-size:11px}
+.nf-linked-people-head>span,.nf-multi-calc-head>span{padding:6px 9px;border-radius:999px;background:#eee8ff;color:#5f40d6;font-size:11px;font-weight:900;white-space:nowrap}
+.nf-linked-people-list{display:grid;gap:8px}
+.nf-linked-person-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px;border-radius:13px;background:#fff;border:1px solid #eee8f5}
+.nf-linked-person-main{display:flex;align-items:center;gap:9px;min-width:0}
+.nf-linked-person-avatar{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;background:#f0ebff;flex:0 0 38px}
+.nf-linked-person-main b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nf-linked-person-main small{display:block;color:#777184;font-size:11px;margin-top:2px}
+.nf-linked-person-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.nf-linked-edit-btn{background:#eee8ff;color:#5c3fd0;border:1px solid #d8ccff}
+.nf-linked-delete-btn{min-height:42px}
+.nf-multi-calc-list{display:grid;gap:7px}
+.nf-multi-calc-row{padding:9px;border-radius:12px;background:#fff;border:1px solid #eee8f5}
+.nf-multi-calc-name b{display:block}
+.nf-multi-calc-name small{display:block;color:#777184;font-size:11px;margin-top:2px}
+.nf-multi-calc-values{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:7px}
+.nf-multi-calc-values span{padding:7px 8px;border-radius:9px;background:#f7f5fb;color:#6c6673;font-size:10px}
+.nf-multi-calc-values b{display:block;color:#1f1d25;font-size:13px;margin-top:2px}
+.nf-multi-group-total{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-top:9px;padding-top:9px;border-top:1px dashed #ddd5eb}
+.nf-multi-group-total>div{padding:8px;border-radius:10px;background:linear-gradient(135deg,#f0ebff,#fff0f6);text-align:center}
+.nf-multi-group-total span{display:block;color:#70697b;font-size:10px}
+.nf-multi-group-total b{display:block;font-size:16px;margin-top:3px;color:#2a2432}
+@media(max-width:700px){
+ .nf-multiple-customer-fields{grid-template-columns:1fr}
+ .nf-multiple-customer-fields .field.full{grid-column:auto}
+ .nf-customer-mode-grid{grid-template-columns:1fr}
+ .nf-linked-person-row{align-items:flex-start;flex-direction:column}
+ .nf-linked-person-actions{width:100%;justify-content:stretch}
+ .nf-linked-person-actions .btn{flex:1}
+ .nf-multi-calc-values{grid-template-columns:1fr 1fr}
+ .nf-multi-group-total{grid-template-columns:repeat(3,1fr)}
+}
+</style>
+
+<script>
+/* NF MULTIPLE CUSTOMER PATCH — preserves Single Customer flow */
+(function(){
+  "use strict";
+
+  const LINK_PREFIX = "NF_LINKED_PARENT:";
+  const LINK_RE = /(?:^|\s*\|\s*)NF_LINKED_PARENT:([^|\s]+)/;
+
+  function linkedParentId(c){
+    const m = String(c?.notes||"").match(LINK_RE);
+    return m ? String(m[1]) : "";
+  }
+  function isLinkedCustomer(c){ return !!linkedParentId(c); }
+  function visibleCustomers(){
+    return (Array.isArray(state?.customers)?state.customers:[]).filter(c=>!isLinkedCustomer(c));
+  }
+  function linkedCustomersOf(parentId){
+    const pid=String(parentId||"");
+    return (Array.isArray(state?.customers)?state.customers:[]).filter(c=>linkedParentId(c)===pid);
+  }
+  function cleanLinkedCustomerNotes(notes){
+    return String(notes||"")
+      .replace(/\s*\|\s*NF_LINKED_PARENT:[^|\s]+/g,"")
+      .replace(/^NF_LINKED_PARENT:[^|\s]+\s*\|\s*/,"")
+      .replace(/^\s*\|\s*/,"")
+      .replace(/\s*\|\s*$/,"")
+      .trim();
+  }
+  function escapeAttr(v){
+    return String(v??"").replace(/\\/g,"\\\\").replace(/'/g,"&#39;").replace(/"/g,"&quot;");
+  }
+
+  window.nfIsLinkedCustomer=isLinkedCustomer;
+  window.nfLinkedCustomersOf=linkedCustomersOf;
+  window.nfVisibleCustomers=visibleCustomers;
+  window.nfLinkedParentId=linkedParentId;
+
+  /* Customer dropdowns: linked people stay internal and are not shown as
+     separate customers in normal customer selectors. */
+  const oldInputHTML = window.inputHTML;
+  if(typeof oldInputHTML==="function" && !oldInputHTML.__nfMultipleCustomer){
+    window.inputHTML=function(f,val){
+      if(f?.[2]==="customer"){
+        const [key,label,type,required]=f, v=val??"";
+        return `<div class="field"><label>${label}</label><select class="input" name="${key}" ${required?"required":""}><option value="">Select customer</option>${visibleCustomers().map(c=>`<option value="${c.id}" ${String(v)===String(c.id)?"selected":""}>${esc(c.name)}${c.phone?" — "+esc(c.phone):""}</option>`).join("")}</select></div>`;
+      }
+      return oldInputHTML.apply(this,arguments);
+    };
+    window.inputHTML.__nfMultipleCustomer=true;
+  }
+
+  function renderLinkedPeople(parentId){
+    const people=linkedCustomersOf(parentId);
+    if(!people.length)return "";
+    return `<section class="nf-linked-people-panel">
+      <div class="nf-linked-people-head">
+        <div><b>👥 Multiple Customer</b><small>இந்த Main Customer-ன் கீழ் இணைக்கப்பட்டவர்கள்</small></div>
+        <span>${people.length} பேர்</span>
+      </div>
+      <div class="nf-linked-people-list">
+        ${people.map(c=>{
+          const hasOrder=typeof latestCustomerOrder==="function" && !!latestCustomerOrder(c.id);
+          return `<div class="nf-linked-person-row">
+            <div class="nf-linked-person-main"><span class="nf-linked-person-avatar">👤</span><div><b>${esc(c.name||"Customer")}</b>${c.phone?`<small>📞 ${esc(c.phone)}</small>`:""}</div></div>
+            <div class="nf-linked-person-actions">
+              <button type="button" class="btn nf-linked-edit-btn" onclick="event.stopPropagation();nfOpenLinkedPersonOrder('${escapeAttr(c.id)}')" title="Edit Order">✏️ Edit Order</button>
+              <button type="button" class="btn danger nf-linked-delete-btn" onclick="event.stopPropagation();deleteCustomer('${escapeAttr(c.id)}')" title="Delete">🗑️ Delete</button>
+            </div>
+          </div>`;
+        }).join("")}
+      </div>
+    </section>`;
+  }
+
+  function renderGroupSummary(parentId){
+    const parent=state.customers.find(c=>String(c.id)===String(parentId));
+    const people=linkedCustomersOf(parentId);
+    if(!parent || !people.length)return "";
+    const ids=[parent.id,...people.map(c=>c.id)];
+    const rows=ids.map(id=>{
+      const c=state.customers.find(x=>String(x.id)===String(id));
+      const st=customerStats(id);
+      return {c,st};
+    });
+    const sum=k=>rows.reduce((a,x)=>a+Number(x.st?.[k]||0),0);
+    return `<section class="nf-multi-calc-panel">
+      <div class="nf-multi-calc-head"><div><b>📊 Customer-wise Calculation</b><small>ஒவ்வொருவருடைய order தனித்தனியாக</small></div><span>Group Total</span></div>
+      <div class="nf-multi-calc-list">
+        ${rows.map(({c,st})=>`<div class="nf-multi-calc-row">
+          <div class="nf-multi-calc-name"><b>${esc(c.name||"Customer")}</b><small>Blouse ${st.givenBlouse||0} · Chudi ${st.chudi||0} · Saree ${st.saree||0}</small></div>
+          <div class="nf-multi-calc-values"><span>Total <b>${money(st.total||0)}</b></span><span>Advance <b>${money(st.advance||0)}</b></span><span>Balance <b>${money(st.balance||0)}</b></span></div>
+        </div>`).join("")}
+      </div>
+      <div class="nf-multi-group-total">
+        <div><span>Blouse</span><b>${sum("givenBlouse")}</b></div>
+        <div><span>Chudi</span><b>${sum("chudi")}</b></div>
+        <div><span>Saree</span><b>${sum("saree")}</b></div>
+        <div><span>Total</span><b>${money(sum("total"))}</b></div>
+        <div><span>Advance</span><b>${money(sum("advance"))}</b></div>
+        <div><span>Balance</span><b>${money(sum("balance"))}</b></div>
+      </div>
+    </section>`;
+  }
+
+  const oldCustomerCard=window.customerCard;
+  if(typeof oldCustomerCard==="function" && !oldCustomerCard.__nfMultipleCustomer){
+    window.customerCard=function(id){
+      const html=oldCustomerCard.apply(this,arguments);
+      const people=linkedCustomersOf(id);
+      if(!people.length)return html;
+      const marker=renderLinkedPeople(id)+renderGroupSummary(id);
+      return html.replace(/(<section class="nf-collection-panel nf-cash-collection">)/,marker+"$1");
+    };
+    window.customerCard.__nfMultipleCustomer=true;
+  }
+
+  /* Main Customer page: linked people are hidden from the top-level customer cards. */
+  const oldRenderCustomers=window.renderCustomers;
+  if(typeof oldRenderCustomers==="function"){
+    window.renderCustomers=function(){
+      const q=($("customerSearch").value||"").toLowerCase();
+      const r=visibleCustomers().filter(x=>[x.name,x.phone,x.address,x.village].join(" ").toLowerCase().includes(q));
+      $("customersTable").innerHTML=r.length?r.map(x=>customerCard(x.id)).join(""):`<div class="card empty" style="grid-column:1/-1">No customers found.</div>`;
+    };
+  }
+
+  /* New Order selector: main customers only. */
+  const oldMountOrdersQuickForm=window.mountOrdersQuickForm;
+  if(typeof oldMountOrdersQuickForm==="function"){
+    window.mountOrdersQuickForm=function(customerId){
+      oldMountOrdersQuickForm.apply(this,arguments);
+      const sel=document.getElementById("ordersQuickCustomerStart");
+      if(sel){
+        [...sel.options].forEach(o=>{
+          if(o.value && String(o.value)!==String(customerId||"") && isLinkedCustomer(state.customers.find(c=>String(c.id)===String(o.value)))) o.remove();
+        });
+      }
+    };
+  }
+
+  const oldOpenOrdersQuickAdd=window.openOrdersQuickAdd;
+  if(typeof oldOpenOrdersQuickAdd==="function"){
+    window.openOrdersQuickAdd=function(){
+      oldOpenOrdersQuickAdd.apply(this,arguments);
+      const sel=document.getElementById("ordersQuickCustomerStartInline");
+      if(sel){
+        [...sel.options].forEach(o=>{
+          if(o.value && String(o.value)!==String(customerId||"") && isLinkedCustomer(state.customers.find(c=>String(c.id)===String(o.value)))) o.remove();
+        });
+      }
+    };
+  }
+
+  /* Additional person's Edit Order reuses the existing Orders/Edit-New-Order system.
+     If no order exists yet, the same existing New Order screen is opened for that person;
+     no new screen is created. */
+  window.nfOpenLinkedPersonOrder=function(customerId){
+    const cid=String(customerId||"");
+    const person=state.customers.find(c=>String(c.id)===cid);
+    if(!person || !isLinkedCustomer(person)){toast("Additional customer கிடைக்கவில்லை.",true);return;}
+    const order=typeof latestCustomerOrder==="function"?latestCustomerOrder(cid):null;
+    if(order && typeof openOrdersEditOrder==="function"){
+      openOrdersEditOrder(String(order.id));
+      return;
+    }
+    if(typeof openOrdersNewOrderForCustomer==="function"){
+      openOrdersNewOrderForCustomer(cid);
+      setTimeout(function(){
+        const title=document.getElementById("ordersNewOrderScreenTitle");
+        if(title)title.textContent="✏️ Edit Order — "+(person.name||"Customer");
+      },100);
+      return;
+    }
+    if(typeof openOrdersQuickAdd==="function"){
+      openOrdersQuickAdd();
+      setTimeout(function(){
+        const s=document.getElementById("ordersQuickCustomerStartInline");
+        if(s){s.value=cid;if(typeof mountOrdersQuickForm==="function")mountOrdersQuickForm(cid);}
+      },50);
+      return;
+    }
+    toast("Existing Edit/New Order screen கிடைக்கவில்லை.",true);
+  };
+
+  /* Add Customer modal — keep Single Customer exactly as-is by default,
+     add an explicit second mode only when the user chooses it. */
+  const oldOpenModal=window.openModal;
+  if(typeof oldOpenModal==="function" && !oldOpenModal.__nfMultipleCustomer){
+    window.openModal=function(type,id){
+      const result=oldOpenModal.apply(this,arguments);
+      if(type!=="customer" || id)return result;
+      setTimeout(function(){
+        const form=document.getElementById("dataForm"), fields=document.getElementById("formFields");
+        if(!form||!fields||document.getElementById("nfCustomerMode"))return;
+        const modeWrap=document.createElement("div");
+        modeWrap.className="field full nf-customer-mode-wrap";
+        modeWrap.innerHTML=`<div class="nf-customer-mode-title">Customer Type</div>
+          <div class="nf-customer-mode-grid">
+            <button type="button" id="nfCustomerModeSingle" class="nf-customer-mode-btn active">👤 Single Customer</button>
+            <button type="button" id="nfCustomerModeMultiple" class="nf-customer-mode-btn">👥 Add to Existing Customer</button>
+          </div>
+          <div id="nfCustomerMode" class="nf-customer-mode-hint">Single Customer — existing Add Customer flow.</div>
+          <div id="nfMultipleCustomerFields" class="nf-multiple-customer-fields hidden">
+            <div class="field"><label>Main Customer</label><select id="nfLinkedParent" class="input"><option value="">Select main customer</option>${visibleCustomers().map(c=>`<option value="${c.id}">${esc(c.name)}${c.phone?" — "+esc(c.phone):""}</option>`).join("")}</select></div>
+            <div class="field"><label>Additional Person Name</label><input id="nfLinkedName" class="input" type="text" placeholder="எ.கா. லதா"></div>
+            <div class="field"><label>Phone (optional)</label><input id="nfLinkedPhone" class="input" type="tel" inputmode="tel" placeholder="Phone"></div>
+            <div class="field"><label>Address (optional)</label><input id="nfLinkedAddress" class="input" type="text" placeholder="Address"></div>
+            <div class="field"><label>ஊர் / Village (optional)</label><input id="nfLinkedVillage" class="input" type="text" placeholder="Village"></div>
+            <div class="field full"><label>Alteration Notes (optional)</label><textarea id="nfLinkedNotes" class="input" placeholder="Alteration Notes"></textarea></div>
+          </div>`;
+        fields.parentNode.insertBefore(modeWrap,fields);
+        const single=document.getElementById("nfCustomerModeSingle"), multi=document.getElementById("nfCustomerModeMultiple"), multiFields=document.getElementById("nfMultipleCustomerFields"), hint=document.getElementById("nfCustomerMode");
+        const originalFields=[...fields.children];
+        function setMode(mode){
+          const isMulti=mode==="multiple";
+          single.classList.toggle("active",!isMulti);multi.classList.toggle("active",isMulti);
+          multiFields.classList.toggle("hidden",!isMulti);
+          originalFields.forEach(el=>el.classList.toggle("hidden",isMulti));
+          hint.textContent=isMulti?"Additional Person — Main Customer-ன் கீழ் மட்டும் link செய்யப்படும். Single Customer list-ல் தனியாக காட்டப்படாது.":"Single Customer — existing Add Customer flow.";
+          if(isMulti)document.getElementById("nfLinkedParent")?.focus();
+        }
+        single.onclick=()=>setMode("single");multi.onclick=()=>setMode("multiple");
+        setMode("single");
+      },0);
+      return result;
+    };
+    window.openModal.__nfMultipleCustomer=true;
+  }
+
+  /* Capture submit before the existing customer-save handler. */
+  const dataForm=document.getElementById("dataForm");
+  if(dataForm && !dataForm.__nfMultipleCustomerSubmit){
+    dataForm.addEventListener("submit",async function(e){
+      const edit=state.editing;
+      if(!edit || edit.type!=="customer" || edit.id)return;
+      if(!document.getElementById("nfMultipleCustomerFields") || document.getElementById("nfMultipleCustomerFields").classList.contains("hidden"))return;
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      const parentId=String(document.getElementById("nfLinkedParent")?.value||"");
+      const name=String(document.getElementById("nfLinkedName")?.value||"").trim();
+      if(!parentId){toast("Main Customer தேர்வு செய்ய வேண்டும்.",true);return;}
+      if(!name){toast("Additional Person Name கொடுக்க வேண்டும்.",true);return;}
+      if(parentId===String(edit.id||"")){toast("Main Customer-ஐ மீண்டும் Additional Person ஆக சேர்க்க முடியாது.",true);return;}
+      const parent=state.customers.find(c=>String(c.id)===parentId);
+      if(!parent){toast("Main Customer கிடைக்கவில்லை.",true);return;}
+      const duplicate=linkedCustomersOf(parentId).some(c=>String(c.name||"").trim().toLowerCase()===name.toLowerCase());
+      if(duplicate){toast("இந்த Main Customer-க்கு இந்த பெயர் ஏற்கனவே உள்ளது.",true);return;}
+      const village=String(document.getElementById("nfLinkedVillage")?.value||"").trim();
+      const phone=String(document.getElementById("nfLinkedPhone")?.value||"").trim();
+      const address=String(document.getElementById("nfLinkedAddress")?.value||"").trim();
+      const notes=String(document.getElementById("nfLinkedNotes")?.value||"").trim();
+      let finalNotes=[LINK_PREFIX+parentId,nfStripVillageMarker(notes),nfEncodeVillageMarker(village)].filter(Boolean).join(" | ")||null;
+      const btn=document.getElementById("saveBtn"); if(btn){btn.disabled=true;btn.textContent="Saving...";}
+      try{
+        const payload={name,phone:phone||null,address:address||null,notes:finalNotes};
+        const result=await supabaseClient.from("customers").insert(payload).select().single();
+        if(result.error)throw result.error;
+        const saved=result.data;
+        try{localStorage.setItem("nf_village_"+saved.id,village)}catch(_){}
+        state.customers=[saved,...(state.customers||[])];
+        await nfSaveState();
+        closeModal();
+        await loadAll(true);
+        goView("customers",true);
+        toast(`${name} — ${parent.name} கீழ் added.`);
+      }catch(err){
+        toast("Multiple Customer save failed: "+err.message,true);
+      }finally{
+        if(btn){btn.disabled=false;btn.textContent="Save";}
+      }
+    },true);
+    dataForm.__nfMultipleCustomerSubmit=true;
+  }
+
+  /* Keep linked people out of Dashboard "My Customers", dues, and the
+     shared customer-name slide menu as well. */
+  const oldRenderDashboardCustomers=window.renderDashboardCustomers;
+  if(typeof oldRenderDashboardCustomers==="function"){
+    window.renderDashboardCustomers=function(){
+      const box=$("dashboardCustomersList");
+      if(!box)return;
+      const customers=visibleCustomers();
+      const all=customers.slice().sort(dashboardCustomerSort);
+      const fresh=all.filter(c=>dashboardCustomerCategory(c)==="new").sort(dashboardCustomerSort);
+      const delivered=all.filter(c=>dashboardCustomerCategory(c)==="delivered").sort(dashboardDeliveredSort);
+      const countAll=$("dchCountAll"),countNew=$("dchCountNew"),countDelivered=$("dchCountDelivered");
+      if(countAll)countAll.textContent=all.length;
+      if(countNew)countNew.textContent=fresh.length;
+      if(countDelivered)countDelivered.textContent=delivered.length;
+      const source=dashboardCustomerTab==="new"?fresh:dashboardCustomerTab==="delivered"?delivered:all;
+      box.innerHTML=source.length?source.map((c,i)=>dashboardCustomerCard(c,i,dashboardCustomerTab==="delivered"?"delivered":"new")).join(""):`<div class="nf-dch-empty">${dashboardCustomerTab==="delivered"?"இன்னும் Delivered Customers இல்லை.":"Customers இன்னும் சேர்க்கப்படவில்லை."}</div>`;
+    };
+  }
+  const oldRenderDashboardDues=window.renderDashboardDues;
+  if(typeof oldRenderDashboardDues==="function"){
+    window.renderDashboardDues=function(){
+      const rows=visibleCustomers().map(c=>({c,s:customerStats(c.id)})).filter(x=>x.s.balance>0).sort((a,b)=>b.s.balance-a.s.balance);
+      $("dashboardDuesList").innerHTML=rows.length?rows.slice(0,15).map(x=>`<div class="dueCustomer clickable" role="button" tabindex="0" onclick="goToCustomer('${x.c.id}')"><div class="dueName">👤 ${esc(x.c.name)}</div><b>${money(x.s.balance)}</b></div>`).join(""):`<div class="empty">Customer balance இல்லை. 🎉</div>`;
+    };
+  }
+  const oldSlide=window.renderMyCustomersSlideMenu;
+  if(typeof oldSlide==="function"){
+    window.renderMyCustomersSlideMenu=function(){
+      const list=document.getElementById("nfCustomerSlideList"); if(!list)return;
+      const customers=visibleCustomers().slice().sort(function(a,b){
+        try{if(typeof dashboardCustomerSort==="function")return dashboardCustomerSort(a,b)}catch(e){}
+        return String(a?.name||"").localeCompare(String(b?.name||""),"ta",{numeric:true,sensitivity:"base"});
+      });
+      if(!customers.length){list.innerHTML='<div class="nf-customer-slide-empty">👥 Customer இன்னும் சேர்க்கப்படவில்லை.</div>';return;}
+      list.innerHTML=customers.map(function(c,i){
+        const id=String(c?.id||"").replace(/\\/g,"\\\\").replace(/'/g,"\\'");
+        const name=esc(c?.name||"Customer"),phone=esc(c?.phone||"Phone இல்லை");
+        return '<button type="button" class="nf-customer-slide-row" onclick="openCustomerFromMyCustomersMenu(\''+id+'\')"><span class="nf-customer-slide-no">'+(i+1)+'</span><span class="nf-customer-slide-main"><span class="nf-customer-slide-name">'+name+'</span><span class="nf-customer-slide-phone">📞 '+phone+'</span></span><span class="nf-customer-slide-arrow">›</span></button>';
+      }).join("");
+    };
+  }
+
+  /* Keep the main blue Edit New Order button untouched. */
+  setTimeout(function(){
+    try{ if(typeof renderCustomers==="function")renderCustomers(); }catch(_){}
+    try{ if(typeof renderDashboardCustomers==="function")renderDashboardCustomers(); }catch(_){}
+    try{ if(typeof renderMyCustomersSlideMenu==="function")renderMyCustomersSlideMenu(); }catch(_){}
+    try{ if(typeof renderDashboardDues==="function")renderDashboardDues(); }catch(_){}
+  },50);
+
+})();
+</script>
 </script>
