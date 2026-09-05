@@ -9900,6 +9900,7 @@ function personStats(id,pid){
 }
 function personSelectOptions(id,current){return getPersons(id).map(p=>`<option value="${safe(p.id)}" ${String(p.id)===String(current||"")?"selected":""}>${safe(p.name)}</option>`).join("")}
 function ensureQuickPersonSelect(id,current){const el=$("qo-person-"+id);if(!el)return;el.innerHTML=personSelectOptions(id,current);if(!el.value){el.value=getPersons(id)[0]?.id||"p1"}}
+ window.nfEnsureQuickPersonSelect=ensureQuickPersonSelect;
 function injectCustomerPersonsField(){
  const fields=$("formFields");if(!fields)return;fields.querySelector("[data-nf-persons-field]")?.remove();
  const id=state.editing?.id,persons=id?getPersons(id):[{id:"p1",name:"நபர் 1"}];
@@ -9916,7 +9917,7 @@ function injectOrderPersonField(){
 }
 function renderPersonPanel(id){
  const host=$("nfPersonPanel-"+id);if(!host)return;const persons=getPersons(id);
- host.innerHTML=`<div class="nf-person-head"><div><h4>👥 இந்த customer-ன் துணிகள் — ${persons.length} பேர்</h4><div class="nf-person-note">Order / Edit Order / Payment — மேலே இருக்கும் ஒரே existing flow-வுடன் sync ஆகும்.</div></div><button type="button" class="nf-person-add" onclick="nfAddPerson('${safe(id)}')">＋ நபரை சேர்க்க</button></div><div class="nf-person-list">${persons.map((p,i)=>{const st=personStats(id,p.id);return `<div class="nf-person-card"><div class="nf-person-card-top"><div class="nf-person-avatar">👤</div><div class="nf-person-name">நபர் ${i+1} — ${safe(p.name)}</div></div><div class="nf-person-meta"><div class="nf-person-stat"><b>${st.normal}</b><span>Normal</span></div><div class="nf-person-stat"><b>${st.lining}</b><span>Lining</span></div><div class="nf-person-stat"><b>${st.design}</b><span>Design</span></div></div><div class="nf-person-orders">🧾 ${st.orders.length} order · 💰 ${money(st.total)} · Paid ${money(st.paid)} · Balance ${money(st.balance)}</div></div>`}).join("")}</div>`;
+ host.innerHTML=`<div class="nf-person-head"><div><h4>👥 இந்த customer-ன் துணிகள் — ${persons.length} பேர்</h4><div class="nf-person-note">ஒவ்வொரு நபரின் New Order → அதே existing Orders screen-க்கு செல்லும். Edit / Delete தனித்தனியாக sync ஆகும்.</div></div><button type="button" class="nf-person-add" onclick="nfAddPerson('${safe(id)}')">＋ நபரை சேர்க்க</button></div><div class="nf-person-list">${persons.map((p,i)=>{const st=personStats(id,p.id);const orderRows=st.orders.slice().sort((a,b)=>String(b.created_at||b.order_date||"").localeCompare(String(a.created_at||a.order_date||""))).map(o=>`<div class="nf-person-order-row"><div class="nf-person-order-main"><b>${safe(o.order_no||"Order")}</b><span>${safe(o.garment_type||"Blouse")} · ${dateText(o.order_date||o.cloth_received_date||"")}</span></div><div class="nf-person-order-actions"><button type="button" class="nf-person-edit" onclick="event.stopPropagation();nfEditPersonOrder('${safe(id)}','${safe(p.id)}','${safe(o.id)}')">✏️ Edit Order</button><button type="button" class="nf-person-delete" onclick="event.stopPropagation();nfDeletePersonOrder('${safe(id)}','${safe(p.id)}','${safe(o.id)}')">🗑️ Delete</button></div></div>`).join("");return `<div class="nf-person-card"><div class="nf-person-card-top"><div class="nf-person-avatar">👤</div><div class="nf-person-name">நபர் ${i+1} — ${safe(p.name)}</div></div><div class="nf-person-meta"><div class="nf-person-stat"><b>${st.normal}</b><span>Normal</span></div><div class="nf-person-stat"><b>${st.lining}</b><span>Lining</span></div><div class="nf-person-stat"><b>${st.design}</b><span>Design</span></div></div><div class="nf-person-orders">🧾 ${st.orders.length} order · 💰 ${money(st.total)} · Paid ${money(st.paid)} · Balance ${money(st.balance)}</div><div class="nf-person-action-bar"><button type="button" class="nf-person-new" onclick="event.stopPropagation();nfNewPersonOrder('${safe(id)}','${safe(p.id)}')">＋ New Order</button></div>${orderRows?`<div class="nf-person-order-list">${orderRows}</div>`:`<div class="nf-person-no-order">இன்னும் Order இல்லை</div>`}</div>`}).join("")}</div>`;
 }
 async function nfSavePersons(id,persons,refresh){
  const c=getCustomer(id);if(!c)return;const clean=stripPersonMarker(c.notes||""),next=[clean,personsMarker(persons)].filter(Boolean).join(" | ");
@@ -9924,7 +9925,32 @@ async function nfSavePersons(id,persons,refresh){
 }
 window.nfAddPerson=function(id){const ps=getPersons(id),name=prompt("புதிய நபர் பெயர்:","நபர் "+(ps.length+1));if(name===null)return;const n=String(name).trim();if(!n){toast("நபர் பெயர் கொடுக்க வேண்டும்.",true);return}ps.push({id:"p"+Date.now().toString(36),name:n});nfSavePersons(id,ps,true)};
 window.nfRenamePerson=function(id,pid){const ps=getPersons(id),p=ps.find(x=>String(x.id)===String(pid));if(!p)return;const n=prompt("நபர் பெயர் மாற்றவும்:",p.name);if(n===null)return;p.name=String(n).trim()||p.name;nfSavePersons(id,ps,true)};
-window.nfOpenPersonOrder=function(id,pid){const latest=(state.orders||[]).filter(o=>String(o.customer_id)===String(id)&&getOrderPersonId(o)===String(pid)).sort((a,b)=>String(b.created_at||"").localeCompare(String(a.created_at||"")))[0];if(latest)openCustomerOrderEditor(id,latest.id);else{openCustomerOrder(id);setTimeout(()=>ensureQuickPersonSelect(id,pid),100)}};
+window.nfNewPersonOrder=function(id,pid){
+ window.__nfPendingPersonOrder={customerId:String(id),personId:String(pid)};
+ if(typeof openOrdersNewOrderForCustomer==="function")openOrdersNewOrderForCustomer(String(id));
+ else if(typeof openOrdersQuickAdd==="function"){openOrdersQuickAdd();setTimeout(()=>{if(typeof mountOrdersQuickForm==="function")mountOrdersQuickForm(String(id));setTimeout(()=>window.nfEnsureQuickPersonSelect?.(String(id),String(pid)),80)},50)}
+ setTimeout(()=>window.nfEnsureQuickPersonSelect?.(String(id),String(pid)),180);
+};
+window.nfOpenPersonOrder=window.nfNewPersonOrder;
+window.nfEditPersonOrder=function(id,pid,orderId){
+ const o=(state.orders||[]).find(x=>String(x.id)===String(orderId)&&String(x.customer_id)===String(id)&&getOrderPersonId(x)===String(pid));
+ if(!o){toast("இந்த நபரின் Order கிடைக்கவில்லை.",true);return;}
+ window.__nfPendingPersonOrder={customerId:String(id),personId:String(pid),orderId:String(orderId)};
+ if(typeof openOrdersEditOrder==="function")openOrdersEditOrder(String(orderId));
+ else openCustomerOrderEditor(String(id),String(orderId));
+ setTimeout(()=>window.nfEnsureQuickPersonSelect?.(String(id),String(pid)),180);
+};
+window.nfDeletePersonOrder=async function(id,pid,orderId){
+ const o=(state.orders||[]).find(x=>String(x.id)===String(orderId)&&String(x.customer_id)===String(id)&&getOrderPersonId(x)===String(pid));
+ if(!o){toast("இந்த நபரின் Order கிடைக்கவில்லை.",true);return;}
+ if(!confirm(`இந்த Order-ஐ மட்டும் Delete செய்யவா?\n\n${o.order_no||"Order"}`))return;
+ try{
+   const pr=await supabaseClient.from("payments").delete().eq("order_id",o.id);if(pr.error)throw pr.error;
+   const ar=await supabaseClient.from("alterations").delete().eq("order_id",o.id);if(ar.error)throw ar.error;
+   const or=await supabaseClient.from("orders").delete().eq("id",o.id);if(or.error)throw or.error;
+   await loadAll(true);toast("அந்த நபரின் Order மட்டும் Delete செய்யப்பட்டது.");
+ }catch(e){toast("Order delete failed: "+e.message,true)}
+};
 function wrapCustomerCard(){const base=window.customerCard;if(typeof base!=="function"||base.__nfPersonWrapped)return;window.customerCard=function(id){let html=base.apply(this,arguments);const panel=`<section class="nf-person-panel" id="nfPersonPanel-${safe(id)}"></section>`;return html.replace('<section class="nf-collection-panel nf-cash-collection">',panel+'<section class="nf-collection-panel nf-cash-collection">')};window.customerCard.__nfPersonWrapped=true}
 function wrapOpenModal(){const base=window.openModal;if(typeof base!=="function"||base.__nfPersonWrapped)return;window.openModal=function(type,id){const r=base.apply(this,arguments);setTimeout(()=>{if(type==="customer")injectCustomerPersonsField();if(type==="order")injectOrderPersonField();if(type==="payment"){const sel=$("formFields")?.querySelector('[name="order_id"]');if(sel)[...sel.options].forEach(opt=>{const o=(state.orders||[]).find(x=>String(x.id)===String(opt.value));if(o){const p=getPersons(o.customer_id).find(x=>String(x.id)===getOrderPersonId(o));if(p)opt.textContent=opt.textContent+" · 👤 "+p.name}})}},25);return r};window.openModal.__nfPersonWrapped=true}
 function wrapSaveQuick(){const base=window.saveQuickOrder;if(typeof base!=="function"||base.__nfPersonWrapped)return;window.saveQuickOrder=async function(id,customerId){const pid=$("qo-person-"+id)?.value||"p1",notes=$("qo-notes-"+id);if(notes)notes.value=appendOrderPersonMarker(notes.value,pid);try{return await base.apply(this,arguments)}finally{if(notes)notes.value=cleanNotesWithoutPerson(notes.value)}};window.saveQuickOrder.__nfPersonWrapped=true}
@@ -11577,5 +11603,35 @@ document.addEventListener("DOMContentLoaded",()=>{setTimeout(install,100);setTim
     if(input?.dataset) input.dataset.nfR2Managed="true";
     return input;
   };
+})();
+</script>
+
+<style id="nf-person-order-flow-v2-css">
+.customerCard .nf-customer-compact-actions{display:none!important}
+.nf-person-action-bar{display:flex;gap:7px;margin-top:9px}.nf-person-new{flex:1;border:0;border-radius:10px;padding:9px 10px;background:linear-gradient(135deg,#25a56f,#35c48e);color:#fff;font-weight:900}.nf-person-order-list{display:grid;gap:6px;margin-top:8px}.nf-person-order-row{display:flex;align-items:center;justify-content:space-between;gap:7px;padding:8px;border-radius:10px;background:#f8f5ff;border:1px solid #e4dcf6}.nf-person-order-main{min-width:0;display:flex;flex-direction:column;gap:2px}.nf-person-order-main b{font-size:12px;color:#3e2b77;overflow:hidden;text-overflow:ellipsis}.nf-person-order-main span{font-size:10px;color:#756d82}.nf-person-order-actions{display:flex;gap:5px;flex:0 0 auto}.nf-person-order-actions button{border:0;border-radius:8px;padding:6px 7px;font-size:10px;font-weight:900}.nf-person-edit{background:#eee8ff;color:#5634bc}.nf-person-delete{background:#ffe9ed;color:#b4233c}.nf-person-no-order{margin-top:8px;padding:7px 9px;border-radius:9px;background:#faf8fc;color:#8a8390;font-size:10px;font-weight:800;text-align:center}@media(max-width:560px){.nf-person-order-row{align-items:stretch;flex-direction:column}.nf-person-order-actions{width:100%}.nf-person-order-actions button{flex:1;min-height:36px}.nf-person-new{min-height:40px}}
+</style>
+<script id="nf-person-order-flow-v2">
+(function(){
+  "use strict";
+  function applyPending(){
+    var p=window.__nfPendingPersonOrder;if(!p)return;
+    var key=String(p.customerId||"");
+    if(p.personId&&typeof window.nfEnsureQuickPersonSelect==="function")window.nfEnsureQuickPersonSelect(key,String(p.personId));
+  }
+  var baseNew=window.openOrdersNewOrderForCustomer;
+  if(typeof baseNew==="function"&&!baseNew.__nfPersonFlowV2){
+    var wrappedNew=function(cid){var r=baseNew.apply(this,arguments);setTimeout(applyPending,80);setTimeout(applyPending,220);setTimeout(applyPending,500);return r};
+    wrappedNew.__nfPersonFlowV2=true;window.openOrdersNewOrderForCustomer=wrappedNew;
+  }
+  var baseEdit=window.openOrdersEditOrder;
+  if(typeof baseEdit==="function"&&!baseEdit.__nfPersonFlowV2){
+    var wrappedEdit=function(oid){var r=baseEdit.apply(this,arguments);setTimeout(applyPending,80);setTimeout(applyPending,220);setTimeout(applyPending,500);return r};
+    wrappedEdit.__nfPersonFlowV2=true;window.openOrdersEditOrder=wrappedEdit;
+  }
+  var baseSave=window.saveQuickOrder;
+  if(typeof baseSave==="function"&&!baseSave.__nfPersonFlowV2){
+    var wrappedSave=async function(id,cid){var r=await baseSave.apply(this,arguments);window.__nfPendingPersonOrder=null;return r};
+    wrappedSave.__nfPersonFlowV2=true;window.saveQuickOrder=wrappedSave;
+  }
 })();
 </script>
