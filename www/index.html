@@ -3427,6 +3427,11 @@ if(type==="order"){
  const nfAdvanceDate=$("nfAdvanceDate")?.value || payload.order_date || localDate();
   const nfCleanNotes=cleanOrderNotes(payload.notes||"");
   payload.notes=[nfCleanNotes.replace(/ADVANCE_DATE:[0-9]{4}-[0-9]{2}-[0-9]{2}\s*\|?\s*/g,"").trim(),`ADVANCE_DATE:${nfAdvanceDate}`].filter(Boolean).join(" | ");
+  /* Preserve the selected person in the existing Main Edit Order payload. */
+  const nfOrderPersonSelect=document.getElementById("nfOrderPersonSelect");
+  const nfExistingOrder=(state.orders||[]).find(x=>String(x.id)===String(id));
+  const nfPersonId=String(nfOrderPersonSelect?.value||getOrderPersonId?.(nfExistingOrder)||"p1");
+  payload.notes=appendOrderPersonMarker(payload.notes,nfPersonId);
   payload.balance_amount=Math.max(0,payload.total_amount-Number(payload.advance_amount||0));
  if(!payload.status)payload.status="Pending";
  if(!payload.lining_cloth_source)payload.lining_cloth_source=null;
@@ -6357,7 +6362,12 @@ function nfFormatPaymentDate(v){return v?dateText(v):"—";}
     if(ls==="shop"&&lq>0&&lr<=0){toast("நாம் வாங்கிய Lining-க்கு விலை கொடுக்க வேண்டும்.",true);return}
     if(ls==="shop"&&lq<=0&&lr>0){toast("நாம் வாங்கிய Lining எத்தனை என்று கொடுக்க வேண்டும்.",true);return}
     const userNotes=typeof cleanOrderNotes==="function"?cleanOrderNotes(document.getElementById("qo-notes-"+id)?.value||""):String(document.getElementById("qo-notes-"+id)?.value||"").trim();
+    /* Person ownership is part of the Order record. Never infer it as p1 when
+       a different person was selected in New Order / Customer Card +. */
+    const personSelect=document.getElementById("qo-person-"+id);
+    const selectedPersonId=String(personSelect?.value||"p1");
     let notes=isBlouse?makeBlouseSplitNote(s,r,userNotes):userNotes;
+    notes=appendOrderPersonMarker(notes,selectedPersonId);
     const blouseHandover={normal:Math.min(s.normal,N(document.getElementById("qo-normal-handover-"+id)?.value)),lining:Math.min(s.lining,N(document.getElementById("qo-lining-handover-"+id)?.value)),design:Math.min(s.design,N(document.getElementById("qo-design-handover-"+id)?.value))};
     const existingHandoverDates=blouseHandoverDates(existing||{});
     const blouseHandoverDatesValue={
@@ -9975,6 +9985,73 @@ document.addEventListener("DOMContentLoaded",()=>{setTimeout(install,100);setTim
 .nf-person-note{margin-top:3px;font-size:11px;font-weight:750;color:#756b82;line-height:1.35}
 .nf-person-actions{display:none!important}
 </style>
+
+<script id="nf-person-authoritative-sync-v1">
+(function(){
+  "use strict";
+  if(window.__NF_PERSON_AUTHORITATIVE_SYNC_V1)return;
+  window.__NF_PERSON_AUTHORITATIVE_SYNC_V1=true;
+  function decodePersons(cid){
+    try{
+      var c=(state.customers||[]).find(function(x){return String(x.id)===String(cid)});
+      var raw=String(c&&c.notes||"");
+      var m=raw.match(/(?:^|\s*\|\s*)NF_PERSONS_B64:([A-Za-z0-9+/=]+)/);
+      if(m){
+        var a=JSON.parse(decodeURIComponent(escape(atob(m[1]))));
+        if(Array.isArray(a)&&a.length)return a.map(function(x,i){return {id:String(x&&x.id||("p"+(i+1))),name:String(x&&x.name||("நபர் "+(i+1)))};});
+      }
+    }catch(e){}
+    try{
+      var b=JSON.parse(localStorage.getItem("nf_persons_"+cid)||"[]");
+      if(Array.isArray(b)&&b.length)return b;
+    }catch(e){}
+    return [{id:"p1",name:"நபர் 1"}];
+  }
+  function escOpt(v){return String(v==null?"":v).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
+  function syncSelect(sel,cid,wanted){
+    if(!sel||!cid)return;
+    var persons=decodePersons(cid),keep=String(wanted||sel.value||persons[0].id);
+    sel.innerHTML=persons.map(function(p){return '<option value="'+escOpt(p.id)+'">'+escOpt(p.name)+'</option>';}).join("");
+    if(persons.some(function(p){return String(p.id)===keep;}))sel.value=keep;else sel.value=String(persons[0].id);
+  }
+  function syncAllNewOrder(){
+    document.querySelectorAll('select[id^="qo-person-"]').forEach(function(sel){
+      var id=String(sel.id).replace(/^qo-person-/,'');
+      var box=document.getElementById("quick-order-"+id);
+      var cid=box&&box.dataset&&box.dataset.customerId;
+      if(!cid){
+        var start=document.getElementById("ordersQuickCustomerStart");
+        cid=start&&start.value;
+      }
+      if(!cid && /^orders_/.test(id)){
+        var parts=id.split("_"); cid=parts[1]||"";
+      }
+      if(cid)syncSelect(sel,cid,sel.value);
+    });
+    var inline=document.getElementById("ordersQuickCustomerStartInline");
+    if(inline&&inline.value){
+      var sel=document.querySelector('#ordersNewOrderScreen select[id^="qo-person-"]');
+      if(sel)syncSelect(sel,inline.value,sel.value);
+    }
+  }
+  function patchMount(){
+    var base=window.mountOrdersQuickForm;
+    if(typeof base!=="function"||base.__nfAuthoritative)return;
+    window.mountOrdersQuickForm=function(cid){
+      var r=base.apply(this,arguments);
+      [0,50,180,500].forEach(function(ms){setTimeout(syncAllNewOrder,ms);});
+      return r;
+    };
+    window.mountOrdersQuickForm.__nfAuthoritative=true;
+  }
+  patchMount();
+  document.addEventListener("DOMContentLoaded",function(){
+    patchMount();
+    [100,300,800,1500].forEach(function(ms){setTimeout(syncAllNewOrder,ms);});
+  },{once:true});
+  document.addEventListener("click",function(){setTimeout(syncAllNewOrder,30);});
+})();
+</script>
 </body></html><script id="nf-v52-dashboard-scroll-fix-js">
 (function(){
   "use strict";
