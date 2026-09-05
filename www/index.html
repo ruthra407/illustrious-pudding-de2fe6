@@ -11786,3 +11786,154 @@ document.addEventListener("DOMContentLoaded",()=>{setTimeout(install,100);setTim
   },{once:true});
 })();
 </script>
+<script id="nf-person-order-save-fix-v1">
+(function(){
+  "use strict";
+  if(window.__NF_PERSON_ORDER_SAVE_FIX_V1)return;
+  window.__NF_PERSON_ORDER_SAVE_FIX_V1=true;
+
+  function decodePersons(customerId){
+    try{
+      var c=(state.customers||[]).find(function(x){return String(x.id)===String(customerId)});
+      var raw=String(c&&c.notes||"");
+      var m=raw.match(/(?:^|\s*\|\s*)NF_PERSONS_B64:([A-Za-z0-9+/=]+)/);
+      if(m){
+        var json=decodeURIComponent(escape(atob(m[1])));
+        var a=JSON.parse(json);
+        if(Array.isArray(a)&&a.length)return a.map(function(x,i){return {id:String(x&&x.id||("p"+(i+1))),name:String(x&&x.name||("நபர் "+(i+1)))};});
+      }
+    }catch(_){ }
+    return [{id:"p1",name:"நபர் 1"}];
+  }
+
+  function personOptions(customerId,current){
+    return decodePersons(customerId).map(function(p){
+      return '<option value="'+String(p.id).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;")+'" '+(String(p.id)===String(current||"")?"selected":"")+'>'+String(p.name||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;")+'</option>';
+    }).join("");
+  }
+
+  function syncQuickPersonSelect(id,customerId,current){
+    var sel=document.getElementById("qo-person-"+id);
+    if(!sel)return;
+    var cid=String(customerId||id);
+    var persons=decodePersons(cid);
+    if(!persons.length)persons=[{id:"p1",name:"நபர் 1"}];
+    sel.innerHTML=personOptions(cid,current||persons[0].id);
+    var wanted=String(current||"");
+    if(wanted && persons.some(function(p){return String(p.id)===wanted}))sel.value=wanted;
+    else sel.value=String(persons[0].id);
+  }
+
+  function orderPersonMarker(notes,pid){
+    var clean=String(notes||"").replace(/\s*\|\s*NF_PERSON_ID:[^|\s]+/g,"").trim();
+    return [clean,"NF_PERSON_ID:"+String(pid||"p1")].filter(Boolean).join(" | ");
+  }
+
+  /* New Order: after the existing customer form is mounted, always rebuild the
+     person selector from the saved customer person list. Existing New Order
+     UI/calculation/save implementation remains the authority. */
+  var baseMount=window.mountOrdersQuickForm;
+  if(typeof baseMount==="function"&&!baseMount.__nfPersonSaveFix){
+    window.mountOrdersQuickForm=function(customerId){
+      var r=baseMount.apply(this,arguments);
+      var cid=String(customerId||"");
+      setTimeout(function(){
+        var box=document.getElementById("quick-order-"+cid);
+        if(box)syncQuickPersonSelect(cid,cid,"");
+      },0);
+      return r;
+    };
+    window.mountOrdersQuickForm.__nfPersonSaveFix=true;
+  }
+
+  /* Person-card + button: existing New Order screen, but force the selected
+     person after the existing open/mount flow has finished. */
+  var basePersonNew=window.nfPersonNewOrder;
+  if(typeof basePersonNew==="function"&&!basePersonNew.__nfPersonSaveFix){
+    window.nfPersonNewOrder=function(customerId,pid){
+      var r=basePersonNew.apply(this,arguments);
+      var cid=String(customerId||""),wanted=String(pid||"p1");
+      setTimeout(function(){
+        var sel=document.getElementById("qo-person-"+cid)||document.querySelector("#ordersNewOrderScreen select[id^=\"qo-person-\"]");
+        if(sel){
+          syncQuickPersonSelect(sel.id.replace(/^qo-person-/,""),cid,wanted);
+          sel.value=wanted;
+          sel.dispatchEvent(new Event("change",{bubbles:true}));
+        }
+      },120);
+      return r;
+    };
+    window.nfPersonNewOrder.__nfPersonSaveFix=true;
+  }
+
+  /* New Order save: do not replace the existing save function. Add only the
+     missing NF_PERSON_ID marker immediately before the existing save runs. */
+  var baseSave=window.saveQuickOrder;
+  if(typeof baseSave==="function"&&!baseSave.__nfPersonSaveFix){
+    window.saveQuickOrder=async function(id,customerId){
+      var cid=String(customerId||id||"");
+      var sel=document.getElementById("qo-person-"+id);
+      if(!sel && cid)sel=document.querySelector("#ordersNewOrderScreen select[id^=\"qo-person-\"]");
+      var persons=decodePersons(cid);
+      var pid=String(sel&&sel.value||persons[0]?.id||"p1");
+      var notes=document.getElementById("qo-notes-"+id);
+      var oldNotes=notes?String(notes.value||""):"";
+      if(notes)notes.value=orderPersonMarker(oldNotes,pid);
+      try{return await baseSave.apply(this,arguments);}
+      finally{if(notes)notes.value=oldNotes;}
+    };
+    window.saveQuickOrder.__nfPersonSaveFix=true;
+  }
+
+  /* Main Edit Order uses the existing dataForm submit. Add the marker at the
+     last possible moment in the submit event so later existing cleanup code
+     cannot accidentally save Person 1 for every order. */
+  var form=document.getElementById("dataForm");
+  if(form&&!form.__nfPersonSaveFix){
+    form.addEventListener("submit",function(){
+      try{
+        if(state.editing?.type!=="order")return;
+        var sel=document.getElementById("nfOrderPersonSelect");
+        var order=(state.orders||[]).find(function(o){return String(o.id)===String(state.editing.id)});
+        var cid=String(order?.customer_id||form.querySelector('[name="customer_id"]')?.value||"");
+        var pid=String(sel?.value||getOrderPersonId?.(order)||"p1");
+        var notes=form.querySelector('[name="notes"]');
+        if(notes)notes.value=orderPersonMarker(notes.value,pid);
+      }catch(err){console.warn("NF person marker submit fix",err)}
+    },true);
+    form.__nfPersonSaveFix=true;
+  }
+
+  /* Customer Card display: hide the internal encoded person marker from the
+     human-facing Alteration Notes box. Person data remains stored unchanged. */
+  function cleanCustomerDisplayNotes(value){
+    return String(value||"")
+      .replace(/\s*\|\s*NF_PERSONS_B64:[A-Za-z0-9+/=]+/g,"")
+      .replace(/^NF_PERSONS_B64:[A-Za-z0-9+/=]+\s*\|?\s*/i,"")
+      .replace(/\s*\|\s*NF_PERSON_ID:[^|\s]+/g,"")
+      .trim();
+  }
+  var baseCard=window.customerCard;
+  if(typeof baseCard==="function"&&!baseCard.__nfPersonDisplayFix){
+    window.customerCard=function(id){
+      var html=baseCard.apply(this,arguments);
+      var c=(state.customers||[]).find(function(x){return String(x.id)===String(id)});
+      var raw=String(c&&c.notes||"");
+      var clean=cleanCustomerDisplayNotes(typeof nfStripVillageMarker==="function"?nfStripVillageMarker(raw):raw);
+      if(clean) {
+        var tmp=document.createElement("div");
+        tmp.innerHTML=html;
+        var node=tmp.querySelector(".nf-customer-alteration-notes-content");
+        if(node)node.textContent=clean;
+        var content=tmp.querySelector(".nf-customer-alteration-notes");
+        if(!content)html=html;
+        else html=tmp.innerHTML;
+      } else {
+        html=html.replace(/<div class="nf-customer-alteration-notes">[\s\S]*?<\/div>\s*(?=<section|<div|$)/i,"");
+      }
+      return html;
+    };
+    window.customerCard.__nfPersonDisplayFix=true;
+  }
+})();
+</script>
