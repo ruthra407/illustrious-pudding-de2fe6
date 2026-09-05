@@ -10321,6 +10321,128 @@ setTimeout(decorateAll,100);
 })();
 </script>
 
+
+<script id="nf-v20-final-two-fixes">
+(function(){
+  "use strict";
+  function all(){return (typeof state!=="undefined"&&Array.isArray(state.customers))?state.customers:[];}
+  function latestOrder(id){
+    var list=(state.orders||[]).filter(function(o){return String(o.customer_id)===String(id);});
+    list.sort(function(a,b){return String(b.created_at||b.order_date||"").localeCompare(String(a.created_at||a.order_date||""));});
+    return list[0]||null;
+  }
+
+  /* Additional Customer → Edit Order: use the canonical order-edit UI directly,
+     without the older overwritten routing function. */
+  window.nfV20AdditionalEditOrder=async function(customerId){
+    var order=latestOrder(customerId);
+    if(!order){
+      if(typeof window.openOrdersNewOrderForCustomer==="function"){
+        window.openOrdersNewOrderForCustomer(String(customerId));
+        return;
+      }
+      if(typeof toast==="function")toast("இந்த Additional Customer-க்கு Order இல்லை.",true);
+      return;
+    }
+    try{
+      var modal=$("ordersNewOrderScreen"),panel=$("ordersNewOrderContent");
+      if(!modal||!panel)throw new Error("Edit Order screen கிடைக்கவில்லை.");
+      var holder=document.createElement("div");
+      holder.innerHTML=customerCard(order.customer_id);
+      var source=holder.querySelector("#quick-order-"+CSS.escape(String(order.customer_id)));
+      if(!source)throw new Error("Edit Order form கிடைக்கவில்லை.");
+      var key="orders_edit_"+String(order.id).replace(/[^a-zA-Z0-9_-]/g,"_");
+      var markup=source.outerHTML.split(String(order.customer_id)).join(key);
+      markup=markup.replace("saveQuickOrder('"+key+"')","saveQuickOrder('"+key+"','"+String(order.customer_id).replace(/'/g,"\\'")+"')");
+      panel.innerHTML='<div class="field" style="margin-bottom:12px"><label>Customer</label><select id="ordersQuickEditCustomer" class="input" disabled><option selected>'+escSafe(customerName(order.customer_id))+'</option></select></div>'+markup;
+      var box=$("quick-order-"+key);
+      if(!box)throw new Error("Edit Order form உருவாக்க முடியவில்லை.");
+      box.classList.remove("hidden");
+      box.classList.add("nf-edit-mode");
+      box.dataset.editOrderId=order.id;
+      if(typeof updateQuickOrderEditLabels==="function")updateQuickOrderEditLabels(key);
+      var title=box.querySelector(".nf-quick-edit-title");if(title)title.textContent="✏️ Edit Order — "+(order.order_no||"Order");
+      var save=box.querySelector(".nf-quick-save-btn");if(save)save.textContent="💾 Update Order";
+      if(typeof populateQuickOrderEditor==="function")populateQuickOrderEditor(key,order);
+      if(typeof updateQuickGarment==="function")updateQuickGarment(key);
+      if(typeof updateChudiLiningLabel==="function")updateChudiLiningLabel(key);
+      var screenTitle=$("ordersNewOrderScreenTitle");if(screenTitle)screenTitle.textContent="✏️ Edit Order";
+      modal.classList.add("open");modal.setAttribute("aria-hidden","false");
+      var base=history.state||{view:"orders"};
+      if(!base.__nfOrdersNewOrder)history.pushState({...base,__nfOrdersNewOrder:true,__nfOrdersEditOrder:true},"",location.hash||"#orders-edit-order");
+      setTimeout(function(){box.scrollIntoView({behavior:"smooth",block:"start"});},60);
+    }catch(err){
+      console.error("V2.0 Additional Edit Order:",err);
+      if(typeof toast==="function")toast(err.message||"Edit Order திறக்க முடியவில்லை.",true);
+    }
+  };
+
+  /* Additional Customer → Delete: dedicated child cleanup, independent of the
+     older global delete wrapper. */
+  window.nfV20DeleteAdditional=async function(id){
+    var sid=String(id||""),c=all().find(function(x){return String(x.id)===sid;});
+    if(!c)return;
+    if(!confirm("“"+(c.name||"Additional Customer")+"”-ஐ delete செய்யவா?\n\nஇந்த customer-ன் orders, payments, measurements, alterations ஆகிய records-ம் delete ஆகும்."))return;
+    try{
+      var orders=(state.orders||[]).filter(function(o){return String(o.customer_id)===sid;});
+      var ids=orders.map(function(o){return o.id;}).filter(Boolean);
+      if(ids.length){
+        var pe=await supabaseClient.from("payments").delete().in("order_id",ids);if(pe.error)throw pe.error;
+        var ae=await supabaseClient.from("alterations").delete().in("order_id",ids);if(ae.error)throw ae.error;
+      }
+      var ac=await supabaseClient.from("alterations").delete().eq("customer_id",sid);if(ac.error)throw ac.error;
+      var me=await supabaseClient.from("measurements").delete().eq("customer_id",sid);if(me.error)throw me.error;
+      var oe=await supabaseClient.from("orders").delete().eq("customer_id",sid);if(oe.error)throw oe.error;
+      var ce=await supabaseClient.from("customers").delete().eq("id",sid);if(ce.error)throw ce.error;
+      state.customers=all().filter(function(x){return String(x.id)!==sid;});
+      state.orders=(state.orders||[]).filter(function(o){return String(o.customer_id)!==sid;});
+      try{localStorage.removeItem("nf_village_"+sid);localStorage.removeItem("nf_customer_designs_"+sid);localStorage.removeItem("nf_customer_selected_designs_"+sid);localStorage.removeItem("nf_customer_cloth_photos_"+sid);if(typeof nfIdbDelete==="function")await nfIdbDelete(sid);}catch(_){ }
+      await loadAll(true);
+      if(typeof renderCustomers==="function")renderCustomers();
+      if(typeof renderDashboardCustomers==="function")renderDashboardCustomers();
+      if(typeof renderSidebarCustomerList==="function")renderSidebarCustomerList();
+      if(typeof renderMyCustomersSlideMenu==="function")renderMyCustomersSlideMenu();
+      if(typeof toast==="function")toast("Additional Customer deleted successfully.");
+    }catch(err){
+      console.error("V2.0 Additional Delete:",err);
+      if(typeof toast==="function")toast("Delete failed: "+(err&&err.message||err),true);
+    }
+  };
+
+  /* Rebind only the two buttons rendered by the V1.16 stable group. */
+  document.addEventListener("click",function(e){
+    var edit=e.target.closest&&e.target.closest(".nf116-edit");
+    if(edit){e.preventDefault();e.stopImmediatePropagation();window.nfV20AdditionalEditOrder(edit.getAttribute("data-nf116-id"));return;}
+    var del=e.target.closest&&e.target.closest(".nf116-delete");
+    if(del){e.preventDefault();e.stopImmediatePropagation();window.nfV20DeleteAdditional(del.getAttribute("data-nf116-id"));return;}
+  },true);
+
+  /* Home: let the document itself scroll; remove the nested customer-list scroll lock. */
+  function unlockHomeScroll(){
+    var view=document.getElementById("view-dashboard");
+    var hub=view&&view.querySelector(".nf-dashboard-customer-hub");
+    var list=view&&view.querySelector(".nf-dch-list");
+    if(view){view.style.overflow="visible";view.style.height="auto";view.style.maxHeight="none";view.style.touchAction="pan-y";}
+    if(hub){hub.style.overflow="visible";hub.style.height="auto";hub.style.maxHeight="none";}
+    if(list){list.style.overflow="visible";list.style.height="auto";list.style.maxHeight="none";list.style.minHeight="0";list.style.touchAction="pan-y";list.style.overscrollBehavior="auto";}
+    document.documentElement.style.overflowY="auto";
+    document.body.style.overflowY="auto";
+  }
+  function refreshHomeScroll(){if(document.body.classList.contains("nf-dashboard-mode"))unlockHomeScroll();}
+  document.addEventListener("DOMContentLoaded",function(){setTimeout(refreshHomeScroll,50);setTimeout(refreshHomeScroll,300);setTimeout(refreshHomeScroll,900);},{once:true});
+  var oldGo=window.goView;
+  if(typeof oldGo==="function"&&!oldGo.__nfV20Scroll){
+    window.goView=function(view,push){var r=oldGo.apply(this,arguments);if(view==="dashboard")setTimeout(refreshHomeScroll,0);return r;};
+    window.goView.__nfV20Scroll=true;
+  }
+})();
+</script>
+<style id="nf-v20-final-two-fixes-css">
+/* Home page must use the document scroll, not a nested customer-list scroll. */
+body.nf-dashboard-mode #view-dashboard.active{overflow:visible!important;height:auto!important;max-height:none!important;overscroll-behavior:auto!important;}
+body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub{overflow:visible!important;height:auto!important;max-height:none!important;}
+body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{overflow:visible!important;height:auto!important;max-height:none!important;min-height:0!important;overscroll-behavior:auto!important;touch-action:pan-y!important;}
+</style>
 </body></html><script id="nf-v52-dashboard-scroll-fix-js">
 (function(){
   "use strict";
@@ -12242,7 +12364,7 @@ setTimeout(decorateAll,100);
     sec.innerHTML='<div class="nf116-group-head"><div class="nf116-group-title">👥 Additional Customers <span>· '+list.length+' பேர்</span></div><span class="nf116-tag">ADDITIONAL</span></div>';
     list.forEach(function(k){
       var row=document.createElement("div");row.className="nf116-person";
-      row.innerHTML='<div class="nf116-person-info"><span class="nf116-person-tag">ADDITIONAL</span><b>'+esc(k.name||"Customer")+'</b><small>📞 '+esc(k.phone||"Phone இல்லை")+'</small></div><div class="nf116-actions"><button type="button" class="nf116-edit">✏️ Edit Order</button><button type="button" class="nf116-delete">🗑️ Delete</button></div>';
+      row.innerHTML='<div class="nf116-person-info"><span class="nf116-person-tag">ADDITIONAL</span><b>'+esc(k.name||"Customer")+'</b><small>📞 '+esc(k.phone||"Phone இல்லை")+'</small></div><div class="nf116-actions"><button type="button" class="nf116-edit" data-nf116-id="${esc(k.id)}">✏️ Edit Order</button><button type="button" class="nf116-delete" data-nf116-id="${esc(k.id)}">🗑️ Delete</button></div>';
       row.querySelector(".nf116-edit").onclick=function(e){e.preventDefault();e.stopPropagation();if(typeof window.nfMultiCustomerEditOrder==="function")window.nfMultiCustomerEditOrder(String(k.id));};
       row.querySelector(".nf116-delete").onclick=function(e){e.preventDefault();e.stopPropagation();if(typeof window.deleteCustomer==="function")window.deleteCustomer(String(k.id));};
       sec.appendChild(row);
