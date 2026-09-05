@@ -809,6 +809,33 @@ body.nf-photo-preview-scroll-locked{
 .nf-delivery-slot-actions{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:5px}
 .nf-delivery-slot-actions label{color:#6c4df6}.nf-delivery-slot-actions label:last-child{color:#a52d78}
 @media(max-width:560px){.nf-delivery-type-row{padding:10px 8px}.nf-delivery-count-row{gap:6px}.nf-delivery-grid{gap:7px}.nf-delivery-slot-actions label{height:34px;font-size:10px}.nf-delivery-photo-tools{left:4px;right:4px;bottom:4px}}
+</style><style id="nf-delivery-clean-heading-css">
+.nf-delivery-status-title{
+  display:flex!important;
+  justify-content:space-between!important;
+  align-items:center!important;
+  gap:8px!important;
+  padding:9px 11px!important;
+  border-radius:11px!important;
+  font-size:13px!important;
+  font-weight:900!important;
+  margin-top:0!important;
+  box-shadow:0 4px 12px rgba(70,45,110,.06)!important;
+}
+.nf-delivery-status-title.given{
+  background:linear-gradient(135deg,#eee8ff,#f7f3ff)!important;
+  color:#4e2f9b!important;
+  border:1px solid #ddd2f7!important;
+}
+.nf-delivery-status-title.pending{
+  background:linear-gradient(135deg,#fff1c9,#fff9e9)!important;
+  color:#846000!important;
+  border:1px solid #f0d995!important;
+}
+.nf-delivery-status-title b{font-size:17px!important}
+.nf-delivery-status{margin-top:9px!important}
+.nf-delivery-status:first-child{margin-top:9px!important}
+.nf-delivery-grid{margin-top:7px!important}
 </style></head><body><div class="loginpage" id="loginPage"><section class="loginbox"><div class="brand">NEW FASHION</div><div class="gold">TAILORING INDUSTRY</div><div class="sub">Online Tailoring Management Software</div><form id="loginForm"><div class="field"><label>Email</label><input autocomplete="email" class="input" id="loginEmail" placeholder="உங்கள் Email" required="" type="email"/></div><div class="field"><label>Password</label><input autocomplete="current-password" class="input" id="loginPassword" placeholder="Password" required="" type="password"/></div><button class="btn primary" id="loginBtn" type="submit">🔐 LOGIN</button><div class="msg" id="loginMsg"></div></form><button class="btn primary nf-reset-password-btn" id="resetPasswordBtn" type="button">🔄 RESET PASSWORD</button>
 <div class="nf-forgot-row">
 <button class="btn secondary nf-forgot-btn" id="forgotBtn" type="button">Forgot password?</button>
@@ -2641,7 +2668,7 @@ const clothPhotoActionsHtml="";
   ["chudi","👚 Chudi",st.chudi,st.handedChudi,st.pendingChudi]
 ].map(([type,title,total,givenCount,pendingCount])=>{
   const noun=type==="chudi"?"Chudi":"";
-  const group=(status,count,label)=>Number(count)>0?`<section class="nf-delivery-status"><div class="nf-delivery-status-title">${label}<b>${Number(count)}</b></div><div class="nf-delivery-grid">${Array.from({length:Math.min(NF_DELIVERY_SLOT_CAP,Number(count))},(_,slot)=>{
+  const group=(status,count,label)=>Number(count)>0?`<section class="nf-delivery-status"><div class="nf-delivery-status-title ${status}"><span>${label}</span><b>${Number(count)}</b></div><div class="nf-delivery-grid">${Array.from({length:Math.min(NF_DELIVERY_SLOT_CAP,Number(count))},(_,slot)=>{
     const p=customerDeliveryPhotos(id)[nfDeliveryPhotoIndex(type,status,slot)];
     const gi=`<input type="file" accept="image/*" style="display:none" onchange="saveCustomerDeliveryPhoto('${id}','${type}','${status}',${slot},this.files[0])">`;
     const ci=`<input type="file" accept="image/*" capture="environment" style="display:none" onchange="saveCustomerDeliveryPhoto('${id}','${type}','${status}',${slot},this.files[0])">`;
@@ -2650,7 +2677,7 @@ const clothPhotoActionsHtml="";
   }).join("")}</div></section>`:"";
   const givenLabel=type==="chudi"?(Number(givenCount)===1?"கொடுக்கப்பட்ட Chudi":"கொடுக்கப்பட்ட Chudi's"):`கொடுக்கப்பட்ட ${title.replace(/^[^ ]+ /,"")}`;
   const pendingLabel=type==="chudi"?(Number(pendingCount)===1?"மீதமுள்ள Chudi":"மீதமுள்ள Chudi's"):`மீதமுள்ள ${title.replace(/^[^ ]+ /,"")}`;
-  return `<section class="nf-delivery-type-row"><div class="nf-delivery-type-head"><strong>${title}</strong><span>தைக்கப்பட்டது <b>${Number(total)}</b></span></div><div class="nf-delivery-count-row"><div class="nf-delivery-count given"><span>${givenLabel}</span><b>${Number(givenCount)}</b></div><div class="nf-delivery-count pending"><span>${pendingLabel}</span><b>${Number(pendingCount)}</b></div></div>${group("given",givenCount,givenLabel)}${group("pending",pendingCount,pendingLabel)}</section>`;
+  return `<section class="nf-delivery-type-row"><div class="nf-delivery-type-head"><strong>${title}</strong><span>தைக்கப்பட்டது <b>${Number(total)}</b></span></div>${group("given",givenCount,givenLabel)}${group("pending",pendingCount,pendingLabel)}</section>`;
 }).join("")}</div></div></div></article>`;
 }
 
