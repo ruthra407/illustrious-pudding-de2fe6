@@ -12937,10 +12937,7 @@ body.nf-photo-preview-scroll-locked{overscroll-behavior:none!important}
   /* Ensure every renderer eventually gets one final clean pass. */
   function refreshCustomerCards(){
     try{if(typeof renderCustomers==="function")renderCustomers();}catch(e){}
-    setTimeout(decorateCustomerCards,0);
-    setTimeout(decorateCustomerCards,80);
-    setTimeout(decorateCustomerCards,220);
-    setTimeout(decorateCustomerCards,500);
+    requestAnimationFrame(function(){try{decorateCustomerCards();}catch(e){}});
   }
 
   /* Main Customer Edit: existing form remains. V1.11 editor stays available.
@@ -13016,7 +13013,6 @@ body.nf-photo-preview-scroll-locked{overscroll-behavior:none!important}
     setTimeout(refreshHome,100);
     setTimeout(refreshHome,700);
     setTimeout(refreshCustomerCards,120);
-    setTimeout(refreshCustomerCards,800);
     setTimeout(addEditBadge,850);
   },{once:true});
 
@@ -13025,7 +13021,6 @@ body.nf-photo-preview-scroll-locked{overscroll-behavior:none!important}
     setTimeout(refreshHome,100);
     setTimeout(refreshHome,700);
     setTimeout(refreshCustomerCards,120);
-    setTimeout(refreshCustomerCards,800);
     setTimeout(addEditBadge,850);
   }
 
@@ -13040,11 +13035,6 @@ body.nf-photo-preview-scroll-locked{overscroll-behavior:none!important}
     };
     window.loadAll.__nfV113=true;
   }
-
-  /* Legacy V1.12 renderer can re-add its old group after a render; keep one V1.13 group only. */
-  setInterval(function(){
-    if(document.getElementById("customersTable"))decorateCustomerCards();
-  },700);
 
   /* Re-apply when navigation/rendering changes the active page. */
   document.addEventListener("click",function(e){
