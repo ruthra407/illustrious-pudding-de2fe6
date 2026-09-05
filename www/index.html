@@ -10042,6 +10042,112 @@ body.nf-photo-preview-scroll-locked{overscroll-behavior:none!important}
   }
 })();
 </script>
+
+
+<style id="nf-v160-multi-cleanup-css">
+.nf160-child-hidden{display:none!important}
+</style>
+<script id="nf-v160-multi-cleanup-js">
+(function(){
+  "use strict";
+  var PREFIX="NF_MULTI_PARENT:";
+  function parentId(c){
+    var m=String(c&&c.notes||"").match(/(?:^|\\|\\s*)NF_MULTI_PARENT:([^|\\s]+)/);
+    return m?String(m[1]):"";
+  }
+  function isMultiChild(c){ return !!parentId(c); }
+  function baseCustomers(){
+    return (typeof state!=="undefined"&&Array.isArray(state.customers))
+      ? state.customers.filter(function(c){return !isMultiChild(c)}) : [];
+  }
+  function esc160(v){
+    if(typeof esc==="function")return esc(v==null?"":String(v));
+    return String(v==null?"":v).replace(/[&<>"']/g,function(ch){return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[ch]});
+  }
+  function safeId(v){return String(v==null?"":v).replace(/\\/g,"\\\\").replace(/'/g,"\\'");}
+
+  /* Sidebar customer list: Main/Base customers only. */
+  window.renderSidebarCustomerList=function(){
+    var box=document.getElementById("nfSidebarCustomerList"); if(!box)return;
+    var customers=baseCustomers().slice();
+    try{
+      if(typeof dashboardCustomerSort==="function")customers.sort(dashboardCustomerSort);
+      else customers.sort(function(a,b){return String(a&&a.name||"").localeCompare(String(b&&b.name||""),"ta",{numeric:true,sensitivity:"base"});});
+    }catch(e){}
+    if(!customers.length){box.innerHTML='<div style="padding:20px 10px;text-align:center;color:#d9d3e7;font-weight:800">👥 Customer இன்னும் சேர்க்கப்படவில்லை.</div>';return;}
+    box.innerHTML=customers.map(function(c,i){
+      var id=safeId(c&&c.id||""),name=esc160(c&&c.name||"Customer"),phone=esc160(c&&c.phone||"Phone இல்லை");
+      return '<button type="button" class="nfSidebarCustomerRow" onclick="openSidebarCustomer(\''+id+'\')" aria-label="'+name+' '+phone+'"><span class="nfSidebarCustomerNo">'+(i+1)+'</span><span class="nfSidebarCustomerMain"><span class="nfSidebarCustomerName">'+name+'</span><span class="nfSidebarCustomerPhone">📞 '+phone+'</span></span><span class="nfSidebarCustomerArrow">›</span></button>';
+    }).join("");
+  };
+
+  /* Older slide-menu entry point: also Main/Base only. */
+  window.renderMyCustomersSlideMenu=function(){
+    var list=document.getElementById("nfCustomerSlideList"); if(!list)return;
+    var customers=baseCustomers().slice();
+    try{customers.sort(function(a,b){return String(a&&a.name||"").localeCompare(String(b&&b.name||""),"ta",{numeric:true,sensitivity:"base"});});}catch(e){}
+    if(!customers.length){list.innerHTML='<div class="nf-customer-slide-empty">👥 Customer இன்னும் சேர்க்கப்படவில்லை.</div>';return;}
+    list.innerHTML=customers.map(function(c,i){
+      var id=safeId(c&&c.id||""),name=esc160(c&&c.name||"Customer"),phone=esc160(c&&c.phone||"Phone இல்லை");
+      return '<button type="button" class="nf-customer-slide-row" style="--nf-row-index:'+Math.min(i,20)+'" onclick="openCustomerFromMyCustomersMenu(\''+id+'\')"><span class="nf-customer-slide-no">'+(i+1)+'</span><span class="nf-customer-slide-main"><span class="nf-customer-slide-name">'+name+'</span><span class="nf-customer-slide-phone">📞 '+phone+'</span></span><span class="nf-customer-slide-arrow">›</span></button>';
+    }).join("");
+  };
+
+  /* If the Main Customer is deleted, remove its linked Additional Customers too. */
+  var originalDelete=window.deleteCustomer;
+  if(typeof originalDelete==="function"&&!originalDelete.__nfV160){
+    window.deleteCustomer=async function(id){
+      var sid=String(id||"");
+      var all=(typeof state!=="undefined"&&Array.isArray(state.customers))?state.customers:[];
+      var kids=all.filter(function(c){return parentId(c)===sid;});
+      var target=all.find(function(c){return String(c&&c.id||"")===sid;});
+      if(!target){return originalDelete.apply(this,arguments);}
+      /* Let the original confirmation happen once for the Main Customer. */
+      var ok=confirm('“'+String(target.name||"Customer")+'” customer-ஐ delete செய்யவா?\n\nஇந்த customer மற்றும் அதன் Multiple Customer group-ல் உள்ள Additional Customers-ம் delete ஆகும்.');
+      if(!ok)return;
+      try{
+        /* Delete children first using the same original cleanup routine. */
+        for(var i=0;i<kids.length;i++){
+          var kid=kids[i];
+          var kidOrders=(state.orders||[]).filter(function(o){return String(o.customer_id)===String(kid.id);});
+          var orderIds=kidOrders.map(function(o){return o.id;}).filter(Boolean);
+          if(orderIds.length){
+            var pe=await supabaseClient.from("payments").delete().in("order_id",orderIds); if(pe.error)throw pe.error;
+            var ae=await supabaseClient.from("alterations").delete().in("order_id",orderIds); if(ae.error)throw ae.error;
+          }
+          var ac=await supabaseClient.from("alterations").delete().eq("customer_id",kid.id); if(ac.error)throw ac.error;
+          var me=await supabaseClient.from("measurements").delete().eq("customer_id",kid.id); if(me.error)throw me.error;
+          var oe=await supabaseClient.from("orders").delete().eq("customer_id",kid.id); if(oe.error)throw oe.error;
+          var ce=await supabaseClient.from("customers").delete().eq("id",kid.id); if(ce.error)throw ce.error;
+          localStorage.removeItem("nf_village_"+kid.id);
+          localStorage.removeItem("nf_customer_designs_"+kid.id);
+          localStorage.removeItem("nf_customer_selected_designs_"+kid.id);
+          localStorage.removeItem("nf_customer_cloth_photos_"+kid.id);
+          try{await nfIdbDelete(kid.id);}catch(_){ }
+        }
+        /* Delete Main Customer with the original function, but avoid a second confirmation. */
+        var originalConfirm=window.confirm;
+        window.confirm=function(){return true;};
+        try{await originalDelete.call(this,sid);}finally{window.confirm=originalConfirm;}
+      }catch(err){toast("Multiple Customer delete failed: "+(err&&err.message||err),true);}
+    };
+    window.deleteCustomer.__nfV160=true;
+  }
+
+  function refreshMenus(){
+    try{renderSidebarCustomerList();}catch(e){}
+    try{renderMyCustomersSlideMenu();}catch(e){}
+  }
+  document.addEventListener("DOMContentLoaded",function(){setTimeout(refreshMenus,150);setTimeout(refreshMenus,800);},{once:true});
+  var oldLoad=window.loadAll;
+  if(typeof oldLoad==="function"&&!oldLoad.__nfV160){
+    var wrapped=async function(){var r=await oldLoad.apply(this,arguments);setTimeout(refreshMenus,0);return r;};
+    wrapped.__nfV160=true;window.loadAll=wrapped;
+  }
+  setInterval(function(){if(document.getElementById("nfSidebarCustomerList")||document.getElementById("nfCustomerSlideList"))refreshMenus();},2500);
+})();
+</script>
+
 </body></html><script id="nf-v52-dashboard-scroll-fix-js">
 (function(){
   "use strict";
@@ -11729,5 +11835,63 @@ body.nf-photo-preview-scroll-locked{overscroll-behavior:none!important}
     window.customerCard.__nf140=true;
   }
 
+})();
+</script>
+
+<style id="nf-v170-multi-card-css">
+.nf140-child-actions{display:flex!important;gap:7px!important;align-items:center!important;flex-wrap:wrap!important}
+.nf140-child-actions button{min-width:82px!important;height:38px!important;padding:0 10px!important;border-radius:10px!important;font-size:12px!important}
+.nf140-child-edit{background:#eee8ff!important;color:#5131a0!important}
+.nf140-child-delete{background:#ffe9ed!important;color:#b32645!important}
+</style>
+<script id="nf-v170-multi-card-edit-order">
+(function(){
+  "use strict";
+  function esc170(v){return typeof esc==="function"?esc(v):String(v??"").replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
+  function parentId170(c){var m=String(c?.notes||"").match(/(?:^|\|\s*)NF_MULTI_PARENT:([^|\s]+)/);return m?String(m[1]):""}
+  function latestOrder170(customerId){
+    var list=(state.orders||[]).filter(function(o){return String(o.customer_id)===String(customerId)});
+    list.sort(function(a,b){return String(b.created_at||b.order_date||"").localeCompare(String(a.created_at||a.order_date||""));});
+    return list[0]||null;
+  }
+  window.nfMultiCustomerEditOrder=function(customerId){
+    var order=latestOrder170(customerId);
+    if(order && typeof window.openOrdersEditOrder==="function"){
+      window.openOrdersEditOrder(String(order.id));
+      return;
+    }
+    if(typeof window.openOrdersNewOrderForCustomer==="function"){
+      window.openOrdersNewOrderForCustomer(String(customerId));
+      return;
+    }
+    if(typeof toast==="function")toast("Order screen கிடைக்கவில்லை.",true);
+  };
+  var oldCard=window.customerCard;
+  if(typeof oldCard!=="function" || oldCard.__nf170)return;
+  window.customerCard=function(id){
+    var html=oldCard.apply(this,arguments);
+    var c=(state.customers||[]).find(function(x){return String(x.id)===String(id)});
+    if(!c || parentId170(c))return html;
+    var kids=(state.customers||[]).filter(function(x){return parentId170(x)===String(id)});
+    if(!kids.length)return html;
+    var rows=kids.map(function(k){
+      var kid=esc170(k.id);
+      return '<div class="nf140-child"><div class="nf140-child-info"><b>'+esc170(k.name||"Customer")+'</b><small>📞 '+esc170(k.phone||"Phone இல்லை")+'</small></div><div class="nf140-child-actions">'+
+        '<button type="button" class="nf140-child-edit" data-nf140-edit-order="'+kid+'">✏️ Edit Order</button>'+
+        '<button type="button" class="nf140-child-delete" data-nf140-delete="'+kid+'">🗑️ Delete</button>'+
+      '</div></div>';
+    }).join("");
+    return html.replace(/<section class="nf140-group">[\s\S]*?<\/section>/, '<section class="nf140-group"><div class="nf140-group-title">👥 Additional Customers</div>'+rows+'</section>');
+  };
+  window.customerCard.__nf170=true;
+  document.addEventListener("click",function(e){
+    var b=e.target.closest?.("[data-nf140-edit-order]");
+    if(b){e.preventDefault();e.stopPropagation();window.nfMultiCustomerEditOrder(b.getAttribute("data-nf140-edit-order"));return;}
+  },true);
+  var oldRender=window.renderCustomers;
+  if(typeof oldRender==="function" && !oldRender.__nf170){
+    window.renderCustomers=function(){var r=oldRender.apply(this,arguments);return r};
+    window.renderCustomers.__nf170=true;
+  }
 })();
 </script>
