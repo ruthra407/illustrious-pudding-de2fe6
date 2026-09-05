@@ -12686,3 +12686,371 @@ body.nf-photo-preview-scroll-locked{overscroll-behavior:none!important}
   else{setTimeout(function(){var t=document.getElementById("customersTable");if(t)new MutationObserver(schedule).observe(t,{childList:true,subtree:true});},500);}
 })();
 </script>
+
+<style id="nf-v113-consolidated-css">
+/* V1.13 — consolidated Multi Customer UI. Existing data is preserved. */
+.nf113-multi-tag{
+  display:inline-flex;align-items:center;gap:5px;margin-left:7px;padding:4px 9px;
+  border-radius:999px;background:linear-gradient(135deg,#eee7ff,#ffe8f2);
+  border:1px solid rgba(108,77,246,.18);color:#5a35a8;font-size:11px;font-weight:950;
+  vertical-align:middle;white-space:nowrap
+}
+.nf113-group{
+  margin:12px 0 0;padding:13px;border:2px solid rgba(108,77,246,.22);border-radius:18px;
+  background:linear-gradient(135deg,#f8f5ff 0%,#fff7fb 52%,#fffaf2 100%);
+  box-shadow:0 8px 22px rgba(82,56,125,.08);position:relative;overflow:hidden
+}
+.nf113-group:before{
+  content:"";position:absolute;inset:0 auto 0 0;width:4px;
+  background:linear-gradient(180deg,#6c45e8,#e94678,#f5a12b);border-radius:18px 0 0 18px
+}
+.nf113-title{
+  display:flex;align-items:center;gap:7px;margin:0 0 8px;padding:0 2px 7px;
+  border-bottom:1px solid rgba(108,77,246,.13);color:#4d2e8e;font-size:15px;font-weight:950
+}
+.nf113-person{
+  display:flex;align-items:center;justify-content:space-between;gap:9px;padding:9px 2px;
+  border-top:1px solid rgba(108,77,246,.10)
+}
+.nf113-person:first-of-type{border-top:0}
+.nf113-info{min-width:0;flex:1 1 auto}
+.nf113-name{display:block;font-size:15px;font-weight:950;color:#2d2735;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nf113-phone{display:block;margin-top:2px;font-size:12px;color:#716a79}
+.nf113-actions{display:flex;gap:6px;flex:0 0 auto}
+.nf113-actions button{
+  min-height:38px;border:0;border-radius:11px;padding:7px 10px;font-weight:900;cursor:pointer
+}
+.nf113-edit{background:linear-gradient(135deg,#eee8ff,#f5edff);color:#5131a0;border:1px solid #ddd0ff!important}
+.nf113-delete{background:linear-gradient(135deg,#fff0f2,#ffe5ea);color:#b32645;border:1px solid #f2c6cf!important}
+.nf113-home-group{
+  margin:9px 0 0;padding:9px 11px;border:2px solid rgba(108,77,246,.18);border-radius:15px;
+  background:linear-gradient(135deg,#faf7ff,#fff7fb);box-shadow:0 6px 16px rgba(82,56,125,.06);
+  position:relative;overflow:hidden
+}
+.nf113-home-group:before{
+  content:"";position:absolute;inset:0 auto 0 0;width:3px;background:linear-gradient(180deg,#6c45e8,#e94678);border-radius:15px 0 0 15px
+}
+.nf113-home-title{margin:0 0 4px;padding:0 2px 5px;border-bottom:1px solid rgba(108,77,246,.10);font-size:12px;font-weight:950;color:#4d2e8e}
+.nf113-home-person{display:flex;align-items:center;justify-content:space-between;gap:7px;padding:5px 2px;border-top:1px solid rgba(108,77,246,.08)}
+.nf113-home-person:first-of-type{border-top:0}
+.nf113-home-name{min-width:0;flex:1;font-size:12px;font-weight:850;color:#30263d;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nf113-home-phone{flex:0 0 auto;font-size:10px;color:#706879;white-space:nowrap}
+@media(max-width:560px){
+  .nf113-multi-tag{font-size:9px;padding:3px 7px;margin-left:4px}
+  .nf113-group{margin-top:9px;padding:10px;border-radius:16px}
+  .nf113-title{font-size:14px}
+  .nf113-person{padding:8px 1px}
+  .nf113-name{font-size:14px}.nf113-phone{font-size:11px}
+  .nf113-actions{gap:5px}.nf113-actions button{min-height:36px;padding:6px 8px;font-size:11px}
+  .nf113-home-group{margin-top:7px;padding:8px 9px}.nf113-home-title{font-size:11px}.nf113-home-name{font-size:11px}.nf113-home-phone{font-size:9px}
+}
+</style>
+<script id="nf-v113-consolidated-js">
+(function(){
+  "use strict";
+  if(window.__nfV113Installed)return;
+  window.__nfV113Installed=true;
+
+  var PARENT_RE=/(?:^|\|\s*)(?:NF_MULTI_PARENT|NF_PARENT_CUSTOMER):\s*([^|\s]+)/i;
+
+  function customers(){
+    return (typeof state!=="undefined"&&Array.isArray(state.customers))?state.customers:[];
+  }
+  function parentId(c){
+    var m=String(c&&c.notes||"").match(PARENT_RE);
+    return m?String(m[1]):"";
+  }
+  function isChild(c){return !!parentId(c);}
+  function norm(v){return String(v==null?"":v).trim().toLowerCase().replace(/\s+/g," ");}
+  function esc113(v){
+    if(typeof window.esc==="function")return window.esc(v==null?"":String(v));
+    return String(v==null?"":v).replace(/[&<>"']/g,function(c){
+      return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c];
+    });
+  }
+  function mainKey(c){
+    return [norm(c&&c.name),norm(c&&c.phone),norm(c&&c.address),norm(c&&c.village)].join("¦");
+  }
+  function childKey(c){return [norm(c&&c.name),norm(c&&c.phone)].join("¦");}
+
+  /* UI-only de-duplication: old database rows are NOT deleted or overwritten. */
+  function mainList(){
+    var seen={};
+    return customers().filter(function(c){
+      if(isChild(c))return false;
+      var id=String(c&&c.id||""),key=mainKey(c);
+      if(!id||seen[key])return false;
+      seen[key]=1;return true;
+    });
+  }
+  function childList(mainId){
+    var seen={};
+    return customers().filter(function(c){
+      if(parentId(c)!==String(mainId))return false;
+      var id=String(c&&c.id||""),key=childKey(c);
+      if(!id||seen[key])return false;
+      seen[key]=1;return true;
+    });
+  }
+  function selectedMainId(id){
+    var c=customers().find(function(x){return String(x&&x.id||"")===String(id||"");});
+    return c?(parentId(c)||String(c.id||"")):"";
+  }
+  function groupList(id){
+    var mid=selectedMainId(id);
+    if(!mid)return [];
+    var main=customers().find(function(c){return String(c&&c.id||"")===mid&&!isChild(c);});
+    if(!main)return [];
+    return [main].concat(childList(mid));
+  }
+
+  function removeOldGroups(root){
+    if(!root)return;
+    root.querySelectorAll(
+      ".nf113-group,.nf112-group,.nf180-group,.nf140-group,.nf150-home-group,.nf110-home-group,.nf190-home-group"
+    ).forEach(function(el){el.remove();});
+  }
+
+  /* HOME: Additional Customers live INSIDE the Main Customer's same colored card.
+     No buttons here; Main card and its existing Order Details remain untouched. */
+  function makeHomeGroup(mainId){
+    var kids=childList(mainId);
+    if(!kids.length)return null;
+    var sec=document.createElement("section");
+    sec.className="nf113-home-group";
+    sec.setAttribute("data-nf113-main",String(mainId));
+    sec.addEventListener("click",function(e){e.stopPropagation();});
+    var title=document.createElement("div");
+    title.className="nf113-home-title";
+    title.textContent="👥 Additional Customers · "+kids.length+" பேர்";
+    sec.appendChild(title);
+    kids.forEach(function(k){
+      var row=document.createElement("div");row.className="nf113-home-person";
+      var name=document.createElement("div");name.className="nf113-home-name";
+      name.textContent="👤 "+String(k.name||"Customer");
+      var phone=document.createElement("div");phone.className="nf113-home-phone";
+      phone.textContent="📞 "+String(k.phone||"Phone இல்லை");
+      row.appendChild(name);row.appendChild(phone);sec.appendChild(row);
+    });
+    return sec;
+  }
+
+  function decorateHome(){
+    var box=document.getElementById("dashboardCustomersList");
+    if(!box)return;
+    box.querySelectorAll(".nf-dch-card").forEach(function(card){
+      var id=String(card.getAttribute("data-nf113-main")||"");
+      if(!id){
+        var nm=card.querySelector(".nf-dch-name");
+        var name=nm?norm(nm.textContent):"";
+        var main=mainList().find(function(c){return norm(c.name)===name;});
+        if(main)id=String(main.id);
+      }
+      if(!id)return;
+      var c=customers().find(function(x){return String(x.id)===id;});
+      if(!c||isChild(c))return;
+      removeOldGroups(card);
+      var group=makeHomeGroup(id);
+      if(group){
+        var anchor=card.querySelector(".nf-dch-card-top");
+        if(anchor)anchor.insertAdjacentElement("afterend",group);
+        else card.appendChild(group);
+      }
+      var nameEl=card.querySelector(".nf-dch-name");
+      if(nameEl){
+        nameEl.querySelectorAll(".nf113-multi-tag").forEach(function(x){x.remove();});
+        var kids=childList(id);
+        if(kids.length){
+          var tag=document.createElement("span");tag.className="nf113-multi-tag";
+          tag.textContent="👥 "+kids.length+" Additional";
+          nameEl.appendChild(tag);
+        }
+      }
+    });
+  }
+
+  /* Rebuild the Dashboard from current data so older render wrappers cannot add stale groups. */
+  function refreshHome(){
+    try{
+      if(typeof renderDashboardCustomers==="function")renderDashboardCustomers();
+    }catch(e){}
+    setTimeout(decorateHome,0);
+    setTimeout(decorateHome,80);
+  }
+
+  /* CUSTOMER CARD: exactly one group, directly below the Main Customer identity.
+     Main blue/Edit/Order Full Details controls are never modified. */
+  function decorateCustomerCards(){
+    document.querySelectorAll("#customersTable .customerCard").forEach(function(card){
+      var id=String(card.id||"").replace(/^customer-card-/i,"");
+      if(!id)return;
+      var c=customers().find(function(x){return String(x.id)===id;});
+      if(!c||isChild(c))return;
+      removeOldGroups(card);
+      var kids=childList(id);
+
+      var nameEl=card.querySelector(".nf-customer-name-row .nf-customer-name-row")||
+                 card.querySelector(".nf-customer-name-row");
+      if(nameEl){
+        nameEl.querySelectorAll(".nf113-multi-tag").forEach(function(x){x.remove();});
+        if(kids.length){
+          var tag=document.createElement("span");tag.className="nf113-multi-tag";
+          tag.textContent="👥 "+kids.length+" Additional";
+          var title=nameEl.querySelector(".nf-customer-name")||nameEl.querySelector("h3");
+          if(title)title.appendChild(tag);
+        }
+      }
+
+      if(!kids.length)return;
+      var sec=document.createElement("section");sec.className="nf113-group";
+      sec.setAttribute("data-nf113-main",id);
+      var title=document.createElement("div");title.className="nf113-title";
+      title.textContent="👥 Additional Customers · "+kids.length+" பேர்";
+      sec.appendChild(title);
+
+      kids.forEach(function(k){
+        var row=document.createElement("div");row.className="nf113-person";
+        var info=document.createElement("div");info.className="nf113-info";
+        var nm=document.createElement("span");nm.className="nf113-name";nm.textContent=String(k.name||"Customer");
+        var ph=document.createElement("span");ph.className="nf113-phone";ph.textContent="📞 "+String(k.phone||"Phone இல்லை");
+        info.appendChild(nm);info.appendChild(ph);
+        var acts=document.createElement("div");acts.className="nf113-actions";
+        var eb=document.createElement("button");eb.type="button";eb.className="nf113-edit";eb.textContent="✏️ Edit Order";
+        eb.onclick=function(e){
+          e.preventDefault();e.stopPropagation();
+          if(typeof window.nfMultiCustomerEditOrder==="function")window.nfMultiCustomerEditOrder(String(k.id));
+        };
+        var db=document.createElement("button");db.type="button";db.className="nf113-delete";db.textContent="🗑️ Delete";
+        db.onclick=function(e){
+          e.preventDefault();e.stopPropagation();
+          if(typeof window.deleteCustomer==="function")window.deleteCustomer(String(k.id));
+        };
+        acts.appendChild(eb);acts.appendChild(db);row.appendChild(info);row.appendChild(acts);sec.appendChild(row);
+      });
+
+      var anchor=card.querySelector(".nf-collection-panel")||card.querySelector(".nf-collection-title");
+      if(anchor)anchor.insertAdjacentElement("beforebegin",sec);
+      else card.appendChild(sec);
+    });
+  }
+
+  /* Ensure every renderer eventually gets one final clean pass. */
+  function refreshCustomerCards(){
+    try{if(typeof renderCustomers==="function")renderCustomers();}catch(e){}
+    setTimeout(decorateCustomerCards,0);
+    setTimeout(decorateCustomerCards,80);
+    setTimeout(decorateCustomerCards,220);
+    setTimeout(decorateCustomerCards,500);
+  }
+
+  /* Main Customer Edit: existing form remains. V1.11 editor stays available.
+     We only add the badge via DOM; no blue buttons are replaced. */
+  function addEditBadge(){
+    var form=document.getElementById("formFields");
+    if(!form||!state.editing||state.editing.type!=="customer"||!state.editing.id)return;
+    var c=customers().find(function(x){return String(x.id)===String(state.editing.id);});
+    if(!c||isChild(c))return;
+    var box=document.getElementById("nf111-edit-multi");
+    if(!box)return;
+    var title=box.querySelector(".nf111-edit-multi-title");
+    if(title)title.textContent="👥 Additional Customers · "+childList(c.id).length+" பேர்";
+  }
+
+  /* NEW ORDER:
+     - first picker: Main Customers only, UI de-duped
+     - after a Main is chosen: Main + its linked Additional Customers only
+     - when editing a child order: keep that child available */
+  function optionList(list,selected){
+    var sid=String(selected||"");
+    return '<option value="">Select customer</option>'+list.map(function(c){
+      var id=String(c&&c.id||"");
+      return '<option value="'+esc113(id)+'" '+(id===sid?'selected':'')+'>'+esc113(c&&c.name||"Customer")+'</option>';
+    }).join("");
+  }
+  function setOptionsIfNeeded(s,html,selected){
+    if(!s)return;
+    if(s.innerHTML!==html)s.innerHTML=html;
+    if(selected!=null)s.value=String(selected);
+  }
+  function applyInlinePicker(){
+    var s=document.getElementById("ordersQuickCustomerStartInline");if(!s)return;
+    var cur=String(s.value||"");
+    var list=mainList();
+    var keep=cur&&list.some(function(c){return String(c.id)===cur;})?cur:"";
+    setOptionsIfNeeded(s,optionList(list,keep),keep);
+  }
+  function applyEditorPicker(){
+    var s=document.getElementById("ordersQuickCustomerStart");if(!s)return;
+    var cur=String(s.value||"");
+    if(!cur)return;
+    var list=groupList(cur);
+    if(!list.length)return;
+    if(!list.some(function(c){return String(c.id)===cur;}))cur=String(list[0].id);
+    setOptionsIfNeeded(s,optionList(list,cur),cur);
+  }
+  function applyAllPickers(){applyInlinePicker();applyEditorPicker();}
+
+  /* MutationObserver catches Android/mobile re-creation of the select elements. */
+  var pickerObserver=null;
+  function observePickers(){
+    if(pickerObserver)return;
+    var root=document.body;if(!root)return;
+    pickerObserver=new MutationObserver(function(){
+      clearTimeout(window.__nfV113PickerTimer);
+      window.__nfV113PickerTimer=setTimeout(applyAllPickers,30);
+    });
+    pickerObserver.observe(root,{childList:true,subtree:true});
+  }
+
+  document.addEventListener("change",function(e){
+    var t=e.target;if(!t)return;
+    if(t.id==="ordersQuickCustomerStartInline"){
+      setTimeout(function(){applyInlinePicker();},0);
+    }else if(t.id==="ordersQuickCustomerStart"){
+      setTimeout(function(){applyEditorPicker();},0);
+    }
+  },true);
+
+  document.addEventListener("DOMContentLoaded",function(){
+    observePickers();
+    setTimeout(refreshHome,100);
+    setTimeout(refreshHome,700);
+    setTimeout(refreshCustomerCards,120);
+    setTimeout(refreshCustomerCards,800);
+    setTimeout(addEditBadge,850);
+  },{once:true});
+
+  if(document.readyState!=="loading"){
+    observePickers();
+    setTimeout(refreshHome,100);
+    setTimeout(refreshHome,700);
+    setTimeout(refreshCustomerCards,120);
+    setTimeout(refreshCustomerCards,800);
+    setTimeout(addEditBadge,850);
+  }
+
+  var oldLoad113=window.loadAll;
+  if(typeof oldLoad113==="function"&&!oldLoad113.__nfV113){
+    window.loadAll=async function(){
+      var r=await oldLoad113.apply(this,arguments);
+      setTimeout(refreshHome,50);
+      setTimeout(refreshCustomerCards,100);
+      setTimeout(applyAllPickers,140);
+      return r;
+    };
+    window.loadAll.__nfV113=true;
+  }
+
+  /* Legacy V1.12 renderer can re-add its old group after a render; keep one V1.13 group only. */
+  setInterval(function(){
+    if(document.getElementById("customersTable"))decorateCustomerCards();
+  },700);
+
+  /* Re-apply when navigation/rendering changes the active page. */
+  document.addEventListener("click",function(e){
+    var b=e.target.closest&&e.target.closest('[data-my-filter]');
+    if(b){setTimeout(refreshHome,120);}
+  },true);
+
+})();
+</script>
