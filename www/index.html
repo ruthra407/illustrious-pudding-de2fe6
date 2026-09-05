@@ -11503,202 +11503,201 @@ body.nf-photo-preview-scroll-locked{overscroll-behavior:none!important}
 })();
 </script>
 
-<!-- NF MULTIPLE CUSTOMER - STEP 1: Add Customer mode UI only -->
-<style id="nf-multiple-customer-step1-css">
-.nf-mc-mode-wrap{
-  margin:0 0 16px;
-  padding:14px;
-  border:1px solid #e2d9ff;
-  border-radius:16px;
-  background:linear-gradient(135deg,#faf8ff,#fff7fb);
-}
-.nf-mc-mode-title{
-  font-size:14px;
-  font-weight:900;
-  margin-bottom:9px;
-  color:#34284b;
-}
-.nf-mc-mode-grid{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:9px;
-}
-.nf-mc-mode-btn{
-  min-height:50px;
-  border:1px solid #ddd5ef;
-  border-radius:13px;
-  background:#fff;
-  color:#3b3440;
-  font-weight:850;
-  padding:10px 12px;
-  text-align:left;
-}
-.nf-mc-mode-btn.active{
-  border-color:#6c4df6;
-  background:linear-gradient(135deg,#f0ebff,#fff0f7);
-  color:#4d32b8;
-  box-shadow:0 5px 14px rgba(108,77,246,.12);
-}
-.nf-mc-mode-hint{
-  margin-top:8px;
-  font-size:11px;
-  line-height:1.45;
-  color:#756b70;
-}
-.nf-mc-existing-box{
-  margin:0 0 14px;
-  padding:13px;
-  border:1px solid #bfcff2;
-  border-radius:15px;
-  background:#f5f9ff;
-}
-.nf-mc-existing-box label{
-  display:block;
-  font-size:13px;
-  font-weight:850;
-  margin-bottom:6px;
-}
-.nf-mc-existing-box select{
-  width:100%;
-}
-.nf-mc-person-box{
-  margin:0 0 14px;
-  padding:13px;
-  border:1px solid #ead4e2;
-  border-radius:15px;
-  background:#fff8fc;
-}
-.nf-mc-person-title{
-  font-size:14px;
-  font-weight:900;
-  margin-bottom:10px;
-  color:#5a3150;
-}
-@media(max-width:560px){
-  .nf-mc-mode-grid{grid-template-columns:1fr}
-  .nf-mc-mode-btn{width:100%}
-}
-</style>
-
-<script id="nf-multiple-customer-step1-js">
+<script id="nf-multiple-customer-step2">
 (function(){
-  "use strict";
+  'use strict';
+  if(window.__nfMultipleCustomerStep2)return;
+  window.__nfMultipleCustomerStep2=true;
 
-  if(window.__nfMultipleCustomerStep1Installed) return;
-  window.__nfMultipleCustomerStep1Installed = true;
-
-  var originalOpenModal = window.openModal;
-  if(typeof originalOpenModal !== "function") return;
-
-  function escValue(v){
-    return String(v == null ? "" : v);
-  }
-
-  function customerOptions(){
-    var list = Array.isArray(window.state && state.customers) ? state.customers : [];
-    return list.map(function(c){
-      return '<option value="'+esc(c.id)+'">'+
-        esc(c.name || "Customer")+
-        (c.phone ? ' — '+esc(c.phone) : '')+
-        '</option>';
-    }).join("");
-  }
-
-  function fieldHtml(key,label,type,required){
-    var f = [key,label,type,required];
-    return inputHTML(f,"");
-  }
-
-  function renderNewCustomerForm(){
-    var box = document.getElementById("formFields");
-    if(!box) return;
-
-    box.innerHTML =
-      '<div class="nf-mc-mode-wrap">'+
-        '<div class="nf-mc-mode-title">Customer Type</div>'+
-        '<div class="nf-mc-mode-grid">'+
-          '<button type="button" id="nfMcSingleBtn" class="nf-mc-mode-btn active">👤 Single Customer</button>'+
-          '<button type="button" id="nfMcMultipleBtn" class="nf-mc-mode-btn">👥 Add to Existing Customer</button>'+
-        '</div>'+
-        '<div id="nfMcModeHint" class="nf-mc-mode-hint">ஒரே ஒரு customer என்றால், ஏற்கனவே இருக்கும் Customer flow போலவே Save செய்யப்படும்.</div>'+
-      '</div>'+
-      '<div id="nfMcSingleFields"></div>'+
-      '<div id="nfMcMultipleFields" class="hidden"></div>';
-
-    var single = document.getElementById("nfMcSingleFields");
-    var multiple = document.getElementById("nfMcMultipleFields");
-
-    single.innerHTML =
-      fieldHtml("name","Customer Name","text",true)+
-      fieldHtml("phone","Phone","tel",false)+
-      fieldHtml("address","Address","text",false)+
-      fieldHtml("village","ஊர் / Village","text",false)+
-      fieldHtml("notes","Alteration Notes","textarea",false);
-
-    multiple.innerHTML =
-      '<div class="nf-mc-existing-box">'+
-        '<label for="nfMcMainCustomer">Main Customer</label>'+
-        '<select id="nfMcMainCustomer" class="input">'+
-          '<option value="">Select main customer</option>'+
-          customerOptions()+
-        '</select>'+
-        '<div class="nf-mc-mode-hint">இவர் ஏற்கனவே இருக்கும் Main / Base Customer. புதிய person அவருடன் மட்டும் link ஆகும்.</div>'+
-      '</div>'+
-      '<div class="nf-mc-person-box">'+
-        '<div class="nf-mc-person-title">Additional Person</div>'+
-        fieldHtml("nf_mc_person_name","Additional Person Name","text",true)+
-        fieldHtml("nf_mc_person_phone","Phone","tel",false)+
-        fieldHtml("nf_mc_person_address","Address","text",false)+
-        fieldHtml("nf_mc_person_village","ஊர் / Village","text",false)+
-        fieldHtml("nf_mc_person_notes","Alteration Notes","textarea",false)+
-      '</div>'+
-      '<div class="hint">இந்த Step-ல் UI மட்டும் தயாராகிறது. Multiple Customer save/link logic அடுத்த Step-ல் சேர்க்கப்படும்.</div>';
-
-    var singleBtn = document.getElementById("nfMcSingleBtn");
-    var multipleBtn = document.getElementById("nfMcMultipleBtn");
-    var hint = document.getElementById("nfMcModeHint");
-
-    function setMode(mode){
-      var isMultiple = mode === "multiple";
-      singleBtn.classList.toggle("active", !isMultiple);
-      multipleBtn.classList.toggle("active", isMultiple);
-      single.classList.toggle("hidden", isMultiple);
-      multiple.classList.toggle("hidden", !isMultiple);
-      hint.textContent = isMultiple
-        ? "ஏற்கனவே இருக்கும் Main Customer-க்கு Additional Person-ஐ சேர்க்கும் mode. Save/link logic அடுத்த Step-ல் வரும்."
-        : "ஒரே ஒரு customer என்றால், ஏற்கனவே இருக்கும் Customer flow போலவே Save செய்யப்படும்.";
-      window.__nfMultipleCustomerMode = isMultiple ? "multiple" : "single";
-    }
-
-    singleBtn.onclick = function(){ setMode("single"); };
-    multipleBtn.onclick = function(){ setMode("multiple"); };
-
-    window.__nfMultipleCustomerMode = "single";
-  }
-
-  window.openModal = function(type,id){
-    originalOpenModal.apply(this, arguments);
-
-    if(type !== "customer" || id) return;
-
-    renderNewCustomerForm();
-
-    var form = document.getElementById("dataForm");
-    if(form && !form.__nfMcStep1SubmitGuard){
-      form.__nfMcStep1SubmitGuard = true;
-      form.addEventListener("submit", function(e){
-        if(window.__nfMultipleCustomerMode === "multiple"){
-          e.preventDefault();
-          e.stopImmediatePropagation();
-          if(typeof toast === "function"){
-            toast("Multiple Customer UI தயாராக உள்ளது. Save/link logic அடுத்த Step-ல் சேர்க்கப்படும்.", false);
-          }
-          return false;
-        }
-      }, true);
-    }
+  const parentPrefix='NF_PARENT_CUSTOMER:';
+  const escLocal=(v)=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
+  const getParentId=(c)=>{
+    const m=String(c?.notes||'').match(/(?:^|\|)\s*NF_PARENT_CUSTOMER:([^|\s]+)/);
+    return m?m[1].trim():'';
   };
+  const isLinked=(c)=>!!getParentId(c);
+  const baseCustomers=()=>Array.isArray(state?.customers)?state.customers.filter(c=>!isLinked(c)):[];
 
+  function currentMode(){return document.getElementById('nfCustomerModeMultiple')?.classList.contains('active')?'multiple':'single'}
+
+  function buildModeUI(){
+    const fields=document.getElementById('formFields');
+    if(!fields || state.editing?.type!=='customer')return;
+    if(document.getElementById('nfCustomerModeBox'))return;
+
+    const originalHTML=fields.innerHTML;
+    fields.dataset.nfOriginalCustomerHTML=originalHTML;
+    fields.dataset.nfModeReady='1';
+
+    const box=document.createElement('div');
+    box.id='nfCustomerModeBox';
+    box.className='field full';
+    box.innerHTML=`
+      <div class="nf-mc-mode-title">Customer Type</div>
+      <div class="nf-mc-mode-grid">
+        <button type="button" id="nfCustomerModeSingle" class="nf-mc-mode-btn active">👤 <span>Single Customer</span></button>
+        <button type="button" id="nfCustomerModeMultiple" class="nf-mc-mode-btn">👥 <span>Add to Existing Customer</span></button>
+      </div>
+      <div class="nf-mc-mode-hint">Single Customer வழக்கம் போலவே இருக்கும். Multiple Customer-ல் ஏற்கனவே உள்ள Main Customer-க்கு புதிய person மட்டும் link செய்யப்படும்.</div>`;
+    fields.prepend(box);
+
+    const extra=document.createElement('div');
+    extra.id='nfMultipleCustomerFields';
+    extra.className='field full nf-mc-extra hidden';
+    extra.innerHTML=`
+      <div class="nf-mc-main-box">
+        <label>Main Customer</label>
+        <select class="input" id="nfMainCustomerSelect">
+          <option value="">Select main customer</option>
+        </select>
+        <div class="hint">இவர் ஏற்கனவே இருக்கும் Main / Base Customer. புதிய person இவருடன் மட்டும் link ஆகும்.</div>
+      </div>
+      <div class="nf-mc-person-box">
+        <h4>Additional Person</h4>
+        <div class="field"><label>Additional Person Name</label><input class="input" id="nfAdditionalPersonName" type="text" autocomplete="name"></div>
+        <div class="field"><label>Phone</label><input class="input" id="nfAdditionalPersonPhone" type="tel" inputmode="tel" autocomplete="tel"></div>
+        <div class="field"><label>Address</label><input class="input" id="nfAdditionalPersonAddress" type="text"></div>
+        <div class="field"><label>ஊர் / Village</label><input class="input" id="nfAdditionalPersonVillage" type="text"></div>
+        <div class="field"><label>Alteration Notes</label><textarea class="input" id="nfAdditionalPersonNotes"></textarea></div>
+      </div>`;
+    fields.insertBefore(extra,fields.children[1]||null);
+
+    const single=document.getElementById('nfCustomerModeSingle');
+    const multiple=document.getElementById('nfCustomerModeMultiple');
+    const main=document.getElementById('nfMainCustomerSelect');
+
+    function fillMain(){
+      if(!main)return;
+      const old=main.value;
+      const list=baseCustomers();
+      main.innerHTML='<option value="">Select main customer</option>'+list.map(c=>`<option value="${escLocal(c.id)}">${escLocal(c.name||'Customer')}${c.phone?' — '+escLocal(c.phone):''}</option>`).join('');
+      if(list.some(c=>String(c.id)===String(old)))main.value=old;
+    }
+    function setMode(mode){
+      const multi=mode==='multiple';
+      single.classList.toggle('active',!multi);multiple.classList.toggle('active',multi);
+      extra.classList.toggle('hidden',!multi);
+      Array.from(fields.children).forEach((el,i)=>{
+        if(el===box||el===extra)return;
+        el.classList.toggle('hidden',multi);
+      });
+      if(multi){fillMain(); main?.focus();}
+    }
+    single.addEventListener('click',()=>setMode('single'));
+    multiple.addEventListener('click',()=>setMode('multiple'));
+    setMode('single');
+    window.__nfCustomerSetMode=setMode;
+    window.__nfCustomerFillMain=fillMain;
+  }
+
+  const originalOpenModal=window.openModal;
+  if(typeof originalOpenModal==='function'){
+    window.openModal=function(type,id){
+      const r=originalOpenModal.apply(this,arguments);
+      if(type==='customer' && !id){
+        setTimeout(buildModeUI,0);
+      }
+      return r;
+    };
+  }
+
+  document.addEventListener('submit',async function(e){
+    if(e.target?.id!=='dataForm' || currentMode()!=='multiple')return;
+    e.preventDefault();
+    e.stopImmediatePropagation();
+
+    const form=e.target;
+    const mainId=String(document.getElementById('nfMainCustomerSelect')?.value||'').trim();
+    const name=String(document.getElementById('nfAdditionalPersonName')?.value||'').trim();
+    const phone=String(document.getElementById('nfAdditionalPersonPhone')?.value||'').trim();
+    const address=String(document.getElementById('nfAdditionalPersonAddress')?.value||'').trim();
+    const village=String(document.getElementById('nfAdditionalPersonVillage')?.value||'').trim();
+    const userNotes=String(document.getElementById('nfAdditionalPersonNotes')?.value||'').trim();
+    const msg=document.getElementById('formMsg');
+    const btn=document.getElementById('saveBtn');
+    if(!mainId){if(msg){msg.textContent='Main Customer தேர்வு செய்ய வேண்டும்.';msg.className='msg error';}return;}
+    if(!name){if(msg){msg.textContent='Additional Person Name கொடுக்க வேண்டும்.';msg.className='msg error';}return;}
+
+    const mainCustomer=(state.customers||[]).find(c=>String(c.id)===mainId);
+    if(!mainCustomer || isLinked(mainCustomer)){
+      if(msg){msg.textContent='Main Customer சரியாக தேர்வு செய்ய வேண்டும்.';msg.className='msg error';}
+      return;
+    }
+
+    const villageMarker=typeof nfEncodeVillageMarker==='function'?nfEncodeVillageMarker(village):(village?'VILLAGE:'+village:'');
+    const notes=[userNotes, villageMarker, parentPrefix+mainId].filter(Boolean).join(' | ')||null;
+    const payload={name,phone:phone||null,address:address||null,notes};
+    btn?.setAttribute('disabled','disabled');
+    if(btn)btn.textContent='Saving...';
+    try{
+      const result=await supabaseClient.from('customers').insert(payload).select().single();
+      if(result.error)throw result.error;
+      const saved=result.data;
+      state.customers=[saved,...(state.customers||[])];
+      closeModal(true);
+      toast('Additional Person saved. New Order திறக்கப்படுகிறது…');
+      if(typeof openOrdersNewOrderForCustomer==='function'){
+        openOrdersNewOrderForCustomer(String(saved.id));
+      }else if(typeof goView==='function'){
+        goView('orders',true);
+      }
+      loadAll(true).catch(err=>console.error('Background refresh after linked customer save:',err));
+    }catch(err){
+      if(msg){msg.textContent='Save failed: '+(err?.message||err);msg.className='msg error';}
+    }finally{
+      if(btn){btn.removeAttribute('disabled');btn.textContent='Save';}
+    }
+  },true);
+
+  // Keep linked people out of the normal Customer Cards list.
+  const originalRenderCustomers=window.renderCustomers;
+  if(typeof originalRenderCustomers==='function'){
+    window.renderCustomers=function(){
+      const q=(document.getElementById('customerSearch')?.value||'').toLowerCase();
+      const r=(state.customers||[]).filter(x=>!isLinked(x)&&[x.name,x.phone,x.address,x.village].join(' ').toLowerCase().includes(q));
+      const host=document.getElementById('customersTable');
+      if(host)host.innerHTML=r.length?r.map(x=>customerCard(x.id)).join(''):`<div class="card empty" style="grid-column:1/-1">No customers found.</div>`;
+    };
+  }
+
+  // Make generic customer selectors show base customers, while still allowing a linked
+  // person's own order to remain selected when editing that order.
+  const originalInputHTML=window.inputHTML;
+  if(typeof originalInputHTML==='function'){
+    window.inputHTML=function(f,val){
+      if(f?.[2]==='customer'){
+        const selected=(state.customers||[]).find(c=>String(c.id)===String(val||''));
+        const includeSelected=!!selected&&isLinked(selected);
+        const list=(state.customers||[]).filter(c=>!isLinked(c)||includeSelected);
+        const [key,label,type,required]=f;
+        return `<div class="field"><label>${label}</label><select class="input" name="${key}" ${required?'required':''}><option value="">Select customer</option>${list.map(c=>`<option value="${escLocal(c.id)}" ${String(val||'')===String(c.id)?'selected':''}>${escLocal(c.name||'Customer')}${c.phone?' — '+escLocal(c.phone):''}</option>`).join('')}</select></div>`;
+      }
+      return originalInputHTML.apply(this,arguments);
+    };
+  }
+
+  // Strip the internal parent marker from any customer-card alteration note display.
+  window.nfStripParentMarker=function(notes){return String(notes||'').replace(/\s*\|?\s*NF_PARENT_CUSTOMER:[^|\s]+/g,'').trim();};
+
+  const style=document.createElement('style');
+  style.id='nf-multiple-customer-step2-css';
+  style.textContent=`
+    #nfCustomerModeBox{margin-bottom:10px}
+    .nf-mc-mode-title{font-size:18px;font-weight:900;margin-bottom:9px}
+    .nf-mc-mode-grid{display:grid;grid-template-columns:1fr;gap:10px}
+    .nf-mc-mode-btn{width:100%;padding:16px 18px;border:2px solid #d9d1e7;border-radius:20px;background:#fff;text-align:left;font-weight:900;font-size:17px;color:#2b2630;display:flex;align-items:center;gap:12px}
+    .nf-mc-mode-btn.active{border-color:#6c4df6;background:#f5f0ff;color:#41299c;box-shadow:0 0 0 3px rgba(108,77,246,.10)}
+    .nf-mc-mode-btn span{flex:1}
+    .nf-mc-mode-hint{margin-top:8px;color:#6f6870;font-size:13px;line-height:1.4}
+    .nf-mc-extra{padding:0!important}
+    .nf-mc-main-box,.nf-mc-person-box{border:2px solid #d9e0f0;border-radius:20px;padding:14px;background:#f8fbff;margin-top:10px}
+    .nf-mc-main-box label,.nf-mc-person-box label{display:block;font-weight:850;margin-bottom:7px;font-size:14px}
+    .nf-mc-person-box{border-color:#ead4e0;background:#fff9fc}
+    .nf-mc-person-box h4{margin:0 0 12px;font-size:18px;color:#5b3151}
+    .nf-mc-person-box .field{margin-top:10px}
+    @media(max-width:560px){.nf-mc-mode-btn{font-size:16px;padding:15px}.nf-mc-main-box,.nf-mc-person-box{padding:12px}}
+  `;
+  document.head.appendChild(style);
 })();
 </script>
 
