@@ -12397,3 +12397,292 @@ body.nf-photo-preview-scroll-locked{overscroll-behavior:none!important}
 })();
 </script>
 
+
+
+<style id="nf-v111-edit-multi-css">
+.nf111-edit-multi{margin-top:14px;padding:14px;border:2px solid #d8c8f2;border-radius:18px;background:linear-gradient(145deg,#faf7ff,#fff8fb)}
+.nf111-edit-multi-title{font-size:18px;font-weight:950;color:#4d2e8e;margin-bottom:10px}
+.nf111-edit-person{margin-top:10px;padding:11px;border:2px solid #ead9e8;border-radius:15px;background:#fff}
+.nf111-edit-person-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+.nf111-edit-person-head strong{font-size:15px;color:#522c55;font-weight:950}
+.nf111-edit-row{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.nf111-edit-field label{display:block;margin:0 0 5px;font-size:12px;font-weight:900;color:#5b5260}
+.nf111-edit-field input{width:100%;box-sizing:border-box}
+.nf111-edit-delete{border:0;border-radius:9px;background:#ffe9ed;color:#b32645;font-weight:900;padding:7px 10px;cursor:pointer}
+.nf111-edit-delete.marked{background:#b32645;color:#fff}
+.nf111-edit-add{margin-top:11px;min-height:42px;padding:7px 14px;border:1px solid #c8b7ed;border-radius:12px;background:#f3efff;color:#5531a4;font-size:14px;font-weight:950;cursor:pointer}
+.nf111-edit-hint{margin-top:7px;color:#6c6472;font-size:11px;font-weight:750;line-height:1.4}
+@media(max-width:560px){.nf111-edit-row{grid-template-columns:1fr}.nf111-edit-multi{padding:11px}.nf111-edit-person{padding:10px}}
+.nf111-edit-person.is-deleted{opacity:.52;border-color:#d5b4bd;background:#fff3f5}
+.nf111-edit-person.is-deleted input{pointer-events:none;text-decoration:line-through}
+</style>
+<script id="nf-v111-edit-multi-js">
+(function(){
+  "use strict";
+  if(window.__nfV111Installed)return;
+  window.__nfV111Installed=true;
+
+  var PARENT_RE=/(?:^|\|\s*)(?:NF_MULTI_PARENT|NF_PARENT_CUSTOMER):\s*([^|\s]+)/i;
+  var pendingEdit=null;
+  var syncing=false;
+
+  function all(){return (typeof state!=="undefined"&&Array.isArray(state.customers))?state.customers:[];}
+  function parentId(c){var m=String(c&&c.notes||"").match(PARENT_RE);return m?String(m[1]):"";}
+  function isChild(c){return !!parentId(c);}
+  function isMain(id){var c=all().find(function(x){return String(x.id)===String(id);});return !!c&&!isChild(c);}
+  function kids(id){var seen={};return all().filter(function(c){if(parentId(c)!==String(id))return false;var k=String(c.id||"");if(!k||seen[k])return false;seen[k]=1;return true;});}
+  function esc(v){return typeof window.esc==="function"?window.esc(v==null?"":String(v)):String(v==null?"":v).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c];});}
+
+  function rowHTML(k,i){
+    var id=String(k&&k.id||"");
+    return '<div class="nf111-edit-person" data-nf111-id="'+esc(id)+'">'+
+      '<div class="nf111-edit-person-head"><strong>Additional Customer '+(i+1)+'</strong><button type="button" class="nf111-edit-delete" data-nf111-delete>🗑️ Delete</button></div>'+
+      '<div class="nf111-edit-row">'+
+      '<div class="nf111-edit-field"><label>Customer Name</label><input class="input" data-nf111-name type="text" value="'+esc(k&&k.name||"")+'" autocomplete="name"></div>'+
+      '<div class="nf111-edit-field"><label>Phone</label><input class="input" data-nf111-phone type="tel" inputmode="tel" value="'+esc(k&&k.phone||"")+'" autocomplete="tel"></div>'+
+      '</div></div>';
+  }
+
+  function addBlank(container,focus){
+    var n=container.querySelectorAll(".nf111-edit-person:not(.is-deleted)").length+1;
+    var div=document.createElement("div");
+    div.className="nf111-edit-person";
+    div.setAttribute("data-nf111-id","");
+    div.innerHTML='<div class="nf111-edit-person-head"><strong>Additional Customer '+n+'</strong><button type="button" class="nf111-edit-delete" data-nf111-delete>🗑️ Delete</button></div><div class="nf111-edit-row"><div class="nf111-edit-field"><label>Customer Name</label><input class="input" data-nf111-name type="text" autocomplete="name" placeholder="பெயர்"></div><div class="nf111-edit-field"><label>Phone</label><input class="input" data-nf111-phone type="tel" inputmode="tel" autocomplete="tel" placeholder="Phone Number"></div></div>';
+    container.appendChild(div);
+    if(focus){var p=div.querySelector("[data-nf111-phone]");if(p)p.focus();}
+    return div;
+  }
+
+  function renumber(container){
+    var i=0;
+    container.querySelectorAll(".nf111-edit-person").forEach(function(row){
+      if(row.classList.contains("is-deleted"))return;
+      i++;
+      var h=row.querySelector(".nf111-edit-person-head strong");if(h)h.textContent="Additional Customer "+i;
+    });
+  }
+
+  function buildEditor(mainId){
+    var form=document.getElementById("formFields");
+    if(!form||!isMain(mainId)||document.getElementById("nf111-edit-multi"))return;
+    var section=document.createElement("section");section.id="nf111-edit-multi";section.className="nf111-edit-multi";
+    var list=kids(mainId);
+    section.innerHTML='<div class="nf111-edit-multi-title">👥 Additional Customers</div><div id="nf111-edit-people"></div><button type="button" class="nf111-edit-add" id="nf111-edit-add">＋ Add Customer</button><div class="nf111-edit-hint">இந்த Main Customer-க்கு ஏற்கனவே இணைக்கப்பட்ட Additional Customers இங்கே தெரியும். Name / Phone மாற்றி Save செய்யலாம்.</div>';
+    var holder=section.querySelector("#nf111-edit-people");
+    list.forEach(function(k,i){holder.insertAdjacentHTML("beforeend",rowHTML(k,i));});
+    section.addEventListener("click",function(e){
+      var del=e.target.closest("[data-nf111-delete]");
+      if(!del)return;
+      var row=del.closest(".nf111-edit-person");if(!row)return;
+      if(row.getAttribute("data-nf111-id") && !row.classList.contains("is-deleted")){
+        if(!confirm("இந்த Additional Customer-ஐ நீக்கவா?"))return;
+        row.classList.add("is-deleted");del.classList.add("marked");del.textContent="↩️ Keep";
+        row.querySelectorAll("input").forEach(function(x){x.disabled=true;});
+      }else if(row.classList.contains("is-deleted")){
+        row.classList.remove("is-deleted");del.classList.remove("marked");del.textContent="🗑️ Delete";
+        row.querySelectorAll("input").forEach(function(x){x.disabled=false;});
+      }else{row.remove();}
+      renumber(holder);
+    });
+    section.querySelector("#nf111-edit-add").addEventListener("click",function(){addBlank(holder,true);renumber(holder);});
+    form.appendChild(section);
+  }
+
+  function captureRows(mainId){
+    var box=document.getElementById("nf111-edit-people");if(!box)return null;
+    var rows=[];
+    box.querySelectorAll(".nf111-edit-person").forEach(function(row){
+      var id=String(row.getAttribute("data-nf111-id")||"");
+      var name=String(row.querySelector("[data-nf111-name]")?.value||"").trim();
+      var phone=String(row.querySelector("[data-nf111-phone]")?.value||"").trim();
+      var deleted=row.classList.contains("is-deleted");
+      if(!id&&!name&&!phone)return;
+      rows.push({id:id,name:name,phone:phone,deleted:deleted});
+    });
+    for(var i=0;i<rows.length;i++){
+      if(!rows[i].deleted&&(!rows[i].name||!rows[i].phone))return {error:"Additional Customer "+(i+1)+"-க்கு Name மற்றும் Phone இரண்டும் கொடுக்க வேண்டும்."};
+    }
+    return {mainId:String(mainId),rows:rows};
+  }
+
+  async function syncChildren(p){
+    if(!p||syncing)return;
+    syncing=true;
+    try{
+      var existing=kids(p.mainId);
+      var existingMap={};existing.forEach(function(c){existingMap[String(c.id)]=c;});
+      var keepIds={};
+      for(var i=0;i<p.rows.length;i++){
+        var r=p.rows[i];
+        if(r.id){
+          keepIds[r.id]=1;
+          if(r.deleted){
+            if(typeof deleteCustomer==="function"){
+              /* Delete directly without the original confirmation; the edit UI already confirmed. */
+              await deleteCustomerDirect(r.id);
+            }
+            continue;
+          }
+          var er=await supabaseClient.from("customers").update({name:r.name,phone:r.phone||null,notes:(existingMap[r.id]?.notes||("NF_MULTI_PARENT:"+p.mainId))}).eq("id",r.id).select().single();
+          if(er.error)throw er.error;
+        }else if(!r.deleted){
+          var ir=await supabaseClient.from("customers").insert({name:r.name,phone:r.phone||null,address:null,notes:"NF_MULTI_PARENT:"+p.mainId}).select().single();
+          if(ir.error)throw ir.error;
+        }
+      }
+      var fresh=await supabaseClient.from("customers").select("*");
+      if(!fresh.error&&Array.isArray(fresh.data))state.customers=fresh.data;
+      else{
+        /* Keep local state usable if the broad select is unavailable. */
+        p.rows.forEach(function(r){
+          if(r.id&&r.deleted){state.customers=state.customers.filter(function(c){return String(c.id)!==String(r.id);});}
+          else if(r.id){var c=state.customers.find(function(x){return String(x.id)===String(r.id);});if(c){c.name=r.name;c.phone=r.phone;}}
+        });
+      }
+      if(typeof renderCustomers==="function")renderCustomers();
+      if(typeof renderDashboardCustomers==="function")renderDashboardCustomers();
+      if(typeof renderSidebarCustomerList==="function")renderSidebarCustomerList();
+      if(typeof renderMyCustomersSlideMenu==="function")renderMyCustomersSlideMenu();
+    }finally{syncing=false;pendingEdit=null;}
+  }
+
+  async function deleteCustomerDirect(id){
+    var c=all().find(function(x){return String(x.id)===String(id);});if(!c)return;
+    var orders=(state.orders||[]).filter(function(o){return String(o.customer_id)===String(id);});
+    var ids=orders.map(function(o){return o.id;}).filter(Boolean);
+    if(ids.length){
+      var a=await supabaseClient.from("payments").delete().in("order_id",ids);if(a.error)throw a.error;
+      var b=await supabaseClient.from("alterations").delete().in("order_id",ids);if(b.error)throw b.error;
+    }
+    var d=await supabaseClient.from("alterations").delete().eq("customer_id",id);if(d.error)throw d.error;
+    var m=await supabaseClient.from("measurements").delete().eq("customer_id",id);if(m.error)throw m.error;
+    var o=await supabaseClient.from("orders").delete().eq("customer_id",id);if(o.error)throw o.error;
+    var cc=await supabaseClient.from("customers").delete().eq("id",id);if(cc.error)throw cc.error;
+  }
+
+  /* Keep the existing Main Customer edit form and its Save button untouched; only append the group editor. */
+  var oldOpen=window.openModal;
+  if(typeof oldOpen==="function"&&!oldOpen.__nfV111){
+    window.openModal=function(type,id){
+      var r=oldOpen.apply(this,arguments);
+      if(type==="customer"&&id){
+        setTimeout(function(){buildEditor(String(id));},0);
+        setTimeout(function(){buildEditor(String(id));},80);
+      }
+      return r;
+    };
+    window.openModal.__nfV111=true;
+  }
+
+  /* Capture before the original Main Customer save. Valid edits continue untouched; invalid child rows stop the save. */
+  var form=document.getElementById("dataForm");
+  if(form){
+    form.addEventListener("submit",function(e){
+      if(syncing||!state.editing||state.editing.type!=="customer"||!state.editing.id)return;
+      var mainId=String(state.editing.id);
+      if(!isMain(mainId))return;
+      var p=captureRows(mainId);
+      if(!p)return;
+      if(p.error){
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        var msg=document.getElementById("formMsg");if(msg){msg.textContent=p.error;msg.className="msg error";}
+        return;
+      }
+      pendingEdit=p;
+    },true);
+  }
+
+  /* If the Main Customer save's refresh finishes later, give the child sync another chance. */
+  var oldLoad=window.loadAll;
+  if(typeof oldLoad==="function"&&!oldLoad.__nfV111){
+    window.loadAll=async function(){var r=await oldLoad.apply(this,arguments);if(pendingEdit&&!syncing){try{await syncChildren(pendingEdit);}catch(err){console.error("V1.11 child sync after loadAll",err);}}return r;};
+    window.loadAll.__nfV111=true;
+  }
+
+})();
+</script>
+
+<style id="nf-v112-customer-card-fix-css">
+.nf112-group{margin:12px 0 0;padding:12px;border:2px solid #d5c6f1;border-radius:16px;background:linear-gradient(145deg,#faf7ff,#fff)}
+.nf112-title{font-size:16px;font-weight:950;color:#4d2e8e;margin-bottom:8px}
+.nf112-person{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 0;border-top:1px solid #e6dff0}
+.nf112-person:first-of-type{border-top:0}
+.nf112-info{min-width:0;flex:1}.nf112-info b{display:block;font-size:15px;color:#2b2530}.nf112-info small{display:block;margin-top:2px;font-size:12px;color:#6d6672}
+.nf112-actions{display:flex;gap:6px;flex:0 0 auto}.nf112-actions button{border:0;border-radius:10px;padding:8px 10px;font-weight:900;cursor:pointer}.nf112-edit{background:#eee8ff;color:#5131a0}.nf112-delete{background:#ffe9ed;color:#b32645}
+@media(max-width:560px){.nf112-group{margin-top:9px;padding:10px}.nf112-person{gap:7px;padding:8px 0}.nf112-info b{font-size:14px}.nf112-info small{font-size:11px}.nf112-actions button{padding:7px 8px;font-size:11px}}
+</style>
+<script id="nf-v112-customer-card-fix-js">
+(function(){
+  "use strict";
+  if(window.__nfV112Installed)return;
+  window.__nfV112Installed=true;
+
+  var RE=/(?:^|\|\s*)(?:NF_MULTI_PARENT|NF_PARENT_CUSTOMER):\s*([^|\s]+)/i;
+  function all(){return (typeof state!=="undefined"&&Array.isArray(state.customers))?state.customers:[];}
+  function parent(c){var m=String(c&&c.notes||"").match(RE);return m?String(m[1]):"";}
+  function isChild(c){return !!parent(c);}
+  function esc112(v){
+    if(typeof esc==="function")return esc(v==null?"":String(v));
+    return String(v==null?"":v).replace(/[&<>"']/g,function(ch){return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[ch];});
+  }
+  function kids(id){
+    var seen={};
+    return all().filter(function(c){
+      if(parent(c)!==String(id))return false;
+      var key=String(c.id||"");
+      if(!key||seen[key])return false;
+      seen[key]=1;return true;
+    });
+  }
+  function findCard(id){return document.getElementById("customer-card-"+String(id))||document.querySelector('#customersTable .customerCard[id="customer-card-'+CSS.escape(String(id))+'"]');}
+  function append(card,id){
+    if(!card||!id)return;
+    var old=card.querySelector(".nf112-group");if(old)old.remove();
+    var list=kids(id);if(!list.length)return;
+    var sec=document.createElement("section");sec.className="nf112-group";
+    var title=document.createElement("div");title.className="nf112-title";title.textContent="👥 Additional Customers · "+list.length+" பேர்";sec.appendChild(title);
+    list.forEach(function(k){
+      var row=document.createElement("div");row.className="nf112-person";
+      var info=document.createElement("div");info.className="nf112-info";
+      info.innerHTML='<b>'+esc112(k.name||"Customer")+'</b><small>📞 '+esc112(k.phone||"Phone இல்லை")+'</small>';
+      var acts=document.createElement("div");acts.className="nf112-actions";
+      var eb=document.createElement("button");eb.type="button";eb.className="nf112-edit";eb.textContent="✏️ Edit Order";
+      eb.onclick=function(e){e.preventDefault();e.stopPropagation();if(typeof window.nfMultiCustomerEditOrder==="function")window.nfMultiCustomerEditOrder(String(k.id));};
+      var db=document.createElement("button");db.type="button";db.className="nf112-delete";db.textContent="🗑️ Delete";
+      db.onclick=function(e){e.preventDefault();e.stopPropagation();if(typeof window.deleteCustomer==="function")window.deleteCustomer(String(k.id));};
+      acts.appendChild(eb);acts.appendChild(db);row.appendChild(info);row.appendChild(acts);sec.appendChild(row);
+    });
+    card.appendChild(sec);
+  }
+  function refresh(){
+    var table=document.getElementById("customersTable");if(!table)return;
+    table.querySelectorAll(".customerCard").forEach(function(card){
+      var id=String(card.id||"").replace(/^customer-card-/i,"");
+      if(!id)return;
+      var c=all().find(function(x){return String(x.id||"")===id;});
+      if(!c||isChild(c))return;
+      append(card,id);
+    });
+  }
+  function schedule(){clearTimeout(window.__nfV112Timer);window.__nfV112Timer=setTimeout(refresh,40);}
+
+  /* Run after the existing renderers, without touching the Main Customer blue button or Full Order Details. */
+  if(typeof window.renderCustomers==="function"&&!window.renderCustomers.__nfV112){
+    var oldRC=window.renderCustomers;
+    var rc=function(){var r=oldRC.apply(this,arguments);setTimeout(refresh,0);setTimeout(refresh,100);return r;};
+    rc.__nfV112=true;window.renderCustomers=rc;
+  }
+  if(typeof window.loadAll==="function"&&!window.loadAll.__nfV112){
+    var oldLA=window.loadAll;
+    var la=async function(){var r=await oldLA.apply(this,arguments);setTimeout(refresh,50);setTimeout(refresh,250);return r;};
+    la.__nfV112=true;window.loadAll=la;
+  }
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",function(){setTimeout(refresh,100);setTimeout(refresh,700);});
+  else{setTimeout(refresh,100);setTimeout(refresh,700);}
+  var table=document.getElementById("customersTable");
+  if(table){new MutationObserver(schedule).observe(table,{childList:true,subtree:true});}
+  else{setTimeout(function(){var t=document.getElementById("customersTable");if(t)new MutationObserver(schedule).observe(t,{childList:true,subtree:true});},500);}
+})();
+</script>
