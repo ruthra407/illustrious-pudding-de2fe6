@@ -9932,8 +9932,8 @@ function wrapRenderCustomers(){const base=window.renderCustomers;if(typeof base!
 function wrapPopulate(){const base=window.populateQuickOrderEditor;if(typeof base!=="function"||base.__nfPersonWrapped)return;window.populateQuickOrderEditor=function(id,o){const r=base.apply(this,arguments);setTimeout(()=>ensureQuickPersonSelect(id,getOrderPersonId(o)),20);return r};window.populateQuickOrderEditor.__nfPersonWrapped=true}
 function wrapClear(){const base=window.clearQuickOrderEditor;if(typeof base!=="function"||base.__nfPersonWrapped)return;window.clearQuickOrderEditor=function(id){const r=base.apply(this,arguments);setTimeout(()=>ensureQuickPersonSelect(id,getPersons(id)[0]?.id||"p1"),20);return r};window.clearQuickOrderEditor.__nfPersonWrapped=true}
 let pendingCustomerPersons=null;
-function install(){wrapCustomerCard();wrapOpenModal();wrapSaveQuick();wrapRenderCustomers();wrapPopulate();wrapClear();const form=$("dataForm");if(form&&!form.__nfPersonCapture){form.addEventListener("submit",function(){if(state.editing?.type==="customer"){const inp=$("nfCustomerPersonsInput"),names=String(inp?.value||"").split(",").map(x=>x.trim()).filter(Boolean);pendingCustomerPersons={names:names.length?names:["நபர் 1"],started:Date.now(),editingId:state.editing.id||null}}if(state.editing?.type==="order"){const sel=$("nfOrderPersonSelect"),pid=sel?.value||"p1",notes=$("formFields")?.querySelector('[name="notes"]');if(notes)notes.value=appendOrderPersonMarker(notes.value,pid)}},true);form.__nfPersonCapture=true}}
-async function finalizePendingCustomer(){if(!pendingCustomerPersons||state.editing)return;if(Date.now()-pendingCustomerPersons.started<250)return;const names=pendingCustomerPersons.names,id=pendingCustomerPersons.editingId||((state.customers||[])[0]?.id);if(!id){pendingCustomerPersons=null;return}const persons=names.map((name,i)=>({id:"p"+(i+1),name}));pendingCustomerPersons=null;await nfSavePersons(id,persons,false);setTimeout(()=>{renderCustomers()},80)}
+function install(){wrapCustomerCard();wrapOpenModal();wrapSaveQuick();wrapRenderCustomers();wrapPopulate();wrapClear();const form=$("dataForm");if(form&&!form.__nfPersonCapture){form.addEventListener("submit",function(){if(state.editing?.type==="customer"){const inp=$("nfCustomerPersonsInput"),names=String(inp?.value||"").split(",").map(x=>x.trim()).filter(Boolean);pendingCustomerPersons={names:names.length?names:["நபர் 1"],started:Date.now(),editingId:state.editing.id||null,existingIds:new Set((state.customers||[]).map(function(c){return String(c.id)}))}}if(state.editing?.type==="order"){const sel=$("nfOrderPersonSelect"),pid=sel?.value||"p1",notes=$("formFields")?.querySelector('[name="notes"]');if(notes)notes.value=appendOrderPersonMarker(notes.value,pid)}},true);form.__nfPersonCapture=true}}
+async function finalizePendingCustomer(){if(!pendingCustomerPersons)return;if(Date.now()-pendingCustomerPersons.started<350)return;const pending=pendingCustomerPersons,names=pending.names;let id=pending.editingId||null;if(!id){const fresh=(state.customers||[]).find(function(c){return !pending.existingIds.has(String(c.id))});if(fresh)id=String(fresh.id)}if(!id)return;const persons=names.map((name,i)=>({id:"p"+(i+1),name}));pendingCustomerPersons=null;await nfSavePersons(id,persons,false);setTimeout(()=>{renderCustomers()},80)}
 const timer=setInterval(()=>{install();finalizePendingCustomer().catch(()=>{});if(window.customerCard?.__nfPersonWrapped&&window.renderCustomers?.__nfPersonWrapped)clearInterval(timer)},180);
 document.addEventListener("DOMContentLoaded",()=>{setTimeout(install,100);setTimeout(()=>{(state.customers||[]).forEach(c=>renderPersonPanel(c.id))},500)},{once:true});
 })();
@@ -9943,6 +9943,48 @@ document.addEventListener("DOMContentLoaded",()=>{setTimeout(install,100);setTim
 .nf-person-note{margin-top:3px;font-size:11px;font-weight:750;color:#756b82;line-height:1.35}
 .nf-person-actions{display:none!important}
 </style>
+
+<style id="nf-person-visible-names-v2">
+.nf-customer-person-names{margin-top:7px;padding:7px 10px;border-radius:11px;background:#f3edff;border:1px solid #dfd2ff;color:#4d2b91;font-size:12px;font-weight:850;line-height:1.4}
+.nf-customer-person-names b{font-weight:950}
+</style>
+<script id="nf-person-visible-names-v2-js">
+(function(){
+  "use strict";
+  if(window.__NF_PERSON_VISIBLE_NAMES_V2)return;
+  window.__NF_PERSON_VISIBLE_NAMES_V2=true;
+  function customer(id){return (state.customers||[]).find(function(c){return String(c.id)===String(id)})}
+  function persons(id){
+    var c=customer(id),raw=String(c&&c.notes||""),m=raw.match(/(?:^|\s*\|\s*)NF_PERSONS_B64:([A-Za-z0-9+/=]+)/);
+    if(m){try{var a=JSON.parse(decodeURIComponent(escape(atob(m[1]))));if(Array.isArray(a)&&a.length)return a}catch(_){}
+    }
+    try{var a=JSON.parse(localStorage.getItem("nf_persons_"+id)||"[]");if(Array.isArray(a)&&a.length)return a}catch(_){}
+    return [{id:"p1",name:"நபர் 1"}];
+  }
+  function escName(v){return typeof esc==="function"?esc(String(v||"")):String(v||"").replace(/[&<>"']/g,function(c){return ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c])})}
+  function render(){
+    document.querySelectorAll(".customerCard").forEach(function(card){
+      var id=card.getAttribute("data-id")||card.id.replace(/^customer-card-/i,"");
+      if(!id)return;
+      var ps=persons(id).map(function(x){return String(x.name||"").trim()}).filter(Boolean);
+      var old=card.querySelector(".nf-customer-person-names");if(old)old.remove();
+      if(ps.length<2)return;
+      var identity=card.querySelector(".customerIdentity");if(!identity)return;
+      var el=document.createElement("div");el.className="nf-customer-person-names";
+      el.innerHTML="👥 <b>துணி கொண்டு வந்தவர்கள்:</b> "+ps.map(escName).join(" · ");
+      identity.appendChild(el);
+    });
+  }
+  function wrap(){
+    var base=window.renderCustomers;
+    if(typeof base!=="function"||base.__nfVisibleNamesV2)return;
+    window.renderCustomers=function(){var r=base.apply(this,arguments);setTimeout(render,30);setTimeout(render,250);return r};
+    window.renderCustomers.__nfVisibleNamesV2=true;
+  }
+  wrap();
+  document.addEventListener("DOMContentLoaded",function(){setTimeout(wrap,120);setTimeout(render,350);setTimeout(render,800)},{once:true});
+})();
+</script>
 </body></html><script id="nf-v52-dashboard-scroll-fix-js">
 (function(){
   "use strict";
