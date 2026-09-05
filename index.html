@@ -2661,7 +2661,7 @@ const clothPhotoActionsHtml="";
   const detail=g==="Chudi"?`👚 Chudi ${Number(gx.chudi||o.quantity||0)} · Lining ${Number(gx.chudiLiningQty||0)} · விலை ${money(o.unit_price)}`:g==="Saree"?`🥻 Saree ${Number(gx.saree||o.quantity||0)} · விலை ${money(o.unit_price)}`:`👗 ${blouseSplitText(o)}${Number(gx.saree||0)>0?` · 🥻 Saree ${Number(gx.saree||0)}`:""} · Rate ${money(o.unit_price)}`;
   return `<div class="customerOrderLine" id="customer-order-${esc(o.id)}"><b>${esc(o.order_no)}</b> · ${esc(g)} · ${detail} ${rem}<br><span class="mini">துணி: ${dateText(o.cloth_received_date)} · Delivery: ${dateText(o.delivery_date)} · Advance: ${money(nfOrderPaymentInfo(o).advance)} (${nfFormatPaymentDate(nfOrderPaymentInfo(o).advanceDate)}) · Customer Paid: ${money(nfOrderPaymentInfo(o).customerPaid)} · Balance: ${money(nfOrderBalance(o))}</span>${lining}${nfPriceBreakdownHTML(o)}${cleanOrderNotes(o.notes)?`<div class="nf-order-alteration-notes"><div class="nf-order-alteration-title">📝 Alteration Notes</div><div class="nf-order-alteration-content">${esc(cleanOrderNotes(o.notes))}</div></div>`:""}<div class="orderActions"><button class="btn success" onclick="markDelivered('${o.id}')">Delivered</button><button class="btn primary" onclick="openCustomerOrderEditor('${id}','${o.id}')">✏️ Edit Details</button></div></div>`;
  }).join("")||`<div class="mini">இன்னும் order இல்லை.</div>`;
- return `<article class="customerCard" id="customer-card-${id}"><div class="customerCardHead nf-customer-head"><div class="customerAvatar">👤</div><div class="customerIdentity"><div class="nf-customer-name-row"><h3>${esc(c.name||"Customer")}</h3><div class="nf-customer-compact-actions" aria-label="Order actions"><button type="button" class="btn primary nf-main-new-order" onclick="event.stopPropagation();openOrdersNewOrderForCustomer('${id}')" title="New Order" aria-label="New Order">＋ New Order</button><button type="button" class="btn nf-compact-action nf-edit-order" onclick="event.stopPropagation();openLatestCustomerOrderEdit('${id}')" title="Edit Order" aria-label="Edit Order">✏️ Edit Order</button><button type="button" class="btn nf-compact-action nf-order-full-details" onclick="event.stopPropagation();openLatestCustomerOrderFullDetails('${id}')" title="Order Full Details" aria-label="Order Full Details">📋 Order Full Details</button></div></div><div class="nf-whatsapp-card-row"><button type="button" class="nf-whatsapp-card-btn" onclick="event.stopPropagation();openCustomerWhatsAppCard('${id}')" title="WhatsApp Card" aria-label="WhatsApp Card">🟢 <span>WhatsApp Card</span></button></div><div class="nf-customer-contact"><div class="nf-contact-item"><span>📞 Phone</span><b>${esc(c.phone||"Phone இல்லை")}</b></div><div class="nf-contact-item"><span>📍 ஊர்</span><b>${esc(village||"ஊர் இல்லை")}</b></div><div class="nf-contact-item nf-contact-address"><span>🏠 முகவரி</span><b>${esc(address)}</b></div></div>${nfStripVillageMarker(c.notes)?`<div class="nf-customer-alteration-notes"><div class="nf-alteration-notes-title"><span class="nf-alteration-notes-icon">📝</span><span>Alteration Notes</span></div><div class="nf-alteration-notes-content">${esc(nfStripVillageMarker(c.notes))}</div></div>`:""}</div></div><section class="nf-collection-panel nf-cash-collection"><div class="nf-collection-title"><span class="nf-collection-icon">💰</span><div><h4>Cash Collection</h4><small>Order • Paid • Advance • Balance</small></div></div><div class="nf-cash-payment-action"><button type="button" class="nf-cash-payment-btn" onclick="openCustomerPayment('${id}')" aria-label="Payment" title="Payment">💰 <span>Payment</span></button></div><div class="nf-cash-columns-head" aria-hidden="true"><span>விவரம்</span><span>தேதி</span><span>தொகை</span></div><div class="customerMoneyGrid"><div class="moneyStat"><b>${money(st.total)}</b><span>மொத்த order</span></div><div class="moneyStat"><b>${money(st.paid)}</b><span>Customer paid</span></div><div class="moneyStat"><b>${money(st.advance)}</b><span>Advance வாங்கியது</span></div><div class="moneyStat clickable" onclick="goView('payments')"><b>${money(st.balance)}</b><span>இன்னும் கொடுக்க வேண்டும்</span></div></div></section>\n <section class="nf-collection-panel nf-blouse-collection"><div class="nf-collection-title"><span class="nf-collection-icon">👗</span><div><h4>Blouse Collection</h4><small>மொத்தம் • வாங்கிச் சென்றது • மீதமுள்ளது</small></div></div><div class="nfBlouseStatusGrid"><div class="moneyStat"><span>மொத்த blouse</span><b>${st.givenBlouse}</b></div><div class="moneyStat"><span>மொத்த சேலை</span><b>${st.saree}</b></div></div><div class="nfBlouseHandoverGrid"><div class="nfBlouseHandoverBox nfBlouseHandoverGiven"><div class="nfBlouseHandoverTitle">வாங்கிச் சென்றது</div><div class="nfBlouseHandoverRow"><span>Normal</span><b>${st.handedNormal}</b></div><div class="nfBlouseHandoverRow"><span>Lining</span><b>${st.handedLining}</b></div><div class="nfBlouseHandoverRow"><span>Design</span><b>${st.handedDesign}</b></div><div class="nfBlouseHandoverRow nfSareeRow"><span>🥻 Saree</span><b>${st.handedSaree}</b></div></div><div class="nfBlouseHandoverBox nfBlouseHandoverPending"><div class="nfBlouseHandoverTitle">மீதமுள்ளது</div><div class="nfBlouseHandoverRow"><span>Normal</span><b>${st.pendingNormal}</b></div><div class="nfBlouseHandoverRow"><span>Lining</span><b>${st.pendingLining}</b></div><div class="nfBlouseHandoverRow"><span>Design</span><b>${st.pendingDesign}</b></div><div class="nfBlouseHandoverRow nfSareeRow"><span>🥻 Saree</span><b>${st.pendingSaree}</b></div></div></div><div class="nf-garment-subtitle">👚 சுடிதார்</div><div class="nfChudiTotalBox"><span>மொத்த சுடிதார்</span><b>${st.chudi}</b></div><div class="nfChudiHandoverGrid"><div class="nfBlouseHandoverBox nfBlouseHandoverGiven"><div class="nfBlouseHandoverTitle">வாங்கிச் சென்றது</div><div class="nfBlouseHandoverRow"><span>சுடிதார்</span><b>${st.handedChudi}</b></div></div><div class="nfBlouseHandoverBox nfBlouseHandoverPending"><div class="nfBlouseHandoverTitle">மீதமுள்ளது</div><div class="nfBlouseHandoverRow"><span>சுடிதார்</span><b>${st.pendingChudi}</b></div></div></div></section><div class="nfCustomerBreakdownMount">${typeof window.nfCustomerWorkSummaryHTML==="function"?window.nfCustomerWorkSummaryHTML(st):""}</div><div id="quick-order-${id}" class="hidden" style="margin-top:10px;background:#faf8f6;border:1px solid var(--line);border-radius:13px;padding:12px"><h4 class="nf-quick-edit-title" style="margin:0 0 10px">🧾 New Order</h4><div class="formgrid"><div class="field nf-person-order-field"><label>👤 யாருடைய Order?</label><select id="qo-person-${id}" class="input"><option value="p1">நபர் 1</option></select></div><div class="field"><label>Garment / Blouse / Chudi</label><select id="qo-garment-${id}" class="input" onchange="updateQuickGarment('${id}')"><option value="Blouse">Blouse</option><option value="Chudi">Chudi</option><option value="Blouse+Chudi">Blouse + Chudi / பிளவுஸ் + சுடிதார்</option></select></div><div class="field"><label>Order Date</label><input id="qo-order-date-${id}" class="input" type="date" value="${localDate()}"></div><div class="field"><label>துணி கொடுத்த தேதி</label><input id="qo-cloth-${id}" class="input" type="date" value="${localDate()}"></div><div class="field"><label>Delivery Date</label><input id="qo-delivery-${id}" class="input" type="date"></div><div class="field full nf-quick-blouse"><label>👗 Customer கொடுத்த blouse — வகை வாரியாக எண்ணிக்கை + வாங்கிச் சென்றது + ஒன்றுக்கு விலை</label><div id="qo-blouse-handover-summary-${id}" class="nf-quick-handover-summary"></div><div class="nf-edit-category-stack"><section class="nf-edit-category-box nf-edit-normal"><div class="nf-edit-category-head"><span>👗</span><div><strong>Normal blouse</strong><small>எண்ணிக்கை · வாங்கிச் சென்றது · ஒன்றுக்கு விலை</small></div></div><div class="nf-edit-category-grid"><div class="moneyStat"><span>Normal blouse — எத்தனை</span><input id="qo-normal-${id}" class="input" type="number" min="0" step="1" value="0" oninput="updateQuickOrderCalc('${id}');updateQuickBlouseHandover('${id}')"></div><div class="moneyStat"><span>Normal blouse — வாங்கிச் சென்றது</span><input id="qo-normal-handover-${id}" class="input" type="number" min="0" step="1" value="0" oninput="updateQuickBlouseHandover('${id}')"></div><div class="moneyStat nf-handover-date-field"><span>📅 வாங்கிச் சென்ற தேதி</span><input id="qo-normal-handover-date-${id}" class="input" type="date"></div><div class="moneyStat"><span>Normal blouse — ஒன்றுக்கு விலை</span><input id="qo-normal-rate-${id}" class="input" type="number" min="0" step="0.01" value="${getRates().normal}" oninput="updateQuickOrderCalc('${id}')"></div></div></section><section class="nf-edit-category-box nf-edit-lining-blouse"><div class="nf-edit-category-head"><span>🧵</span><div><strong>Lining blouse</strong><small>எண்ணிக்கை · வாங்கிச் சென்றது · ஒன்றுக்கு விலை</small></div></div><div class="nf-edit-category-grid"><div class="moneyStat"><span>Lining blouse — எத்தனை</span><input id="qo-lining-${id}" class="input" type="number" min="0" step="1" value="0" oninput="updateQuickOrderCalc('${id}');updateQuickBlouseHandover('${id}')"></div><div class="moneyStat"><span>Lining blouse — வாங்கிச் சென்றது</span><input id="qo-lining-handover-${id}" class="input" type="number" min="0" step="1" value="0" oninput="updateQuickBlouseHandover('${id}')"></div><div class="moneyStat nf-handover-date-field"><span>📅 வாங்கிச் சென்ற தேதி</span><input id="qo-lining-handover-date-${id}" class="input" type="date"></div><div class="moneyStat"><span>Lining blouse — ஒன்றுக்கு விலை</span><input id="qo-lining-rate-${id}" class="input" type="number" min="0" step="0.01" value="${getRates().lining}" oninput="updateQuickOrderCalc('${id}')"></div></div></section><section class="nf-edit-category-box nf-edit-design-blouse"><div class="nf-edit-category-head"><span>🎨</span><div><strong>Design blouse</strong><small>எண்ணிக்கை · வாங்கிச் சென்றது · design-wise விலை</small></div></div><div class="nf-edit-category-grid"><div class="moneyStat"><span>Design blouse — எத்தனை</span><input id="qo-design-${id}" class="input" type="number" min="0" step="1" value="0" oninput="updateQuickOrderCalc('${id}');renderQuickDesignRates('${id}');updateQuickBlouseHandover('${id}')"></div><div class="moneyStat"><span>Design blouse — வாங்கிச் சென்றது</span><input id="qo-design-handover-${id}" class="input" type="number" min="0" step="1" value="0" oninput="updateQuickBlouseHandover('${id}')"></div></div><div class="nf-design-rate-box nf-quick-blouse" id="qo-design-rates-box-${id}" style="display:none"></div></section></div></div><section class="field full nf-quick-blouse nf-edit-category-box nf-edit-saree"><div class="nf-edit-category-head"><span>🥻</span><div><strong>Saree / சேலை</strong><small>எண்ணிக்கை · வாங்கிச் சென்றது · ஒன்றுக்கு விலை · மொத்தம்</small></div></div><div class="nf-edit-category-grid"><div class="moneyStat"><span>Saree / சேலை — எத்தனை</span><input id="qo-saree-${id}" class="input" type="number" min="0" step="1" value="0" oninput="updateQuickOrderCalc('${id}')"></div><div class="moneyStat"><span>வாங்கிச் சென்ற சேலை</span><input id="qo-saree-handover-${id}" class="input" type="number" min="0" step="1" value="0"></div><div class="moneyStat"><span>Saree — ஒன்றுக்கு விலை</span><input id="qo-saree-rate-${id}" class="input" type="number" min="0" step="0.01" value="${getRates().saree}" oninput="updateQuickOrderCalc('${id}')"></div><div class="moneyStat"><span>Saree மொத்தம்</span><div id="qo-saree-total-${id}" class="nf-lining-cost-total">₹0.00</div></div></div></section><section class="field full nf-lining-cost-box nf-edit-category-box nf-edit-lining-cloth"><div class="nf-edit-category-head"><span>🧵</span><div><strong>Lining cloth</strong><small>யார் வாங்கியது · அளவு · விலை · மொத்தம்</small></div></div><div class="nf-lining-cost-grid"><div class="nf-lining-cost-field"><label>Lining யார் வாங்கியது?</label><select id="qo-lining-source-${id}" class="input" onchange="updateQuickOrderCalc('${id}')"><option value="">தேவையில்லை</option><option value="customer">Customer கொடுத்தது</option><option value="shop">நாம் வாங்கியது</option></select></div><div class="nf-lining-cost-field"><label>Lining எத்தனை</label><input id="qo-lining-qty-${id}" class="input" type="number" min="0" step="1" value="0" oninput="updateQuickOrderCalc('${id}')"></div><div class="nf-lining-cost-field"><label>நாம் வாங்கிய Lining விலை / ஒன்று</label><input id="qo-lining-cost-rate-${id}" class="input" type="number" min="0" step="0.01" value="0" oninput="updateQuickOrderCalc('${id}')"></div><div class="nf-lining-cost-field"><label>Lining மொத்த விலை</label><div id="qo-lining-total-${id}" class="nf-lining-cost-total">₹0.00</div></div></div></section><section class="nf-edit-category-box nf-edit-chudi nf-quick-chudi"><div class="nf-edit-category-head nf-chudi-head"><span class="nf-chudi-head-icon">👚</span><div><strong>Chudidhar / சுடிதார்</strong><small>சுடிதார் வேலைக்கான விவரங்களை இங்கே தெளிவாக உள்ளிடலாம்</small></div></div><div class="nf-chudi-grid"><div class="nf-chudi-field"><label for="qo-chudi-${id}"><span>எத்தனை சுடிதார்</span><small>மொத்த எண்ணிக்கை</small></label><input id="qo-chudi-${id}" class="input" type="number" min="0" step="1" value="0" inputmode="numeric" oninput="updateQuickOrderCalc('${id}')"></div><div class="nf-chudi-field"><label for="qo-chudi-handover-${id}"><span>வாங்கிச் சென்ற சுடிதார்</span><small>Customer எடுத்துச் சென்றது</small></label><input id="qo-chudi-handover-${id}" class="input" type="number" min="0" step="1" value="0" inputmode="numeric"></div><div class="nf-chudi-field nf-chudi-select-field"><label for="qo-chudi-lining-${id}"><span>சுடிதாருக்கு Lining கொடுத்தாரா?</span><small>Customer lining கொடுத்த நிலை</small></label><select id="qo-chudi-lining-${id}" class="input" onchange="updateChudiLiningLabel('${id}')"><option value="no">இல்லை</option><option value="yes">ஆம்</option></select></div><div class="nf-chudi-field"><label for="qo-chudi-lining-qty-${id}"><span id="qo-chudi-lining-label-${id}">நாம் வாங்கிய Chudi lining எத்தனை</span><small>தேவையான lining அளவு</small></label><input id="qo-chudi-lining-qty-${id}" class="input" type="number" min="0" step="1" value="0" inputmode="numeric"></div><div class="nf-chudi-field nf-chudi-rate-field"><label for="qo-chudi-rate-${id}"><span>சுடிதார் விலை / ஒன்று</span><small>ஒரு சுடிதாருக்கான வேலை விலை</small></label><div class="nf-chudi-rate-wrap"><span class="nf-chudi-rupee">₹</span><input id="qo-chudi-rate-${id}" class="input" type="number" min="0" step="0.01" value="${getRates().chudi}" inputmode="decimal" oninput="updateQuickOrderCalc('${id}')"></div></div></div></section><div class="field"><label>Advance வாங்கியது</label><input id="qo-advance-${id}" class="input" type="number" min="0" step="0.01" value="0"></div><div class="field"><label>Advance வாங்கிய தேதி</label><input id="qo-advance-date-${id}" class="input" type="date" value="${localDate()}"></div><div class="field"><label>Status</label><select id="qo-status-${id}" class="input"><option value="Pending">Pending</option><option value="In Progress">Progress</option><option value="Ready">Ready</option><option value="Delivered">Delivered</option><option value="Cancelled">Cancel</option></select></div><div class="field full"><label class="nf-quick-notes-label">Alteration Notes</label><textarea id="qo-notes-${id}" class="input" placeholder="தேவைப்பட்டால் குறிப்பு"></textarea></div></div><div class="customerActions" style="margin-top:10px"><button class="btn primary nf-quick-save-btn" onclick="saveQuickOrder('${id}')">💾 Save Order</button><button class="btn secondary" onclick="toggleQuickOrder('${id}')">Close</button></div></div></div><div class="nf-customer-cloth-photo-manager" aria-label="Customer cloth photos"><div class="nf-customer-cloth-heading">👕 கஸ்டமர் கொடுத்த துணிகள்</div><div class="nf-customer-cloth-photos">${clothPhotoHtml}</div><div class="nf-blouse-design-heading">🎨 Blouse Designs</div><div class="nf-blouse-design-photos">${Array.from({length:8},(_,slot)=>{const p=customerBlouseDesignPhotos(id)[slot];const gi=`<input type="file" accept="image/*" style="display:none" onchange="saveCustomerBlouseDesignPhoto('${id}',${slot},this.files[0])">`;const ci=`<input type="file" accept="image/*" capture="environment" style="display:none" onchange="saveCustomerBlouseDesignPhoto('${id}',${slot},this.files[0])">`;const pair=Math.floor(slot/2)+1;const label=slot%2===0?`சேலை Blouse ${pair}`:`Blouse Model ${pair}`;const body=p?.src?`<img src="${esc(p.src)}" alt="${esc(label)}" title="Tap to preview" onclick="previewCustomerBlouseDesignPhoto('${id}',${slot})"><div class="nf-design-photo-tools"><button type="button" class="nf-preview" title="Preview" onclick="previewCustomerBlouseDesignPhoto('${id}',${slot})">👁️</button><button type="button" class="nf-delete" title="Delete" onclick="removeCustomerBlouseDesignPhoto('${id}',${slot})">🗑️</button></div>`:`<div class="nf-design-slot-empty"><div>${esc(label)}</div><div class="nf-photo-empty-icon">＋</div></div>`;return `<div class="nf-blouse-design-item"><div class="nf-design-slot">${body}</div><div class="nf-design-slot-actions"><label class="nf-design-gallery" title="Gallery">🖼️ Gallery${gi}</label><label class="nf-design-camera" title="Camera">📷 Camera${ci}</label></div></div>`}).join("")}</div></div></div><div class="nf-delivery-card" aria-label="தைக்கப்பட்ட துணிகள்"><div class="nf-delivery-heading">🚚 தைக்கப்பட்ட துணிகள்</div>${[
+ return `<article class="customerCard" id="customer-card-${id}"><div class="customerCardHead nf-customer-head"><div class="customerAvatar">👤</div><div class="customerIdentity"><div class="nf-customer-name-row"><h3>${esc(c.name||"Customer")}</h3><div class="nf-customer-compact-actions" aria-label="Order actions"><button type="button" class="nf-compact-action nf-edit-order" onclick="event.stopPropagation();openLatestCustomerOrderEdit('${id}')" title="Edit Order" aria-label="Edit Order">✏️</button><button type="button" class="nf-compact-action nf-order-full-details" onclick="event.stopPropagation();openLatestCustomerOrderFullDetails('${id}')" title="Order Full Details" aria-label="Order Full Details">📋</button></div></div><div class="nf-whatsapp-card-row"><button type="button" class="nf-whatsapp-card-btn" onclick="event.stopPropagation();openCustomerWhatsAppCard('${id}')" title="WhatsApp Card" aria-label="WhatsApp Card">🟢 <span>WhatsApp Card</span></button></div><div class="nf-customer-contact"><div class="nf-contact-item"><span>📞 Phone</span><b>${esc(c.phone||"Phone இல்லை")}</b></div><div class="nf-contact-item"><span>📍 ஊர்</span><b>${esc(village||"ஊர் இல்லை")}</b></div><div class="nf-contact-item nf-contact-address"><span>🏠 முகவரி</span><b>${esc(address)}</b></div></div>${nfStripVillageMarker(c.notes)?`<div class="nf-customer-alteration-notes"><div class="nf-alteration-notes-title"><span class="nf-alteration-notes-icon">📝</span><span>Alteration Notes</span></div><div class="nf-alteration-notes-content">${esc(nfStripVillageMarker(c.notes))}</div></div>`:""}</div></div><section class="nf-collection-panel nf-cash-collection"><div class="nf-collection-title"><span class="nf-collection-icon">💰</span><div><h4>Cash Collection</h4><small>Order • Paid • Advance • Balance</small></div></div><div class="nf-cash-payment-action"><button type="button" class="nf-cash-payment-btn" onclick="openCustomerPayment('${id}')" aria-label="Payment" title="Payment">💰 <span>Payment</span></button></div><div class="nf-cash-columns-head" aria-hidden="true"><span>விவரம்</span><span>தேதி</span><span>தொகை</span></div><div class="customerMoneyGrid"><div class="moneyStat"><b>${money(st.total)}</b><span>மொத்த order</span></div><div class="moneyStat"><b>${money(st.paid)}</b><span>Customer paid</span></div><div class="moneyStat"><b>${money(st.advance)}</b><span>Advance வாங்கியது</span></div><div class="moneyStat clickable" onclick="goView('payments')"><b>${money(st.balance)}</b><span>இன்னும் கொடுக்க வேண்டும்</span></div></div></section>\n <section class="nf-collection-panel nf-blouse-collection"><div class="nf-collection-title"><span class="nf-collection-icon">👗</span><div><h4>Blouse Collection</h4><small>மொத்தம் • வாங்கிச் சென்றது • மீதமுள்ளது</small></div></div><div class="nfBlouseStatusGrid"><div class="moneyStat"><span>மொத்த blouse</span><b>${st.givenBlouse}</b></div><div class="moneyStat"><span>மொத்த சேலை</span><b>${st.saree}</b></div></div><div class="nfBlouseHandoverGrid"><div class="nfBlouseHandoverBox nfBlouseHandoverGiven"><div class="nfBlouseHandoverTitle">வாங்கிச் சென்றது</div><div class="nfBlouseHandoverRow"><span>Normal</span><b>${st.handedNormal}</b></div><div class="nfBlouseHandoverRow"><span>Lining</span><b>${st.handedLining}</b></div><div class="nfBlouseHandoverRow"><span>Design</span><b>${st.handedDesign}</b></div><div class="nfBlouseHandoverRow nfSareeRow"><span>🥻 Saree</span><b>${st.handedSaree}</b></div></div><div class="nfBlouseHandoverBox nfBlouseHandoverPending"><div class="nfBlouseHandoverTitle">மீதமுள்ளது</div><div class="nfBlouseHandoverRow"><span>Normal</span><b>${st.pendingNormal}</b></div><div class="nfBlouseHandoverRow"><span>Lining</span><b>${st.pendingLining}</b></div><div class="nfBlouseHandoverRow"><span>Design</span><b>${st.pendingDesign}</b></div><div class="nfBlouseHandoverRow nfSareeRow"><span>🥻 Saree</span><b>${st.pendingSaree}</b></div></div></div><div class="nf-garment-subtitle">👚 சுடிதார்</div><div class="nfChudiTotalBox"><span>மொத்த சுடிதார்</span><b>${st.chudi}</b></div><div class="nfChudiHandoverGrid"><div class="nfBlouseHandoverBox nfBlouseHandoverGiven"><div class="nfBlouseHandoverTitle">வாங்கிச் சென்றது</div><div class="nfBlouseHandoverRow"><span>சுடிதார்</span><b>${st.handedChudi}</b></div></div><div class="nfBlouseHandoverBox nfBlouseHandoverPending"><div class="nfBlouseHandoverTitle">மீதமுள்ளது</div><div class="nfBlouseHandoverRow"><span>சுடிதார்</span><b>${st.pendingChudi}</b></div></div></div></section><div class="nfCustomerBreakdownMount">${typeof window.nfCustomerWorkSummaryHTML==="function"?window.nfCustomerWorkSummaryHTML(st):""}</div><div id="quick-order-${id}" class="hidden" style="margin-top:10px;background:#faf8f6;border:1px solid var(--line);border-radius:13px;padding:12px"><h4 class="nf-quick-edit-title" style="margin:0 0 10px">🧾 New Order</h4><div class="formgrid"><div class="field nf-person-order-field"><label>👤 யாருடைய Order?</label><select id="qo-person-${id}" class="input"><option value="p1">நபர் 1</option></select></div><div class="field"><label>Garment / Blouse / Chudi</label><select id="qo-garment-${id}" class="input" onchange="updateQuickGarment('${id}')"><option value="Blouse">Blouse</option><option value="Chudi">Chudi</option><option value="Blouse+Chudi">Blouse + Chudi / பிளவுஸ் + சுடிதார்</option></select></div><div class="field"><label>Order Date</label><input id="qo-order-date-${id}" class="input" type="date" value="${localDate()}"></div><div class="field"><label>துணி கொடுத்த தேதி</label><input id="qo-cloth-${id}" class="input" type="date" value="${localDate()}"></div><div class="field"><label>Delivery Date</label><input id="qo-delivery-${id}" class="input" type="date"></div><div class="field full nf-quick-blouse"><label>👗 Customer கொடுத்த blouse — வகை வாரியாக எண்ணிக்கை + வாங்கிச் சென்றது + ஒன்றுக்கு விலை</label><div id="qo-blouse-handover-summary-${id}" class="nf-quick-handover-summary"></div><div class="nf-edit-category-stack"><section class="nf-edit-category-box nf-edit-normal"><div class="nf-edit-category-head"><span>👗</span><div><strong>Normal blouse</strong><small>எண்ணிக்கை · வாங்கிச் சென்றது · ஒன்றுக்கு விலை</small></div></div><div class="nf-edit-category-grid"><div class="moneyStat"><span>Normal blouse — எத்தனை</span><input id="qo-normal-${id}" class="input" type="number" min="0" step="1" value="0" oninput="updateQuickOrderCalc('${id}');updateQuickBlouseHandover('${id}')"></div><div class="moneyStat"><span>Normal blouse — வாங்கிச் சென்றது</span><input id="qo-normal-handover-${id}" class="input" type="number" min="0" step="1" value="0" oninput="updateQuickBlouseHandover('${id}')"></div><div class="moneyStat nf-handover-date-field"><span>📅 வாங்கிச் சென்ற தேதி</span><input id="qo-normal-handover-date-${id}" class="input" type="date"></div><div class="moneyStat"><span>Normal blouse — ஒன்றுக்கு விலை</span><input id="qo-normal-rate-${id}" class="input" type="number" min="0" step="0.01" value="${getRates().normal}" oninput="updateQuickOrderCalc('${id}')"></div></div></section><section class="nf-edit-category-box nf-edit-lining-blouse"><div class="nf-edit-category-head"><span>🧵</span><div><strong>Lining blouse</strong><small>எண்ணிக்கை · வாங்கிச் சென்றது · ஒன்றுக்கு விலை</small></div></div><div class="nf-edit-category-grid"><div class="moneyStat"><span>Lining blouse — எத்தனை</span><input id="qo-lining-${id}" class="input" type="number" min="0" step="1" value="0" oninput="updateQuickOrderCalc('${id}');updateQuickBlouseHandover('${id}')"></div><div class="moneyStat"><span>Lining blouse — வாங்கிச் சென்றது</span><input id="qo-lining-handover-${id}" class="input" type="number" min="0" step="1" value="0" oninput="updateQuickBlouseHandover('${id}')"></div><div class="moneyStat nf-handover-date-field"><span>📅 வாங்கிச் சென்ற தேதி</span><input id="qo-lining-handover-date-${id}" class="input" type="date"></div><div class="moneyStat"><span>Lining blouse — ஒன்றுக்கு விலை</span><input id="qo-lining-rate-${id}" class="input" type="number" min="0" step="0.01" value="${getRates().lining}" oninput="updateQuickOrderCalc('${id}')"></div></div></section><section class="nf-edit-category-box nf-edit-design-blouse"><div class="nf-edit-category-head"><span>🎨</span><div><strong>Design blouse</strong><small>எண்ணிக்கை · வாங்கிச் சென்றது · design-wise விலை</small></div></div><div class="nf-edit-category-grid"><div class="moneyStat"><span>Design blouse — எத்தனை</span><input id="qo-design-${id}" class="input" type="number" min="0" step="1" value="0" oninput="updateQuickOrderCalc('${id}');renderQuickDesignRates('${id}');updateQuickBlouseHandover('${id}')"></div><div class="moneyStat"><span>Design blouse — வாங்கிச் சென்றது</span><input id="qo-design-handover-${id}" class="input" type="number" min="0" step="1" value="0" oninput="updateQuickBlouseHandover('${id}')"></div></div><div class="nf-design-rate-box nf-quick-blouse" id="qo-design-rates-box-${id}" style="display:none"></div></section></div></div><section class="field full nf-quick-blouse nf-edit-category-box nf-edit-saree"><div class="nf-edit-category-head"><span>🥻</span><div><strong>Saree / சேலை</strong><small>எண்ணிக்கை · வாங்கிச் சென்றது · ஒன்றுக்கு விலை · மொத்தம்</small></div></div><div class="nf-edit-category-grid"><div class="moneyStat"><span>Saree / சேலை — எத்தனை</span><input id="qo-saree-${id}" class="input" type="number" min="0" step="1" value="0" oninput="updateQuickOrderCalc('${id}')"></div><div class="moneyStat"><span>வாங்கிச் சென்ற சேலை</span><input id="qo-saree-handover-${id}" class="input" type="number" min="0" step="1" value="0"></div><div class="moneyStat"><span>Saree — ஒன்றுக்கு விலை</span><input id="qo-saree-rate-${id}" class="input" type="number" min="0" step="0.01" value="${getRates().saree}" oninput="updateQuickOrderCalc('${id}')"></div><div class="moneyStat"><span>Saree மொத்தம்</span><div id="qo-saree-total-${id}" class="nf-lining-cost-total">₹0.00</div></div></div></section><section class="field full nf-lining-cost-box nf-edit-category-box nf-edit-lining-cloth"><div class="nf-edit-category-head"><span>🧵</span><div><strong>Lining cloth</strong><small>யார் வாங்கியது · அளவு · விலை · மொத்தம்</small></div></div><div class="nf-lining-cost-grid"><div class="nf-lining-cost-field"><label>Lining யார் வாங்கியது?</label><select id="qo-lining-source-${id}" class="input" onchange="updateQuickOrderCalc('${id}')"><option value="">தேவையில்லை</option><option value="customer">Customer கொடுத்தது</option><option value="shop">நாம் வாங்கியது</option></select></div><div class="nf-lining-cost-field"><label>Lining எத்தனை</label><input id="qo-lining-qty-${id}" class="input" type="number" min="0" step="1" value="0" oninput="updateQuickOrderCalc('${id}')"></div><div class="nf-lining-cost-field"><label>நாம் வாங்கிய Lining விலை / ஒன்று</label><input id="qo-lining-cost-rate-${id}" class="input" type="number" min="0" step="0.01" value="0" oninput="updateQuickOrderCalc('${id}')"></div><div class="nf-lining-cost-field"><label>Lining மொத்த விலை</label><div id="qo-lining-total-${id}" class="nf-lining-cost-total">₹0.00</div></div></div></section><section class="nf-edit-category-box nf-edit-chudi nf-quick-chudi"><div class="nf-edit-category-head nf-chudi-head"><span class="nf-chudi-head-icon">👚</span><div><strong>Chudidhar / சுடிதார்</strong><small>சுடிதார் வேலைக்கான விவரங்களை இங்கே தெளிவாக உள்ளிடலாம்</small></div></div><div class="nf-chudi-grid"><div class="nf-chudi-field"><label for="qo-chudi-${id}"><span>எத்தனை சுடிதார்</span><small>மொத்த எண்ணிக்கை</small></label><input id="qo-chudi-${id}" class="input" type="number" min="0" step="1" value="0" inputmode="numeric" oninput="updateQuickOrderCalc('${id}')"></div><div class="nf-chudi-field"><label for="qo-chudi-handover-${id}"><span>வாங்கிச் சென்ற சுடிதார்</span><small>Customer எடுத்துச் சென்றது</small></label><input id="qo-chudi-handover-${id}" class="input" type="number" min="0" step="1" value="0" inputmode="numeric"></div><div class="nf-chudi-field nf-chudi-select-field"><label for="qo-chudi-lining-${id}"><span>சுடிதாருக்கு Lining கொடுத்தாரா?</span><small>Customer lining கொடுத்த நிலை</small></label><select id="qo-chudi-lining-${id}" class="input" onchange="updateChudiLiningLabel('${id}')"><option value="no">இல்லை</option><option value="yes">ஆம்</option></select></div><div class="nf-chudi-field"><label for="qo-chudi-lining-qty-${id}"><span id="qo-chudi-lining-label-${id}">நாம் வாங்கிய Chudi lining எத்தனை</span><small>தேவையான lining அளவு</small></label><input id="qo-chudi-lining-qty-${id}" class="input" type="number" min="0" step="1" value="0" inputmode="numeric"></div><div class="nf-chudi-field nf-chudi-rate-field"><label for="qo-chudi-rate-${id}"><span>சுடிதார் விலை / ஒன்று</span><small>ஒரு சுடிதாருக்கான வேலை விலை</small></label><div class="nf-chudi-rate-wrap"><span class="nf-chudi-rupee">₹</span><input id="qo-chudi-rate-${id}" class="input" type="number" min="0" step="0.01" value="${getRates().chudi}" inputmode="decimal" oninput="updateQuickOrderCalc('${id}')"></div></div></div></section><div class="field"><label>Advance வாங்கியது</label><input id="qo-advance-${id}" class="input" type="number" min="0" step="0.01" value="0"></div><div class="field"><label>Advance வாங்கிய தேதி</label><input id="qo-advance-date-${id}" class="input" type="date" value="${localDate()}"></div><div class="field"><label>Status</label><select id="qo-status-${id}" class="input"><option value="Pending">Pending</option><option value="In Progress">Progress</option><option value="Ready">Ready</option><option value="Delivered">Delivered</option><option value="Cancelled">Cancel</option></select></div><div class="field full"><label class="nf-quick-notes-label">Alteration Notes</label><textarea id="qo-notes-${id}" class="input" placeholder="தேவைப்பட்டால் குறிப்பு"></textarea></div></div><div class="customerActions" style="margin-top:10px"><button class="btn primary nf-quick-save-btn" onclick="saveQuickOrder('${id}')">💾 Save Order</button><button class="btn secondary" onclick="toggleQuickOrder('${id}')">Close</button></div></div></div><div class="nf-customer-cloth-photo-manager" aria-label="Customer cloth photos"><div class="nf-customer-cloth-heading">👕 கஸ்டமர் கொடுத்த துணிகள்</div><div class="nf-customer-cloth-photos">${clothPhotoHtml}</div><div class="nf-blouse-design-heading">🎨 Blouse Designs</div><div class="nf-blouse-design-photos">${Array.from({length:8},(_,slot)=>{const p=customerBlouseDesignPhotos(id)[slot];const gi=`<input type="file" accept="image/*" style="display:none" onchange="saveCustomerBlouseDesignPhoto('${id}',${slot},this.files[0])">`;const ci=`<input type="file" accept="image/*" capture="environment" style="display:none" onchange="saveCustomerBlouseDesignPhoto('${id}',${slot},this.files[0])">`;const pair=Math.floor(slot/2)+1;const label=slot%2===0?`சேலை Blouse ${pair}`:`Blouse Model ${pair}`;const body=p?.src?`<img src="${esc(p.src)}" alt="${esc(label)}" title="Tap to preview" onclick="previewCustomerBlouseDesignPhoto('${id}',${slot})"><div class="nf-design-photo-tools"><button type="button" class="nf-preview" title="Preview" onclick="previewCustomerBlouseDesignPhoto('${id}',${slot})">👁️</button><button type="button" class="nf-delete" title="Delete" onclick="removeCustomerBlouseDesignPhoto('${id}',${slot})">🗑️</button></div>`:`<div class="nf-design-slot-empty"><div>${esc(label)}</div><div class="nf-photo-empty-icon">＋</div></div>`;return `<div class="nf-blouse-design-item"><div class="nf-design-slot">${body}</div><div class="nf-design-slot-actions"><label class="nf-design-gallery" title="Gallery">🖼️ Gallery${gi}</label><label class="nf-design-camera" title="Camera">📷 Camera${ci}</label></div></div>`}).join("")}</div></div></div><div class="nf-delivery-card" aria-label="தைக்கப்பட்ட துணிகள்"><div class="nf-delivery-heading">🚚 தைக்கப்பட்ட துணிகள்</div>${[
   ["normal","👗 Normal Blouse",st.normal,st.handedNormal,st.pendingNormal],
   ["lining","🧵 Lining Blouse",st.lining,st.handedLining,st.pendingLining],
   ["design","🎨 Design Blouse",st.design,st.handedDesign,st.pendingDesign],
@@ -5932,7 +5932,25 @@ function nfFormatPaymentDate(v){return v?dateText(v):"—";}
     return (state.orders||[]).filter(o=>String(o.customer_id)===String(customerId)).slice().sort((a,b)=>String(b.created_at||b.order_date||"").localeCompare(String(a.created_at||a.order_date||"")))[0]||null;
   }
 
-  /* Canonical Customer Card action row is defined by customerCard itself; no wrapper here. */
+  var baseCustomerCard=window.customerCard;
+  if(typeof baseCustomerCard==="function" && !baseCustomerCard.__nfFinalOrderSync){
+    window.customerCard=function(id){
+      var html=baseCustomerCard.apply(this,arguments);
+      var orders=typeof customerOrders==="function"?customerOrders(id):[];
+      if(!orders.length)return html;
+
+      var latest=latestOrderForCustomer(id)||orders[0];
+      var button="<button type=\"button\" class=\"btn nf-customer-order-full-btn\" onclick=\"openCustomerOrderFullDetails('"+String(latest.id).replace(/'/g,"\\'")+"')\">📋 Order Full Details</button>";
+
+      html=html.replace(
+        '<button class="btn secondary" onclick="openModal(\'customer\',\''+id+'\')">✏️ Edit Customer</button>',
+        '<button class="btn secondary" onclick="openModal(\'customer\',\''+id+'\')">✏️ Edit Customer</button>'+button
+      );
+
+      return html;
+    };
+    window.customerCard.__nfFinalOrderSync=true;
+  }
 
   window.openCustomerOrderFullDetails=function(orderId){
     var o=(state.orders||[]).find(function(x){return String(x.id)===String(orderId);});
@@ -6831,7 +6849,26 @@ function nfFormatPaymentDate(v){return v?dateText(v):"—";}
  .customerCard .nf-customer-avatar-actions button{font-size:11px!important;min-height:32px!important}
 }
 </style>
-
+<script id="v2036-final-customer-card-actions-js">
+(function(){
+  "use strict";
+  var base=window.customerCard;
+  if(typeof base!=="function" || base.__nfV2036Final)return;
+  window.customerCard=function(id){
+    var html=base.apply(this,arguments);
+    var safeId=String(id).replace(/`/g,"\\`");
+    html=html.replace(/<button[^>]*class="[^"]*nf-customer-order-full-btn[^"]*"[^>]*>[\s\S]*?<\/button>/gi,"");
+    html=html.replace(/<div class="nf-customer-compact-actions"[^>]*>[\s\S]*?<\/div>/gi,"");
+    html=html.replace(/<div class="nf-customer-avatar-column"[^>]*>[\s\S]*?<\/div>\s*<div class="customerIdentity"/gi,'<div class="customerAvatar">👤</div><div class="customerIdentity"');
+    var avatarActions=`<div class="nf-customer-avatar-column"><div class="customerAvatar">👤</div><div class="nf-customer-avatar-actions"><button type="button" class="nf-edit-customer" onclick="event.stopPropagation();openModal('customer','${safeId}')" title="Edit Customer" aria-label="Edit Customer">✏️ Edit</button><button type="button" class="nf-delete-customer" onclick="event.stopPropagation();removeRow('customers','${safeId}')" title="Delete Customer" aria-label="Delete Customer">🗑️ Delete</button></div></div><div class="customerIdentity">`;
+    html=html.replace('<div class="customerAvatar">👤</div><div class="customerIdentity">',avatarActions);
+    var actions=`<div class="nf-customer-compact-actions" aria-label="Order actions"><button type="button" class="nf-compact-action nf-edit-order" onclick="event.stopPropagation();openLatestCustomerOrderEdit('${safeId}')" title="Edit Order" aria-label="Edit Order">✏️</button><button type="button" class="nf-compact-action nf-order-full-details" onclick="event.stopPropagation();openLatestCustomerOrderFullDetails('${safeId}')" title="Order Full Details" aria-label="Order Full Details">📋</button></div>`;
+    html=html.replace(/(<div class="nf-customer-name-row"[^>]*>\s*<h3>[\s\S]*?<\/h3>)(\s*<\/div>)/i,'$1'+actions+'$2');
+    return html;
+  };
+  window.customerCard.__nfV2036Final=true;
+})();
+</script>
 <style>
 /* V204.3 — single authoritative garment-state presentation */
 #app [id^="quick-order-"] .nf-field-hidden { display:none!important; }
@@ -9879,13 +9916,8 @@ function injectOrderPersonField(){
 }
 function renderPersonPanel(id){
  const host=$("nfPersonPanel-"+id);if(!host)return;const persons=getPersons(id);
- host.innerHTML=`<div class="nf-person-head"><div><h4>👥 இந்த customer-ன் துணிகள் — ${persons.length} பேர்</h4><div class="nf-person-note">Order / Edit Order / Payment — ஒரே Main Order flow-வுடன் sync.</div></div><button type="button" class="nf-person-add" onclick="nfAddPerson('${safe(id)}')">＋ நபரை சேர்க்க</button></div><div class="nf-person-list">${persons.map((p,i)=>{const st=personStats(id,p.id);const latest=st.orders.slice().sort((a,b)=>String(b.created_at||b.order_date||"").localeCompare(String(a.created_at||a.order_date||"")))[0];return `<div class="nf-person-card"><div class="nf-person-card-top"><div class="nf-person-avatar">👤</div><div class="nf-person-name">நபர் ${i+1} — ${safe(p.name)}</div><div class="nf-person-actions">${latest?`<button type="button" class="nf-person-edit" onclick="event.stopPropagation();nfEditPersonOrder('${safe(id)}','${safe(p.id)}')" title="Edit Order" aria-label="Edit Order">✏️</button><button type="button" class="nf-person-delete" onclick="event.stopPropagation();nfDeletePersonOrder('${safe(id)}','${safe(p.id)}','${safe(latest.id)}')" title="Delete Order" aria-label="Delete Order">🗑️</button>`:`<button type="button" class="nf-person-new" onclick="event.stopPropagation();nfNewPersonOrder('${safe(id)}','${safe(p.id)}')" title="New Order" aria-label="New Order">＋</button>`}</div></div><div class="nf-person-meta"><div class="nf-person-stat"><b>${st.normal}</b><span>Normal</span></div><div class="nf-person-stat"><b>${st.lining}</b><span>Lining</span></div><div class="nf-person-stat"><b>${st.design}</b><span>Design</span></div></div><div class="nf-person-orders">🧾 ${st.orders.length} order · 💰 ${money(st.total)} · Paid ${money(st.paid)} · Balance ${money(st.balance)}</div></div>`}).join("")}</div>`;
+ host.innerHTML=`<div class="nf-person-head"><div><h4>👥 இந்த customer-ன் துணிகள் — ${persons.length} பேர்</h4><div class="nf-person-note">Order / Edit Order / Payment — மேலே இருக்கும் ஒரே existing flow-வுடன் sync ஆகும்.</div></div><button type="button" class="nf-person-add" onclick="nfAddPerson('${safe(id)}')">＋ நபரை சேர்க்க</button></div><div class="nf-person-list">${persons.map((p,i)=>{const st=personStats(id,p.id);return `<div class="nf-person-card"><div class="nf-person-card-top"><div class="nf-person-avatar">👤</div><div class="nf-person-name">நபர் ${i+1} — ${safe(p.name)}</div></div><div class="nf-person-meta"><div class="nf-person-stat"><b>${st.normal}</b><span>Normal</span></div><div class="nf-person-stat"><b>${st.lining}</b><span>Lining</span></div><div class="nf-person-stat"><b>${st.design}</b><span>Design</span></div></div><div class="nf-person-orders">🧾 ${st.orders.length} order · 💰 ${money(st.total)} · Paid ${money(st.paid)} · Balance ${money(st.balance)}</div></div>`}).join("")}</div>`;
 }
-function latestPersonOrder(id,pid){return (state.orders||[]).filter(o=>String(o.customer_id)===String(id)&&getOrderPersonId(o)===String(pid)).slice().sort((a,b)=>String(b.created_at||b.order_date||"").localeCompare(String(a.created_at||a.order_date||"")))[0]||null}
-function setPersonOnQuickForm(key,pid,tries){const el=$("qo-person-"+key);if(el){ensureQuickPersonSelect(key,pid);el.value=String(pid);el.dispatchEvent(new Event("change"));return true}if((tries||0)<30){setTimeout(()=>setPersonOnQuickForm(key,pid,(tries||0)+1),80)}return false}
-window.nfNewPersonOrder=function(id,pid){const fn=window.openOrdersNewOrderForCustomer;if(typeof fn!=="function"){toast("New Order screen கிடைக்கவில்லை.",true);return}fn(String(id));setPersonOnQuickForm(String(id),String(pid),0)};
-window.nfEditPersonOrder=function(id,pid){const o=latestPersonOrder(id,pid);if(!o){nfNewPersonOrder(id,pid);return}const fn=window.openOrdersEditOrder;if(typeof fn!=="function"){toast("Edit Order screen கிடைக்கவில்லை.",true);return}fn(String(o.id))};
-window.nfDeletePersonOrder=function(id,pid,orderId){const o=(state.orders||[]).find(x=>String(x.id)===String(orderId))||latestPersonOrder(id,pid);if(!o){toast("Delete செய்ய Order கிடைக்கவில்லை.",true);return}if(!confirm("இந்த நபருடைய இந்த Order-ஐ மட்டும் Delete செய்யவா?"))return;if(typeof removeRow==="function")removeRow("orders",String(o.id))};
 async function nfSavePersons(id,persons,refresh){
  const c=getCustomer(id);if(!c)return;const clean=stripPersonMarker(c.notes||""),next=[clean,personsMarker(persons)].filter(Boolean).join(" | ");
  try{const r=await supabaseClient.from("customers").update({notes:next}).eq("id",id);if(r.error)throw r.error;c.notes=next;localStorage.setItem("nf_persons_"+id,JSON.stringify(persons));if(refresh){renderCustomers();toast("Persons update செய்யப்பட்டுவிட்டது.")}}catch(e){toast("Person save failed: "+e.message,true)}
@@ -9909,7 +9941,7 @@ document.addEventListener("DOMContentLoaded",()=>{setTimeout(install,100);setTim
 
 <style id="nf-person-single-order-ui">
 .nf-person-note{margin-top:3px;font-size:11px;font-weight:750;color:#756b82;line-height:1.35}
-.nf-person-actions{display:flex!important;align-items:center!important;gap:5px!important;flex:0 0 auto!important;white-space:nowrap!important}.nf-person-actions button{width:36px!important;height:36px!important;min-width:36px!important;padding:0!important;border:0!important;border-radius:10px!important;display:grid!important;place-items:center!important;font-size:19px!important;line-height:1!important}.nf-person-new{background:#e4f8f0!important;color:#14744f!important}.nf-person-edit{background:#eee9ff!important;color:#5734bd!important}.nf-person-delete{background:#ffe9ec!important;color:#b4233c!important}
+.nf-person-actions{display:none!important}
 </style>
 </body></html><script id="nf-v52-dashboard-scroll-fix-js">
 (function(){
@@ -10080,6 +10112,19 @@ document.addEventListener("DOMContentLoaded",()=>{setTimeout(install,100);setTim
         }
       },150);
     },true);
+  }
+
+  var baseCustomerCard75=window.customerCard;
+  if(typeof baseCustomerCard75==="function" && !baseCustomerCard75.__nfV75){
+    window.customerCard=function(id){
+      var html=baseCustomerCard75.apply(this,arguments);
+
+      html=html.replace(/<button[^>]*class="[^"]*nf-customer-order-full-btn[^"]*"[^>]*>[\s\S]*?<\/button>/gi,"");
+
+
+      return html;
+    };
+    window.customerCard.__nfV75=true;
   }
 
   var baseRenderOrders75=window.renderOrders;
@@ -11532,5 +11577,177 @@ document.addEventListener("DOMContentLoaded",()=>{setTimeout(install,100);setTim
     if(input?.dataset) input.dataset.nfR2Managed="true";
     return input;
   };
+})();
+</script>
+
+<style id="nf-person-order-buttons-v2-css">
+/* Person-only order controls. Existing Customer Card controls are untouched. */
+.nf-person-card-top{display:flex!important;align-items:center!important;gap:8px!important;min-width:0!important}
+.nf-person-name{flex:1 1 auto!important;min-width:0!important}
+.nf-person-order-actions{display:flex!important;align-items:center!important;justify-content:flex-end!important;gap:5px!important;flex:0 0 auto!important;flex-wrap:nowrap!important;white-space:nowrap!important}
+.nf-person-order-actions button{
+  width:38px!important;height:38px!important;min-width:38px!important;min-height:38px!important;
+  padding:0!important;border:0!important;border-radius:10px!important;
+  display:grid!important;place-items:center!important;
+  font-size:20px!important;line-height:1!important;font-weight:900!important;
+  box-shadow:0 4px 10px rgba(45,25,90,.12)!important;
+}
+.nf-person-new-order{background:linear-gradient(135deg,#6840e8,#9d55e8)!important;color:#fff!important}
+.nf-person-edit-order{background:#eaf3ff!important;color:#1976c8!important}
+.nf-person-delete-order{background:#ffe9ec!important;color:#b4233c!important}
+@media(max-width:560px){
+  .nf-person-order-actions{gap:4px!important}
+  .nf-person-order-actions button{width:34px!important;height:34px!important;min-width:34px!important;min-height:34px!important;font-size:18px!important}
+}
+</style>
+<script id="nf-person-order-buttons-v2-js">
+(function(){
+  "use strict";
+  if(window.__NF_PERSON_ORDER_BUTTONS_V2)return;
+  window.__NF_PERSON_ORDER_BUTTONS_V2=true;
+
+  function decodePersons(id){
+    try{
+      var c=(state.customers||[]).find(function(x){return String(x.id)===String(id)});
+      var raw=String(c&&c.notes||"");
+      var m=raw.match(/(?:^|\s*\|\s*)NF_PERSONS_B64:([A-Za-z0-9+/=]+)/);
+      if(m){
+        var json=decodeURIComponent(escape(atob(m[1])));
+        var a=JSON.parse(json);
+        if(Array.isArray(a)&&a.length){
+          return a.map(function(x,i){
+            return {id:String(x&&x.id||("p"+(i+1))),name:String(x&&x.name||("நபர் "+(i+1)))};
+          });
+        }
+      }
+    }catch(_){}
+    return [{id:"p1",name:"நபர் 1"}];
+  }
+
+  function personIdFromOrder(o){
+    var m=String(o&&o.notes||"").match(/(?:^|\s*\|\s*)NF_PERSON_ID:([^|\s]+)/);
+    return m?String(m[1]):"p1";
+  }
+
+  function latestPersonOrder(customerId,pid){
+    return (state.orders||[]).filter(function(o){
+      return String(o.customer_id)===String(customerId) &&
+             personIdFromOrder(o)===String(pid);
+    }).sort(function(a,b){
+      return String(b.created_at||b.order_date||"").localeCompare(String(a.created_at||a.order_date||""));
+    })[0]||null;
+  }
+
+  function setPersonAfterOpen(customerId,pid){
+    var tries=0;
+    function apply(){
+      tries++;
+      var sel=document.getElementById("qo-person-"+customerId);
+      if(sel){
+        sel.value=String(pid);
+        try{
+          if(typeof sel.dispatchEvent==="function"){
+            sel.dispatchEvent(new Event("change",{bubbles:true}));
+          }
+        }catch(_){}
+        return;
+      }
+      if(tries<30)setTimeout(apply,50);
+    }
+    setTimeout(apply,60);
+  }
+
+  window.nfPersonNewOrder=function(customerId,pid){
+    customerId=String(customerId||"");pid=String(pid||"p1");
+    if(!customerId)return;
+    if(typeof window.openOrdersNewOrderForCustomer==="function"){
+      window.openOrdersNewOrderForCustomer(customerId);
+      setPersonAfterOpen(customerId,pid);
+    }
+  };
+
+  window.nfPersonEditOrder=function(orderId,customerId,pid){
+    orderId=String(orderId||"");customerId=String(customerId||"");pid=String(pid||"p1");
+    if(!orderId)return;
+    if(typeof window.openOrdersEditOrder==="function"){
+      window.openOrdersEditOrder(orderId);
+      setPersonAfterOpen(customerId,pid);
+    }
+  };
+
+  window.nfPersonDeleteOrder=function(orderId){
+    orderId=String(orderId||"");
+    if(!orderId)return;
+    if(!confirm("இந்த நபரின் இந்த Order-ஐ மட்டும் Delete செய்யவா?"))return;
+    if(typeof window.removeRow==="function"){
+      window.removeRow("orders",orderId);
+    }
+  };
+
+  function enhancePanel(panel){
+    var id=String(panel.id||"").replace(/^nfPersonPanel-/,"");
+    if(!id)return;
+    var persons=decodePersons(id);
+    panel.querySelectorAll(".nf-person-card").forEach(function(card,index){
+      var pid=String(persons[index]&&persons[index].id||("p"+(index+1)));
+      var latest=latestPersonOrder(id,pid);
+      var top=card.querySelector(".nf-person-card-top");
+      if(!top)return;
+
+      var old=top.querySelector(".nf-person-order-actions");
+      if(old)old.remove();
+
+      var actions=document.createElement("div");
+      actions.className="nf-person-order-actions";
+      actions.setAttribute("aria-label","Person order actions");
+
+      var add=document.createElement("button");
+      add.type="button";add.className="nf-person-new-order";
+      add.title="New Order";add.setAttribute("aria-label","New Order");
+      add.textContent="＋";
+      add.onclick=function(e){e.stopPropagation();nfPersonNewOrder(id,pid)};
+      actions.appendChild(add);
+
+      if(latest){
+        var edit=document.createElement("button");
+        edit.type="button";edit.className="nf-person-edit-order";
+        edit.title="Edit Order";edit.setAttribute("aria-label","Edit Order");
+        edit.textContent="✏️";
+        edit.onclick=function(e){e.stopPropagation();nfPersonEditOrder(latest.id,id,pid)};
+        actions.appendChild(edit);
+
+        var del=document.createElement("button");
+        del.type="button";del.className="nf-person-delete-order";
+        del.title="Delete Order";del.setAttribute("aria-label","Delete Order");
+        del.textContent="🗑️";
+        del.onclick=function(e){e.stopPropagation();nfPersonDeleteOrder(latest.id)};
+        actions.appendChild(del);
+      }
+      top.appendChild(actions);
+    });
+  }
+
+  function enhanceAll(){
+    document.querySelectorAll(".nf-person-panel").forEach(enhancePanel);
+  }
+
+  function wrapRenderCustomers(){
+    var base=window.renderCustomers;
+    if(typeof base!=="function"||base.__nfPersonOrderButtonsV2)return;
+    window.renderCustomers=function(){
+      var r=base.apply(this,arguments);
+      setTimeout(enhanceAll,20);
+      setTimeout(enhanceAll,180);
+      return r;
+    };
+    window.renderCustomers.__nfPersonOrderButtonsV2=true;
+  }
+
+  wrapRenderCustomers();
+  document.addEventListener("DOMContentLoaded",function(){
+    setTimeout(wrapRenderCustomers,120);
+    setTimeout(enhanceAll,250);
+    setTimeout(enhanceAll,700);
+  },{once:true});
 })();
 </script>
