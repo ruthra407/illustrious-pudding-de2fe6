@@ -3325,6 +3325,24 @@ if(type==="customer"){
   const cleanCustomerNotes=nfStripVillageMarker(payload.notes||"");
   const villageMarker=nfEncodeVillageMarker(villageForCloud);
   payload.notes=[cleanCustomerNotes,villageMarker].filter(Boolean).join(" | ")||null;
+  /* Person names are part of the customer record itself.  Save them BEFORE
+     the new-customer -> New Order hand-off so the first New Order screen can
+     read all persons immediately; do not wait for a background refresh. */
+  const personInput=document.getElementById("nfCustomerPersonsInput");
+  if(personInput){
+    const personNames=String(personInput.value||"").split(",").map(x=>x.trim()).filter(Boolean);
+    const names=personNames.length?personNames:["நபர் 1"];
+    const persons=names.map((name,i)=>({id:"p"+(i+1),name}));
+    let personJson="";
+    try{personJson=btoa(unescape(encodeURIComponent(JSON.stringify(persons))))}catch(_){personJson=""}
+    if(personJson){
+      const withoutPersons=String(payload.notes||"")
+        .replace(/\s*\|\s*NF_PERSONS_B64:[A-Za-z0-9+/=]+/g,"")
+        .replace(/^NF_PERSONS_B64:[A-Za-z0-9+/=]+\s*\|?\s*/i,"")
+        .trim();
+      payload.notes=[withoutPersons,"NF_PERSONS_B64:"+personJson].filter(Boolean).join(" | ")||null;
+    }
+  }
 }
 if(type==="payment"){
   const oid=String(payload.order_id||"");
@@ -3454,8 +3472,20 @@ if(type==="order"){
   const alterationNotes=String(payload.notes||"").trim();
   const cid=String(payload.customer_id||"");
   if(cid){
-    const ur=await supabaseClient.from("customers").update({notes:alterationNotes}).eq("id",cid);
+    /* Never let saving an Order overwrite the customer's person list.
+       Preserve NF_PERSONS_B64 from the customer record and keep the Order's
+       own NF_PERSON_ID in the Order notes. */
+    const currentCustomer=(state.customers||[]).find(c=>String(c.id)===cid);
+    const existingCustomerNotes=String(currentCustomer?.notes||"");
+    const personMarker=(existingCustomerNotes.match(/(?:^|\s*\|\s*)(NF_PERSONS_B64:[A-Za-z0-9+/=]+)/)||[])[1]||"";
+    const cleanAlteration=alterationNotes
+      .replace(/\s*\|\s*NF_PERSON_ID:[^|\s]+/g,"")
+      .replace(/\s*\|\s*NF_PERSONS_B64:[A-Za-z0-9+/=]+/g,"")
+      .trim();
+    const customerNotes=[cleanAlteration,personMarker].filter(Boolean).join(" | ")||null;
+    const ur=await supabaseClient.from("customers").update({notes:customerNotes}).eq("id",cid);
     if(ur.error)throw ur.error;
+    if(currentCustomer)currentCustomer.notes=customerNotes||"";
   }
 }
 const wasNewCustomer=type==="customer" && !id;
