@@ -10336,78 +10336,85 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
 </style></style>
 
 
-<script id="nf-v110-main-additional-cash-collection-js">
+<script id="nf-v100-main-additional-cash-collection-js">
 (function(){
   "use strict";
-  /* V11.0: one Multi Customer Cash Collection outer box.
-     Inside it, Main + each Additional Customer gets exactly the original
-     Single Customer Cash Collection panel, cloned from the original customerCard(). */
-  function parentId(c){if(!c)return "";var m=String(c.notes||"").match(/(?:^|\|\s*)(?:NF_MULTI_PARENT|NF_PARENT_CUSTOMER):\s*([^|\s]+)/i);return m?String(m[1]||""):"";}
-  function isChild(c){return !!parentId(c);}
-  function mainId(id){var sid=String(id||"");var c=(state.customers||[]).find(function(x){return String(x&&x.id||"")===sid;});return c&&isChild(c)?parentId(c):sid;}
-  function kids(id){var mid=mainId(id);return (state.customers||[]).filter(function(c){return parentId(c)===mid;});}
-  function esc(v){return String(v==null?"":v).replace(/[&<>"']/g,function(ch){return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[ch];});}
-  function cloneCashPanel(base,customerId){
-    try{
-      var holder=document.createElement("div");
-      holder.innerHTML=base(customerId);
-      var panel=holder.querySelector(":scope > .nf-cash-collection")||holder.querySelector(".nf-cash-collection");
-      return panel?panel.outerHTML:"";
-    }catch(e){console.warn("V11.0 Cash Collection clone:",e);return "";}
+  function parentId(c){
+    if(!c)return "";
+    var m=String(c.notes||"").match(/(?:^|\|\s*)(?:NF_MULTI_PARENT|NF_PARENT_CUSTOMER):\s*([^|\s]+)/i);
+    return m?String(m[1]||""):"";
   }
-  function addCash(card,id,base){
-    if(!card)return;
+  function isChild(c){return !!parentId(c);}
+  function kids(id){
+    var sid=String(id||"");
+    return (state.customers||[]).filter(function(c){return parentId(c)===sid;});
+  }
+  function cloneCashPanel(base,id){
+    try{
+      var h=document.createElement("div");
+      h.innerHTML=base(id);
+      var p=h.querySelector(".nf-cash-collection");
+      return p?p.outerHTML:"";
+    }catch(e){console.warn("Multi Customer Cash Collection:",e);return "";}
+  }
+  function addMultiCash(card,id,base){
     var list=kids(id);
-    if(!list.length)return;
+    if(!card||!list.length)return;
     var old=card.querySelector(":scope > .nf-cash-collection")||card.querySelector(".nf-cash-collection");
     if(!old)return;
-
     var wrap=document.createElement("section");
-    wrap.className="nf-v110-multi-cash-wrap";
-    wrap.innerHTML='<div class="nf-v110-multi-cash-head"><span>💰</span><div><strong>Cash Collection</strong><small>Main Customer + '+list.length+' Additional Customer'+(list.length>1?'s':'')+'</small></div></div><div class="nf-v110-multi-cash-body"></div>';
-    var body=wrap.querySelector(".nf-v110-multi-cash-body");
-
-    [String(mainId(id))].concat(list.map(function(k){return String(k.id);})).forEach(function(cid){
-      var panelHtml=cloneCashPanel(base,cid);
-      if(!panelHtml)return;
+    wrap.className="nf-v100-multi-cash-wrap";
+    var body=document.createElement("div");
+    body.className="nf-v100-multi-cash-body";
+    [String(id)].concat(list.map(function(c){return String(c.id);})).forEach(function(cid){
+      var html=cloneCashPanel(base,cid);
+      if(!html)return;
       var item=document.createElement("div");
-      item.className="nf-v110-customer-cash-box";
-      item.innerHTML=panelHtml;
+      item.className="nf-v100-customer-cash-box";
+      var name=(state.customers||[]).find(function(c){return String(c.id)===String(cid);});
+      var title=document.createElement("div");
+      title.className="nf-v100-customer-name";
+      title.textContent=name&&name.name?name.name:"Customer";
+      item.appendChild(title);
+      var holder=document.createElement("div");
+      holder.innerHTML=html;
+      item.appendChild(holder.firstElementChild);
       body.appendChild(item);
     });
-
+    wrap.appendChild(body);
     old.replaceWith(wrap);
   }
   function patchCustomerCard(){
     var base=window.customerCard;
-    if(typeof base!=="function"||base.__nfV110MultiCash)return;
+    if(typeof base!=="function"||base.__nfV100MultiCash)return;
     var wrapped=function(id){
       var html=base.apply(this,arguments);
       try{
-        var holder=document.createElement("div");holder.innerHTML=html;
-        var card=holder.querySelector(".customerCard");
-        if(card){addCash(card,id,base);return card.outerHTML;}
-      }catch(e){console.warn("V11.0 Multi Cash Collection:",e);}
+        var h=document.createElement("div");h.innerHTML=html;
+        var card=h.querySelector(".customerCard");
+        if(card){addMultiCash(card,id,base);return card.outerHTML;}
+      }catch(e){console.warn("Multi Customer Cash Collection:",e);}
       return html;
     };
-    wrapped.__nfV110MultiCash=true;
+    wrapped.__nfV100MultiCash=true;
     window.customerCard=wrapped;
   }
   function patchRenderCustomers(){
-    if(typeof window.renderCustomers!=="function"||window.renderCustomers.__nfV110FilterChildren)return;
     var base=window.renderCustomers;
+    if(typeof base!=="function"||base.__nfV100FilterChildren)return;
     var wrapped=function(){
-      var box=$("customersTable");
-      var search=$("customerSearch");
-      if(!box||!search)return base.apply(this,arguments);
-      var q=(search.value||"").toLowerCase();
-      var rows=(state.customers||[]).filter(function(x){
-        if(isChild(x))return false;
-        return [x.name,x.phone,x.address,x.village].join(" ").toLowerCase().includes(q);
-      });
-      box.innerHTML=rows.length?rows.map(function(x){return customerCard(x.id);}).join(""):'<div class="card empty" style="grid-column:1/-1">No customers found.</div>';
+      var result=base.apply(this,arguments);
+      try{
+        var box=document.getElementById("customersTable");
+        if(box)box.querySelectorAll(".customerCard").forEach(function(card){
+          var id=String(card.id||"").replace(/^customer-card-/,'');
+          var c=(state.customers||[]).find(function(x){return String(x.id)===id;});
+          if(isChild(c))card.remove();
+        });
+      }catch(e){}
+      return result;
     };
-    wrapped.__nfV110FilterChildren=true;
+    wrapped.__nfV100FilterChildren=true;
     window.renderCustomers=wrapped;
   }
   function start(){patchCustomerCard();patchRenderCustomers();}
@@ -10416,15 +10423,12 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
   else setTimeout(start,0);
 })();
 </script>
-<style id="nf-v110-main-additional-cash-collection-css">
-.nf-v110-multi-cash-wrap{margin:12px 0;padding:0;border:1px solid #ddd8df;border-radius:20px;background:#fff;box-shadow:0 8px 22px rgba(35,25,30,.08);overflow:hidden}
-.nf-v110-multi-cash-head{display:flex;align-items:center;gap:10px;padding:12px 15px;background:#fff;border-bottom:1px solid #e5e0e4;color:#211b20}
-.nf-v110-multi-cash-head>span{font-size:24px;line-height:1}.nf-v110-multi-cash-head strong{display:block;font-size:20px;font-weight:950;line-height:1.25}.nf-v110-multi-cash-head small{display:block;margin-top:2px;font-size:12px;font-weight:700;color:#6b646b}
-.nf-v110-multi-cash-body{padding:10px 12px 12px;display:grid;gap:10px}
-.nf-v110-customer-cash-box>.nf-cash-collection{margin:0!important}
-@media(max-width:560px){.nf-v110-multi-cash-head{padding:11px 12px}.nf-v110-multi-cash-head strong{font-size:18px}.nf-v110-multi-cash-body{padding:8px}}
-</style><style id="nf-v90-multi-cash-collection-css">
-.nf-v90-cash-dates{display:flex;flex-direction:column;gap:3px;margin:8px 0 4px;padding:8px 10px;border-radius:10px;background:#f7f4fb;border:1px solid #e3dceb;font-size:12px;font-weight:750;color:#5d5662}.nf-v90-cash-actions{display:flex;gap:7px;margin-top:8px}.nf-v90-cash-actions .btn{flex:1;min-height:38px}.nf-v80-cash-main,.nf-v80-additional-wrap{margin:10px 12px}.nf-v80-additional-wrap{padding:10px;border:2px solid #d8b4f2;border-radius:15px;background:linear-gradient(135deg,#fff8ff,#f4f8ff)}
+<style id="nf-v100-main-additional-cash-collection-css">
+.nf-v100-multi-cash-wrap{margin:12px 0;padding:0;border:1px solid #ddd8df;border-radius:20px;background:#fff;box-shadow:0 8px 22px rgba(35,25,30,.08);overflow:hidden}
+.nf-v100-multi-cash-body{padding:10px 12px 12px;display:grid;gap:10px}
+.nf-v100-customer-cash-box{margin:0;padding:0}
+.nf-v100-customer-name{font-size:18px;font-weight:950;color:#211b20;padding:8px 10px 7px;border-radius:12px 12px 0 0;background:#f7f4fb;border:1px solid #e3dceb;border-bottom:0}
+.nf-v100-customer-cash-box>.nf-cash-collection{margin:0!important;border-top-left-radius:0!important;border-top-right-radius:0!important}
 </style>
 </body></html><script id="nf-v52-dashboard-scroll-fix-js">
 (function(){
