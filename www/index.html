@@ -10364,6 +10364,120 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",boot,{once:true});else boot();
 })();
 </script>
+<!-- NF V19 CUSTOMER HOOK GROUPING -->
+
+<style id="nf-v190-customer-hook-grouping-css">
+.nf-v190-group{margin:12px 0;padding:0;border:2px solid #cbbaf3;border-radius:20px;background:linear-gradient(145deg,#fff,#faf7ff);overflow:hidden;box-shadow:0 10px 24px rgba(72,48,120,.10)}
+.nf-v190-customer-head{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;min-height:52px;padding:10px 13px;border:0;background:linear-gradient(135deg,#f0ebff,#fff0f7);color:#241b31;font:inherit;font-size:20px;font-weight:950;text-align:left;cursor:pointer}
+.nf-v190-customer-head .nf-v190-icon,.nf-v190-hook .nf-v190-icon{flex:0 0 36px;width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(135deg,#6c3df5,#ef4f9a);color:#fff;font-size:22px;line-height:1;box-shadow:0 5px 13px rgba(108,61,245,.22)}
+.nf-v190-customer-head .nf-v190-name{min-width:0;flex:1;overflow-wrap:anywhere}
+.nf-v190-customer-body{display:none;padding:0 10px 10px}
+.nf-v190-hook{width:100%;min-height:48px;margin:8px 0 0;padding:7px 10px;border:1px solid #e0d7ef;border-radius:14px;background:linear-gradient(135deg,#faf8ff,#fff);display:flex;align-items:center;justify-content:space-between;gap:10px;color:#2b2433;font:inherit;font-weight:900;text-align:left;cursor:pointer;box-shadow:0 5px 13px rgba(72,48,120,.06)}
+.nf-v190-hook .nf-v190-label{min-width:0;flex:1;overflow-wrap:anywhere}
+.nf-v190-hook .nf-v190-icon{width:34px;height:34px;flex-basis:34px;font-size:21px}
+.nf-v190-panel{display:none;margin:8px 0 0}
+.nf-v190-panel.open{display:block}
+.nf-v190-panel>.nf-cash-collection,.nf-v190-panel>.nf-blouse-collection{margin:0!important}
+.nf-v190-panel>.nfCustomerBreakdownMount{margin:0!important}
+.nf-v190-hidden{display:none!important}
+@media(max-width:560px){.nf-v190-customer-head{min-height:48px;padding:8px 10px;font-size:18px}.nf-v190-customer-body{padding:0 7px 8px}.nf-v190-hook{min-height:44px;padding:6px 8px}.nf-v190-hook .nf-v190-icon,.nf-v190-customer-head .nf-v190-icon{width:32px;height:32px;flex-basis:32px;font-size:19px}}
+</style>
+<script id="nf-v190-customer-hook-grouping-js">
+(function(){
+  "use strict";
+  if(window.__nfV190CustomerHookGrouping)return;
+  window.__nfV190CustomerHookGrouping=true;
+  var PARENT_RE=/(?:^|\|\s*)(?:NF_MULTI_PARENT|NF_PARENT_CUSTOMER):\s*([^|\s]+)/i;
+  function all(){return (typeof state!=="undefined"&&Array.isArray(state.customers))?state.customers:[];}
+  function parentId(c){var m=String(c&&c.notes||"").match(PARENT_RE);return m?String(m[1]||""):"";}
+  function kids(id){var sid=String(id||""),seen={};return all().filter(function(c){var cid=String(c&&c.id||"");if(parentId(c)!==sid||!cid||seen[cid])return false;seen[cid]=1;return true;});}
+  function ids(mainId){var a=[String(mainId)],seen={};seen[a[0]]=1;kids(mainId).forEach(function(c){var id=String(c.id||"");if(id&&!seen[id]){seen[id]=1;a.push(id);}});return a;}
+  function esc(v){return String(v==null?"":v).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c];});}
+  function customerName(id){var c=all().find(function(x){return String(x&&x.id||"")===String(id);});return c&&c.name||"Customer";}
+  function getById(root,sel,id){var n=root.querySelector(sel+'[data-customer-id="'+CSS.escape(String(id))+'"]');return n;}
+  function restoreCalcInternalHooks(calc){
+    if(!calc)return;
+    calc.querySelectorAll('.customerWorkSection').forEach(function(sec){
+      var h=sec.querySelector(':scope > h4');if(!h)return;
+      var b=h.querySelector('.nf-v170-calc-hook');
+      if(b){var t=b.querySelector('span');h.textContent=t?t.textContent.trim():b.textContent.replace('＋','').replace('−','').trim();}
+      Array.prototype.forEach.call(sec.children,function(ch,i){if(i>0)ch.style.display='';});
+      sec.querySelectorAll('.nf-v170-calc-body').forEach(function(x){x.style.display='';x.classList.remove('nf-v170-calc-body');});
+    });
+  }
+  function makeHook(label,icon,body,openDefault){
+    var row=document.createElement('div');
+    var btn=document.createElement('button');btn.type='button';btn.className='nf-v190-hook';btn.setAttribute('aria-expanded',openDefault?'true':'false');
+    btn.innerHTML='<span class="nf-v190-label"></span><span class="nf-v190-icon">'+icon+'</span>';
+    btn.querySelector('.nf-v190-label').textContent=label;
+    var panel=document.createElement('div');panel.className='nf-v190-panel';
+    if(body)panel.appendChild(body);
+    function sync(open){panel.classList.toggle('open',open);btn.setAttribute('aria-expanded',String(open));btn.querySelector('.nf-v190-icon').textContent=open?'−':'＋';}
+    btn.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();sync(btn.getAttribute('aria-expanded')!=='true');});
+    row.appendChild(btn);row.appendChild(panel);sync(!!openDefault);return row;
+  }
+  function extractSections(card){
+    var cashWrap=card.querySelector(':scope > .nf-v120-multi-cash-wrap');
+    var calcWrap=card.querySelector(':scope > .nf-v160-multi-calculation');
+    var blouseWrap=card.querySelector(':scope > .nf-v130-multi-blouse');
+    if(!cashWrap||!calcWrap||!blouseWrap)return null;
+    var cash={},calc={},blouse={};
+    cashWrap.querySelectorAll('.nf-v120-customer-cash-box').forEach(function(x){var id=x.getAttribute('data-customer-id');if(id)cash[String(id)]=x;});
+    calcWrap.querySelectorAll('.nf-v160-customer-calc-box').forEach(function(x){var id=x.getAttribute('data-customer-id');if(id)calc[String(id)]=x;});
+    blouseWrap.querySelectorAll('.nf-v130-blouse-person').forEach(function(x){var name=x.querySelector('.nf-v130-blouse-person-name');var id=x.getAttribute('data-customer-id');if(id)blouse[String(id)]=x;else if(name){var nm=name.textContent.replace(/^[^\S\r\n]+/,'').trim();var c=all().find(function(z){return String(z.name||'').trim()===nm});if(c)blouse[String(c.id)]=x;}});
+    return {cash:cash,calc:calc,blouse:blouse,cashWrap:cashWrap,calcWrap:calcWrap,blouseWrap:blouseWrap};
+  }
+  function fixCard(card){
+    if(!card||card.dataset.nfV190Done==='1')return;
+    var mainId=String(card.id||'').replace(/^customer-card-/i,'');if(!mainId)return;
+    var c=all().find(function(x){return String(x&&x.id||'')===mainId;});if(!c||parentId(c))return;
+    var list=kids(mainId);if(!list.length)return;
+    var sec=extractSections(card);if(!sec)return;
+    var customerIds=ids(mainId),group=document.createElement('section');group.className='nf-v190-group';group.dataset.mainCustomerId=mainId;
+    var tag=document.createElement('div');tag.className='nf-v190-customer-head';
+    tag.innerHTML='<span class="nf-v190-name"></span><span class="nf-v190-icon">−</span>';tag.querySelector('.nf-v190-name').textContent=customerName(mainId);
+    var body=document.createElement('div');body.className='nf-v190-customer-body';body.style.display='block';
+    tag.addEventListener('click',function(){var open=body.style.display!=='none';body.style.display=open?'none':'block';tag.querySelector('.nf-v190-icon').textContent=open?'＋':'−';});
+    group.appendChild(tag);group.appendChild(body);
+    customerIds.forEach(function(id){
+      var cash=sec.cash[id],calc=sec.calc[id],blouse=sec.blouse[id];
+      if(!cash||!calc||!blouse)return;
+      var cashBody=cash.querySelector(':scope > .nf-cash-collection');
+      if(cashBody){cashBody.classList.remove('nf-v133-collapsible-body');cashBody.style.display='';}
+      var cashName=cash.querySelector(':scope > .nf-v120-customer-name');if(cashName)cashName.remove();
+      var calcName=calc.querySelector(':scope > .nf-v160-customer-calc-name');if(calcName)calcName.remove();
+      restoreCalcInternalHooks(calc);
+      var calcBody=document.createElement('div');calcBody.className='nfCustomerBreakdownMount';
+      Array.prototype.slice.call(calc.children).forEach(function(ch){calcBody.appendChild(ch);});
+      calcBody.classList.add('nf-v190-calc-content');
+      var blouseBody=blouse.querySelector(':scope > .nf-v130-person-blouse');
+      if(blouseBody){blouseBody.classList.remove('nf-v133-collapsible-body');blouseBody.style.display='';}
+      var blouseName=blouse.querySelector(':scope > .nf-v130-blouse-person-name');if(blouseName)blouseName.remove();
+      var person=document.createElement('section');person.className='nf-v190-person';
+      var personBody=document.createElement('div');personBody.className='nf-v190-person-body';personBody.style.display='none';
+      var ph=document.createElement('button');ph.type='button';ph.className='nf-v190-person-label';ph.setAttribute('aria-expanded','false');
+      ph.innerHTML='<span class="nf-v190-person-name"></span><span class="nf-v190-person-icon">＋</span>';
+      ph.querySelector('.nf-v190-person-name').textContent=customerName(id);
+      ph.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();var open=personBody.style.display!=='none';personBody.style.display=open?'none':'block';ph.setAttribute('aria-expanded',String(!open));ph.querySelector('.nf-v190-person-icon').textContent=open?'＋':'−';});
+      person.appendChild(ph);
+      personBody.appendChild(makeHook('Cash Collection','💰',cashBody,false));
+      personBody.appendChild(makeHook('Blouse + Saree + Chudi Calculation','🧮',calcBody,false));
+      personBody.appendChild(makeHook('Blouse Collection','👗',blouseBody,false));
+      person.appendChild(personBody);
+      body.appendChild(person);
+    });
+    if(!body.children.length)return;
+    var personStyle=document.createElement('style');personStyle.textContent='.nf-v190-person{margin-top:9px;padding:0 0 2px;border:1px solid #e1d9ee;border-radius:16px;background:#fff;overflow:hidden}.nf-v190-person-label{width:100%;padding:9px 11px;border:0;background:linear-gradient(135deg,#f7f3ff,#fff4fa);border-bottom:1px solid #e3dceb;color:#4d267c;font-size:17px;font-weight:950;display:flex;align-items:center;justify-content:space-between;gap:10px;text-align:left;cursor:pointer}.nf-v190-person-name{min-width:0;flex:1;overflow-wrap:anywhere}.nf-v190-person-icon{flex:0 0 34px;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(135deg,#6c3df5,#ef4f9a);color:#fff;font-size:22px;line-height:1;box-shadow:0 5px 13px rgba(108,61,245,.22)}.nf-v190-person .nf-v190-hook:first-of-type{margin-top:8px}.nf-v190-person .nf-v190-hook,.nf-v190-person .nf-v190-panel{margin-left:8px;margin-right:8px}.nf-v190-person .nf-v190-panel{margin-bottom:8px}.nf-v190-person .nfCustomerBreakdownMount{padding:0}.nf-v190-person .nf-v190-calc-content{padding:0}.nf-v190-person .customerWorkSummary{margin:0!important}.nf-v190-person .nf-cash-collection,.nf-v190-person .nf-blouse-collection{width:100%!important}';group.appendChild(personStyle);
+    sec.cashWrap.classList.add('nf-v190-hidden');sec.calcWrap.classList.add('nf-v190-hidden');sec.blouseWrap.classList.add('nf-v190-hidden');
+    card.insertBefore(group,sec.cashWrap);
+    card.dataset.nfV190Done='1';
+  }
+  function render(){var box=document.getElementById('customersTable');if(!box)return;box.querySelectorAll(':scope > .customerCard').forEach(fixCard);}
+  function boot(){render();var box=document.getElementById('customersTable');if(box&&!box.__nfV190Observer){box.__nfV190Observer=true;var t=0;new MutationObserver(function(){clearTimeout(t);t=setTimeout(render,50);}).observe(box,{childList:true});}}
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
+})();
+</script>
+
 </body>
 <script id="nf-v120-single-cash-dedupe-fix">
 (function(){
@@ -10402,7 +10516,6 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
   }
   function fixCard(card){
     if(!card)return;
-    if(card.dataset && card.dataset.nfV190Grouped==="1")return;
     var id=cardId(card);if(!id)return;
     var c=all().find(function(x){return String(x&&x.id||"")===id;});
     if(!c||parentId(c))return;
@@ -10493,7 +10606,6 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
   }
   function fixCard(card){
     if(!card)return;
-    if(card.dataset && card.dataset.nfV190Grouped==="1")return;
     var id=String(card.id||"").replace(/^customer-card-/i,"");if(!id)return;
     var c=all().find(function(x){return String(x&&x.id||"")===id;});
     if(!c||parentId(c))return;
@@ -10645,90 +10757,6 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
   .nf-v133-person-hook{min-height:42px;padding:7px 9px}
   .nf-v133-hook-icon{width:32px;height:32px;flex-basis:32px;font-size:21px}
 }
-</style>
-
-<script id="nf-v190-customer-section-grouping-js">
-(function(){
-  "use strict";
-  if(window.__nfV190CustomerGrouping)return;
-  window.__nfV190CustomerGrouping=true;
-  var PARENT_RE=/(?:^|\|\s*)(?:NF_MULTI_PARENT|NF_PARENT_CUSTOMER):\s*([^|\s]+)/i;
-  function all(){return (typeof state!=="undefined"&&Array.isArray(state.customers))?state.customers:[];}
-  function parentId(c){var m=String(c&&c.notes||"").match(PARENT_RE);return m?String(m[1]||""):"";}
-  function kids(id){var sid=String(id||""),seen={};return all().filter(function(c){var cid=String(c&&c.id||"");if(parentId(c)!==sid||!cid||seen[cid])return false;seen[cid]=1;return true;});}
-  function nameOf(id){var c=all().find(function(x){return String(x&&x.id||"")===String(id)});return c&&c.name?String(c.name):"Customer";}
-  function esc(v){return typeof window.esc==="function"?window.esc(v):String(v==null?"":v).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]});}
-  function sectionHook(label,body,icon){
-    var row=document.createElement("div");row.className="nf-v190-hook-row";
-    var btn=document.createElement("button");btn.type="button";btn.className="nf-v190-section-hook";btn.setAttribute("aria-expanded","false");btn.innerHTML='<span>'+icon+' '+esc(label)+'</span><b>＋</b>';
-    body.classList.add("nf-v190-hook-body");body.style.display="none";
-    btn.addEventListener("click",function(e){e.preventDefault();e.stopPropagation();var open=btn.getAttribute("aria-expanded")==="true";btn.setAttribute("aria-expanded",String(!open));btn.querySelector("b").textContent=open?"＋":"−";body.style.display=open?"none":"";});
-    row.appendChild(btn);row.appendChild(body);return row;
-  }
-  function groupCard(card){
-    if(!card||card.dataset.nfV190Grouped==="1")return false;
-    var mid=String(card.id||"").replace(/^customer-card-/i,"");if(!mid)return false;
-    var main=all().find(function(c){return String(c&&c.id||"")===mid;});if(!main||parentId(main))return false;
-    var childList=kids(mid);if(!childList.length)return false;
-    var cashWrap=card.querySelector(":scope > .nf-v120-multi-cash-wrap");
-    var calcWrap=card.querySelector(":scope > .nf-v160-multi-calculation");
-    var blouseWrap=card.querySelector(":scope > .nf-v130-multi-blouse");
-    if(!cashWrap||!calcWrap||!blouseWrap)return false;
-    var ids=[mid].concat(childList.map(function(c){return String(c.id)}));
-    var cashMap={},calcMap={},blouseMap={};
-    cashWrap.querySelectorAll(":scope > .nf-v120-multi-cash-body > .nf-v120-customer-cash-box").forEach(function(x){cashMap[String(x.dataset.customerId||"")]=x;});
-    calcWrap.querySelectorAll(":scope > .nf-v160-multi-calculation-body > .nf-v160-customer-calc-box").forEach(function(x){calcMap[String(x.dataset.customerId||"")]=x;});
-    blouseWrap.querySelectorAll(":scope > .nf-v130-blouse-body > .nf-v130-blouse-person").forEach(function(x){
-      var nm=x.querySelector(":scope > .nf-v130-blouse-person-name");
-      var txt=nm?nm.textContent.trim():"";
-      var found=ids.find(function(id){return nameOf(id)===txt.replace(/^👤\s*/,"")});
-      if(found)blouseMap[found]=x;
-    });
-    if(ids.some(function(id){return !cashMap[id]||!calcMap[id]||!blouseMap[id]}))return false;
-    var group=document.createElement("section");group.className="nf-v190-customer-tag";group.dataset.customerId=mid;
-    ids.forEach(function(id){
-      var person=document.createElement("div");person.className="nf-v190-person-group";person.dataset.customerId=id;
-      var head=document.createElement("div");head.className="nf-v190-person-name";head.textContent="👤 "+nameOf(id);person.appendChild(head);
-      var cash=cashMap[id],calc=calcMap[id],blouse=blouseMap[id];
-      /* Reuse the already-rendered sections; only their position/visibility is changed. */
-      var cashBody=cash.querySelector(":scope > .nf-cash-collection");
-      if(cashBody){
-        cashBody.style.margin="0";
-        var oldName=cash.querySelector(":scope > .nf-v120-customer-name");if(oldName)oldName.style.display="none";
-        person.appendChild(sectionHook("Cash Collection",cashBody,"💰"));
-      }
-      var calcContent=calc.querySelector(":scope > .nf-v160-customer-calc-name");if(calcContent)calcContent.remove();
-      var calcBody=calc.querySelector(":scope > .nf-v160-multi-calculation-body");
-      var calcPerson=calcBody&&calcBody.querySelector(":scope > .nf-v160-customer-calc-box");
-      if(calcPerson){
-        var inner=calcPerson.querySelector(":scope > .customerWorkSummary");
-        if(inner)person.appendChild(sectionHook("Blouse + Saree + Chudi Calculation",inner,"🧮"));
-      }
-      var blouseName=blouse.querySelector(":scope > .nf-v130-blouse-person-name");if(blouseName)blouseName.remove();
-      var blouseBody=blouse.querySelector(":scope > .nf-v130-person-blouse");
-      if(blouseBody)person.appendChild(sectionHook("Blouse Collection",blouseBody,"👗"));
-      group.appendChild(person);
-    });
-    var anchor=cashWrap;card.insertBefore(group,anchor);
-    card.dataset.nfV190Grouped="1";
-    cashWrap.style.display="none";calcWrap.style.display="none";blouseWrap.style.display="none";
-    return true;
-  }
-  function render(){var box=document.getElementById("customersTable");if(!box)return;box.querySelectorAll(":scope > .customerCard").forEach(groupCard);}
-  function boot(){render();[100,300,700,1200].forEach(function(t){setTimeout(render,t);});var box=document.getElementById("customersTable");if(box&&!box.__nfV190Observer){box.__nfV190Observer=true;var timer=0;new MutationObserver(function(){clearTimeout(timer);timer=setTimeout(render,80);}).observe(box,{childList:true});}}
-  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",boot,{once:true});else boot();
-})();
-</script>
-<style id="nf-v190-customer-section-grouping-css">
-.nf-v190-customer-tag{margin:12px 0;border:1px solid #ddd8df;border-radius:18px;background:#fff;overflow:hidden;box-shadow:0 8px 22px rgba(35,25,30,.08)}
-.nf-v190-person-group{border-bottom:1px solid #e7e1e8;background:#fff}.nf-v190-person-group:last-child{border-bottom:0}
-.nf-v190-person-name{padding:10px 12px;background:linear-gradient(135deg,#f7f3ff,#fff4fa);border-bottom:1px solid #e3dceb;color:#4d267c;font-size:17px;font-weight:950}
-.nf-v190-hook-row{border-bottom:1px solid #e8e3e8}.nf-v190-hook-row:last-child{border-bottom:0}
-.nf-v190-section-hook{width:100%;min-height:46px;padding:7px 11px;border:0;background:#fff;color:#4d267c;display:flex;align-items:center;justify-content:space-between;gap:10px;text-align:left;font:inherit;font-weight:900;cursor:pointer}
-.nf-v190-section-hook>span{min-width:0;overflow-wrap:anywhere}.nf-v190-section-hook>b{flex:0 0 32px;width:32px;height:32px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(135deg,#6c3df5,#ef4f9a);color:#fff;font-size:21px;font-weight:500;line-height:1;box-shadow:0 4px 11px rgba(108,61,245,.20)}
-.nf-v190-hook-body{min-width:0}.nf-v190-hook-body .customerWorkSummary{margin:0!important;border:0!important;border-radius:0!important;box-shadow:none!important}
-.nf-v190-hook-body>.nf-collection-panel{margin:0!important;border-left:0!important;border-right:0!important;border-bottom:0!important;border-radius:0!important}
-@media(max-width:560px){.nf-v190-person-name{font-size:15px;padding:9px 10px}.nf-v190-section-hook{min-height:44px;padding:7px 9px}.nf-v190-section-hook>b{width:30px;height:30px;flex-basis:30px;font-size:20px}}
 </style>
 </html><script id="nf-v52-dashboard-scroll-fix-js">
 (function(){
@@ -12987,7 +13015,6 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
 
   function fixCard(card){
     if(!card)return;
-    if(card.dataset && card.dataset.nfV190Grouped==="1")return;
     var id=String(card.id||"").replace(/^customer-card-/i,"");
     if(!id)return;
     var c=all().find(function(x){return String(x&&x.id||"")===id;});
