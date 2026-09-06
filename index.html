@@ -10338,7 +10338,7 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
 
 
 </body>
-<script id="nf-v120-single-cash-dedupe-fix">
+<script id="nf-v130-compact-multi-cash-collection">
 (function(){
   "use strict";
   var PARENT_RE=/(?:^|\|\s*)(?:NF_MULTI_PARENT|NF_PARENT_CUSTOMER):\s*([^|\s]+)/i;
@@ -10346,7 +10346,7 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
   function parentId(c){var m=String(c&&c.notes||"").match(PARENT_RE);return m?String(m[1]||""):"";}
   function kids(id){var sid=String(id||""),seen={};return all().filter(function(c){var p=parentId(c),cid=String(c&&c.id||"");if(p!==sid||!cid||seen[cid])return false;seen[cid]=1;return true;});}
   function mainId(id){var sid=String(id||""),c=all().find(function(x){return String(x&&x.id||"")===sid;});return c&&parentId(c)||sid;}
-  function esc(v){return String(v==null?"":v).replace(/[&<>"']/g,function(ch){return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[ch];});}
+  function cardId(card){return String(card&&card.id||"").replace(/^customer-card-/i,"");}
   function originalCash(customerId){
     var base=window.nfV120OriginalCustomerCard;
     if(typeof base!=="function")return "";
@@ -10356,41 +10356,41 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
       return p?p.outerHTML:"";
     }catch(e){return "";}
   }
-  function cardId(card){return String(card&&card.id||"").replace(/^customer-card-/i,"");}
   function makeWrap(mainIdValue){
     var mid=mainId(mainIdValue), list=kids(mid);
     if(!list.length)return null;
-    var wrap=document.createElement("section");wrap.className="nf-v120-multi-cash-wrap";
-    wrap.innerHTML='<div class="nf-v120-multi-cash-body"></div>';
-    var body=wrap.firstElementChild, ids=[mid].concat(list.map(function(c){return String(c.id);})),seen={};
+    var wrap=document.createElement("section");wrap.className="nf-v130-multi-cash-wrap";
+    wrap.innerHTML='<div class="nf-v130-multi-cash-title"><span>💰</span><div><h4>Cash Collection</h4><small>ஒவ்வொரு customer-ன் collection</small></div></div><div class="nf-v130-multi-cash-body"></div>';
+    var body=wrap.querySelector(".nf-v130-multi-cash-body"),ids=[mid].concat(list.map(function(c){return String(c.id); })),seen={};
     ids.forEach(function(cid){
       cid=String(cid);if(seen[cid])return;seen[cid]=1;
       var html=originalCash(cid);if(!html)return;
-      var item=document.createElement("div");item.className="nf-v120-customer-cash-box";item.dataset.customerId=cid;
+      var item=document.createElement("div");item.className="nf-v130-customer-cash-box";item.dataset.customerId=cid;
       var c=all().find(function(x){return String(x&&x.id||"")===cid;});
-      var title=document.createElement("div");title.className="nf-v120-customer-name";title.textContent=c&&c.name?c.name:"Customer";
-      item.appendChild(title);var h=document.createElement("div");h.innerHTML=html;item.appendChild(h.firstElementChild);body.appendChild(item);
+      var title=document.createElement("div");title.className="nf-v130-customer-name";title.innerHTML='<span class="nf-v130-avatar">👤</span><span>'+((c&&c.name)||"Customer")+'</span>';
+      item.appendChild(title);
+      var holder=document.createElement("div");holder.innerHTML=html;var cash=holder.firstElementChild;
+      if(cash){cash.classList.add("nf-v130-compact-cash");item.appendChild(cash);}
+      body.appendChild(item);
     });
     return wrap;
+  }
+  function removeLegacy(card){
+    card.querySelectorAll(":scope > .nf-v130-multi-cash-wrap, :scope > .nf-v120-multi-cash-wrap, :scope > .nf-v110-multi-cash-wrap, :scope > .nf-v100-multi-cash-wrap, :scope > .nf-cash-collection").forEach(function(x){x.remove();});
   }
   function fixCard(card){
     if(!card)return;
     var id=cardId(card);if(!id)return;
     var c=all().find(function(x){return String(x&&x.id||"")===id;});
     if(!c||parentId(c))return;
-    var list=kids(id);if(!list.length)return;
-    var existing=card.querySelector(":scope > .nf-v120-multi-cash-wrap");
+    if(!kids(id).length){card.querySelectorAll(":scope > .nf-v130-multi-cash-wrap, :scope > .nf-v120-multi-cash-wrap, :scope > .nf-v110-multi-cash-wrap, :scope > .nf-v100-multi-cash-wrap").forEach(function(x){x.remove();});return;}
+    var existing=card.querySelector(":scope > .nf-v130-multi-cash-wrap");
     if(existing){
       var seen={};
-      existing.querySelectorAll(":scope > .nf-v120-multi-cash-body > .nf-v120-customer-cash-box").forEach(function(item){
-        var cid=String(item.dataset.customerId||"");
-        if(cid&&seen[cid])item.remove();else if(cid)seen[cid]=1;
-      });
+      existing.querySelectorAll(":scope > .nf-v130-multi-cash-body > .nf-v130-customer-cash-box").forEach(function(item){var cid=String(item.dataset.customerId||"");if(cid&&seen[cid])item.remove();else if(cid)seen[cid]=1;});
       return;
     }
-    var legacy=Array.from(card.querySelectorAll(":scope > .nf-v110-multi-cash-wrap, :scope > .nf-v100-multi-cash-wrap"));
-    legacy.forEach(function(x){x.remove();});
-    card.querySelectorAll(":scope > .nf-cash-collection").forEach(function(x){x.remove();});
+    removeLegacy(card);
     var wrap=makeWrap(id);if(!wrap)return;
     var anchor=card.querySelector(":scope > .nf-blouse-collection");
     if(anchor)card.insertBefore(wrap,anchor);else card.appendChild(wrap);
@@ -10404,28 +10404,36 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
     if(typeof window.customerCard==="function")window.nfV120OriginalCustomerCard=window.customerCard;
   }
   captureOriginal();
-  document.addEventListener("DOMContentLoaded",function(){
-    captureOriginal();
-    setTimeout(renderFix,0);setTimeout(renderFix,150);setTimeout(renderFix,600);
+  function boot(){
+    captureOriginal();setTimeout(renderFix,0);setTimeout(renderFix,120);setTimeout(renderFix,450);setTimeout(renderFix,900);
     var box=document.getElementById("customersTable");
-    if(box){new MutationObserver(function(){clearTimeout(box.__nf120Timer);box.__nf120Timer=setTimeout(renderFix,20);}).observe(box,{childList:true});}
-  },{once:true});
-  if(document.readyState!=="loading"){
-    setTimeout(renderFix,0);setTimeout(renderFix,150);setTimeout(renderFix,600);
-    var box=document.getElementById("customersTable");
-    if(box){new MutationObserver(function(){clearTimeout(box.__nf120Timer);box.__nf120Timer=setTimeout(renderFix,20);}).observe(box,{childList:true});}
+    if(box&&!box.__nfV130Observer){box.__nfV130Observer=true;new MutationObserver(function(){clearTimeout(box.__nfV130Timer);box.__nfV130Timer=setTimeout(renderFix,30);}).observe(box,{childList:true});}
   }
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",boot,{once:true});else boot();
 })();
 </script>
-<style id="nf-v120-single-cash-dedupe-fix-css">
-.nf-v120-multi-cash-wrap{margin:12px 0;padding:0;border:1px solid #ddd8df;border-radius:20px;background:#fff;box-shadow:0 8px 22px rgba(35,25,30,.08);overflow:hidden}
-.nf-v120-multi-cash-body{padding:10px 12px 12px;display:grid;gap:10px}
-.nf-v120-customer-cash-box{margin:0;padding:0}
-.nf-v120-customer-name{font-size:18px;font-weight:950;color:#211b20;padding:8px 10px 7px;border-radius:12px 12px 0 0;background:#f7f4fb;border:1px solid #e3dceb;border-bottom:0}
-.nf-v120-customer-cash-box>.nf-cash-collection{margin:0!important;border-top-left-radius:0!important;border-top-right-radius:0!important}
-@media(max-width:560px){.nf-v120-customer-name{font-size:16px;padding:7px 9px}.nf-v120-multi-cash-body{padding:8px}}
+<style id="nf-v130-compact-multi-cash-collection-css">
+.nf-v130-multi-cash-wrap{margin:12px 0;padding:0;border:1px solid #ddd8df;border-radius:20px;background:#fff;box-shadow:0 8px 22px rgba(35,25,30,.08);overflow:hidden}
+.nf-v130-multi-cash-title{display:flex;align-items:center;gap:9px;padding:11px 13px;border-bottom:1px solid #ebe6ef;background:linear-gradient(135deg,#faf8ff,#fff9fb)}
+.nf-v130-multi-cash-title>span{font-size:20px}.nf-v130-multi-cash-title h4{margin:0;font-size:15px;font-weight:950;color:#30263d}.nf-v130-multi-cash-title small{display:block;margin-top:2px;font-size:10px;font-weight:750;color:#7b7184}
+.nf-v130-multi-cash-body{padding:10px;display:grid;gap:9px}
+.nf-v130-customer-cash-box{border:1px solid #e2dce7;border-radius:15px;background:#fff;overflow:hidden;box-shadow:0 4px 12px rgba(45,32,55,.06)}
+.nf-v130-customer-name{display:flex;align-items:center;gap:7px;padding:8px 10px;font-size:14px;font-weight:950;color:#3d2a52;background:linear-gradient(135deg,#f5f1ff,#fff2f7);border-bottom:1px solid #e5dfea}
+.nf-v130-avatar{font-size:15px;line-height:1}.nf-v130-compact-cash{margin:0!important;border:0!important;border-radius:0!important;box-shadow:none!important;background:#fff!important;padding:0!important}
+.nf-v130-compact-cash .nf-collection-title,.nf-v130-compact-cash .nf-cash-columns-head{display:none!important}
+.nf-v130-compact-cash .nf-cash-payment-action{display:flex!important;justify-content:flex-end!important;padding:7px 9px 0!important}
+.nf-v130-compact-cash .nf-cash-payment-btn{padding:6px 9px!important;border-radius:9px!important;font-size:11px!important}
+.nf-v130-compact-cash .customerMoneyGrid{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:6px!important;padding:8px 9px 9px!important;margin:0!important}
+.nf-v130-compact-cash .customerMoneyGrid .moneyStat{min-width:0!important;padding:7px 5px!important;border-radius:10px!important;text-align:center!important;background:#faf9fc!important}
+.nf-v130-compact-cash .customerMoneyGrid .moneyStat b{display:block!important;font-size:13px!important;line-height:1.15!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+.nf-v130-compact-cash .customerMoneyGrid .moneyStat span{display:block!important;margin-top:3px!important;font-size:9px!important;line-height:1.15!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+.nf-v130-compact-cash .nf-v10080-date,.nf-v130-compact-cash .nf-v10030-inline{font-size:8px!important;line-height:1.15!important}
+.nf-v130-compact-cash .nf-v10080-date{margin-top:2px!important;display:block!important;white-space:nowrap!important}
+.nf-v130-compact-cash .nf-v10091-edit-payment-btn{font-size:11px!important;margin-left:4px!important}
+@media(max-width:560px){.nf-v130-multi-cash-wrap{border-radius:16px}.nf-v130-multi-cash-title{padding:9px 10px}.nf-v130-multi-cash-body{padding:8px;gap:8px}.nf-v130-customer-name{font-size:13px;padding:7px 9px}.nf-v130-compact-cash .customerMoneyGrid{gap:4px;padding:7px}.nf-v130-compact-cash .customerMoneyGrid .moneyStat{padding:6px 3px!important}.nf-v130-compact-cash .customerMoneyGrid .moneyStat b{font-size:12px!important}.nf-v130-compact-cash .customerMoneyGrid .moneyStat span{font-size:8px!important}.nf-v130-compact-cash .nf-cash-payment-action{padding:6px 7px 0!important}}
 </style>
-</html><script id="nf-v52-dashboard-scroll-fix-js">
+</body>
+<script id="nf-v52-dashboard-scroll-fix-js">
 (function(){
   "use strict";
   function syncDashboardMode(){
