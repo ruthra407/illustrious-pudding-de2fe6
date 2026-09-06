@@ -10436,9 +10436,9 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
     if(!section)return;
     var name=section.querySelector(nameSelector);
     if(!name || name.dataset.nf133Ready)return;
-    name.dataset.nf133Ready="1";
     var body=section.querySelector(bodySelector);
     if(!body)return;
+    name.dataset.nf133Ready="1";
 
     var hook=document.createElement("button");
     hook.type="button";
@@ -10475,16 +10475,14 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
 
   function boot(){
     enhance();
-    setTimeout(enhance,60);
-    setTimeout(enhance,200);
-    setTimeout(enhance,500);
-    var box=document.getElementById("customersTable");
-    if(box&&!box.__nfV133Observer){
-      box.__nfV133Observer=true;
+    [60,150,300,600,1000,1500,2500,4000].forEach(function(ms){setTimeout(enhance,ms);});
+    if(document.body&&!document.body.__nfV133Observer){
+      document.body.__nfV133Observer=true;
+      var timer=0;
       new MutationObserver(function(){
-        clearTimeout(box.__nfV133Timer);
-        box.__nfV133Timer=setTimeout(enhance,20);
-      }).observe(box,{childList:true,subtree:true});
+        clearTimeout(timer);
+        timer=setTimeout(enhance,30);
+      }).observe(document.body,{childList:true,subtree:true});
     }
   }
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",boot,{once:true});
