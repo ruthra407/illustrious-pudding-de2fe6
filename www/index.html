@@ -12736,6 +12736,7 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
     var cash=pick(src,":scope > .nf-cash-collection");
     var blouse=pick(src,":scope > .nf-blouse-collection");
     var calc=pick(src,":scope > .nfCustomerBreakdownMount");
+    var photos=pick(src,":scope > .nf-customer-cloth-photo-manager");
     if(!cash||!blouse||!calc)return null;
     var parts=cleanCalc(calc);if(!parts)return null;
     var c=all().find(function(x){return String(x&&x.id||"")===String(id);});
@@ -12745,24 +12746,15 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
     person.appendChild(hook("Blouse / Saree / Chudi Calculation","🧮",parts.calc,"calc"));
     person.appendChild(hook("Blouse Collection","👗",blouse,"blouse"));
     person.appendChild(hook("Order Composition","📦",parts.order,"order"));
+    person.appendChild(hook("Customer Photos","📸",photos,"photos"));
     return person;
   }
   function stripOld(card){
-    [".nf-v210-four-hook-group",".nf-v220-four-hook-group",".nf-v230-four-hook-group",".nf-v240-four-hook-group",".nf-v120-multi-cash-wrap",".nf-v160-multi-calculation",".nf-v130-multi-blouse",".nfCustomerBreakdownMount",".nf-cash-collection",".nf-blouse-collection"].forEach(function(sel){card.querySelectorAll(":scope > "+sel).forEach(function(x){x.remove();});});
+    [".nf-v210-four-hook-group",".nf-v220-four-hook-group",".nf-v230-four-hook-group",".nf-v240-four-hook-group",".nf-v120-multi-cash-wrap",".nf-v160-multi-calculation",".nf-v130-multi-blouse",".nfCustomerBreakdownMount",".nf-cash-collection",".nf-blouse-collection",".nf-customer-cloth-photo-manager"].forEach(function(sel){card.querySelectorAll(":scope > "+sel).forEach(function(x){x.remove();});});
   }
   function moveGroupBeforePhotos(card,group){
-    /* V26: the entire customer-cloth photo manager must stay after the 4 hooks.
-       This keeps "கஸ்டமர் கொடுத்த துணிகள்" immediately above the photo slots. */
-    var manager=card.querySelector(".nf-customer-cloth-photo-manager");
-    if(manager && manager.parentNode){
-      manager.parentNode.insertBefore(group,manager);
-      return true;
-    }
-    var photos=card.querySelector(".nf-customer-cloth-photos, .photoGrid");
-    if(photos && photos.parentNode){
-      photos.parentNode.insertBefore(group,photos);
-      return true;
-    }
+    /* V29: photo managers live inside each customer's 5th hook.
+       The group itself can therefore be appended directly to the card. */
     return false;
   }
   var current=window.customerCard;
@@ -12780,7 +12772,7 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
       if(people.length!==ids.length)return html;
       stripOld(card);
       var group=document.createElement("section");group.className="nf-v240-four-hook-group";group.dataset.mainCustomerId=String(id);
-      var title=document.createElement("div");title.className="nf-v240-group-title";title.innerHTML='<span>👥</span><div><b>Main + Additional Customers</b><small>ஒவ்வொரு Customer-க்கும் 4 Hooks</small></div>';group.appendChild(title);
+      var title=document.createElement("div");title.className="nf-v240-group-title";title.innerHTML='<span>👥</span><div><b>Main + Additional Customers</b><small>ஒவ்வொரு Customer-க்கும் 5 Hooks</small></div>';group.appendChild(title);
       people.forEach(function(p){group.appendChild(p);});
       moveGroupBeforePhotos(card,group);
       if(!group.parentNode)card.appendChild(group);
@@ -12913,68 +12905,7 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
 </style>
 
 <script id="nf-v280-five-hook-photo-wrapper">
-(function(){
-  "use strict";
-  if(window.__nfV280FiveHookPhoto)return;
-  window.__nfV280FiveHookPhoto=true;
-
-  function wrapPhotoManager(card){
-    if(!card)return;
-    if(card.querySelector(":scope > .nf-v280-photo-hook"))return;
-
-    /* Keep the existing photo manager exactly as-is; only place it inside hook #5. */
-    var photo = card.querySelector(":scope > .nf-customer-cloth-photo-manager");
-    if(!photo){
-      photo = card.querySelector(":scope > .nf-customer-cloth-photos, :scope > .photoGrid");
-    }
-    if(!photo || !photo.parentNode)return;
-
-    var box=document.createElement("div");
-    box.className="nf-v280-photo-hook nf-v240-hook-box";
-    var btn=document.createElement("button");
-    btn.type="button";
-    btn.className="nf-v240-hook";
-    btn.setAttribute("aria-expanded","false");
-    btn.innerHTML='<span class="nf-v240-hook-label">📸 Customer Photos</span><b class="nf-v240-hook-plus">＋</b>';
-
-    var body=document.createElement("div");
-    body.className="nf-v240-hook-body";
-    body.style.display="none";
-
-    photo.parentNode.insertBefore(box,photo);
-    box.appendChild(btn);
-    box.appendChild(body);
-    body.appendChild(photo);
-
-    btn.addEventListener("click",function(e){
-      e.preventDefault();
-      e.stopPropagation();
-      var open=btn.getAttribute("aria-expanded")==="true";
-      btn.setAttribute("aria-expanded",open?"false":"true");
-      btn.querySelector(".nf-v240-hook-plus").textContent=open?"＋":"−";
-      body.style.display=open?"none":"block";
-    });
-  }
-
-  var base=window.customerCard;
-  if(typeof base!=="function")return;
-
-  function wrapped(){
-    var html=base.apply(this,arguments);
-    try{
-      var h=document.createElement("div");
-      h.innerHTML=html;
-      var card=h.querySelector(".customerCard");
-      if(card){
-        wrapPhotoManager(card);
-        return card.outerHTML;
-      }
-    }catch(e){}
-    return html;
-  }
-  wrapped.__nfV280FiveHook=true;
-  window.customerCard=wrapped;
-})();
+/* V29: superseded. Photos are now inserted as hook #5 inside each customer. */
 </script>
 <style id="nf-v280-five-hook-photo-css">
 .nf-v280-photo-hook{margin:8px;border:1px solid #ddd5ef;border-radius:14px;overflow:hidden;background:#fff}
@@ -12982,5 +12913,11 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
 .nf-v280-photo-hook>.nf-v240-hook-body>.nf-customer-cloth-photo-manager,
 .nf-v280-photo-hook>.nf-v240-hook-body>.nf-customer-cloth-photos,
 .nf-v280-photo-hook>.nf-v240-hook-body>.photoGrid{margin:0!important}
+</style>
+
+<style id="nf-v290-five-hook-photo-css">
+/* V29: fifth hook uses the existing customer photo manager unchanged. */
+.nf-v240-hook-photos .nf-v240-hook-body{padding:0!important;background:#fff}
+.nf-v240-hook-photos .nf-customer-cloth-photo-manager{margin:0!important;width:100%!important}
 </style>
 
