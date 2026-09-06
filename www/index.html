@@ -10353,11 +10353,11 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
     fix();
     [80,200,500,1000].forEach(function(ms){setTimeout(fix,ms);});
     var box=document.getElementById("customersTable");
-    if(box&&!box.__nfV141OrderObserver){
-      box.__nfV141OrderObserver=true;
+    if(box&&!box.__nfV151OrderObserver){
+      box.__nfV151OrderObserver=true;
       new MutationObserver(function(){
-        clearTimeout(box.__nfV141OrderTimer);
-        box.__nfV141OrderTimer=setTimeout(fix,30);
+        clearTimeout(box.__nfV151OrderTimer);
+        box.__nfV151OrderTimer=setTimeout(fix,30);
       }).observe(box,{childList:true,subtree:true});
     }
   }
@@ -10493,10 +10493,10 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
 
   function enhance(){
     document.querySelectorAll(".nf-v120-customer-cash-box").forEach(function(item){
-      addHook(item,".nf-v120-customer-name","> .nf-cash-collection","cash");
+      addHook(item,".nf-v120-customer-name",":scope > .nf-cash-collection","cash");
     });
     document.querySelectorAll(".nf-v130-blouse-person").forEach(function(item){
-      addHook(item,".nf-v130-blouse-person-name","> .nf-v130-person-blouse","blouse");
+      addHook(item,".nf-v130-blouse-person-name",":scope > .nf-v130-person-blouse","blouse");
     });
   }
 
