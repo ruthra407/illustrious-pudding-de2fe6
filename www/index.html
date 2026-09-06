@@ -10402,6 +10402,7 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
   }
   function fixCard(card){
     if(!card)return;
+    if(card.dataset && card.dataset.nfV190Grouped==="1")return;
     var id=cardId(card);if(!id)return;
     var c=all().find(function(x){return String(x&&x.id||"")===id;});
     if(!c||parentId(c))return;
@@ -10492,6 +10493,7 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
   }
   function fixCard(card){
     if(!card)return;
+    if(card.dataset && card.dataset.nfV190Grouped==="1")return;
     var id=String(card.id||"").replace(/^customer-card-/i,"");if(!id)return;
     var c=all().find(function(x){return String(x&&x.id||"")===id;});
     if(!c||parentId(c))return;
@@ -10645,150 +10647,88 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
 }
 </style>
 
-<script id="nf-v190-customer-section-groups-js">
+<script id="nf-v190-customer-section-grouping-js">
 (function(){
   "use strict";
-  if(window.__nfV190CustomerGroups)return;
-  window.__nfV190CustomerGroups=true;
+  if(window.__nfV190CustomerGrouping)return;
+  window.__nfV190CustomerGrouping=true;
   var PARENT_RE=/(?:^|\|\s*)(?:NF_MULTI_PARENT|NF_PARENT_CUSTOMER):\s*([^|\s]+)/i;
   function all(){return (typeof state!=="undefined"&&Array.isArray(state.customers))?state.customers:[];}
   function parentId(c){var m=String(c&&c.notes||"").match(PARENT_RE);return m?String(m[1]||""):"";}
   function kids(id){var sid=String(id||""),seen={};return all().filter(function(c){var cid=String(c&&c.id||"");if(parentId(c)!==sid||!cid||seen[cid])return false;seen[cid]=1;return true;});}
-  function ids(mainId){return [String(mainId)].concat(kids(mainId).map(function(c){return String(c.id);}));}
-  function cardHtml(id){
-    try{
-      var fn=window.nfV120OriginalCustomerCard||window.customerCard;
-      if(typeof fn!=="function")return null;
-      var h=document.createElement("div");h.innerHTML=fn(String(id));
-      return h;
-    }catch(e){return null;}
+  function nameOf(id){var c=all().find(function(x){return String(x&&x.id||"")===String(id)});return c&&c.name?String(c.name):"Customer";}
+  function esc(v){return typeof window.esc==="function"?window.esc(v):String(v==null?"":v).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]});}
+  function sectionHook(label,body,icon){
+    var row=document.createElement("div");row.className="nf-v190-hook-row";
+    var btn=document.createElement("button");btn.type="button";btn.className="nf-v190-section-hook";btn.setAttribute("aria-expanded","false");btn.innerHTML='<span>'+icon+' '+esc(label)+'</span><b>＋</b>';
+    body.classList.add("nf-v190-hook-body");body.style.display="none";
+    btn.addEventListener("click",function(e){e.preventDefault();e.stopPropagation();var open=btn.getAttribute("aria-expanded")==="true";btn.setAttribute("aria-expanded",String(!open));btn.querySelector("b").textContent=open?"＋":"−";body.style.display=open?"none":"";});
+    row.appendChild(btn);row.appendChild(body);return row;
   }
-  function direct(h,sel){return h.querySelector(":scope > "+sel)||h.querySelector(sel);}
-  function cloneSection(h,sel){var x=direct(h,sel);return x?x.cloneNode(true):null;}
-  function makeDeliveryPart(h,wantChudi){
-    var d=direct(h,".nf-delivery-card");if(!d)return null;
-    var out=d.cloneNode(true);
-    out.querySelectorAll(":scope > .nf-delivery-type-row").forEach(function(row){
-      var text=String(row.textContent||"").toLowerCase();
-      var isChudi=/chudi|சுடிதார்/.test(text);
-      if(wantChudi!==isChudi)row.remove();
+  function groupCard(card){
+    if(!card||card.dataset.nfV190Grouped==="1")return false;
+    var mid=String(card.id||"").replace(/^customer-card-/i,"");if(!mid)return false;
+    var main=all().find(function(c){return String(c&&c.id||"")===mid;});if(!main||parentId(main))return false;
+    var childList=kids(mid);if(!childList.length)return false;
+    var cashWrap=card.querySelector(":scope > .nf-v120-multi-cash-wrap");
+    var calcWrap=card.querySelector(":scope > .nf-v160-multi-calculation");
+    var blouseWrap=card.querySelector(":scope > .nf-v130-multi-blouse");
+    if(!cashWrap||!calcWrap||!blouseWrap)return false;
+    var ids=[mid].concat(childList.map(function(c){return String(c.id)}));
+    var cashMap={},calcMap={},blouseMap={};
+    cashWrap.querySelectorAll(":scope > .nf-v120-multi-cash-body > .nf-v120-customer-cash-box").forEach(function(x){cashMap[String(x.dataset.customerId||"")]=x;});
+    calcWrap.querySelectorAll(":scope > .nf-v160-multi-calculation-body > .nf-v160-customer-calc-box").forEach(function(x){calcMap[String(x.dataset.customerId||"")]=x;});
+    blouseWrap.querySelectorAll(":scope > .nf-v130-blouse-body > .nf-v130-blouse-person").forEach(function(x){
+      var nm=x.querySelector(":scope > .nf-v130-blouse-person-name");
+      var txt=nm?nm.textContent.trim():"";
+      var found=ids.find(function(id){return nameOf(id)===txt.replace(/^👤\s*/,"")});
+      if(found)blouseMap[found]=x;
     });
-    if(!out.querySelector(":scope > .nf-delivery-type-row"))return null;
-    return out;
-  }
-  function titleText(section){
-    var t=section.querySelector(":scope > .nf-collection-title h4");
-    return t?String(t.textContent||"").trim():"";
-  }
-  function addHook(section,label){
-    if(!section)return;
-    var head=section.querySelector(":scope > .nf-collection-title")||section.querySelector(":scope > .nf-delivery-heading")||section.querySelector(":scope > .nf-summary-head");
-    if(!head)return;
-    if(head.dataset&&head.dataset.nf190Ready)return;
-    if(head.dataset)head.dataset.nf190Ready="1";
-    var body=[];
-    for(var i=1;i<section.children.length;i++)body.push(section.children[i]);
-    if(!body.length)return;
-    var btn=document.createElement("button");
-    btn.type="button";btn.className="nf-v190-section-hook";btn.setAttribute("aria-expanded","false");btn.title="Details பார்க்க";
-    var text=label||titleText(section)||head.textContent.trim();
-    btn.innerHTML='<span class="nf-v190-hook-text"></span><b class="nf-v190-hook-icon">＋</b>';
-    btn.querySelector(".nf-v190-hook-text").textContent=text;
-    head.textContent="";head.appendChild(btn);
-    body.forEach(function(x){x.classList.add("nf-v190-hook-body");x.style.display="none";});
-    btn.addEventListener("click",function(e){
-      e.preventDefault();e.stopPropagation();
-      var open=btn.getAttribute("aria-expanded")==="true";
-      btn.setAttribute("aria-expanded",String(!open));
-      btn.querySelector(".nf-v190-hook-icon").textContent=open?"＋":"−";
-      body.forEach(function(x){x.style.display=open?"none":"";});
+    if(ids.some(function(id){return !cashMap[id]||!calcMap[id]||!blouseMap[id]}))return false;
+    var group=document.createElement("section");group.className="nf-v190-customer-tag";group.dataset.customerId=mid;
+    ids.forEach(function(id){
+      var person=document.createElement("div");person.className="nf-v190-person-group";person.dataset.customerId=id;
+      var head=document.createElement("div");head.className="nf-v190-person-name";head.textContent="👤 "+nameOf(id);person.appendChild(head);
+      var cash=cashMap[id],calc=calcMap[id],blouse=blouseMap[id];
+      /* Reuse the already-rendered sections; only their position/visibility is changed. */
+      var cashBody=cash.querySelector(":scope > .nf-cash-collection");
+      if(cashBody){
+        cashBody.style.margin="0";
+        var oldName=cash.querySelector(":scope > .nf-v120-customer-name");if(oldName)oldName.style.display="none";
+        person.appendChild(sectionHook("Cash Collection",cashBody,"💰"));
+      }
+      var calcContent=calc.querySelector(":scope > .nf-v160-customer-calc-name");if(calcContent)calcContent.remove();
+      var calcBody=calc.querySelector(":scope > .nf-v160-multi-calculation-body");
+      var calcPerson=calcBody&&calcBody.querySelector(":scope > .nf-v160-customer-calc-box");
+      if(calcPerson){
+        var inner=calcPerson.querySelector(":scope > .customerWorkSummary");
+        if(inner)person.appendChild(sectionHook("Blouse + Saree + Chudi Calculation",inner,"🧮"));
+      }
+      var blouseName=blouse.querySelector(":scope > .nf-v130-blouse-person-name");if(blouseName)blouseName.remove();
+      var blouseBody=blouse.querySelector(":scope > .nf-v130-person-blouse");
+      if(blouseBody)person.appendChild(sectionHook("Blouse Collection",blouseBody,"👗"));
+      group.appendChild(person);
     });
+    var anchor=cashWrap;card.insertBefore(group,anchor);
+    card.dataset.nfV190Grouped="1";
+    cashWrap.style.display="none";calcWrap.style.display="none";blouseWrap.style.display="none";
+    return true;
   }
-  function calcSection(h){
-    var m=direct(h,".nfCustomerBreakdownMount");
-    if(!m)return null;
-    var out=m.cloneNode(true);
-    return out;
-  }
-  function buildCustomer(id){
-    var h=cardHtml(id);if(!h)return null;
-    var cash=cloneSection(h,".nf-cash-collection");
-    var calc=calcSection(h);
-    var blouse=cloneSection(h,".nf-blouse-collection");
-    var bs=makeDeliveryPart(h,false),ch=makeDeliveryPart(h,true);
-    if(!cash||!calc||!blouse||!bs||!ch)return null;
-    var c=all().find(function(x){return String(x&&x.id||"")===String(id);});
-    var box=document.createElement("div");box.className="nf-v190-customer-box";box.dataset.customerId=String(id);
-    var name=document.createElement("div");name.className="nf-v190-customer-name";name.textContent=c&&c.name?c.name:"Customer";
-    box.appendChild(name);
-    [
-      [cash,"Cash Collection"],
-      [calc,"Blouse / Chudi / Saree Calculation"],
-      [bs,"Blouse / Saree Collection"],
-      [ch,"Chudi Collection"]
-    ].forEach(function(pair){
-      pair[0].classList.add("nf-v190-customer-section");
-      box.appendChild(pair[0]);
-      addHook(pair[0],pair[1]);
-    });
-    return box;
-  }
-  function fixCard(card){
-    if(!card||card.dataset.nf190Done)return;
-    var id=String(card.id||"").replace(/^customer-card-/i,"");if(!id)return;
-    var c=all().find(function(x){return String(x&&x.id||"")===id;});
-    if(!c||parentId(c)||!kids(id).length)return;
-    var outer=document.createElement("section");outer.className="nf-v190-customer-groups";outer.dataset.mainCustomerId=id;
-    var body=document.createElement("div");body.className="nf-v190-groups-body";
-    var built=ids(id).map(buildCustomer).filter(Boolean);
-    if(built.length<2)return;
-    built.forEach(function(x){body.appendChild(x);});
-    outer.appendChild(body);
-    // Remove only the existing multi wrappers; the original customer details stay untouched.
-    card.querySelectorAll(":scope > .nf-v120-multi-cash-wrap, :scope > .nf-v160-multi-calculation, :scope > .nf-v130-multi-blouse, :scope > .nfCustomerBreakdownMount, :scope > .nf-cash-collection, :scope > .nf-blouse-collection, :scope > .nf-delivery-card").forEach(function(x){x.remove();});
-    var anchor=card.querySelector(":scope > .customerCardHead");
-    if(anchor)card.insertBefore(outer,anchor.nextSibling);else card.appendChild(outer);
-    card.dataset.nf190Done="1";
-  }
-  function render(){
-    var box=document.getElementById("customersTable");if(!box)return;
-    box.querySelectorAll(":scope > .customerCard").forEach(fixCard);
-  }
-  function boot(){
-    render();
-    setTimeout(render,120);setTimeout(render,450);setTimeout(render,1000);
-    var box=document.getElementById("customersTable");
-    if(box&&!box.__nfV190Observer){
-      box.__nfV190Observer=true;
-      var timer=0;
-      new MutationObserver(function(){
-        clearTimeout(timer);timer=setTimeout(function(){
-          box.querySelectorAll(":scope > .customerCard").forEach(function(c){if(!c.dataset.nf190Done)fixCard(c);});
-        },120);
-      }).observe(box,{childList:true});
-    }
-    var old=window.renderCustomers;
-    if(typeof old==="function"&&!old.__nfV190){
-      window.renderCustomers=function(){var r=old.apply(this,arguments);setTimeout(render,180);return r;};
-      window.renderCustomers.__nfV190=true;
-    }
-  }
+  function render(){var box=document.getElementById("customersTable");if(!box)return;box.querySelectorAll(":scope > .customerCard").forEach(groupCard);}
+  function boot(){render();[100,300,700,1200].forEach(function(t){setTimeout(render,t);});var box=document.getElementById("customersTable");if(box&&!box.__nfV190Observer){box.__nfV190Observer=true;var timer=0;new MutationObserver(function(){clearTimeout(timer);timer=setTimeout(render,80);}).observe(box,{childList:true});}}
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",boot,{once:true});else boot();
 })();
 </script>
-<style id="nf-v190-customer-section-groups-css">
-.nf-v190-customer-groups{margin:12px 0;padding:10px;border:1px solid #ddd8df;border-radius:20px;background:#fff;box-shadow:0 8px 22px rgba(35,25,30,.08);overflow:hidden}
-.nf-v190-groups-body{display:grid;gap:10px}
-.nf-v190-customer-box{border:1px solid #ddd5ef;border-radius:16px;background:#fff;overflow:hidden;box-shadow:0 5px 15px rgba(52,31,86,.06)}
-.nf-v190-customer-name{padding:10px 12px;background:linear-gradient(135deg,#f7f3ff,#fff4fa);border-bottom:1px solid #e3dceb;color:#4d267c;font-size:17px;font-weight:950}
-.nf-v190-customer-section{margin:0!important}
-.nf-v190-customer-section>.nf-collection-title,.nf-v190-customer-section>.nf-delivery-heading{cursor:default}
-.nf-v190-section-hook{width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;border:0;background:transparent;padding:0;margin:0;color:inherit;font:inherit;text-align:left;cursor:pointer}
-.nf-v190-hook-text{min-width:0;flex:1}
-.nf-v190-hook-icon{width:30px;height:30px;min-width:30px;border-radius:50%;display:grid;place-items:center;background:#fff;border:1px solid rgba(100,70,160,.25);font-size:19px;line-height:1}
-.nf-v190-hook-body{overflow:hidden}
-.nf-v190-customer-section.nf-blouse-collection{border:0!important;border-radius:0!important;box-shadow:none!important}
-@media(max-width:560px){.nf-v190-customer-groups{padding:8px}.nf-v190-customer-name{font-size:16px;padding:8px 10px}.nf-v190-hook-icon{width:28px;height:28px;min-width:28px}}
+<style id="nf-v190-customer-section-grouping-css">
+.nf-v190-customer-tag{margin:12px 0;border:1px solid #ddd8df;border-radius:18px;background:#fff;overflow:hidden;box-shadow:0 8px 22px rgba(35,25,30,.08)}
+.nf-v190-person-group{border-bottom:1px solid #e7e1e8;background:#fff}.nf-v190-person-group:last-child{border-bottom:0}
+.nf-v190-person-name{padding:10px 12px;background:linear-gradient(135deg,#f7f3ff,#fff4fa);border-bottom:1px solid #e3dceb;color:#4d267c;font-size:17px;font-weight:950}
+.nf-v190-hook-row{border-bottom:1px solid #e8e3e8}.nf-v190-hook-row:last-child{border-bottom:0}
+.nf-v190-section-hook{width:100%;min-height:46px;padding:7px 11px;border:0;background:#fff;color:#4d267c;display:flex;align-items:center;justify-content:space-between;gap:10px;text-align:left;font:inherit;font-weight:900;cursor:pointer}
+.nf-v190-section-hook>span{min-width:0;overflow-wrap:anywhere}.nf-v190-section-hook>b{flex:0 0 32px;width:32px;height:32px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(135deg,#6c3df5,#ef4f9a);color:#fff;font-size:21px;font-weight:500;line-height:1;box-shadow:0 4px 11px rgba(108,61,245,.20)}
+.nf-v190-hook-body{min-width:0}.nf-v190-hook-body .customerWorkSummary{margin:0!important;border:0!important;border-radius:0!important;box-shadow:none!important}
+.nf-v190-hook-body>.nf-collection-panel{margin:0!important;border-left:0!important;border-right:0!important;border-bottom:0!important;border-radius:0!important}
+@media(max-width:560px){.nf-v190-person-name{font-size:15px;padding:9px 10px}.nf-v190-section-hook{min-height:44px;padding:7px 9px}.nf-v190-section-hook>b{width:30px;height:30px;flex-basis:30px;font-size:20px}}
 </style>
 </html><script id="nf-v52-dashboard-scroll-fix-js">
 (function(){
@@ -13047,6 +12987,7 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
 
   function fixCard(card){
     if(!card)return;
+    if(card.dataset && card.dataset.nfV190Grouped==="1")return;
     var id=String(card.id||"").replace(/^customer-card-/i,"");
     if(!id)return;
     var c=all().find(function(x){return String(x&&x.id||"")===id;});
