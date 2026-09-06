@@ -10364,120 +10364,6 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",boot,{once:true});else boot();
 })();
 </script>
-<!-- NF V19 CUSTOMER HOOK GROUPING -->
-
-<style id="nf-v190-customer-hook-grouping-css">
-.nf-v190-group{margin:12px 0;padding:0;border:2px solid #cbbaf3;border-radius:20px;background:linear-gradient(145deg,#fff,#faf7ff);overflow:hidden;box-shadow:0 10px 24px rgba(72,48,120,.10)}
-.nf-v190-customer-head{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;min-height:52px;padding:10px 13px;border:0;background:linear-gradient(135deg,#f0ebff,#fff0f7);color:#241b31;font:inherit;font-size:20px;font-weight:950;text-align:left;cursor:pointer}
-.nf-v190-customer-head .nf-v190-icon,.nf-v190-hook .nf-v190-icon{flex:0 0 36px;width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(135deg,#6c3df5,#ef4f9a);color:#fff;font-size:22px;line-height:1;box-shadow:0 5px 13px rgba(108,61,245,.22)}
-.nf-v190-customer-head .nf-v190-name{min-width:0;flex:1;overflow-wrap:anywhere}
-.nf-v190-customer-body{display:none;padding:0 10px 10px}
-.nf-v190-hook{width:100%;min-height:48px;margin:8px 0 0;padding:7px 10px;border:1px solid #e0d7ef;border-radius:14px;background:linear-gradient(135deg,#faf8ff,#fff);display:flex;align-items:center;justify-content:space-between;gap:10px;color:#2b2433;font:inherit;font-weight:900;text-align:left;cursor:pointer;box-shadow:0 5px 13px rgba(72,48,120,.06)}
-.nf-v190-hook .nf-v190-label{min-width:0;flex:1;overflow-wrap:anywhere}
-.nf-v190-hook .nf-v190-icon{width:34px;height:34px;flex-basis:34px;font-size:21px}
-.nf-v190-panel{display:none;margin:8px 0 0}
-.nf-v190-panel.open{display:block}
-.nf-v190-panel>.nf-cash-collection,.nf-v190-panel>.nf-blouse-collection{margin:0!important}
-.nf-v190-panel>.nfCustomerBreakdownMount{margin:0!important}
-.nf-v190-hidden{display:none!important}
-@media(max-width:560px){.nf-v190-customer-head{min-height:48px;padding:8px 10px;font-size:18px}.nf-v190-customer-body{padding:0 7px 8px}.nf-v190-hook{min-height:44px;padding:6px 8px}.nf-v190-hook .nf-v190-icon,.nf-v190-customer-head .nf-v190-icon{width:32px;height:32px;flex-basis:32px;font-size:19px}}
-</style>
-<script id="nf-v190-customer-hook-grouping-js">
-(function(){
-  "use strict";
-  if(window.__nfV190CustomerHookGrouping)return;
-  window.__nfV190CustomerHookGrouping=true;
-  var PARENT_RE=/(?:^|\|\s*)(?:NF_MULTI_PARENT|NF_PARENT_CUSTOMER):\s*([^|\s]+)/i;
-  function all(){return (typeof state!=="undefined"&&Array.isArray(state.customers))?state.customers:[];}
-  function parentId(c){var m=String(c&&c.notes||"").match(PARENT_RE);return m?String(m[1]||""):"";}
-  function kids(id){var sid=String(id||""),seen={};return all().filter(function(c){var cid=String(c&&c.id||"");if(parentId(c)!==sid||!cid||seen[cid])return false;seen[cid]=1;return true;});}
-  function ids(mainId){var a=[String(mainId)],seen={};seen[a[0]]=1;kids(mainId).forEach(function(c){var id=String(c.id||"");if(id&&!seen[id]){seen[id]=1;a.push(id);}});return a;}
-  function esc(v){return String(v==null?"":v).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c];});}
-  function customerName(id){var c=all().find(function(x){return String(x&&x.id||"")===String(id);});return c&&c.name||"Customer";}
-  function getById(root,sel,id){var n=root.querySelector(sel+'[data-customer-id="'+CSS.escape(String(id))+'"]');return n;}
-  function restoreCalcInternalHooks(calc){
-    if(!calc)return;
-    calc.querySelectorAll('.customerWorkSection').forEach(function(sec){
-      var h=sec.querySelector(':scope > h4');if(!h)return;
-      var b=h.querySelector('.nf-v170-calc-hook');
-      if(b){var t=b.querySelector('span');h.textContent=t?t.textContent.trim():b.textContent.replace('＋','').replace('−','').trim();}
-      Array.prototype.forEach.call(sec.children,function(ch,i){if(i>0)ch.style.display='';});
-      sec.querySelectorAll('.nf-v170-calc-body').forEach(function(x){x.style.display='';x.classList.remove('nf-v170-calc-body');});
-    });
-  }
-  function makeHook(label,icon,body,openDefault){
-    var row=document.createElement('div');
-    var btn=document.createElement('button');btn.type='button';btn.className='nf-v190-hook';btn.setAttribute('aria-expanded',openDefault?'true':'false');
-    btn.innerHTML='<span class="nf-v190-label"></span><span class="nf-v190-icon">'+icon+'</span>';
-    btn.querySelector('.nf-v190-label').textContent=label;
-    var panel=document.createElement('div');panel.className='nf-v190-panel';
-    if(body)panel.appendChild(body);
-    function sync(open){panel.classList.toggle('open',open);btn.setAttribute('aria-expanded',String(open));btn.querySelector('.nf-v190-icon').textContent=open?'−':'＋';}
-    btn.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();sync(btn.getAttribute('aria-expanded')!=='true');});
-    row.appendChild(btn);row.appendChild(panel);sync(!!openDefault);return row;
-  }
-  function extractSections(card){
-    var cashWrap=card.querySelector(':scope > .nf-v120-multi-cash-wrap');
-    var calcWrap=card.querySelector(':scope > .nf-v160-multi-calculation');
-    var blouseWrap=card.querySelector(':scope > .nf-v130-multi-blouse');
-    if(!cashWrap||!calcWrap||!blouseWrap)return null;
-    var cash={},calc={},blouse={};
-    cashWrap.querySelectorAll('.nf-v120-customer-cash-box').forEach(function(x){var id=x.getAttribute('data-customer-id');if(id)cash[String(id)]=x;});
-    calcWrap.querySelectorAll('.nf-v160-customer-calc-box').forEach(function(x){var id=x.getAttribute('data-customer-id');if(id)calc[String(id)]=x;});
-    blouseWrap.querySelectorAll('.nf-v130-blouse-person').forEach(function(x){var name=x.querySelector('.nf-v130-blouse-person-name');var id=x.getAttribute('data-customer-id');if(id)blouse[String(id)]=x;else if(name){var nm=name.textContent.replace(/^[^\S\r\n]+/,'').trim();var c=all().find(function(z){return String(z.name||'').trim()===nm});if(c)blouse[String(c.id)]=x;}});
-    return {cash:cash,calc:calc,blouse:blouse,cashWrap:cashWrap,calcWrap:calcWrap,blouseWrap:blouseWrap};
-  }
-  function fixCard(card){
-    if(!card||card.dataset.nfV190Done==='1')return;
-    var mainId=String(card.id||'').replace(/^customer-card-/i,'');if(!mainId)return;
-    var c=all().find(function(x){return String(x&&x.id||'')===mainId;});if(!c||parentId(c))return;
-    var list=kids(mainId);if(!list.length)return;
-    var sec=extractSections(card);if(!sec)return;
-    var customerIds=ids(mainId),group=document.createElement('section');group.className='nf-v190-group';group.dataset.mainCustomerId=mainId;
-    var tag=document.createElement('div');tag.className='nf-v190-customer-head';
-    tag.innerHTML='<span class="nf-v190-name"></span><span class="nf-v190-icon">−</span>';tag.querySelector('.nf-v190-name').textContent=customerName(mainId);
-    var body=document.createElement('div');body.className='nf-v190-customer-body';body.style.display='block';
-    tag.addEventListener('click',function(){var open=body.style.display!=='none';body.style.display=open?'none':'block';tag.querySelector('.nf-v190-icon').textContent=open?'＋':'−';});
-    group.appendChild(tag);group.appendChild(body);
-    customerIds.forEach(function(id){
-      var cash=sec.cash[id],calc=sec.calc[id],blouse=sec.blouse[id];
-      if(!cash||!calc||!blouse)return;
-      var cashBody=cash.querySelector(':scope > .nf-cash-collection');
-      if(cashBody){cashBody.classList.remove('nf-v133-collapsible-body');cashBody.style.display='';}
-      var cashName=cash.querySelector(':scope > .nf-v120-customer-name');if(cashName)cashName.remove();
-      var calcName=calc.querySelector(':scope > .nf-v160-customer-calc-name');if(calcName)calcName.remove();
-      restoreCalcInternalHooks(calc);
-      var calcBody=document.createElement('div');calcBody.className='nfCustomerBreakdownMount';
-      Array.prototype.slice.call(calc.children).forEach(function(ch){calcBody.appendChild(ch);});
-      calcBody.classList.add('nf-v190-calc-content');
-      var blouseBody=blouse.querySelector(':scope > .nf-v130-person-blouse');
-      if(blouseBody){blouseBody.classList.remove('nf-v133-collapsible-body');blouseBody.style.display='';}
-      var blouseName=blouse.querySelector(':scope > .nf-v130-blouse-person-name');if(blouseName)blouseName.remove();
-      var person=document.createElement('section');person.className='nf-v190-person';
-      var personBody=document.createElement('div');personBody.className='nf-v190-person-body';personBody.style.display='none';
-      var ph=document.createElement('button');ph.type='button';ph.className='nf-v190-person-label';ph.setAttribute('aria-expanded','false');
-      ph.innerHTML='<span class="nf-v190-person-name"></span><span class="nf-v190-person-icon">＋</span>';
-      ph.querySelector('.nf-v190-person-name').textContent=customerName(id);
-      ph.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();var open=personBody.style.display!=='none';personBody.style.display=open?'none':'block';ph.setAttribute('aria-expanded',String(!open));ph.querySelector('.nf-v190-person-icon').textContent=open?'＋':'−';});
-      person.appendChild(ph);
-      personBody.appendChild(makeHook('Cash Collection','💰',cashBody,false));
-      personBody.appendChild(makeHook('Blouse + Saree + Chudi Calculation','🧮',calcBody,false));
-      personBody.appendChild(makeHook('Blouse Collection','👗',blouseBody,false));
-      person.appendChild(personBody);
-      body.appendChild(person);
-    });
-    if(!body.children.length)return;
-    var personStyle=document.createElement('style');personStyle.textContent='.nf-v190-person{margin-top:9px;padding:0 0 2px;border:1px solid #e1d9ee;border-radius:16px;background:#fff;overflow:hidden}.nf-v190-person-label{width:100%;padding:9px 11px;border:0;background:linear-gradient(135deg,#f7f3ff,#fff4fa);border-bottom:1px solid #e3dceb;color:#4d267c;font-size:17px;font-weight:950;display:flex;align-items:center;justify-content:space-between;gap:10px;text-align:left;cursor:pointer}.nf-v190-person-name{min-width:0;flex:1;overflow-wrap:anywhere}.nf-v190-person-icon{flex:0 0 34px;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(135deg,#6c3df5,#ef4f9a);color:#fff;font-size:22px;line-height:1;box-shadow:0 5px 13px rgba(108,61,245,.22)}.nf-v190-person .nf-v190-hook:first-of-type{margin-top:8px}.nf-v190-person .nf-v190-hook,.nf-v190-person .nf-v190-panel{margin-left:8px;margin-right:8px}.nf-v190-person .nf-v190-panel{margin-bottom:8px}.nf-v190-person .nfCustomerBreakdownMount{padding:0}.nf-v190-person .nf-v190-calc-content{padding:0}.nf-v190-person .customerWorkSummary{margin:0!important}.nf-v190-person .nf-cash-collection,.nf-v190-person .nf-blouse-collection{width:100%!important}';group.appendChild(personStyle);
-    sec.cashWrap.classList.add('nf-v190-hidden');sec.calcWrap.classList.add('nf-v190-hidden');sec.blouseWrap.classList.add('nf-v190-hidden');
-    card.insertBefore(group,sec.cashWrap);
-    card.dataset.nfV190Done='1';
-  }
-  function render(){var box=document.getElementById('customersTable');if(!box)return;box.querySelectorAll(':scope > .customerCard').forEach(fixCard);}
-  function boot(){render();var box=document.getElementById('customersTable');if(box&&!box.__nfV190Observer){box.__nfV190Observer=true;var t=0;new MutationObserver(function(){clearTimeout(t);t=setTimeout(render,50);}).observe(box,{childList:true});}}
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
-})();
-</script>
-
 </body>
 <script id="nf-v120-single-cash-dedupe-fix">
 (function(){
@@ -10757,6 +10643,115 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
   .nf-v133-person-hook{min-height:42px;padding:7px 9px}
   .nf-v133-hook-icon{width:32px;height:32px;flex-basis:32px;font-size:21px}
 }
+</style>
+
+<script id="nf-v210-four-hook-customer-group-js">
+(function(){
+  "use strict";
+  if(window.__nfV210FourHookGroup)return;
+  window.__nfV210FourHookGroup=true;
+  var PARENT_RE=/(?:^|\|\s*)(?:NF_MULTI_PARENT|NF_PARENT_CUSTOMER):\s*([^|\s]+)/i;
+  function all(){return (typeof state!=="undefined"&&Array.isArray(state.customers))?state.customers:[];}
+  function parentId(c){var m=String(c&&c.notes||"").match(PARENT_RE);return m?String(m[1]||""):"";}
+  function kids(id){var sid=String(id||""),seen={};return all().filter(function(c){var cid=String(c&&c.id||"");if(parentId(c)!==sid||!cid||seen[cid])return false;seen[cid]=1;return true;});}
+  function esc(v){return String(v==null?"":v).replace(/[&<>"']/g,function(ch){return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[ch];});}
+  function idsFor(main){var out=[String(main)],seen={};seen[String(main)]=1;kids(main).forEach(function(c){var id=String(c&&c.id||"");if(id&&!seen[id]){seen[id]=1;out.push(id);}});return out;}
+  function nameOf(id){var c=all().find(function(x){return String(x&&x.id||"")===String(id);});return c&&c.name?c.name:"Customer";}
+  function sourceHTML(id){
+    try{
+      if(typeof window.customerCard!=="function")return null;
+      var holder=document.createElement("div");
+      holder.innerHTML=window.customerCard(String(id));
+      return holder.firstElementChild||null;
+    }catch(e){return null;}
+  }
+  function cloneTop(card,sel){var n=card&&card.querySelector(sel);return n?n.cloneNode(true):null;}
+  function buildCustomer(id){
+    var src=sourceHTML(id);if(!src)return null;
+    var cash=cloneTop(src,":scope > .nf-cash-collection");
+    var blouse=cloneTop(src,":scope > .nf-blouse-collection");
+    var calc=cloneTop(src,":scope > .nfCustomerBreakdownMount");
+    if(!cash||!blouse||!calc)return null;
+
+    /* Calculation = the existing Blouse + Saree + Chudi calculation only.
+       Order Composition is separated as the 4th existing hook. */
+    var calcSummary=calc.querySelector(":scope > .customerWorkSummary");
+    if(!calcSummary)calcSummary=calc.querySelector(".customerWorkSummary");
+    if(!calcSummary)return null;
+    var orderSection=null;
+    Array.from(calcSummary.querySelectorAll(":scope > .customerWorkSection")).forEach(function(sec){
+      var h=sec.querySelector(":scope > h4");
+      if(h && /Order Composition/i.test(h.textContent||"")) orderSection=sec;
+    });
+    if(!orderSection)return null;
+    orderSection=orderSection.cloneNode(true);
+    var calcBody=calcSummary.cloneNode(true);
+    var calcOrder=Array.from(calcBody.querySelectorAll(":scope > .customerWorkSection")).find(function(sec){
+      var h=sec.querySelector(":scope > h4");return h&&/Order Composition/i.test(h.textContent||"");
+    });
+    if(calcOrder)calcOrder.remove();
+
+    var person=document.createElement("section");
+    person.className="nf-v210-person";
+    person.dataset.customerId=String(id);
+    var name=document.createElement("div");name.className="nf-v210-person-name";name.textContent="👤 "+nameOf(id);person.appendChild(name);
+
+    function hook(label,icon,body,kind){
+      var box=document.createElement("section");box.className="nf-v210-hook-box nf-v210-hook-"+kind;
+      var head=document.createElement("button");head.type="button";head.className="nf-v210-hook";head.setAttribute("aria-expanded","false");
+      head.innerHTML='<span class="nf-v210-hook-label">'+icon+' '+esc(label)+'</span><span class="nf-v210-hook-plus">＋</span>';
+      var wrap=document.createElement("div");wrap.className="nf-v210-hook-body";wrap.style.display="none";wrap.appendChild(body);
+      head.addEventListener("click",function(){var open=head.getAttribute("aria-expanded")==="true";head.setAttribute("aria-expanded",String(!open));head.querySelector(".nf-v210-hook-plus").textContent=open?"＋":"−";wrap.style.display=open?"none":"";});
+      box.appendChild(head);box.appendChild(wrap);person.appendChild(box);
+    }
+    hook("Cash Collection","💰",cash,"cash");
+    hook("Blouse / Saree / Chudi Calculation","🧮",calcBody,"calc");
+    hook("Blouse Collection","👗",blouse,"blouse");
+    hook("Order Composition","📦",orderSection,"order");
+    return person;
+  }
+  function fixCard(card){
+    if(!card||card.dataset.nfV210Done==="1")return;
+    var id=String(card.id||"").replace(/^customer-card-/i,"");if(!id)return;
+    var c=all().find(function(x){return String(x&&x.id||"")===id;});
+    var childList=kids(id);
+    if(!c||parentId(c)||!childList.length)return;
+    var ids=idsFor(id),people=[];
+    ids.forEach(function(cid){var p=buildCustomer(cid);if(p)people.push(p);});
+    if(people.length!==ids.length)return;
+    var group=document.createElement("section");group.className="nf-v210-four-hook-group";group.dataset.mainCustomerId=id;
+    var title=document.createElement("div");title.className="nf-v210-group-title";title.innerHTML='<span>👥</span><div><b>Main + Additional Customers</b><small>ஒவ்வொரு Customer-க்கும் 4 Hooks</small></div>';group.appendChild(title);
+    people.forEach(function(p){group.appendChild(p);});
+    var anchor=card.querySelector(":scope > .nf-cash-collection")||card.querySelector(":scope > .nf-v120-multi-cash-wrap")||card.querySelector(":scope > .nf-blouse-collection");
+    if(!anchor)return;
+    card.insertBefore(group,anchor);
+    /* Hide only the old multi/top-level copies; keep customer details and photos untouched. */
+    [".nf-v120-multi-cash-wrap",".nf-v160-multi-calculation",".nf-v130-multi-blouse", ".nfCustomerBreakdownMount", ".nf-cash-collection", ".nf-blouse-collection"].forEach(function(sel){
+      card.querySelectorAll(":scope > "+sel).forEach(function(x){x.style.display="none";});
+    });
+    card.dataset.nfV210Done="1";
+  }
+  function render(){var box=document.getElementById("customersTable");if(!box)return;box.querySelectorAll(":scope > .customerCard").forEach(fixCard);}
+  function boot(){
+    render();
+    [100,300,700,1200,2000].forEach(function(ms){setTimeout(render,ms);});
+    var box=document.getElementById("customersTable");
+    if(box&&!box.__nfV210Observer){box.__nfV210Observer=true;var t=0;new MutationObserver(function(){clearTimeout(t);t=setTimeout(render,80);}).observe(box,{childList:true});}
+  }
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",boot,{once:true});else boot();
+  var oldRender=window.renderCustomers;
+  if(typeof oldRender==="function"&&!oldRender.__nfV210Wrapped){
+    window.renderCustomers=function(){var r=oldRender.apply(this,arguments);setTimeout(render,0);return r;};window.renderCustomers.__nfV210Wrapped=true;
+  }
+})();
+</script>
+<style id="nf-v210-four-hook-customer-group-css">
+.nf-v210-four-hook-group{margin:12px 0;padding:0;border:2px solid #cfc0f4;border-radius:20px;background:#fff;box-shadow:0 9px 24px rgba(70,45,100,.08);overflow:hidden}
+.nf-v210-group-title{display:flex;align-items:center;gap:9px;padding:11px 13px;background:linear-gradient(100deg,#6f35e8,#cf3fa8);color:#fff}.nf-v210-group-title>span{font-size:22px}.nf-v210-group-title b{display:block;font-size:17px}.nf-v210-group-title small{display:block;margin-top:2px;font-size:11px;opacity:.9}
+.nf-v210-person{margin:10px;border:1px solid #ddd5ef;border-radius:16px;background:#fff;overflow:hidden}.nf-v210-person-name{padding:9px 11px;background:linear-gradient(135deg,#f7f3ff,#fff4fa);border-bottom:1px solid #e3dceb;color:#4d267c;font-size:18px;font-weight:950}
+.nf-v210-hook-box{margin:8px;border:1px solid #ddd5ef;border-radius:14px;overflow:hidden;background:#fff}.nf-v210-hook{width:100%;min-height:52px;padding:9px 11px;border:0;background:linear-gradient(135deg,#f7f3ff,#fff4fa);color:#4d267c;display:flex;align-items:center;justify-content:space-between;gap:10px;text-align:left;font:inherit;font-weight:900;cursor:pointer}.nf-v210-hook-label{min-width:0;overflow-wrap:anywhere}.nf-v210-hook-plus{width:34px;height:34px;min-width:34px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(135deg,#6c3df5,#ef4f9a);color:#fff;font-size:23px;font-weight:500;line-height:1}.nf-v210-hook-body{padding:0;background:#fff}.nf-v210-hook-body>.nf-collection-panel{margin:0!important;border:0!important;border-radius:0!important;box-shadow:none!important}.nf-v210-hook-body>.customerWorkSummary{margin:0!important}.nf-v210-hook-body>.customerWorkSection{margin:0!important}.nf-v210-hook-body>.nf-blouse-collection{margin:0!important}.nf-v210-hook-calc .customerWorkSummary{padding:0!important}
+.nf-v210-hook-calc .customerWorkSummary>.customerWorkSection{border-radius:0!important;margin:0!important}.nf-v210-hook-order .customerWorkSection{border-radius:0!important;margin:0!important}
+@media(max-width:560px){.nf-v210-four-hook-group{border-radius:17px}.nf-v210-person{margin:8px}.nf-v210-person-name{font-size:16px;padding:8px 10px}.nf-v210-hook-box{margin:7px}.nf-v210-hook{min-height:48px;padding:8px 10px}.nf-v210-hook-plus{width:32px;height:32px;min-width:32px;font-size:21px}}
 </style>
 </html><script id="nf-v52-dashboard-scroll-fix-js">
 (function(){
