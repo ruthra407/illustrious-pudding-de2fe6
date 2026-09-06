@@ -10337,6 +10337,33 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
 
 
 
+<script id="nf-v141-blouse-cash-calculation-order-js">
+(function(){
+  "use strict";
+  function fix(){
+    document.querySelectorAll("#customersTable > .customerCard").forEach(function(card){
+      var calc=card.querySelector(":scope > .nfCustomerBreakdownMount");
+      if(!calc)return;
+      var cash=card.querySelector(":scope > .nf-v120-multi-cash-wrap")||card.querySelector(":scope > .nf-cash-collection");
+      if(!cash)return;
+      if(cash.nextElementSibling!==calc)card.insertBefore(calc,cash.nextSibling);
+    });
+  }
+  function boot(){
+    fix();
+    [80,200,500,1000].forEach(function(ms){setTimeout(fix,ms);});
+    var box=document.getElementById("customersTable");
+    if(box&&!box.__nfV141OrderObserver){
+      box.__nfV141OrderObserver=true;
+      new MutationObserver(function(){
+        clearTimeout(box.__nfV141OrderTimer);
+        box.__nfV141OrderTimer=setTimeout(fix,30);
+      }).observe(box,{childList:true,subtree:true});
+    }
+  }
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",boot,{once:true});else boot();
+})();
+</script>
 </body>
 <script id="nf-v120-single-cash-dedupe-fix">
 (function(){
