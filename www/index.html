@@ -12687,11 +12687,11 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
 .nf-v170-calc-hook span{min-width:0;flex:1}.nf-v170-calc-hook b{width:28px;height:28px;min-width:28px;border-radius:50%;display:grid;place-items:center;background:#fff;border:1px solid rgba(100,70,160,.25);font-size:19px;line-height:1}
 .nf-v170-calc-body{overflow:hidden}</style>
 
-<script id="nf-v240-final-four-hook-customer-card">
+<script id="nf-v260-final-four-hook-customer-card">
 (function(){
   "use strict";
-  if(window.__nfV240FinalFourHook)return;
-  window.__nfV240FinalFourHook=true;
+  if(window.__nfV260FinalFourHook)return;
+  window.__nfV260FinalFourHook=true;
   var PARENT_RE=/(?:^|\|\s*)(?:NF_MULTI_PARENT|NF_PARENT_CUSTOMER):\s*([^|\s]+)/i;
   function all(){return (typeof state!=="undefined"&&Array.isArray(state.customers))?state.customers:[];}
   function parentId(c){var m=String(c&&c.notes||"").match(PARENT_RE);return m?String(m[1]||""):"";}
@@ -12729,7 +12729,7 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
     var open=btn.getAttribute("aria-expanded")==="true";
     btn.setAttribute("aria-expanded",open?"false":"true");
     if(plus)plus.textContent=open?"＋":"−";
-    if(body)body.style.display=open?"none":"";
+    if(body)body.style.display=open?"none":"block";
   };
   function buildPerson(id){
     var src=rawCard(id);if(!src)return null;
@@ -12751,10 +12751,17 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
     [".nf-v210-four-hook-group",".nf-v220-four-hook-group",".nf-v230-four-hook-group",".nf-v240-four-hook-group",".nf-v120-multi-cash-wrap",".nf-v160-multi-calculation",".nf-v130-multi-blouse",".nfCustomerBreakdownMount",".nf-cash-collection",".nf-blouse-collection"].forEach(function(sel){card.querySelectorAll(":scope > "+sel).forEach(function(x){x.remove();});});
   }
   function moveGroupBeforePhotos(card,group){
+    /* V26: the entire customer-cloth photo manager must stay after the 4 hooks.
+       This keeps "கஸ்டமர் கொடுத்த துணிகள்" immediately above the photo slots. */
+    var manager=card.querySelector(".nf-customer-cloth-photo-manager");
+    if(manager && manager.parentNode){
+      manager.parentNode.insertBefore(group,manager);
+      return true;
+    }
     var photos=card.querySelector(".nf-customer-cloth-photos, .photoGrid");
-    if(photos){
-      var parent=photos.parentNode;
-      if(parent){parent.insertBefore(group,photos);return true;}
+    if(photos && photos.parentNode){
+      photos.parentNode.insertBefore(group,photos);
+      return true;
     }
     return false;
   }
