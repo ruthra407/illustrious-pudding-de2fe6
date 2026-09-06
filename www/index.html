@@ -10336,101 +10336,96 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
 </style></style>
 
 
-<script id="nf-v100-main-additional-cash-collection-js">
+
+</body>
+<script id="nf-v120-single-cash-dedupe-fix">
 (function(){
   "use strict";
-  function parentId(c){
-    if(!c)return "";
-    var m=String(c.notes||"").match(/(?:^|\|\s*)(?:NF_MULTI_PARENT|NF_PARENT_CUSTOMER):\s*([^|\s]+)/i);
-    return m?String(m[1]||""):"";
-  }
-  function isChild(c){return !!parentId(c);}
-  function kids(id){
-    var sid=String(id||"");
-    return (state.customers||[]).filter(function(c){return parentId(c)===sid;});
-  }
-  function cloneCashPanel(base,id){
+  var PARENT_RE=/(?:^|\|\s*)(?:NF_MULTI_PARENT|NF_PARENT_CUSTOMER):\s*([^|\s]+)/i;
+  function all(){return (typeof state!=="undefined"&&Array.isArray(state.customers))?state.customers:[];}
+  function parentId(c){var m=String(c&&c.notes||"").match(PARENT_RE);return m?String(m[1]||""):"";}
+  function kids(id){var sid=String(id||""),seen={};return all().filter(function(c){var p=parentId(c),cid=String(c&&c.id||"");if(p!==sid||!cid||seen[cid])return false;seen[cid]=1;return true;});}
+  function mainId(id){var sid=String(id||""),c=all().find(function(x){return String(x&&x.id||"")===sid;});return c&&parentId(c)||sid;}
+  function esc(v){return String(v==null?"":v).replace(/[&<>"']/g,function(ch){return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[ch];});}
+  function originalCash(customerId){
+    var base=window.nfV120OriginalCustomerCard;
+    if(typeof base!=="function")return "";
     try{
-      var h=document.createElement("div");
-      h.innerHTML=base(id);
-      var p=h.querySelector(".nf-cash-collection");
+      var h=document.createElement("div");h.innerHTML=base(customerId);
+      var p=h.querySelector(":scope > .nf-cash-collection")||h.querySelector(".nf-cash-collection");
       return p?p.outerHTML:"";
-    }catch(e){console.warn("Multi Customer Cash Collection:",e);return "";}
+    }catch(e){return "";}
   }
-  function addMultiCash(card,id,base){
-    var list=kids(id);
-    if(!card||!list.length)return;
-    var old=card.querySelector(":scope > .nf-cash-collection")||card.querySelector(".nf-cash-collection");
-    if(!old)return;
-    var wrap=document.createElement("section");
-    wrap.className="nf-v100-multi-cash-wrap";
-    var body=document.createElement("div");
-    body.className="nf-v100-multi-cash-body";
-    [String(id)].concat(list.map(function(c){return String(c.id);})).forEach(function(cid){
-      var html=cloneCashPanel(base,cid);
-      if(!html)return;
-      var item=document.createElement("div");
-      item.className="nf-v100-customer-cash-box";
-      var name=(state.customers||[]).find(function(c){return String(c.id)===String(cid);});
-      var title=document.createElement("div");
-      title.className="nf-v100-customer-name";
-      title.textContent=name&&name.name?name.name:"Customer";
-      item.appendChild(title);
-      var holder=document.createElement("div");
-      holder.innerHTML=html;
-      item.appendChild(holder.firstElementChild);
-      body.appendChild(item);
+  function cardId(card){return String(card&&card.id||"").replace(/^customer-card-/i,"");}
+  function makeWrap(mainIdValue){
+    var mid=mainId(mainIdValue), list=kids(mid);
+    if(!list.length)return null;
+    var wrap=document.createElement("section");wrap.className="nf-v120-multi-cash-wrap";
+    wrap.innerHTML='<div class="nf-v120-multi-cash-body"></div>';
+    var body=wrap.firstElementChild, ids=[mid].concat(list.map(function(c){return String(c.id);})),seen={};
+    ids.forEach(function(cid){
+      cid=String(cid);if(seen[cid])return;seen[cid]=1;
+      var html=originalCash(cid);if(!html)return;
+      var item=document.createElement("div");item.className="nf-v120-customer-cash-box";item.dataset.customerId=cid;
+      var c=all().find(function(x){return String(x&&x.id||"")===cid;});
+      var title=document.createElement("div");title.className="nf-v120-customer-name";title.textContent=c&&c.name?c.name:"Customer";
+      item.appendChild(title);var h=document.createElement("div");h.innerHTML=html;item.appendChild(h.firstElementChild);body.appendChild(item);
     });
-    wrap.appendChild(body);
-    old.replaceWith(wrap);
+    return wrap;
   }
-  function patchCustomerCard(){
-    var base=window.customerCard;
-    if(typeof base!=="function"||base.__nfV100MultiCash)return;
-    var wrapped=function(id){
-      var html=base.apply(this,arguments);
-      try{
-        var h=document.createElement("div");h.innerHTML=html;
-        var card=h.querySelector(".customerCard");
-        if(card){addMultiCash(card,id,base);return card.outerHTML;}
-      }catch(e){console.warn("Multi Customer Cash Collection:",e);}
-      return html;
-    };
-    wrapped.__nfV100MultiCash=true;
-    window.customerCard=wrapped;
+  function fixCard(card){
+    if(!card)return;
+    var id=cardId(card);if(!id)return;
+    var c=all().find(function(x){return String(x&&x.id||"")===id;});
+    if(!c||parentId(c))return;
+    var list=kids(id);if(!list.length)return;
+    var existing=card.querySelector(":scope > .nf-v120-multi-cash-wrap");
+    if(existing){
+      var seen={};
+      existing.querySelectorAll(":scope > .nf-v120-multi-cash-body > .nf-v120-customer-cash-box").forEach(function(item){
+        var cid=String(item.dataset.customerId||"");
+        if(cid&&seen[cid])item.remove();else if(cid)seen[cid]=1;
+      });
+      return;
+    }
+    var legacy=Array.from(card.querySelectorAll(":scope > .nf-v110-multi-cash-wrap, :scope > .nf-v100-multi-cash-wrap"));
+    legacy.forEach(function(x){x.remove();});
+    card.querySelectorAll(":scope > .nf-cash-collection").forEach(function(x){x.remove();});
+    var wrap=makeWrap(id);if(!wrap)return;
+    var anchor=card.querySelector(":scope > .nf-blouse-collection");
+    if(anchor)card.insertBefore(wrap,anchor);else card.appendChild(wrap);
   }
-  function patchRenderCustomers(){
-    var base=window.renderCustomers;
-    if(typeof base!=="function"||base.__nfV100FilterChildren)return;
-    var wrapped=function(){
-      var result=base.apply(this,arguments);
-      try{
-        var box=document.getElementById("customersTable");
-        if(box)box.querySelectorAll(".customerCard").forEach(function(card){
-          var id=String(card.id||"").replace(/^customer-card-/,'');
-          var c=(state.customers||[]).find(function(x){return String(x.id)===id;});
-          if(isChild(c))card.remove();
-        });
-      }catch(e){}
-      return result;
-    };
-    wrapped.__nfV100FilterChildren=true;
-    window.renderCustomers=wrapped;
+  function renderFix(){
+    var box=document.getElementById("customersTable");if(!box)return;
+    box.querySelectorAll(":scope > .customerCard").forEach(fixCard);
   }
-  function start(){patchCustomerCard();patchRenderCustomers();}
-  start();
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});
-  else setTimeout(start,0);
+  function captureOriginal(){
+    if(typeof window.nfV120OriginalCustomerCard==="function")return;
+    if(typeof window.customerCard==="function")window.nfV120OriginalCustomerCard=window.customerCard;
+  }
+  captureOriginal();
+  document.addEventListener("DOMContentLoaded",function(){
+    captureOriginal();
+    setTimeout(renderFix,0);setTimeout(renderFix,150);setTimeout(renderFix,600);
+    var box=document.getElementById("customersTable");
+    if(box){new MutationObserver(function(){clearTimeout(box.__nf120Timer);box.__nf120Timer=setTimeout(renderFix,20);}).observe(box,{childList:true});}
+  },{once:true});
+  if(document.readyState!=="loading"){
+    setTimeout(renderFix,0);setTimeout(renderFix,150);setTimeout(renderFix,600);
+    var box=document.getElementById("customersTable");
+    if(box){new MutationObserver(function(){clearTimeout(box.__nf120Timer);box.__nf120Timer=setTimeout(renderFix,20);}).observe(box,{childList:true});}
+  }
 })();
 </script>
-<style id="nf-v100-main-additional-cash-collection-css">
-.nf-v100-multi-cash-wrap{margin:12px 0;padding:0;border:1px solid #ddd8df;border-radius:20px;background:#fff;box-shadow:0 8px 22px rgba(35,25,30,.08);overflow:hidden}
-.nf-v100-multi-cash-body{padding:10px 12px 12px;display:grid;gap:10px}
-.nf-v100-customer-cash-box{margin:0;padding:0}
-.nf-v100-customer-name{font-size:18px;font-weight:950;color:#211b20;padding:8px 10px 7px;border-radius:12px 12px 0 0;background:#f7f4fb;border:1px solid #e3dceb;border-bottom:0}
-.nf-v100-customer-cash-box>.nf-cash-collection{margin:0!important;border-top-left-radius:0!important;border-top-right-radius:0!important}
+<style id="nf-v120-single-cash-dedupe-fix-css">
+.nf-v120-multi-cash-wrap{margin:12px 0;padding:0;border:1px solid #ddd8df;border-radius:20px;background:#fff;box-shadow:0 8px 22px rgba(35,25,30,.08);overflow:hidden}
+.nf-v120-multi-cash-body{padding:10px 12px 12px;display:grid;gap:10px}
+.nf-v120-customer-cash-box{margin:0;padding:0}
+.nf-v120-customer-name{font-size:18px;font-weight:950;color:#211b20;padding:8px 10px 7px;border-radius:12px 12px 0 0;background:#f7f4fb;border:1px solid #e3dceb;border-bottom:0}
+.nf-v120-customer-cash-box>.nf-cash-collection{margin:0!important;border-top-left-radius:0!important;border-top-right-radius:0!important}
+@media(max-width:560px){.nf-v120-customer-name{font-size:16px;padding:7px 9px}.nf-v120-multi-cash-body{padding:8px}}
 </style>
-</body></html><script id="nf-v52-dashboard-scroll-fix-js">
+</html><script id="nf-v52-dashboard-scroll-fix-js">
 (function(){
   "use strict";
   function syncDashboardMode(){
