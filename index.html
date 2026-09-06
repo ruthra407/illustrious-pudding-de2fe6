@@ -1715,7 +1715,7 @@ body.nf-photo-preview-scroll-locked{overscroll-behavior:none!important}
 <div class="nf-v600-hint">ON செய்தால் Android native notification schedule செய்யப்படும். OFF செய்தால் 24 schedule-களும் cancel ஆகும்.</div>
 </div>
 </div>
-</section><section class="view" id="view-daily-update"><div class="nf-daily-page-head"><button aria-label="Back to Home" class="nf-daily-back" onclick="goView('dashboard')" type="button">‹</button><div><h2>📊 Daily Update</h2><p>இன்றைய நிலவரம்</p></div></div><div aria-label="Daily Update Summary" id="nfDailySummaryCard"><div class="nfDailySummaryHead"><b>📊 Daily Update</b><span>இன்றைய நிலவரம்</span></div><div id="dailyUpdate"></div></div></section><section class="view" id="view-customers"><div class="pagehead nf-search-pagehead nf-customer-cards-head"><button aria-label="Open customer names" class="nf-customer-cards-menu-btn" onclick="toggleMyCustomersSlideMenu(event)" title="Customer names" type="button">☰</button><div class="nf-customer-cards-title"><h2>Customer Cards</h2></div><div class="nf-customer-cards-right"><button aria-label="Search customers" class="btn secondary nf-search-icon-btn" onclick="toggleCompactSearch('customer')" title="Search" type="button">🔍</button></div></div><div class="nf-customer-cards-add-wrap"><button class="btn primary nf-customer-cards-add-btn" onclick="openModal('customer')">＋ Add Customer</button></div><div class="nf-compact-search-panel" hidden="" id="customerSearchPanel"><div class="nf-compact-search-row"><span class="nf-compact-search-icon">🔍</span><input autocomplete="off" class="input search" id="customerSearch" placeholder="Search name / phone / address / village"/><button aria-label="Close search" class="btn secondary nf-compact-close" onclick="toggleCompactSearch('customer',false)" type="button">✕</button><button class="btn secondary nf-compact-refresh" onclick="loadAll()" title="Refresh" type="button">↻</button></div></div><div class="customerCards" id="customersTable"></div></section><section class="view" id="view-measurements"><div class="pagehead"><div><h2>Measurements</h2><p>Customer-wise measurements.</p></div><div class="spacer"></div><button class="btn primary" onclick="openModal('measurement')">＋ Add Measurement</button></div><div class="card"><div class="toolbar"><input class="input search" id="measurementSearch" placeholder="Search customer / garment"/><button class="btn secondary" onclick="loadAll()">↻ Refresh</button></div><div id="measurementsTable"></div></div></section><section class="view" id="view-orders"><div class="pagehead nf-search-pagehead"><div><h2>Orders</h2><p>Customer Card-ல் எடுத்த New Order-கள் மட்டும் இங்கே வரும்.</p></div><div class="spacer"></div><button aria-label="Search orders" class="btn secondary nf-search-icon-btn" onclick="toggleCompactSearch('orders')" title="Search" type="button">🔍</button></div><div class="nf-compact-search-panel" hidden="" id="ordersSearchPanel"><div class="nf-compact-search-row nf-orders-search-row"><span class="nf-compact-search-icon">🔍</span><input autocomplete="off" class="input search" id="orderSearch" placeholder="Search order / customer / garment"/><select class="input nf-order-status-select" id="orderStatusFilter"><option value="">All status</option><option>Pending</option><option>In Progress</option><option>Ready</option><option>Delivered</option><option>Cancelled</option></select><button aria-label="Close search" class="btn secondary nf-compact-close" onclick="toggleCompactSearch('orders',false)" type="button">✕</button><button class="btn secondary nf-compact-refresh" onclick="loadAll()" title="Refresh" type="button">↻</button></div></div><div class="card nf-section-card"><div id="ordersTable"></div></div></section><section class="view" id="view-alterations"><div class="pagehead"><div><h2>Alterations</h2><p>Alteration work and delivery tracking.</p></div><div class="spacer"></div><button class="btn primary" onclick="openModal('alteration')">＋ Add Alteration</button></div><div class="card"><div class="toolbar"><input class="input search" id="alterationSearch" placeholder="Search customer / details"/><button class="btn secondary" onclick="loadAll()">↻ Refresh</button></div><div id="alterationsTable"></div></div></section><section class="view" id="view-designs"><div class="pagehead"><div><h2>🎨 Blouse Design Studio</h2><p>Online-ல் design தேடி, பிடித்த design-ஐ இங்கே save செய்து customer-க்கு காட்டலாம்.</p></div><div class="spacer"></div><button class="btn primary" onclick="openModal('design')">＋ Add Design</button></div><div class="card"><div class="designTools"><input class="input" id="onlineDesignQuery" placeholder="எ.கா. bridal blouse design / simple blouse design"/><button class="btn primary" id="onlineDesignBtn">🔎 Search Designs</button><button class="btn secondary" id="googleDesignBtn">🌐 Google Images</button></div><div class="mini">Google Images முழு results-ஐ Google-ல் திறக்கலாம். கீழே preview results-ல் save செய்யக்கூடிய படங்களும் வரும்.</div><div class="designSearchResults" id="onlineDesignResults"></div></div><div class="card" style="margin-top:14px"><div class="pagehead"><div><h3 style="margin:0">💾 Saved Designs</h3><p>உங்கள் design catalogue</p></div></div><div class="designGallery" id="designGallery"></div></div><div class="card" style="margin-top:14px"><div class="toolbar"><input class="input search" id="designSearch" placeholder="Search saved design no / name / category"/><button class="btn secondary" onclick="loadAll()">↻ Refresh</button></div><div id="designsTable"></div></div></section></main></div></div><div aria-hidden="true" class="modal nf-orders-new-order-screen" id="ordersNewOrderScreen"><div class="modalbox nf-orders-new-order-box"><div class="modalhead"><h3 id="ordersNewOrderScreenTitle">🧾 New Order</h3><button class="close" onclick="closeOrdersQuickAdd()" type="button">✕</button></div><div id="ordersNewOrderContent"></div></div></div><button aria-label="Add" class="p4FabButton" id="p4Fab" type="button">＋</button><nav aria-label="Quick navigation" id="p4MobileNav"><button data-p4-view="dashboard"><span class="p4Icon">⌂</span><span>Home</span></button><button data-p4-view="customers"><span class="p4Icon">👥</span><span>Customers</span></button><button data-p4-view="orders"><span class="p4Icon">🧾</span><span>Orders</span></button></nav><div aria-hidden="true" class="modal nf-order-full-details" id="nfOrderFullDetails"><div class="modalbox nf-order-full-details-box"><div class="modalhead nf-order-full-details-head"><h3 id="nfOrderFullDetailsTitle">Order Full Details</h3><button class="close" onclick="closeOrderFullDetails()" type="button">✕</button></div><div id="nfOrderFullDetailsContent"></div></div></div><div class="modal" id="modal"><div class="modalbox"><div class="modalhead"><h3 id="modalTitle">Add</h3><button class="close" onclick="closeModal()">✕</button></div><form id="dataForm"><div class="formgrid" id="formFields"></div><div class="modalfoot"><button class="btn secondary" onclick="closeModal()" type="button">Cancel</button><button class="btn danger hidden" id="nfModalDeletePayment" title="Delete Payment" type="button">🗑️ Delete Payment</button><button class="btn primary" id="saveBtn" type="submit">Save</button></div><div class="msg" id="formMsg"></div></form></div></div><div class="toast" id="toast"></div><div aria-hidden="true" class="passkeyGate" id="passkeyGate"><section class="passkeyGateBox"><div class="passkeyIcon">🔐</div><h3>NEW FASHION</h3><p>இந்த சாதனத்தின் Fingerprint / Face / Screen Lock மூலம் App-ஐ unlock செய்யுங்கள்.</p><button class="btn primary" id="passkeyUnlockBtn" type="button">Unlock with Passkey</button><div class="passkeyGateMsg" id="passkeyGateMsg"></div></section></div><script>
+</section><section class="view" id="view-daily-update"><div class="nf-daily-page-head"><button aria-label="Back to Home" class="nf-daily-back" onclick="goView('dashboard')" type="button">‹</button><div><h2>📊 Daily Update</h2><p>இன்றைய நிலவரம்</p></div></div><div aria-label="Daily Update Summary" id="nfDailySummaryCard"><div class="nfDailySummaryHead"><b>📊 Daily Update</b><span>இன்றைய நிலவரம்</span></div><div id="dailyUpdate"></div></div></section><section class="view" id="view-customers"><div class="pagehead nf-search-pagehead nf-customer-cards-head"><button aria-label="Open customer names" class="nf-customer-cards-menu-btn" onclick="toggleMyCustomersSlideMenu(event)" title="Customer names" type="button">☰</button><div class="nf-customer-cards-title"><h2>Customer Cards</h2></div><div class="nf-customer-cards-right"><button aria-label="Search customers" class="btn secondary nf-search-icon-btn" onclick="toggleCompactSearch('customer')" title="Search" type="button">🔍</button></div></div><div class="nf-customer-cards-add-wrap"><button class="btn primary nf-customer-cards-add-btn" onclick="openModal('customer')">＋ Add Customer</button></div><div class="nf-compact-search-panel" hidden="" id="customerSearchPanel"><div class="nf-compact-search-row"><span class="nf-compact-search-icon">🔍</span><input autocomplete="off" class="input search" id="customerSearch" placeholder="Search name / phone / address / village"/><button aria-label="Close search" class="btn secondary nf-compact-close" onclick="toggleCompactSearch('customer',false)" type="button">✕</button><button class="btn secondary nf-compact-refresh" onclick="loadAll()" title="Refresh" type="button">↻</button></div></div><div class="customerCards" id="customersTable"></div></section><section class="view" id="view-measurements"><div class="pagehead"><div><h2>Measurements</h2><p>Customer-wise measurements.</p></div><div class="spacer"></div><button class="btn primary" onclick="openModal('measurement')">＋ Add Measurement</button></div><div class="card"><div class="toolbar"><input class="input search" id="measurementSearch" placeholder="Search customer / garment"/><button class="btn secondary" onclick="loadAll()">↻ Refresh</button></div><div id="measurementsTable"></div></div></section><section class="view" id="view-orders"><div class="pagehead nf-search-pagehead"><div><h2>Orders</h2><p>Customer Card-ல் எடுத்த New Order-கள் மட்டும் இங்கே வரும்.</p></div><div class="spacer"></div><button aria-label="Search orders" class="btn secondary nf-search-icon-btn" onclick="toggleCompactSearch('orders')" title="Search" type="button">🔍</button></div><div class="nf-compact-search-panel" hidden="" id="ordersSearchPanel"><div class="nf-compact-search-row nf-orders-search-row"><span class="nf-compact-search-icon">🔍</span><input autocomplete="off" class="input search" id="orderSearch" placeholder="Search order / customer / garment"/><select class="input nf-order-status-select" id="orderStatusFilter"><option value="">All status</option><option>Pending</option><option>In Progress</option><option>Ready</option><option>Delivered</option><option>Cancelled</option></select><button aria-label="Close search" class="btn secondary nf-compact-close" onclick="toggleCompactSearch('orders',false)" type="button">✕</button><button class="btn secondary nf-compact-refresh" onclick="loadAll()" title="Refresh" type="button">↻</button></div></div><div class="card nf-section-card"><div id="ordersTable"></div></div></section><section class="view" id="view-delivery"><div class="pagehead"><div><h2>🚚 Delivery</h2><p>Delivery page.</p></div><div class="spacer"></div></div><div class="nf-dp-layout"><aside class="nf-dp-sidebar"><div class="nf-dp-sidebar-title">👥 Customers</div><div id="deliveryCustomerSide"></div></aside><main class="nf-dp-main"><div id="deliveryPageContent"></div></main></div></section><section class="view" id="view-alterations"><div class="pagehead"><div><h2>Alterations</h2><p>Alteration work and delivery tracking.</p></div><div class="spacer"></div><button class="btn primary" onclick="openModal('alteration')">＋ Add Alteration</button></div><div class="card"><div class="toolbar"><input class="input search" id="alterationSearch" placeholder="Search customer / details"/><button class="btn secondary" onclick="loadAll()">↻ Refresh</button></div><div id="alterationsTable"></div></div></section><section class="view" id="view-designs"><div class="pagehead"><div><h2>🎨 Blouse Design Studio</h2><p>Online-ல் design தேடி, பிடித்த design-ஐ இங்கே save செய்து customer-க்கு காட்டலாம்.</p></div><div class="spacer"></div><button class="btn primary" onclick="openModal('design')">＋ Add Design</button></div><div class="card"><div class="designTools"><input class="input" id="onlineDesignQuery" placeholder="எ.கா. bridal blouse design / simple blouse design"/><button class="btn primary" id="onlineDesignBtn">🔎 Search Designs</button><button class="btn secondary" id="googleDesignBtn">🌐 Google Images</button></div><div class="mini">Google Images முழு results-ஐ Google-ல் திறக்கலாம். கீழே preview results-ல் save செய்யக்கூடிய படங்களும் வரும்.</div><div class="designSearchResults" id="onlineDesignResults"></div></div><div class="card" style="margin-top:14px"><div class="pagehead"><div><h3 style="margin:0">💾 Saved Designs</h3><p>உங்கள் design catalogue</p></div></div><div class="designGallery" id="designGallery"></div></div><div class="card" style="margin-top:14px"><div class="toolbar"><input class="input search" id="designSearch" placeholder="Search saved design no / name / category"/><button class="btn secondary" onclick="loadAll()">↻ Refresh</button></div><div id="designsTable"></div></div></section></main></div></div><div aria-hidden="true" class="modal nf-orders-new-order-screen" id="ordersNewOrderScreen"><div class="modalbox nf-orders-new-order-box"><div class="modalhead"><h3 id="ordersNewOrderScreenTitle">🧾 New Order</h3><button class="close" onclick="closeOrdersQuickAdd()" type="button">✕</button></div><div id="ordersNewOrderContent"></div></div></div><button aria-label="Add" class="p4FabButton" id="p4Fab" type="button">＋</button><nav aria-label="Quick navigation" id="p4MobileNav"><button data-p4-view="dashboard"><span class="p4Icon">⌂</span><span>Home</span></button><button data-p4-view="customers"><span class="p4Icon">👥</span><span>Customers</span></button><button data-p4-view="orders"><span class="p4Icon">🧾</span><span>Orders</span></button><button data-p4-view="delivery"><span class="p4Icon">🚚</span><span>Delivery</span></button></nav><div aria-hidden="true" class="modal nf-order-full-details" id="nfOrderFullDetails"><div class="modalbox nf-order-full-details-box"><div class="modalhead nf-order-full-details-head"><h3 id="nfOrderFullDetailsTitle">Order Full Details</h3><button class="close" onclick="closeOrderFullDetails()" type="button">✕</button></div><div id="nfOrderFullDetailsContent"></div></div></div><div class="modal" id="modal"><div class="modalbox"><div class="modalhead"><h3 id="modalTitle">Add</h3><button class="close" onclick="closeModal()">✕</button></div><form id="dataForm"><div class="formgrid" id="formFields"></div><div class="modalfoot"><button class="btn secondary" onclick="closeModal()" type="button">Cancel</button><button class="btn danger hidden" id="nfModalDeletePayment" title="Delete Payment" type="button">🗑️ Delete Payment</button><button class="btn primary" id="saveBtn" type="submit">Save</button></div><div class="msg" id="formMsg"></div></form></div></div><div class="toast" id="toast"></div><div aria-hidden="true" class="passkeyGate" id="passkeyGate"><section class="passkeyGateBox"><div class="passkeyIcon">🔐</div><h3>NEW FASHION</h3><p>இந்த சாதனத்தின் Fingerprint / Face / Screen Lock மூலம் App-ஐ unlock செய்யுங்கள்.</p><button class="btn primary" id="passkeyUnlockBtn" type="button">Unlock with Passkey</button><div class="passkeyGateMsg" id="passkeyGateMsg"></div></section></div><script>
 const SUPABASE_URL="https://pdlsicwzfmartkwcwozx.supabase.co";
 /* CLOUD-FIRST: Supabase DB + Cloudflare R2 are the source of truth; local data is only an offline fallback. */
 const SUPABASE_PUBLISHABLE_KEY="sb_publishable_eCKne6Tzs6-QYSXpJb-aSQ_6AHe8n9O";
@@ -12930,5 +12930,274 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
   border-radius:0!important;
   box-shadow:none!important;
 }
+
+/* V33 — Delivery Page */
+.nf-dp-layout{display:grid;grid-template-columns:240px minmax(0,1fr);gap:14px;align-items:start}
+.nf-dp-sidebar{background:#fff;border:1px solid #e4d9f2;border-radius:18px;padding:10px;position:sticky;top:12px;max-height:calc(100vh - 110px);overflow:auto}
+.nf-dp-sidebar-title{font-weight:950;padding:8px 10px 10px;color:#4d318e}
+.nf-dp-side-item{width:100%;display:flex;align-items:center;gap:8px;text-align:left;border:1px solid #e8def5;background:#faf8ff;border-radius:12px;padding:10px;margin:5px 0;font-weight:850;cursor:pointer}
+.nf-dp-side-item.active{background:linear-gradient(135deg,#eee8ff,#fff0f7);border-color:#8a68e8;box-shadow:0 4px 12px rgba(91,63,160,.12)}
+.nf-dp-main{min-width:0}
+.nf-dp-card{background:linear-gradient(145deg,#fff,#faf7ff);border:2px solid #d7c7f3;border-radius:20px;overflow:hidden;box-shadow:0 10px 26px rgba(91,63,160,.10)}
+.nf-dp-card-head{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:14px 16px;background:linear-gradient(135deg,#5f3fe5,#b342c9,#e84d8d);color:#fff}
+.nf-dp-card-head h3{margin:0 0 4px;font-size:17px}.nf-dp-card-head strong{font-size:15px}.nf-dp-card-head>span{font-size:11px;font-weight:900;background:rgba(255,255,255,.18);padding:6px 9px;border-radius:999px}
+.nf-dp-money,.nf-dp-work{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:12px}
+.nf-dp-work{grid-template-columns:repeat(4,minmax(0,1fr));padding-top:0}
+.nf-dp-stat{padding:11px;border-radius:12px;background:#f3efff;display:flex;flex-direction:column;gap:4px}.nf-dp-stat span{font-size:11px;color:#685d78;font-weight:800}.nf-dp-stat b{font-size:17px;color:#403070}
+.nf-dp-photo-summary{margin:0 12px 12px;padding:11px 12px;border-radius:12px;background:#fff4fa;color:#8a3e70;font-weight:900;display:flex;justify-content:space-between}
+.nf-dp-actions{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:12px;border-top:1px solid #e9def4}.nf-dp-actions button{min-height:42px;border:0;border-radius:12px;font-weight:900;cursor:pointer;background:#25d366;color:#fff}.nf-dp-actions button:nth-child(2){background:#6c4df6}.nf-dp-actions button:nth-child(3){background:#f0eaff;color:#4d31b4}
+.nf-dp-empty{padding:30px;text-align:center;color:#777}
+@media(max-width:760px){.nf-dp-layout{grid-template-columns:1fr}.nf-dp-sidebar{position:static;max-height:none}.nf-dp-money{grid-template-columns:1fr 1fr 1fr}.nf-dp-work{grid-template-columns:1fr 1fr}.nf-dp-card-head{align-items:flex-start}.nf-dp-actions{grid-template-columns:1fr 1fr 1fr}}
 </style>
 
+
+<script id="nf-delivery-page-v1">
+(function(){
+"use strict";
+function nfDPAll(){ return typeof all==="function" ? all() : (window.state&&Array.isArray(state.customers)?state.customers:[]); }
+function nfDPCustomers(){
+  const a=nfDPAll();
+  const parentRe=/(?:^|\|\s*)(?:NF_MULTI_PARENT|NF_PARENT_CUSTOMER):\s*([^|\s]+)/i;
+  const children=new Set();
+  a.forEach(c=>{const m=String(c?.notes||"").match(parentRe);if(m)children.add(String(m[1]));});
+  return a.filter(c=>!String(c?.notes||"").match(parentRe) || !children.has(String(c.id||"")));
+}
+function nfDPGroup(main){
+  const a=nfDPAll(), mid=String(main?.id||"");
+  const parentRe=/(?:^|\|\s*)(?:NF_MULTI_PARENT|NF_PARENT_CUSTOMER):\s*([^|\s]+)/i;
+  return a.filter(c=>String(c?.id||"")===mid || String(c?.notes||"").match(parentRe)?.[1]===mid);
+}
+function nfDPOrders(id){
+  if(typeof customerOrders==="function") return customerOrders(id)||[];
+  return (window.state?.orders||[]).filter(o=>String(o.customer_id||o.customerId||"")===String(id));
+}
+function nfDPSum(main){
+  const group=nfDPGroup(main);
+  let total=0,paid=0;
+  group.forEach(c=>nfDPOrders(c.id).forEach(o=>{
+    total+=Number(o.total_amount??o.total??o.amount??0)||0;
+    paid+=Number(o.advance_amount??o.advance??o.paid_amount??o.paid??0)||0;
+  }));
+  return {total,paid,balance:Math.max(0,total-paid)};
+}
+function nfDPEsc(v){return typeof esc==="function"?esc(v):String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));}
+function nfDPRow(label,val){return `<div class="nf-dp-stat"><span>${label}</span><b>${val}</b></div>`;}
+function nfDPCard(c){
+  const group=nfDPGroup(c), sum=nfDPSum(c);
+  const names=group.map(x=>nfDPEsc(x.name||x.customer_name||"Customer")).join(" + ");
+  const delivery=typeof customerDeliveryPhotos==="function"?customerDeliveryPhotos(c.id):[];
+  const photoCount=delivery.filter(Boolean).length;
+  const orders=group.flatMap(x=>nfDPOrders(x.id));
+  const garments=[];
+  orders.forEach(o=>{
+    const src=o.garments||o.items||o.order_items||[];
+    if(Array.isArray(src)) src.forEach(it=>garments.push(it));
+  });
+  const counts={normal:0,lining:0,design:0,chudi:0};
+  garments.forEach(it=>{
+    const t=String(it.type||it.garment_type||it.name||"").toLowerCase();
+    const q=Number(it.qty??it.quantity??it.count??1)||0;
+    if(t.includes("lining"))counts.lining+=q;
+    else if(t.includes("design"))counts.design+=q;
+    else if(t.includes("chudi"))counts.chudi+=q;
+    else if(t.includes("blouse"))counts.normal+=q;
+  });
+  return `<article class="nf-dp-card" data-customer-id="${String(c.id)}">
+    <div class="nf-dp-card-head"><div><h3>🚚 Delivery Card</h3><strong>${names}</strong></div><span>${group.length>1?"Multi Customer":"Single Customer"}</span></div>
+    <div class="nf-dp-money">
+      ${nfDPRow("மொத்த Amount","₹"+sum.total.toLocaleString("en-IN"))}
+      ${nfDPRow("வாங்கியது","₹"+sum.paid.toLocaleString("en-IN"))}
+      ${nfDPRow("மீதம்","₹"+sum.balance.toLocaleString("en-IN"))}
+    </div>
+    <div class="nf-dp-work">
+      ${nfDPRow("👗 Normal Blouse",counts.normal)}
+      ${nfDPRow("🧵 Lining Blouse",counts.lining)}
+      ${nfDPRow("🎨 Design Blouse",counts.design)}
+      ${nfDPRow("🩱 Chudi",counts.chudi)}
+    </div>
+    <div class="nf-dp-photo-summary">📸 Delivery Photos <b>${photoCount}</b></div>
+    <div class="nf-dp-actions">
+      <button type="button" onclick="nfDPShare('${String(c.id)}')">🟢 WhatsApp Share</button>
+      <button type="button" onclick="nfDPDownload('${String(c.id)}')">⬇️ Download</button>
+      
+    </div>
+  </article>`;
+}
+function nfDPSelect(id){
+  const c=nfDPAll().find(x=>String(x.id)===String(id));
+  if(!c)return;
+  document.querySelectorAll(".nf-dp-side-item").forEach(x=>x.classList.toggle("active",x.dataset.id===String(id)));
+  const host=document.getElementById("deliveryPageContent");
+  if(host)host.innerHTML=nfDPCard(c);
+}
+window.nfDPRender=function(){
+  const side=document.getElementById("deliveryCustomerSide");
+  const host=document.getElementById("deliveryPageContent");
+  if(!side||!host)return;
+  const cs=nfDPCustomers();
+  side.innerHTML=cs.map((c,i)=>`<button type="button" class="nf-dp-side-item" data-id="${nfDPEsc(c.id)}" onclick="nfDPSelect('${nfDPEsc(c.id)}')"><span>👤</span><span>${nfDPEsc(c.name||c.customer_name||"Customer")}</span></button>`).join("");
+  if(cs.length)nfDPSelect(cs[0].id);
+  else host.innerHTML='<div class="nf-dp-empty">Customer இல்லை.</div>';
+};
+async function nfDPShare(id){
+  // Reuse the existing WhatsApp-card system when available; no duplicate card generator.
+  if(typeof openCustomerWhatsAppCard==="function"){ openCustomerWhatsAppCard(id); return; }
+  if(typeof toast==="function")toast("WhatsApp Card system கிடைக்கவில்லை.",true);
+}
+async function nfDPDownload(id){
+  if(typeof openCustomerWhatsAppCard==="function"){ openCustomerWhatsAppCard(id); setTimeout(()=>{if(typeof downloadCustomerWhatsAppCard==="function")downloadCustomerWhatsAppCard();},250); return;}
+  if(typeof toast==="function")toast("Download system கிடைக்கவில்லை.",true);
+}
+async function nfDPText(id){
+  if(typeof openCustomerWhatsAppCard==="function"){ openCustomerWhatsAppCard(id); setTimeout(()=>{if(typeof shareCustomerWhatsAppText==="function")shareCustomerWhatsAppText();},250); return;}
+  if(typeof toast==="function")toast("Text system கிடைக்கவில்லை.",true);
+}
+window.nfDPSelect=nfDPSelect; window.nfDPShare=nfDPShare; window.nfDPDownload=nfDPDownload; window.nfDPText=nfDPText;
+})();
+</script>
+
+<script id="nf-delivery-page-hook-v1">
+(function(){
+  function run(){try{if(document.getElementById("view-delivery")?.classList.contains("active")||document.getElementById("view-delivery")?.style.display!=="none"){if(typeof nfDPRender==="function")nfDPRender();}}catch(e){console.warn("Delivery page render skipped",e)}}
+  document.addEventListener("click",function(e){const b=e.target.closest?.('[data-p4-view="delivery"]');if(b)setTimeout(run,30)});
+  window.addEventListener("load",()=>setTimeout(run,300));
+})();
+</script>
+
+<script id="nf-delivery-image-card-v1">
+(function(){
+"use strict";
+
+function dpAll(){return typeof all==="function"?all():(window.state&&Array.isArray(state.customers)?state.customers:[]);}
+function dpGroup(main){
+  const a=dpAll(),mid=String(main?.id||"");
+  const re=/(?:^|\|\s*)(?:NF_MULTI_PARENT|NF_PARENT_CUSTOMER):\s*([^|\s]+)/i;
+  return a.filter(c=>String(c?.id||"")===mid || String(c?.notes||"").match(re)?.[1]===mid);
+}
+function dpOrders(id){return typeof customerOrders==="function"?(customerOrders(id)||[]):(state.orders||[]).filter(o=>String(o.customer_id||"")===String(id));}
+function dpStats(c){return typeof customerStats==="function"?customerStats(c.id)||{}:{};}
+function dpMoney(v){return typeof nfWacMoney==="function"?nfWacMoney(v):"₹"+Number(v||0).toLocaleString("en-IN",{minimumFractionDigits:2});}
+function dpDate(v){return typeof nfWacDate==="function"?nfWacDate(v):(v||"—");}
+
+async function dpCollectPhotos(group){
+  const list=[],seen=new Set();
+  group.forEach(c=>{
+    const arr=typeof customerDeliveryPhotos==="function"?customerDeliveryPhotos(c.id):[];
+    arr.forEach(p=>{
+      if(p&&p.src){
+        const key=String(p.cloudPath||p.src);
+        if(!seen.has(key)){seen.add(key);list.push(p);}
+      }
+    });
+  });
+  const selected=list.slice(0,4);
+  if(!selected.length)return [];
+  try{
+    const urls=await nfWacPhotoDataUrls(selected);
+    return selected.map((p,i)=>urls[i]?Object.assign({},p,{src:urls[i]}):null).filter(Boolean);
+  }catch(e){console.warn("Delivery R2 photo conversion skipped",e);return [];}
+}
+
+async function dpBuildBlob(main){
+  const group=dpGroup(main);if(!group.length)throw new Error("no-customer");
+  const stats={normal:0,lining:0,design:0,chudi:0,handedNormal:0,handedLining:0,handedDesign:0,handedChudi:0,pendingNormal:0,pendingLining:0,pendingDesign:0,pendingChudi:0,total:0,paid:0,balance:0};
+  group.forEach(c=>{const st=dpStats(c);Object.keys(stats).forEach(k=>stats[k]+=Number(st[k]||0));});
+  stats.balance=Math.max(0,stats.total-stats.paid);
+  const orders=group.flatMap(c=>dpOrders(c.id));
+  const deliveryDate=orders.map(o=>o.delivery_date).filter(Boolean).sort()[0]||"";
+  const clothDate=orders.map(o=>o.cloth_received_date||o.order_date).filter(Boolean).sort()[0]||"";
+  const photos=await dpCollectPhotos(group);
+  const names=group.map(c=>String(c.name||c.customer_name||"Customer")).join(" + ");
+
+  const W=1200,M=28,I=W-M*2,H=photos.length?1380:1050;
+  const canvas=document.createElement("canvas");canvas.width=W;canvas.height=H;
+  const ctx=canvas.getContext("2d");if(!ctx)throw new Error("canvas-context-unavailable");
+  ctx.fillStyle="#f7f2ff";ctx.fillRect(0,0,W,H);
+  function rr(x,y,w,h,r,fill,stroke,lw){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();if(fill){ctx.fillStyle=fill;ctx.fill();}if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=lw||2;ctx.stroke();}}
+  function grad(x,y,w,a,b){const g=ctx.createLinearGradient(x,y,x+w,y);g.addColorStop(0,a);g.addColorStop(1,b);return g;}
+  function txt(v,x,y,size,weight,fill,align){ctx.font=(weight||700)+" "+size+"px Noto Sans Tamil,Arial,sans-serif";ctx.fillStyle=fill||"#171923";ctx.textAlign=align||"left";ctx.textBaseline="middle";ctx.fillText(String(v??""),x,y);}
+  function statBox(x,y,w,h,title,value,bg,fg,icon){rr(x,y,w,h,18,bg,"#d9c8ef",2);txt(icon+"  "+title,x+20,y+25,18,900,fg);txt(value,x+20,y+67,29,950,fg);}
+  function loadImg(src){return new Promise((resolve,reject)=>{const im=new Image(),t=setTimeout(()=>reject(new Error("delivery-photo-timeout")),5000);im.onload=()=>{clearTimeout(t);resolve(im)};im.onerror=()=>{clearTimeout(t);reject(new Error("delivery-photo-failed"))};im.src=src;});}
+  function cover(im,x,y,w,h,r){ctx.save();rr(x,y,w,h,r,"#fff");ctx.clip();const sc=Math.max(w/im.width,h/im.height),dw=im.width*sc,dh=im.height*sc;ctx.drawImage(im,x+(w-dw)/2,y+(h-dh)/2,dw,dh);ctx.restore();rr(x,y,w,h,r,null,"#d36b9c",3);}
+
+  rr(M,24,I,170,26,grad(M,24,I,"#17082f","#d10a63"),"#f3ca42",4);
+  txt("🚚",82,109,58,950,"#fff","center");
+  txt("NEW FASHION TAILORING",620,70,43,950,"#fff","center");
+  txt("DELIVERY CARD",620,122,39,950,"#ffe34f","center");
+
+  rr(M,214,I,132,20,"#fff","#7b4ee8",3);
+  txt("👤 CUSTOMER",M+22,244,20,950,"#5a35a0");
+  txt(names,M+22,294,31,950,"#171923");
+  txt(group.length>1?"MULTI CUSTOMER":"SINGLE CUSTOMER",I+M-22,294,17,900,"#8a3e70","right");
+
+  const gap=16,cw=(I-gap)/2;
+  statBox(M,366,cw,104,"துணி கொடுத்த தேதி",dpDate(clothDate),"#f2edff","#4e2f9b","📅");
+  statBox(M+cw+gap,366,cw,104,"Delivery Date",dpDate(deliveryDate),"#fff0f6","#a62d6d","🚚");
+
+  rr(M,490,I,250,22,"#fff","#d7c7f3",3);
+  rr(M,490,I,52,22,grad(M,490,I,"#5f3fe5","#d20a63"));
+  txt("✂️ DELIVERY WORK STATUS",M+22,516,22,950,"#fff");
+  const rows=[
+    ["Normal Blouse",stats.normal,stats.handedNormal,stats.pendingNormal],
+    ["Lining Blouse",stats.lining,stats.handedLining,stats.pendingLining],
+    ["Design Blouse",stats.design,stats.handedDesign,stats.pendingDesign],
+    ["Chudi",stats.chudi,stats.handedChudi,stats.pendingChudi]
+  ];
+  rows.forEach((r,i)=>{const x=M+i*(I/4)+10,y=558,w=I/4-20;rr(x,y,w,118,16,i%2?"#fff7fb":"#f4f0ff","#ded1ee",2);txt(r[0],x+14,y+24,17,900,"#4a3a60");txt("தைத்தது  "+r[1],x+14,y+52,15,850,"#5a35a0");txt("கொடுத்தது  "+r[2],x+14,y+78,15,850,"#14804f");txt("மீதம்  "+r[3],x+14,y+103,15,850,"#a05a00");});
+
+  rr(M,756,I,150,22,"#fff","#d7c7f3",3);txt("💰 PAYMENT SUMMARY",M+22,782,22,950,"#4d318e");
+  const aw=(I-32)/3;
+  statBox(M,806,aw,82,"TOTAL",dpMoney(stats.total),"#f3efff","#4e2f9b","💼");
+  statBox(M+aw+16,806,aw,82,"PAID",dpMoney(stats.paid),"#edfff6","#168052","💳");
+  statBox(M+(aw+16)*2,806,aw,82,"BALANCE",dpMoney(stats.balance),"#fff4e9","#b34f21","💰");
+
+  let y=928;
+  if(photos.length){
+    rr(M,y,I,52,18,grad(M,y,I,"#5f3fe5","#d20a63"));
+    txt("📸 DELIVERY PHOTOS",M+22,y+26,22,950,"#fff");
+    y+=66;
+    const pw=(I-18)/2,ph=230;
+    for(let i=0;i<photos.length;i++){try{const im=await loadImg(photos[i].src);cover(im,M+(i%2)*(pw+18),y+Math.floor(i/2)*(ph+18),pw,ph,18);}catch(e){console.warn("Delivery photo draw skipped",e);}}
+  }
+  const footerY=H-72;rr(M,footerY,I,42,14,grad(M,footerY,I,"#17082f","#d10a63"),"#f3ca42",2);txt("NEW FASHION TAILORING  •  📞 8524931003",W/2,footerY+21,18,900,"#fff","center");
+  return new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve({blob:b,phone:String(group[0]?.phone||"")}):reject(new Error("delivery-canvas-blob-failed")),"image/jpeg",0.94));
+}
+
+async function dpBuild(main){
+  if(!window.__nfDeliveryBuiltCache)window.__nfDeliveryBuiltCache={};
+  const key=String(main.id);
+  if(window.__nfDeliveryBuiltCache[key])return window.__nfDeliveryBuiltCache[key];
+  const built=await nfWacWithTimeout(dpBuildBlob(main),30000,"delivery-card-build");
+  built._nativeBase64Promise=blobBase64(built.blob).catch(()=>null);
+  window.__nfDeliveryBuiltCache[key]=built;return built;
+}
+window.nfDPShare=async function(id){
+  const main=dpAll().find(c=>String(c.id)===String(id));if(!main)return;
+  try{
+    const built=await dpBuild(main);
+    const native=await nfWacNativePlugin("NativeCardShare");
+    if(native&&typeof native.shareCardFromBase64==="function"){
+      const b64=built._nativeBase64||(built._nativeBase64=await built._nativeBase64Promise||blobBase64(built.blob));
+      await nfWacWithTimeout(native.shareCardFromBase64({base64:b64,filename:"NEW_FASHION_TAILORING_DELIVERY_CARD.jpg",mimeType:"image/jpeg",text:"",phone:built.phone}),5000,"native-delivery-share");return;
+    }
+    if(typeof navigator!=="undefined"&&typeof navigator.share==="function"){
+      const file=new File([built.blob],"NEW_FASHION_TAILORING_DELIVERY_CARD.jpg",{type:"image/jpeg"});
+      if(!navigator.canShare||navigator.canShare({files:[file]})){await nfWacWithTimeout(navigator.share({title:"NEW FASHION TAILORING – DELIVERY CARD",files:[file]}),10000,"web-delivery-share");return;}
+    }
+    nfWacOpenImageForManualSave(built.blob,"NEW_FASHION_TAILORING_DELIVERY_CARD.jpg");
+  }catch(e){console.error("Delivery image share failed",e);if(typeof toast==="function")toast("❌ Delivery Card share ஆகவில்லை.",true);}
+};
+window.nfDPDownload=async function(id){
+  const main=dpAll().find(c=>String(c.id)===String(id));if(!main)return;
+  try{
+    const built=await dpBuild(main),native=await nfWacNativePlugin("NativeCardDownload");
+    if(native&&typeof native.saveCardFromBase64==="function"){
+      const b64=built._nativeBase64||(built._nativeBase64=await built._nativeBase64Promise||blobBase64(built.blob));
+      await nfWacWithTimeout(native.saveCardFromBase64({base64:b64,filename:"NEW_FASHION_TAILORING_DELIVERY_CARD.jpg",mimeType:"image/jpeg"}),5000,"native-delivery-download");
+      if(typeof toast==="function")toast("✅ Delivery Card save செய்யப்பட்டது.");return;
+    }
+    nfWacOpenImageForManualSave(built.blob,"NEW_FASHION_TAILORING_DELIVERY_CARD.jpg");
+  }catch(e){console.error("Delivery image download failed",e);if(typeof toast==="function")toast("❌ Delivery Card download ஆகவில்லை.",true);}
+};
+})();
+</script>
