@@ -10425,6 +10425,112 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
 .nf-v120-customer-cash-box>.nf-cash-collection{margin:0!important;border-top-left-radius:0!important;border-top-right-radius:0!important}
 @media(max-width:560px){.nf-v120-customer-name{font-size:16px;padding:7px 9px}.nf-v120-multi-cash-body{padding:8px}}
 </style>
+
+<script id="nf-v133-customer-hooks-js">
+(function(){
+  "use strict";
+  if(window.__nfV133CustomerHooks)return;
+  window.__nfV133CustomerHooks=true;
+
+  function addHook(section, nameSelector, bodySelector, key){
+    if(!section)return;
+    var name=section.querySelector(nameSelector);
+    if(!name || name.dataset.nf133Ready)return;
+    name.dataset.nf133Ready="1";
+    var body=section.querySelector(bodySelector);
+    if(!body)return;
+
+    var hook=document.createElement("button");
+    hook.type="button";
+    hook.className="nf-v133-person-hook";
+    hook.setAttribute("aria-expanded","false");
+    hook.title="Details பார்க்க";
+    hook.innerHTML='<span class="nf-v133-person-name-text"></span><span class="nf-v133-hook-icon">＋</span>';
+    hook.querySelector(".nf-v133-person-name-text").textContent=name.textContent.trim();
+    name.textContent="";
+    name.appendChild(hook);
+
+    body.classList.add("nf-v133-collapsible-body");
+    body.style.display="none";
+    hook.addEventListener("click",function(e){
+      e.preventDefault();
+      e.stopPropagation();
+      var open=hook.getAttribute("aria-expanded")==="true";
+      hook.setAttribute("aria-expanded",String(!open));
+      hook.title=open?"Details பார்க்க":"Details மறைக்க";
+      body.style.display=open?"none":"";
+      var icon=hook.querySelector(".nf-v133-hook-icon");
+      if(icon)icon.textContent=open?"＋":"−";
+    });
+  }
+
+  function enhance(){
+    document.querySelectorAll(".nf-v120-customer-cash-box").forEach(function(item){
+      addHook(item,".nf-v120-customer-name","> .nf-cash-collection","cash");
+    });
+    document.querySelectorAll(".nf-v130-blouse-person").forEach(function(item){
+      addHook(item,".nf-v130-blouse-person-name","> .nf-v130-person-blouse","blouse");
+    });
+  }
+
+  function boot(){
+    enhance();
+    setTimeout(enhance,60);
+    setTimeout(enhance,200);
+    setTimeout(enhance,500);
+    var box=document.getElementById("customersTable");
+    if(box&&!box.__nfV133Observer){
+      box.__nfV133Observer=true;
+      new MutationObserver(function(){
+        clearTimeout(box.__nfV133Timer);
+        box.__nfV133Timer=setTimeout(enhance,20);
+      }).observe(box,{childList:true,subtree:true});
+    }
+  }
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",boot,{once:true});
+  else boot();
+})();
+</script>
+<style id="nf-v133-customer-hooks-css">
+.nf-v133-person-hook{
+  width:100%;
+  min-height:44px;
+  padding:8px 10px;
+  border:0;
+  background:transparent;
+  color:inherit;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  text-align:left;
+  font:inherit;
+  font-weight:inherit;
+  cursor:pointer;
+}
+.nf-v133-person-name-text{min-width:0;overflow-wrap:anywhere}
+.nf-v133-hook-icon{
+  flex:0 0 34px;
+  width:34px;
+  height:34px;
+  border-radius:50%;
+  display:grid;
+  place-items:center;
+  background:linear-gradient(135deg,#6c3df5,#ef4f9a);
+  color:#fff;
+  font-size:23px;
+  line-height:1;
+  font-weight:500;
+  box-shadow:0 5px 13px rgba(108,61,245,.22);
+}
+.nf-v120-customer-name{padding:0!important}
+.nf-v130-blouse-person-name{padding:0!important}
+.nf-v133-collapsible-body{min-width:0}
+@media(max-width:560px){
+  .nf-v133-person-hook{min-height:42px;padding:7px 9px}
+  .nf-v133-hook-icon{width:32px;height:32px;flex-basis:32px;font-size:21px}
+}
+</style>
 </html><script id="nf-v52-dashboard-scroll-fix-js">
 (function(){
   "use strict";
