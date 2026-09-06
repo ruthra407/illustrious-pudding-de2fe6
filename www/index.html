@@ -12594,24 +12594,49 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
 })();
 </script>
 <style id="nf-v22-two-final-fixes-css">
-body.nf-dashboard-mode #view-dashboard.active{
-  overflow:visible!important;
-  height:auto!important;
-  max-height:none!important;
-  overscroll-behavior:auto!important;
-}
-body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub{
-  overflow:visible!important;
-  height:auto!important;
-  max-height:none!important;
-}
-body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
-  overflow:visible!important;
-  overflow-y:visible!important;
-  height:auto!important;
-  max-height:none!important;
-  min-height:0!important;
-  overscroll-behavior:auto!important;
-  touch-action:pan-y!important;
+/* V5.0 — Home only:
+   Keep the existing main topbar and bottom navigation fixed.
+   Only the small purple customer-menu header stays fixed while
+   the customer details/cards area scrolls. */
+@media (max-width:700px){
+  body.nf-dashboard-mode #view-dashboard.active{
+    overflow:visible!important;
+    height:auto!important;
+    max-height:none!important;
+    overscroll-behavior:auto!important;
+  }
+
+  body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub{
+    position:relative!important;
+    display:flex!important;
+    flex-direction:column!important;
+    height:calc(100dvh - var(--nf-header-height) - 68px)!important;
+    min-height:0!important;
+    max-height:none!important;
+    overflow:hidden!important;
+  }
+
+  body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-my-customers-head{
+    position:sticky!important;
+    top:0!important;
+    z-index:100!important;
+    flex:0 0 50px!important;
+    height:50px!important;
+    min-height:50px!important;
+    max-height:50px!important;
+  }
+
+  body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
+    position:relative!important;
+    flex:1 1 auto!important;
+    min-height:0!important;
+    height:auto!important;
+    max-height:none!important;
+    overflow-y:auto!important;
+    overflow-x:hidden!important;
+    overscroll-behavior:contain!important;
+    -webkit-overflow-scrolling:touch!important;
+    touch-action:pan-y!important;
+  }
 }
 </style>
