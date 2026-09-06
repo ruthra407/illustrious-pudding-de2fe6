@@ -10334,6 +10334,90 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub{height:100%!im
 body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-my-customers-head{position:sticky!important;top:0!important;z-index:30!important;flex:0 0 50px!important;}
 body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{flex:1 1 auto!important;min-height:0!important;overflow-y:auto!important;overflow-x:hidden!important;overscroll-behavior:contain!important;-webkit-overflow-scrolling:touch!important;touch-action:pan-y!important;}
 </style></style>
+
+<script id="nf-v70-customer-order-total-breakdown-js">
+(function(){
+  "use strict";
+  /* V7.0: Customer-card Order Total breakdown only.
+     Single customers keep the existing calculation unchanged.
+     When Additional Customers exist, show Main / Additional / Multi totals. */
+  function nfV70ParentId(c){
+    if(!c)return "";
+    var m=String(c.notes||"").match(/(?:^|\|\s*)(?:NF_MULTI_PARENT|NF_PARENT_CUSTOMER):\s*([^|\s]+)/i);
+    return m?String(m[1]||""):"";
+  }
+  function nfV70IsChild(c){return !!nfV70ParentId(c);}
+  function nfV70MainId(id){
+    var cid=String(id||"");
+    var c=(state.customers||[]).find(function(x){return String(x&&x.id||"")===cid;});
+    return c&&nfV70IsChild(c)?nfV70ParentId(c):cid;
+  }
+  function nfV70Kids(mainId){
+    var mid=String(mainId||"");
+    return (state.customers||[]).filter(function(c){return nfV70ParentId(c)===mid;});
+  }
+  function nfV70OrderTotalForCustomer(id){
+    return (state.orders||[]).filter(function(o){return String(o&&o.customer_id||"")===String(id||"");})
+      .reduce(function(sum,o){
+        var q=Number(o&&o.quantity||0),u=Number(o&&o.unit_price||0);
+        var stored=Number(o&&o.total_amount||0);
+        return sum+(stored||q*u);
+      },0);
+  }
+  function nfV70Money(n){
+    try{ return typeof money==="function"?money(n):("₹"+Number(n||0).toFixed(2)); }
+    catch(_){ return "₹"+Number(n||0).toFixed(2); }
+  }
+  function nfV70AddBreakdown(card,id){
+    if(!card)return;
+    var mainId=nfV70MainId(id), kids=nfV70Kids(mainId);
+    if(!kids.length)return; // Single customer: do absolutely nothing.
+
+    var old=card.querySelector(".nf-v70-order-total-breakdown");
+    if(old)old.remove();
+
+    var mainTotal=nfV70OrderTotalForCustomer(mainId);
+    var additionalTotal=kids.reduce(function(sum,k){return sum+nfV70OrderTotalForCustomer(k.id);},0);
+    var multiTotal=mainTotal+additionalTotal;
+    var sec=document.createElement("section");
+    sec.className="nf-v70-order-total-breakdown";
+    sec.innerHTML='<div class="nf-v70-ot-head"><span>🧾</span><div><h4>Order Total Breakdown</h4><small>Main • Additional • Multi Customer</small></div></div>'+
+      '<div class="nf-v70-ot-row nf-v70-main"><span>👤 Main Customer Order Total</span><b>'+nfV70Money(mainTotal)+'</b></div>'+
+      kids.map(function(k){return '<div class="nf-v70-ot-row nf-v70-add"><span>👥 Additional — '+String(k.name||"Customer").replace(/[&<>"']/g,function(ch){return ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[ch]);})+'</span><b>'+nfV70Money(nfV70OrderTotalForCustomer(k.id))+'</b></div>';}).join("")+
+      '<div class="nf-v70-ot-row nf-v70-multi"><span>🔗 Multi Customer Order Total</span><b>'+nfV70Money(multiTotal)+'</b></div>';
+    var cash=card.querySelector(".nf-cash-collection");
+    if(cash&&cash.parentNode)cash.parentNode.insertBefore(sec,cash.nextSibling);
+    else card.appendChild(sec);
+  }
+  function nfV70Patch(){
+    var base=window.customerCard;
+    if(typeof base!=="function"||base.__nfV70OrderTotal)return;
+    var wrapped=function(id){
+      var html=base.apply(this,arguments);
+      try{
+        var holder=document.createElement("div");
+        holder.innerHTML=html;
+        var card=holder.querySelector(".customerCard");
+        if(card){nfV70AddBreakdown(card,id);return card.outerHTML;}
+      }catch(e){console.warn("V7.0 order total breakdown:",e);}
+      return html;
+    };
+    wrapped.__nfV70OrderTotal=true;
+    window.customerCard=wrapped;
+  }
+  nfV70Patch();
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",nfV70Patch,{once:true});
+  else setTimeout(nfV70Patch,0);
+})();
+</script>
+<style id="nf-v70-customer-order-total-breakdown-css">
+.nf-v70-order-total-breakdown{margin:12px 0;padding:0;overflow:hidden;border:2px solid #c9b8f2;border-radius:18px;background:#fff;box-shadow:0 8px 20px rgba(82,55,135,.08)}
+.nf-v70-ot-head{display:flex;align-items:center;gap:10px;padding:11px 13px;background:linear-gradient(100deg,#eee7ff,#fcecf7);border-bottom:1px solid #ddd1ef;color:#4b2a82}
+.nf-v70-ot-head>span{font-size:23px}.nf-v70-ot-head h4{margin:0;font-size:18px;font-weight:950}.nf-v70-ot-head small{display:block;margin-top:2px;font-size:11px;font-weight:700;color:#746a7e}
+.nf-v70-ot-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 13px;border-bottom:1px solid #e9e3ed;font-size:14px;font-weight:800}.nf-v70-ot-row:last-child{border-bottom:0}.nf-v70-ot-row span{min-width:0}.nf-v70-ot-row b{flex:none;font-size:17px;font-weight:950;white-space:nowrap}
+.nf-v70-main{background:#f8f5ff}.nf-v70-add{background:#f5fffb}.nf-v70-multi{background:linear-gradient(100deg,#e8f7ff,#eeeaff);color:#173b76}.nf-v70-multi b{font-size:19px;color:#176d9b}
+@media(max-width:560px){.nf-v70-order-total-breakdown{margin:10px 0;border-radius:16px}.nf-v70-ot-head{padding:10px 11px}.nf-v70-ot-head h4{font-size:16px}.nf-v70-ot-row{padding:10px 11px;font-size:13px}.nf-v70-ot-row b{font-size:16px}.nf-v70-multi b{font-size:18px}}
+</style>
 </body></html><script id="nf-v52-dashboard-scroll-fix-js">
 (function(){
   "use strict";
