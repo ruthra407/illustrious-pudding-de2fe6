@@ -10056,8 +10056,8 @@ setTimeout(decorateAll,100);
 <script id="nf-v150-multiple-group-clean-js">
 (function(){
   "use strict";
-  if(window.__nfV150Installed)return;
-  window.__nfV150Installed=true;
+  if(window.__nfV160Installed)return;
+  window.__nfV160Installed=true;
   var PREFIX="NF_MULTI_PARENT:";
   function esc150(v){return typeof esc==="function"?esc(v==null?"":String(v)):String(v==null?"":v).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]});}
   function parentId150(c){var m=String(c&&c.notes||"").match(/(?:^|\|\s*)NF_MULTI_PARENT:([^|\s]+)/);return m?String(m[1]):"";}
@@ -10068,7 +10068,7 @@ setTimeout(decorateAll,100);
 
   /* HOME: only Main/Base customers are cards. Additional customers live inside the Main card. */
   var oldDashCard=window.dashboardCustomerCard;
-  if(typeof oldDashCard==="function"&&!oldDashCard.__nfV150){
+  if(typeof oldDashCard==="function"&&!oldDashCard.__nfV160){
     window.dashboardCustomerCard=function(c,index,category){
       var html=oldDashCard.apply(this,arguments);
       if(!c||isChild150(c))return html;
@@ -10087,12 +10087,12 @@ setTimeout(decorateAll,100);
       var group='<section class="nf150-home-group" onclick="event.stopPropagation()"><div class="nf150-home-group-title">👥 Multiple Customer · '+kids.length+' பேர்</div>'+rows+'</section>';
       return html.replace('</article>',group+'</article>');
     };
-    window.dashboardCustomerCard.__nfV150=true;
+    window.dashboardCustomerCard.__nfV160=true;
   }
 
   /* HOME: filter/count only Main/Base customers. */
   var oldRenderDash=window.renderDashboardCustomers;
-  if(typeof oldRenderDash==="function"&&!oldRenderDash.__nfV150){
+  if(typeof oldRenderDash==="function"&&!oldRenderDash.__nfV160){
     window.renderDashboardCustomers=function(){
       var box=document.getElementById("dashboardCustomersList");
       if(!box){oldRenderDash.apply(this,arguments);return;}
@@ -10105,24 +10105,24 @@ setTimeout(decorateAll,100);
       var source=tab==="new"?fresh:tab==="delivered"?delivered:all;
       box.innerHTML=source.length?source.map(function(c,i){return window.dashboardCustomerCard(c,i,tab==="delivered"?"delivered":"new");}).join(""):('<div class="nf-dch-empty">'+(tab==="delivered"?"இன்னும் Delivered Customers இல்லை.":"Customers இன்னும் சேர்க்கப்படவில்லை.")+'</div>');
     };
-    window.renderDashboardCustomers.__nfV150=true;
+    window.renderDashboardCustomers.__nfV160=true;
   }
 
   /* HOME left customer-name menu: only Main/Base customers. */
   var oldSlide=window.renderMyCustomersSlideMenu;
-  if(typeof oldSlide==="function"&&!oldSlide.__nfV150){
+  if(typeof oldSlide==="function"&&!oldSlide.__nfV160){
     window.renderMyCustomersSlideMenu=function(){
       var list=document.getElementById("nfCustomerSlideList");if(!list)return;
       var customers=base150().slice().sort(function(a,b){return String(a&&a.name||"").localeCompare(String(b&&b.name||""),"ta",{numeric:true,sensitivity:"base"});});
       if(!customers.length){list.innerHTML='<div class="nf-customer-slide-empty">👥 Customer இன்னும் சேர்க்கப்படவில்லை.</div>';return;}
       list.innerHTML=customers.map(function(c,i){var id=safeId150(c.id);return '<button type="button" class="nf-customer-slide-row" style="--nf-row-index:'+Math.min(i,20)+'" onclick="openCustomerFromMyCustomersMenu(\''+id+'\')"><span class="nf-customer-slide-no">'+(i+1)+'</span><span class="nf-customer-slide-main"><span class="nf-customer-slide-name">'+esc150(c.name||"Customer")+'</span><span class="nf-customer-slide-phone">📞 '+esc150(c.phone||"Phone இல்லை")+'</span></span><span class="nf-customer-slide-arrow">›</span></button>';}).join("");
     };
-    window.renderMyCustomersSlideMenu.__nfV150=true;
+    window.renderMyCustomersSlideMenu.__nfV160=true;
   }
 
   /* ORDERS: preserve the existing renderer, but make its fallback customer list Base-only. */
   var oldOrdersRender=window.renderOrders;
-  if(typeof oldOrdersRender==="function"&&!oldOrdersRender.__nfV150){
+  if(typeof oldOrdersRender==="function"&&!oldOrdersRender.__nfV160){
     window.renderOrders=function(){
       oldOrdersRender.apply(this,arguments);
       var host=document.getElementById("ordersTable");if(!host)return;
@@ -10138,7 +10138,7 @@ setTimeout(decorateAll,100);
       }).join("");
       list.innerHTML='<div class="nf-orders-customer-list-head"><strong>👥 Customer List</strong><span>'+cs.length+' customer</span></div>'+rows;
     };
-    window.renderOrders.__nfV150=true;
+    window.renderOrders.__nfV160=true;
   }
 
   /* New Order customer selectors: Base-only for new orders; preserve a selected child while editing that child's order. */
@@ -10148,36 +10148,36 @@ setTimeout(decorateAll,100);
     return arr.map(function(c){return '<option value="'+esc150(c.id)+'" '+(String(c.id)===sid?'selected':'')+'>'+esc150(c.name||"Customer")+'</option>';}).join("");
   }
   var oldMount=window.mountOrdersQuickForm;
-  if(typeof oldMount==="function"&&!oldMount.__nfV150){
+  if(typeof oldMount==="function"&&!oldMount.__nfV160){
     window.mountOrdersQuickForm=function(customerId){oldMount.apply(this,arguments);var sel=document.getElementById("ordersQuickCustomerStart");if(sel){var sid=String(customerId||"");sel.innerHTML='<option value="">Select customer</option>'+options150(sid);sel.value=sid;}};
-    window.mountOrdersQuickForm.__nfV150=true;
+    window.mountOrdersQuickForm.__nfV160=true;
   }
   var oldOpenQuick=window.openOrdersQuickAdd;
-  if(typeof oldOpenQuick==="function"&&!oldOpenQuick.__nfV150){
+  if(typeof oldOpenQuick==="function"&&!oldOpenQuick.__nfV160){
     window.openOrdersQuickAdd=function(){oldOpenQuick.apply(this,arguments);var sel=document.getElementById("ordersQuickCustomerStartInline");if(sel)sel.innerHTML='<option value="">Select customer</option>'+options150("");};
-    window.openOrdersQuickAdd.__nfV150=true;
+    window.openOrdersQuickAdd.__nfV160=true;
   }
   var oldInput=window.inputHTML;
-  if(typeof oldInput==="function"&&!oldInput.__nfV150){
+  if(typeof oldInput==="function"&&!oldInput.__nfV160){
     window.inputHTML=function(f,val){if(f&&f[0]==="customer"){var v=String(val||"");return '<div class="field"><label>'+esc150(f[1])+'</label><select class="input" name="'+esc150(f[0])+'" '+(f[3]?'required':'')+'><option value="">Select customer</option>'+options150(v)+'</select></div>';}return oldInput.apply(this,arguments);};
-    window.inputHTML.__nfV150=true;
+    window.inputHTML.__nfV160=true;
   }
 
   /* Dashboard balance/statistics: count Main customers only. */
   var oldDues=window.renderDashboardDues;
-  if(typeof oldDues==="function"&&!oldDues.__nfV150){
+  if(typeof oldDues==="function"&&!oldDues.__nfV160){
     window.renderDashboardDues=function(){var rows=base150().map(function(c){return {c:c,s:customerStats(c.id)}}).filter(function(x){return x.s.balance>0}).sort(function(a,b){return b.s.balance-a.s.balance});var el=document.getElementById("dashboardDuesList");if(!el)return;el.innerHTML=rows.length?rows.slice(0,15).map(function(x){return '<div class="dueCustomer clickable" role="button" tabindex="0" onclick="goToCustomer(\''+safeId150(x.c.id)+'\')"><div class="dueName">👤 '+esc150(x.c.name)+'</div><b>'+money(x.s.balance)+'</b></div>';}).join(""):'<div class="empty">Customer balance இல்லை. 🎉</div>';};
-    window.renderDashboardDues.__nfV150=true;
+    window.renderDashboardDues.__nfV160=true;
   }
   var oldRenderDashAll=window.renderDashboard;
-  if(typeof oldRenderDashAll==="function"&&!oldRenderDashAll.__nfV150){
+  if(typeof oldRenderDashAll==="function"&&!oldRenderDashAll.__nfV160){
     window.renderDashboard=function(){oldRenderDashAll.apply(this,arguments);var el=document.getElementById("statCustomers");if(el)el.textContent=String(base150().length);};
-    window.renderDashboard.__nfV150=true;
+    window.renderDashboard.__nfV160=true;
   }
 
   /* Keep the group relationship safe when order-save updates customer notes. */
   var oldSaveOrder=window.saveQuickOrder;
-  if(typeof oldSaveOrder==="function"&&!oldSaveOrder.__nfV150){
+  if(typeof oldSaveOrder==="function"&&!oldSaveOrder.__nfV160){
     window.saveQuickOrder=async function(id,customerId){
       var cid=String(customerId||""),c=(state.customers||[]).find(function(x){return String(x.id)===cid}),marker=parentId150(c);
       var result=await oldSaveOrder.apply(this,arguments);
@@ -10194,7 +10194,7 @@ setTimeout(decorateAll,100);
       }
       return result;
     };
-    window.saveQuickOrder.__nfV150=true;
+    window.saveQuickOrder.__nfV160=true;
   }
 
   /* Keep the group relationship safe when a linked customer is edited. */
@@ -10353,11 +10353,11 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
     fix();
     [80,200,500,1000].forEach(function(ms){setTimeout(fix,ms);});
     var box=document.getElementById("customersTable");
-    if(box&&!box.__nfV151OrderObserver){
-      box.__nfV151OrderObserver=true;
+    if(box&&!box.__nfV161OrderObserver){
+      box.__nfV161OrderObserver=true;
       new MutationObserver(function(){
-        clearTimeout(box.__nfV151OrderTimer);
-        box.__nfV151OrderTimer=setTimeout(fix,30);
+        clearTimeout(box.__nfV161OrderTimer);
+        box.__nfV161OrderTimer=setTimeout(fix,30);
       }).observe(box,{childList:true,subtree:true});
     }
   }
@@ -10451,6 +10451,93 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
 .nf-v120-customer-name{font-size:18px;font-weight:950;color:#211b20;padding:8px 10px 7px;border-radius:12px 12px 0 0;background:#f7f4fb;border:1px solid #e3dceb;border-bottom:0}
 .nf-v120-customer-cash-box>.nf-cash-collection{margin:0!important;border-top-left-radius:0!important;border-top-right-radius:0!important}
 @media(max-width:560px){.nf-v120-customer-name{font-size:16px;padding:7px 9px}.nf-v120-multi-cash-body{padding:8px}}
+</style>
+
+<script id="nf-v160-multi-calculation-sync-js">
+(function(){
+  "use strict";
+  if(window.__nfV160MultiCalculationSync)return;
+  window.__nfV160MultiCalculationSync=true;
+  var PARENT_RE=/(?:^|\|\s*)(?:NF_MULTI_PARENT|NF_PARENT_CUSTOMER):\s*([^|\s]+)/i;
+  function all(){return (typeof state!=="undefined"&&Array.isArray(state.customers))?state.customers:[];}
+  function parentId(c){var m=String(c&&c.notes||"").match(PARENT_RE);return m?String(m[1]||""):"";}
+  function kids(id){var sid=String(id||""),seen={};return all().filter(function(c){var cid=String(c&&c.id||"");if(parentId(c)!==sid||!cid||seen[cid])return false;seen[cid]=1;return true;});}
+  function customerIds(mainId){
+    var ids=[String(mainId||"")],seen={};
+    ids.forEach(function(x){seen[x]=1;});
+    kids(mainId).forEach(function(c){var id=String(c&&c.id||"");if(id&&!seen[id]){seen[id]=1;ids.push(id);}});
+    return ids;
+  }
+  function esc(v){return typeof window.esc==="function"?window.esc(v==null?"":String(v)):String(v==null?"":v).replace(/[&<>"']/g,function(ch){return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[ch];});}
+  function calcHTML(id){
+    try{
+      if(typeof customerStats!=="function"||typeof window.nfCustomerWorkSummaryHTML!=="function")return "";
+      var st=customerStats(String(id));
+      return window.nfCustomerWorkSummaryHTML(st)||"";
+    }catch(e){return "";}
+  }
+  function makeOuter(mainId){
+    var ids=customerIds(mainId),parts=[];
+    ids.forEach(function(id){
+      var html=calcHTML(id);if(!html)return;
+      var c=all().find(function(x){return String(x&&x.id||"")===String(id);});
+      parts.push('<div class="nf-v160-customer-calc-box" data-customer-id="'+esc(id)+'"><div class="nf-v160-customer-calc-name">👤 '+esc(c&&c.name||"Customer")+'</div>'+html+'</div>');
+    });
+    if(parts.length<2)return null;
+    var outer=document.createElement("section");
+    outer.className="nf-v160-multi-calculation";
+    outer.dataset.mainCustomerId=String(mainId);
+    outer.innerHTML='<div class="nf-v160-multi-calculation-title"><span>🧮</span><div><h4>Blouse / Saree / Chudi Calculation</h4><small>Main + Additional Customers</small></div></div><div class="nf-v160-multi-calculation-body">'+parts.join("")+"</div>";
+    return outer;
+  }
+  function fixCard(card){
+    if(!card)return;
+    var id=String(card.id||"").replace(/^customer-card-/i,"");if(!id)return;
+    var c=all().find(function(x){return String(x&&x.id||"")===id;});
+    if(!c||parentId(c))return;
+    var list=kids(id);if(!list.length)return;
+
+    card.querySelectorAll(":scope > .nf-v160-multi-calculation").forEach(function(x){x.remove();});
+    var legacy=card.querySelector(":scope > .nfCustomerBreakdownMount");
+    if(legacy)legacy.remove();
+
+    var outer=makeOuter(id);if(!outer)return;
+    var cash=card.querySelector(":scope > .nf-v120-multi-cash-wrap")||card.querySelector(":scope > .nf-cash-collection");
+    var blouse=card.querySelector(":scope > .nf-v130-multi-blouse")||card.querySelector(":scope > .nf-blouse-collection");
+    if(cash)card.insertBefore(outer,cash.nextSibling);
+    else if(blouse)card.insertBefore(outer,blouse);
+    else card.appendChild(outer);
+  }
+  function render(){
+    var box=document.getElementById("customersTable");if(!box)return;
+    box.querySelectorAll(":scope > .customerCard").forEach(fixCard);
+  }
+  function boot(){
+    render();
+    [80,200,500,900,1500,2500].forEach(function(ms){setTimeout(render,ms);});
+    var box=document.getElementById("customersTable");
+    if(box&&!box.__nfV160CalcObserver){
+      box.__nfV160CalcObserver=true;
+      new MutationObserver(function(){
+        clearTimeout(box.__nfV160CalcTimer);
+        box.__nfV160CalcTimer=setTimeout(render,35);
+      }).observe(box,{childList:true,subtree:true});
+    }
+  }
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",boot,{once:true});else boot();
+})();
+</script>
+<style id="nf-v160-multi-calculation-sync-css">
+.nf-v160-multi-calculation{margin:12px 0;padding:0;border:2px solid #b8dff1;border-radius:18px;background:linear-gradient(145deg,#e8f8ff,#f2edff);box-shadow:0 9px 22px rgba(56,110,150,.10);overflow:hidden}
+.nf-v160-multi-calculation-title{display:flex;align-items:center;gap:10px;padding:12px 15px;background:linear-gradient(100deg,#6f35e8,#cf3fa8);color:#fff}
+.nf-v160-multi-calculation-title>span{font-size:24px;line-height:1}
+.nf-v160-multi-calculation-title h4{margin:0;font-size:19px;font-weight:950;line-height:1.25}
+.nf-v160-multi-calculation-title small{display:block;margin-top:2px;font-size:12px;font-weight:700;opacity:.88}
+.nf-v160-multi-calculation-body{padding:10px 12px 12px;display:grid;gap:10px}
+.nf-v160-customer-calc-box{border:1px solid #ddd5ef;border-radius:16px;background:#fff;overflow:hidden;box-shadow:0 5px 15px rgba(52,31,86,.06)}
+.nf-v160-customer-calc-name{padding:9px 11px;background:linear-gradient(135deg,#f7f3ff,#fff4fa);border-bottom:1px solid #e3dceb;color:#4d267c;font-size:16px;font-weight:950}
+.nf-v160-customer-calc-box>.customerWorkSummary{margin:0!important;border:0!important;border-radius:0!important;box-shadow:none!important}
+@media(max-width:560px){.nf-v160-multi-calculation-title{padding:11px 12px}.nf-v160-multi-calculation-title h4{font-size:17px}.nf-v160-multi-calculation-body{padding:8px}.nf-v160-customer-calc-name{font-size:15px;padding:8px 10px}}
 </style>
 
 <script id="nf-v133-customer-hooks-js">
