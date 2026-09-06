@@ -12691,7 +12691,8 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
     if(old)old.remove();
     card.querySelectorAll(":scope > .nf-blouse-collection").forEach(function(x){x.remove();});
     var outer=makeOuter(id);if(!outer)return;
-    card.appendChild(outer);
+    var cashAnchor=card.querySelector(":scope > .nf-v120-multi-cash-wrap")||card.querySelector(":scope > .nf-cash-collection");
+    if(cashAnchor)card.insertBefore(outer,cashAnchor);else card.appendChild(outer);
   }
 
   function render(){
