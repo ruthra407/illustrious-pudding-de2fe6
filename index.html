@@ -11784,6 +11784,11 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
     ));
   }
 
+  function customerListAtTop(target){
+    var list=target&&target.closest?target.closest(".nf-dch-list"):null;
+    return !list || list.scrollTop<=2;
+  }
+
   function hideIndicator(){
     if(!indicator)return;
     indicator.classList.remove("ready","refreshing","done");
@@ -11793,7 +11798,7 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
 
   document.addEventListener("touchstart",function(e){
     if(refreshing||window.innerWidth>900||!e.touches||e.touches.length!==1)return;
-    if(excluded(e.target)||!pageAtTop())return;
+    if(excluded(e.target)||!pageAtTop()||!customerListAtTop(e.target))return;
     startY=e.touches[0].clientY;
     pulling=true;
   },{passive:true});
@@ -11801,7 +11806,7 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
   document.addEventListener("touchmove",function(e){
     if(!pulling||refreshing||!e.touches||e.touches.length!==1)return;
     var dy=e.touches[0].clientY-startY;
-    if(dy<=0||!pageAtTop()){pulling=false;hideIndicator();return;}
+    if(dy<=0||!pageAtTop()||!customerListAtTop(e.target)){pulling=false;hideIndicator();return;}
 
     var el=getIndicator();
     /* Slight resistance keeps the gesture smooth and prevents tiny pulls. */
