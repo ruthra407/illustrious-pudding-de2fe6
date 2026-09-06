@@ -10336,77 +10336,93 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
 </style></style>
 
 
-<script id="nf-v100-main-additional-cash-collection-js">
+<script id="nf-v110-main-additional-cash-collection-js">
 (function(){
   "use strict";
-  /* Additional Customer Cash Collection = the exact existing Single Customer Cash Collection.
-     We reuse customerCard() itself, extract only its .nf-cash-collection panel, and place that
-     unchanged panel inside the Main customer's Cash Collection. This deliberately reuses the
-     same markup, CSS, payment button, edit handling, date decorators, and payment sync. */
+  /* V11.0: one Multi Customer Cash Collection outer box.
+     Inside it, Main + each Additional Customer gets exactly the original
+     Single Customer Cash Collection panel, cloned from the original customerCard(). */
   function parentId(c){if(!c)return "";var m=String(c.notes||"").match(/(?:^|\|\s*)(?:NF_MULTI_PARENT|NF_PARENT_CUSTOMER):\s*([^|\s]+)/i);return m?String(m[1]||""):"";}
   function isChild(c){return !!parentId(c);}
   function mainId(id){var sid=String(id||"");var c=(state.customers||[]).find(function(x){return String(x&&x.id||"")===sid;});return c&&isChild(c)?parentId(c):sid;}
   function kids(id){var mid=mainId(id);return (state.customers||[]).filter(function(c){return parentId(c)===mid;});}
-  function esc(v){return String(v==null?"":v).replace(/[&<>"']/g,function(ch){return {"&":"&amp;","<":"&lt;",">":"&gt;","":"&quot;","'":"&#39;"}[ch];});}
+  function esc(v){return String(v==null?"":v).replace(/[&<>"']/g,function(ch){return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[ch];});}
   function cloneCashPanel(base,customerId){
     try{
       var holder=document.createElement("div");
       holder.innerHTML=base(customerId);
-      var panel=holder.querySelector(".nf-cash-collection");
+      var panel=holder.querySelector(":scope > .nf-cash-collection")||holder.querySelector(".nf-cash-collection");
       return panel?panel.outerHTML:"";
-    }catch(e){console.warn("V10.0 Additional Cash Collection clone:",e);return "";}
+    }catch(e){console.warn("V11.0 Cash Collection clone:",e);return "";}
   }
   function addCash(card,id,base){
     if(!card)return;
     var list=kids(id);
     if(!list.length)return;
-    var cash=card.querySelector(":scope > .nf-cash-collection")||card.querySelector(".nf-cash-collection");
-    if(!cash)return;
-    var mainIdValue=mainId(id);
-    var existing= cash.querySelector(":scope > .nf-v100-additional-cash-wrap");
-    if(existing)existing.remove();
-    var wrap=document.createElement("div");
-    wrap.className="nf-v100-additional-cash-wrap";
-    wrap.innerHTML='<div class="nf-v100-additional-cash-head"><span>👥</span><div><strong>Additional Customer Cash Collection</strong><small>'+list.length+' Additional Customer'+(list.length>1?'s':'')+'</small></div></div>';
-    list.forEach(function(k){
-      var panelHtml=cloneCashPanel(base,String(k.id));
+    var old=card.querySelector(":scope > .nf-cash-collection")||card.querySelector(".nf-cash-collection");
+    if(!old)return;
+
+    var wrap=document.createElement("section");
+    wrap.className="nf-v110-multi-cash-wrap";
+    wrap.innerHTML='<div class="nf-v110-multi-cash-head"><span>💰</span><div><strong>Cash Collection</strong><small>Main Customer + '+list.length+' Additional Customer'+(list.length>1?'s':'')+'</small></div></div><div class="nf-v110-multi-cash-body"></div>';
+    var body=wrap.querySelector(".nf-v110-multi-cash-body");
+
+    [String(mainId(id))].concat(list.map(function(k){return String(k.id);})).forEach(function(cid){
+      var panelHtml=cloneCashPanel(base,cid);
       if(!panelHtml)return;
       var item=document.createElement("div");
-      item.className="nf-v100-additional-cash-item";
+      item.className="nf-v110-customer-cash-box";
       item.innerHTML=panelHtml;
-      wrap.appendChild(item);
+      body.appendChild(item);
     });
-    if(wrap.querySelector(".nf-cash-collection")) cash.appendChild(wrap);
-    cash.classList.add("nf-v100-multi-cash");
-    void mainIdValue;
+
+    old.replaceWith(wrap);
   }
-  function patch(){
+  function patchCustomerCard(){
     var base=window.customerCard;
-    if(typeof base!=="function"||base.__nfV100ExactCashClone)return;
+    if(typeof base!=="function"||base.__nfV110MultiCash)return;
     var wrapped=function(id){
       var html=base.apply(this,arguments);
       try{
-        var holder=document.createElement("div");
-        holder.innerHTML=html;
+        var holder=document.createElement("div");holder.innerHTML=html;
         var card=holder.querySelector(".customerCard");
         if(card){addCash(card,id,base);return card.outerHTML;}
-      }catch(e){console.warn("V10.0 Additional Cash Collection:",e);}
+      }catch(e){console.warn("V11.0 Multi Cash Collection:",e);}
       return html;
     };
-    wrapped.__nfV100ExactCashClone=true;
+    wrapped.__nfV110MultiCash=true;
     window.customerCard=wrapped;
   }
-  patch();
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',patch,{once:true});
-  else setTimeout(patch,0);
+  function patchRenderCustomers(){
+    if(typeof window.renderCustomers!=="function"||window.renderCustomers.__nfV110FilterChildren)return;
+    var base=window.renderCustomers;
+    var wrapped=function(){
+      var box=$("customersTable");
+      var search=$("customerSearch");
+      if(!box||!search)return base.apply(this,arguments);
+      var q=(search.value||"").toLowerCase();
+      var rows=(state.customers||[]).filter(function(x){
+        if(isChild(x))return false;
+        return [x.name,x.phone,x.address,x.village].join(" ").toLowerCase().includes(q);
+      });
+      box.innerHTML=rows.length?rows.map(function(x){return customerCard(x.id);}).join(""):'<div class="card empty" style="grid-column:1/-1">No customers found.</div>';
+    };
+    wrapped.__nfV110FilterChildren=true;
+    window.renderCustomers=wrapped;
+  }
+  function start(){patchCustomerCard();patchRenderCustomers();}
+  start();
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});
+  else setTimeout(start,0);
 })();
 </script>
-<style id="nf-v100-main-additional-cash-collection-css">
-.nf-v100-additional-cash-wrap{margin-top:12px;padding:10px;border:3px solid #9c63e9;border-radius:17px;background:linear-gradient(145deg,#f5efff,#fff0f8);box-shadow:0 8px 20px rgba(115,64,190,.12)}
-.nf-v100-additional-cash-head{display:flex;align-items:center;gap:9px;margin-bottom:10px;padding:10px 11px;border-radius:12px;background:linear-gradient(100deg,#7042e8,#d744a2);color:#fff;box-shadow:0 6px 14px rgba(105,62,210,.18)}
-.nf-v100-additional-cash-head>span{font-size:23px}.nf-v100-additional-cash-head strong{display:block;font-size:16px;font-weight:950}.nf-v100-additional-cash-head small{display:block;margin-top:2px;font-size:11px;font-weight:800}
-.nf-v100-additional-cash-item{margin-top:10px}.nf-v100-additional-cash-item:first-of-type{margin-top:0}.nf-v100-additional-cash-item .nf-cash-collection{margin:0!important}
-@media(max-width:560px){.nf-v100-additional-cash-wrap{padding:8px;border-radius:15px}.nf-v100-additional-cash-head{padding:9px 10px}.nf-v100-additional-cash-head strong{font-size:15px}.nf-v100-additional-cash-item{margin-top:8px}}
+<style id="nf-v110-main-additional-cash-collection-css">
+.nf-v110-multi-cash-wrap{margin:12px 0;padding:0;border:1px solid #ddd8df;border-radius:20px;background:#fff;box-shadow:0 8px 22px rgba(35,25,30,.08);overflow:hidden}
+.nf-v110-multi-cash-head{display:flex;align-items:center;gap:10px;padding:12px 15px;background:#fff;border-bottom:1px solid #e5e0e4;color:#211b20}
+.nf-v110-multi-cash-head>span{font-size:24px;line-height:1}.nf-v110-multi-cash-head strong{display:block;font-size:20px;font-weight:950;line-height:1.25}.nf-v110-multi-cash-head small{display:block;margin-top:2px;font-size:12px;font-weight:700;color:#6b646b}
+.nf-v110-multi-cash-body{padding:10px 12px 12px;display:grid;gap:10px}
+.nf-v110-customer-cash-box>.nf-cash-collection{margin:0!important}
+@media(max-width:560px){.nf-v110-multi-cash-head{padding:11px 12px}.nf-v110-multi-cash-head strong{font-size:18px}.nf-v110-multi-cash-body{padding:8px}}
 </style><style id="nf-v90-multi-cash-collection-css">
 .nf-v90-cash-dates{display:flex;flex-direction:column;gap:3px;margin:8px 0 4px;padding:8px 10px;border-radius:10px;background:#f7f4fb;border:1px solid #e3dceb;font-size:12px;font-weight:750;color:#5d5662}.nf-v90-cash-actions{display:flex;gap:7px;margin-top:8px}.nf-v90-cash-actions .btn{flex:1;min-height:38px}.nf-v80-cash-main,.nf-v80-additional-wrap{margin:10px 12px}.nf-v80-additional-wrap{padding:10px;border:2px solid #d8b4f2;border-radius:15px;background:linear-gradient(135deg,#fff8ff,#f4f8ff)}
 </style>
