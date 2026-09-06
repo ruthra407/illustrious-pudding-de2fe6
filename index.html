@@ -12637,7 +12637,7 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
 </style>
 
 
-<script id="nf-v130-multi-blouse-sync-js">
+<script id="nf-v132-multi-blouse-sync-js">
 (function(){
   "use strict";
   if(window.__nfV130MultiBlouseSync)return;
@@ -12692,7 +12692,13 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
     card.querySelectorAll(":scope > .nf-blouse-collection").forEach(function(x){x.remove();});
     var outer=makeOuter(id);if(!outer)return;
     var cashAnchor=card.querySelector(":scope > .nf-v120-multi-cash-wrap")||card.querySelector(":scope > .nf-cash-collection");
-    if(cashAnchor)card.insertBefore(outer,cashAnchor);else card.appendChild(outer);
+    if(cashAnchor){
+      if(cashAnchor.nextSibling) card.insertBefore(outer,cashAnchor.nextSibling);
+      else card.appendChild(outer);
+    }else{
+      var photoAnchor=card.querySelector(":scope > .nf-customer-cloth-photo-manager")||card.querySelector(":scope > .nf-delivery-card");
+      if(photoAnchor)card.insertBefore(outer,photoAnchor);else card.appendChild(outer);
+    }
   }
 
   function render(){
@@ -12720,7 +12726,7 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",boot,{once:true});else boot();
 })();
 </script>
-<style id="nf-v130-multi-blouse-sync-css">
+<style id="nf-v132-multi-blouse-sync-css">
 .nf-v130-multi-blouse{padding:0!important;overflow:hidden!important;background:#fff!important;border:1px solid #cfc0f4!important}
 .nf-v130-multi-blouse>.nf-collection-title{margin:0!important;padding:12px 15px!important;border-radius:0!important;background:linear-gradient(135deg,#e3d8ff,#f0d7ff)!important;border-bottom:1px solid #d8caf4!important;color:#4d267c!important}
 .nf-v130-blouse-body{padding:10px 12px 12px;display:grid;gap:10px}
