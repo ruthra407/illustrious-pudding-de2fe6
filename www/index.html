@@ -10321,6 +10321,69 @@ setTimeout(decorateAll,100);
 })();
 </script>
 
+
+<style id="nf-home-scroll-final-guard">
+/* Home only: restore normal document scrolling. No other view is affected. */
+html:has(body.nf-dashboard-mode){
+  overflow-y:auto!important;
+  overflow-x:hidden!important;
+  height:auto!important;
+  min-height:100%!important;
+  overscroll-behavior-y:auto!important;
+}
+body.nf-dashboard-mode{
+  overflow-y:auto!important;
+  overflow-x:hidden!important;
+  height:auto!important;
+  min-height:100%!important;
+  max-height:none!important;
+  overscroll-behavior:auto!important;
+  touch-action:auto!important;
+}
+body.nf-dashboard-mode #app{
+  height:auto!important;
+  min-height:100%!important;
+  max-height:none!important;
+  overflow:visible!important;
+}
+body.nf-dashboard-mode #app>.layout{
+  height:auto!important;
+  min-height:0!important;
+  max-height:none!important;
+  overflow:visible!important;
+}
+body.nf-dashboard-mode #app>.layout>.main{
+  height:auto!important;
+  min-height:0!important;
+  max-height:none!important;
+  overflow:visible!important;
+}
+body.nf-dashboard-mode #view-dashboard.active{
+  display:block!important;
+  height:auto!important;
+  min-height:0!important;
+  max-height:none!important;
+  overflow:visible!important;
+  overscroll-behavior:auto!important;
+  touch-action:auto!important;
+}
+body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub{
+  height:auto!important;
+  min-height:0!important;
+  max-height:none!important;
+  overflow:visible!important;
+}
+body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
+  height:auto!important;
+  min-height:0!important;
+  max-height:none!important;
+  overflow:visible!important;
+  overflow-y:visible!important;
+  overscroll-behavior:auto!important;
+  touch-action:auto!important;
+  -webkit-overflow-scrolling:auto!important;
+}
+</style>
 </body></html><script id="nf-v52-dashboard-scroll-fix-js">
 (function(){
   "use strict";
@@ -12451,11 +12514,53 @@ setTimeout(decorateAll,100);
       var view=document.getElementById("view-dashboard");
       var hub=view&&view.querySelector(".nf-dashboard-customer-hub");
       var list=view&&view.querySelector(".nf-dch-list");
-      if(view){view.style.overflow="visible";view.style.height="auto";view.style.maxHeight="none";view.style.touchAction="pan-y";}
-      if(hub){hub.style.overflow="visible";hub.style.height="auto";hub.style.maxHeight="none";}
-      if(list){list.style.overflow="visible";list.style.overflowY="visible";list.style.height="auto";list.style.maxHeight="none";list.style.minHeight="0";list.style.touchAction="pan-y";list.style.overscrollBehavior="auto";}
-      document.documentElement.style.overflowY="auto";
-      document.body.style.overflowY="auto";
+      if(view){
+        view.style.setProperty("overflow","visible","important");
+        view.style.setProperty("height","auto","important");
+        view.style.setProperty("max-height","none","important");
+        view.style.setProperty("touch-action","pan-y","important");
+      }
+      if(hub){
+        hub.style.setProperty("overflow","visible","important");
+        hub.style.setProperty("height","auto","important");
+        hub.style.setProperty("max-height","none","important");
+      }
+      if(list){
+        list.style.setProperty("overflow","visible","important");
+        list.style.setProperty("overflow-y","visible","important");
+        list.style.setProperty("height","auto","important");
+        list.style.setProperty("max-height","none","important");
+        list.style.setProperty("min-height","0","important");
+        list.style.setProperty("touch-action","pan-y","important");
+        list.style.setProperty("overscroll-behavior","auto","important");
+      }
+      document.documentElement.style.setProperty("overflow-y","auto","important");
+      document.documentElement.style.setProperty("overflow-x","hidden","important");
+      document.body.style.setProperty("overflow-y","auto","important");
+      document.body.style.setProperty("overflow-x","hidden","important");
+      document.body.style.setProperty("height","auto","important");
+      document.body.style.setProperty("min-height","100%","important");
+      var app=document.getElementById("app");
+      var layout=app&&app.querySelector(":scope > .layout");
+      var main=layout&&layout.querySelector(":scope > .main");
+      if(app){
+        app.style.setProperty("height","auto","important");
+        app.style.setProperty("min-height","100%","important");
+        app.style.setProperty("max-height","none","important");
+        app.style.setProperty("overflow","visible","important");
+      }
+      if(layout){
+        layout.style.setProperty("height","auto","important");
+        layout.style.setProperty("min-height","0","important");
+        layout.style.setProperty("max-height","none","important");
+        layout.style.setProperty("overflow","visible","important");
+      }
+      if(main){
+        main.style.setProperty("height","auto","important");
+        main.style.setProperty("min-height","0","important");
+        main.style.setProperty("max-height","none","important");
+        main.style.setProperty("overflow","visible","important");
+      }
     }catch(_){ }
   }
   window.nfV22UnlockHomeScroll=unlockHomeScroll;
