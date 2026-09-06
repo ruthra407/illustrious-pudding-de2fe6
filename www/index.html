@@ -10335,88 +10335,131 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-my-custome
 body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{flex:1 1 auto!important;min-height:0!important;overflow-y:auto!important;overflow-x:hidden!important;overscroll-behavior:contain!important;-webkit-overflow-scrolling:touch!important;touch-action:pan-y!important;}
 </style></style>
 
-<script id="nf-v70-customer-order-total-breakdown-js">
+
+<script id="nf-v80-main-additional-cash-collection-js">
 (function(){
   "use strict";
-  /* V7.0: Customer-card Order Total breakdown only.
-     Single customers keep the existing calculation unchanged.
-     When Additional Customers exist, show Main / Additional / Multi totals. */
-  function nfV70ParentId(c){
+  /* V8.0: Keep Single/Main customer Cash Collection exactly as before.
+     Only when Additional Customers exist, split the SAME Cash Collection box
+     into Main Customer and Additional Customer sections. */
+  function parentId(c){
     if(!c)return "";
     var m=String(c.notes||"").match(/(?:^|\|\s*)(?:NF_MULTI_PARENT|NF_PARENT_CUSTOMER):\s*([^|\s]+)/i);
     return m?String(m[1]||""):"";
   }
-  function nfV70IsChild(c){return !!nfV70ParentId(c);}
-  function nfV70MainId(id){
-    var cid=String(id||"");
-    var c=(state.customers||[]).find(function(x){return String(x&&x.id||"")===cid;});
-    return c&&nfV70IsChild(c)?nfV70ParentId(c):cid;
+  function isChild(c){return !!parentId(c);}
+  function mainId(id){
+    var sid=String(id||"");
+    var c=(state.customers||[]).find(function(x){return String(x&&x.id||"")===sid;});
+    return c&&isChild(c)?parentId(c):sid;
   }
-  function nfV70Kids(mainId){
-    var mid=String(mainId||"");
-    return (state.customers||[]).filter(function(c){return nfV70ParentId(c)===mid;});
+  function kids(id){
+    var mid=mainId(id);
+    return (state.customers||[]).filter(function(c){return parentId(c)===mid;});
   }
-  function nfV70OrderTotalForCustomer(id){
-    return (state.orders||[]).filter(function(o){return String(o&&o.customer_id||"")===String(id||"");})
-      .reduce(function(sum,o){
-        var q=Number(o&&o.quantity||0),u=Number(o&&o.unit_price||0);
-        var stored=Number(o&&o.total_amount||0);
-        return sum+(stored||q*u);
-      },0);
+  function moneySafe(n){
+    try{return typeof money==="function"?money(n):("₹"+Number(n||0).toFixed(2));}
+    catch(_){return "₹"+Number(n||0).toFixed(2);}
   }
-  function nfV70Money(n){
-    try{ return typeof money==="function"?money(n):("₹"+Number(n||0).toFixed(2)); }
-    catch(_){ return "₹"+Number(n||0).toFixed(2); }
+  function escSafe(v){
+    return String(v==null?"":v).replace(/[&<>"']/g,function(ch){return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[ch];});
   }
-  function nfV70AddBreakdown(card,id){
+  function statsFor(id){
+    try{return typeof customerStats==="function"?customerStats(id):null;}catch(_){return null;}
+  }
+  function sectionHtml(label, id, extraClass){
+    var st=statsFor(id);
+    if(!st)return "";
+    return '<div class="nf-v80-cash-section '+(extraClass||'')+'">'+
+      '<div class="nf-v80-cash-section-head"><span>👤</span><div><strong>'+escSafe(label)+'</strong><small>Order • Paid • Advance • Balance</small></div></div>'+
+      '<div class="customerMoneyGrid nf-v80-cash-grid">'+
+        '<div class="moneyStat"><b>'+moneySafe(st.total)+'</b><span>மொத்த order</span></div>'+
+        '<div class="moneyStat"><b>'+moneySafe(st.paid)+'</b><span>Customer paid</span></div>'+
+        '<div class="moneyStat"><b>'+moneySafe(st.advance)+'</b><span>Advance வாங்கியது</span></div>'+
+        '<div class="moneyStat clickable" onclick="goView(\'payments\')"><b>'+moneySafe(st.balance)+'</b><span>இன்னும் கொடுக்க வேண்டும்</span></div>'+ 
+      '</div></div>';
+  }
+  function addV80Cash(card,id){
     if(!card)return;
-    var mainId=nfV70MainId(id), kids=nfV70Kids(mainId);
-    if(!kids.length)return; // Single customer: do absolutely nothing.
+    var kidsList=kids(id);
+    if(!kidsList.length)return; // Single customer: existing Cash Collection remains untouched.
+    var cash=card.querySelector('.nf-cash-collection');
+    if(!cash)return;
+    var mid=mainId(id);
+    var main= (state.customers||[]).find(function(c){return String(c.id)===String(mid);});
+    if(!main)return;
 
-    var old=card.querySelector(".nf-v70-order-total-breakdown");
-    if(old)old.remove();
+    var oldGrid=cash.querySelector('.customerMoneyGrid');
+    var oldButton=cash.querySelector('.nf-cash-payment-action');
+    var head=cash.querySelector('.nf-collection-title');
+    var mainStats=statsFor(mid);
+    if(!mainStats)return;
 
-    var mainTotal=nfV70OrderTotalForCustomer(mainId);
-    var additionalTotal=kids.reduce(function(sum,k){return sum+nfV70OrderTotalForCustomer(k.id);},0);
-    var multiTotal=mainTotal+additionalTotal;
-    var sec=document.createElement("section");
-    sec.className="nf-v70-order-total-breakdown";
-    sec.innerHTML='<div class="nf-v70-ot-head"><span>🧾</span><div><h4>Order Total Breakdown</h4><small>Main • Additional • Multi Customer</small></div></div>'+
-      '<div class="nf-v70-ot-row nf-v70-main"><span>👤 Main Customer Order Total</span><b>'+nfV70Money(mainTotal)+'</b></div>'+
-      kids.map(function(k){return '<div class="nf-v70-ot-row nf-v70-add"><span>👥 Additional — '+String(k.name||"Customer").replace(/[&<>"']/g,function(ch){return ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[ch]);})+'</span><b>'+nfV70Money(nfV70OrderTotalForCustomer(k.id))+'</b></div>';}).join("")+
-      '<div class="nf-v70-ot-row nf-v70-multi"><span>🔗 Multi Customer Order Total</span><b>'+nfV70Money(multiTotal)+'</b></div>';
-    var cash=card.querySelector(".nf-cash-collection");
-    if(cash&&cash.parentNode)cash.parentNode.insertBefore(sec,cash.nextSibling);
-    else card.appendChild(sec);
+    var title=main.name||'Main Customer';
+    var html='';
+    html+='<div class="nf-v80-cash-main">'+
+      '<div class="nf-v80-cash-label">👤 Main Customer <span>('+escSafe(title)+')</span></div>'+
+      '<div class="customerMoneyGrid nf-v80-cash-grid">'+
+        '<div class="moneyStat"><b>'+moneySafe(mainStats.total)+'</b><span>மொத்த order</span></div>'+ 
+        '<div class="moneyStat"><b>'+moneySafe(mainStats.paid)+'</b><span>Customer paid</span></div>'+ 
+        '<div class="moneyStat"><b>'+moneySafe(mainStats.advance)+'</b><span>Advance வாங்கியது</span></div>'+ 
+        '<div class="moneyStat clickable" onclick="goView(\'payments\')"><b>'+moneySafe(mainStats.balance)+'</b><span>இன்னும் கொடுக்க வேண்டும்</span></div>'+ 
+      '</div></div>';
+    html+='<div class="nf-v80-additional-wrap"><div class="nf-v80-additional-head"><span>👥</span><div><strong>Additional Customer Cash Collection</strong><small>'+kidsList.length+' Additional Customer'+(kidsList.length>1?'s':'')+'</small></div></div>';
+    html+=kidsList.map(function(k,i){return sectionHtml((k.name||'Additional Customer'),k.id,'nf-v80-additional-section');}).join('');
+    html+='</div>';
+
+    /* Keep the existing Payment button in the same Cash Collection box. */
+    var keepButton=oldButton?oldButton.outerHTML:'';
+    cash.innerHTML=(head?head.outerHTML:'')+keepButton+html;
+    cash.classList.add('nf-v80-multi-cash');
   }
-  function nfV70Patch(){
+  function patch(){
     var base=window.customerCard;
-    if(typeof base!=="function"||base.__nfV70OrderTotal)return;
+    if(typeof base!=="function"||base.__nfV80MainAdditionalCash)return;
     var wrapped=function(id){
       var html=base.apply(this,arguments);
       try{
-        var holder=document.createElement("div");
+        var holder=document.createElement('div');
         holder.innerHTML=html;
-        var card=holder.querySelector(".customerCard");
-        if(card){nfV70AddBreakdown(card,id);return card.outerHTML;}
-      }catch(e){console.warn("V7.0 order total breakdown:",e);}
+        var card=holder.querySelector('.customerCard');
+        if(card){addV80Cash(card,id);return card.outerHTML;}
+      }catch(e){console.warn('V8.0 Main/Additional Cash Collection:',e);}
       return html;
     };
-    wrapped.__nfV70OrderTotal=true;
+    wrapped.__nfV80MainAdditionalCash=true;
     window.customerCard=wrapped;
   }
-  nfV70Patch();
-  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",nfV70Patch,{once:true});
-  else setTimeout(nfV70Patch,0);
+  patch();
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',patch,{once:true});
+  else setTimeout(patch,0);
 })();
 </script>
-<style id="nf-v70-customer-order-total-breakdown-css">
-.nf-v70-order-total-breakdown{margin:12px 0;padding:0;overflow:hidden;border:2px solid #c9b8f2;border-radius:18px;background:#fff;box-shadow:0 8px 20px rgba(82,55,135,.08)}
-.nf-v70-ot-head{display:flex;align-items:center;gap:10px;padding:11px 13px;background:linear-gradient(100deg,#eee7ff,#fcecf7);border-bottom:1px solid #ddd1ef;color:#4b2a82}
-.nf-v70-ot-head>span{font-size:23px}.nf-v70-ot-head h4{margin:0;font-size:18px;font-weight:950}.nf-v70-ot-head small{display:block;margin-top:2px;font-size:11px;font-weight:700;color:#746a7e}
-.nf-v70-ot-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 13px;border-bottom:1px solid #e9e3ed;font-size:14px;font-weight:800}.nf-v70-ot-row:last-child{border-bottom:0}.nf-v70-ot-row span{min-width:0}.nf-v70-ot-row b{flex:none;font-size:17px;font-weight:950;white-space:nowrap}
-.nf-v70-main{background:#f8f5ff}.nf-v70-add{background:#f5fffb}.nf-v70-multi{background:linear-gradient(100deg,#e8f7ff,#eeeaff);color:#173b76}.nf-v70-multi b{font-size:19px;color:#176d9b}
-@media(max-width:560px){.nf-v70-order-total-breakdown{margin:10px 0;border-radius:16px}.nf-v70-ot-head{padding:10px 11px}.nf-v70-ot-head h4{font-size:16px}.nf-v70-ot-row{padding:10px 11px;font-size:13px}.nf-v70-ot-row b{font-size:16px}.nf-v70-multi b{font-size:18px}}
+<style id="nf-v80-main-additional-cash-collection-css">
+.nf-v80-multi-cash{border:2px solid #f0c95a!important;background:linear-gradient(145deg,#fffaf0,#fff6dc)!important;box-shadow:0 10px 24px rgba(193,137,22,.13)!important}
+.nf-v80-cash-main{padding:10px 0 2px;border-bottom:2px solid #e6c96b}
+.nf-v80-cash-label{margin:0 12px 8px;padding:9px 11px;border-radius:12px;background:linear-gradient(100deg,#eee8ff,#e8f3ff);border:2px solid #b7a4e8;color:#3d277c;font-size:16px;font-weight:950}
+.nf-v80-cash-label span{font-weight:800;color:#665d70}
+.nf-v80-cash-grid{display:grid!important;grid-template-columns:1fr!important;gap:0!important;margin:0!important;padding:0 12px!important}
+.nf-v80-cash-grid .moneyStat{min-height:56px!important;padding:11px 3px!important;border-bottom:1px solid #e3dfe7!important;background:rgba(255,255,255,.86)!important}
+.nf-v80-cash-grid .moneyStat:last-child{border-bottom:0!important}
+.nf-v80-cash-grid .moneyStat b{font-size:16px!important;font-weight:950!important;white-space:nowrap}
+.nf-v80-cash-grid .moneyStat span{font-size:14px!important;font-weight:800!important}
+.nf-v80-additional-wrap{margin-top:10px;padding:10px 10px 12px;border:3px solid #9c63e9;border-radius:17px;background:linear-gradient(145deg,#f5efff,#fff0f8);box-shadow:0 8px 20px rgba(115,64,190,.12)}
+.nf-v80-additional-head{display:flex;align-items:center;gap:9px;margin-bottom:8px;padding:9px 10px;border-radius:12px;background:linear-gradient(100deg,#7042e8,#d744a2);color:#fff;box-shadow:0 6px 14px rgba(105,62,210,.18)}
+.nf-v80-additional-head>span{font-size:23px}.nf-v80-additional-head strong{display:block;font-size:16px;font-weight:950}.nf-v80-additional-head small{display:block;margin-top:2px;font-size:11px;font-weight:750;opacity:.9}
+.nf-v80-additional-section{margin-top:9px;border:2px solid #67cdb4;border-radius:14px;overflow:hidden;background:#f5fffb;box-shadow:0 5px 14px rgba(42,151,119,.08)}
+.nf-v80-additional-section .nf-v80-cash-section-head{display:flex;align-items:center;gap:8px;padding:8px 10px;background:linear-gradient(100deg,#d9fff1,#e9f5ff);border-bottom:1px solid #b8dfd4;color:#155f52}
+.nf-v80-additional-section .nf-v80-cash-section-head>span{font-size:20px}.nf-v80-additional-section .nf-v80-cash-section-head strong{font-size:15px;font-weight:950}.nf-v80-additional-section .nf-v80-cash-section-head small{display:block;font-size:10px;font-weight:700;color:#60706b}
+.nf-v80-additional-section .nf-v80-cash-grid{padding:0 9px!important}
+.nf-v80-additional-section .moneyStat{background:rgba(255,255,255,.82)!important}
+.nf-v80-additional-section .moneyStat b{color:#146f60!important}
+@media(max-width:560px){
+ .nf-v80-cash-label{margin-left:10px;margin-right:10px;font-size:14px}
+ .nf-v80-additional-wrap{margin-left:8px;margin-right:8px;border-width:2px;padding:8px}
+ .nf-v80-additional-head strong{font-size:14px}.nf-v80-additional-head small{font-size:10px}
+ .nf-v80-cash-grid{padding:0 10px!important}.nf-v80-cash-grid .moneyStat span{font-size:13px!important}.nf-v80-cash-grid .moneyStat b{font-size:15px!important}
+}
 </style>
 </body></html><script id="nf-v52-dashboard-scroll-fix-js">
 (function(){
