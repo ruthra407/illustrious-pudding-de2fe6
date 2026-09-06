@@ -12912,3 +12912,75 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
 }
 </style>
 
+<script id="nf-v280-five-hook-photo-wrapper">
+(function(){
+  "use strict";
+  if(window.__nfV280FiveHookPhoto)return;
+  window.__nfV280FiveHookPhoto=true;
+
+  function wrapPhotoManager(card){
+    if(!card)return;
+    if(card.querySelector(":scope > .nf-v280-photo-hook"))return;
+
+    /* Keep the existing photo manager exactly as-is; only place it inside hook #5. */
+    var photo = card.querySelector(":scope > .nf-customer-cloth-photo-manager");
+    if(!photo){
+      photo = card.querySelector(":scope > .nf-customer-cloth-photos, :scope > .photoGrid");
+    }
+    if(!photo || !photo.parentNode)return;
+
+    var box=document.createElement("div");
+    box.className="nf-v280-photo-hook nf-v240-hook-box";
+    var btn=document.createElement("button");
+    btn.type="button";
+    btn.className="nf-v240-hook";
+    btn.setAttribute("aria-expanded","false");
+    btn.innerHTML='<span class="nf-v240-hook-label">📸 Customer Photos</span><b class="nf-v240-hook-plus">＋</b>';
+
+    var body=document.createElement("div");
+    body.className="nf-v240-hook-body";
+    body.style.display="none";
+
+    photo.parentNode.insertBefore(box,photo);
+    box.appendChild(btn);
+    box.appendChild(body);
+    body.appendChild(photo);
+
+    btn.addEventListener("click",function(e){
+      e.preventDefault();
+      e.stopPropagation();
+      var open=btn.getAttribute("aria-expanded")==="true";
+      btn.setAttribute("aria-expanded",open?"false":"true");
+      btn.querySelector(".nf-v240-hook-plus").textContent=open?"＋":"−";
+      body.style.display=open?"none":"block";
+    });
+  }
+
+  var base=window.customerCard;
+  if(typeof base!=="function")return;
+
+  function wrapped(){
+    var html=base.apply(this,arguments);
+    try{
+      var h=document.createElement("div");
+      h.innerHTML=html;
+      var card=h.querySelector(".customerCard");
+      if(card){
+        wrapPhotoManager(card);
+        return card.outerHTML;
+      }
+    }catch(e){}
+    return html;
+  }
+  wrapped.__nfV280FiveHook=true;
+  window.customerCard=wrapped;
+})();
+</script>
+<style id="nf-v280-five-hook-photo-css">
+.nf-v280-photo-hook{margin:8px;border:1px solid #ddd5ef;border-radius:14px;overflow:hidden;background:#fff}
+.nf-v280-photo-hook>.nf-v240-hook-body{padding:0;background:#fff}
+.nf-v280-photo-hook>.nf-v240-hook-body>.nf-customer-cloth-photo-manager,
+.nf-v280-photo-hook>.nf-v240-hook-body>.nf-customer-cloth-photos,
+.nf-v280-photo-hook>.nf-v240-hook-body>.photoGrid{margin:0!important}
+</style>
+
