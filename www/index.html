@@ -10323,110 +10323,17 @@ setTimeout(decorateAll,100);
 
 
 <style id="nf-home-scroll-final-guard">
-/* Home only: restore normal document scrolling. No other view is affected. */
-html:has(body.nf-dashboard-mode){
-  overflow-y:auto!important;
-  overflow-x:hidden!important;
-  height:auto!important;
-  min-height:100%!important;
-  overscroll-behavior-y:auto!important;
-}
-body.nf-dashboard-mode{
-  overflow-y:auto!important;
-  overflow-x:hidden!important;
-  height:auto!important;
-  min-height:100%!important;
-  max-height:none!important;
-  overscroll-behavior:auto!important;
-  touch-action:auto!important;
-}
-body.nf-dashboard-mode #app{
-  height:auto!important;
-  min-height:100%!important;
-  max-height:none!important;
-  overflow:visible!important;
-}
-body.nf-dashboard-mode #app>.layout{
-  height:auto!important;
-  min-height:0!important;
-  max-height:none!important;
-  overflow:visible!important;
-}
-body.nf-dashboard-mode #app>.layout>.main{
-  height:auto!important;
-  min-height:0!important;
-  max-height:none!important;
-  overflow:visible!important;
-}
-body.nf-dashboard-mode #view-dashboard.active{
-  display:block!important;
-  height:auto!important;
-  min-height:0!important;
-  max-height:none!important;
-  overflow:visible!important;
-  overscroll-behavior:auto!important;
-  touch-action:auto!important;
-}
-body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub{
-  height:auto!important;
-  min-height:0!important;
-  max-height:none!important;
-  overflow:visible!important;
-}
-body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
-  height:auto!important;
-  min-height:0!important;
-  max-height:none!important;
-  overflow:visible!important;
-  overflow-y:visible!important;
-  overscroll-behavior:auto!important;
-  touch-action:auto!important;
-  -webkit-overflow-scrolling:auto!important;
-}
-</style>
-
-<style id="nf-mobile-customer-only-scroll-fix">
-/* Mobile Home: keep the small Customer header fixed; scroll customer details only. */
-@media (max-width:700px){
-  body.nf-dashboard-mode{
-    overflow:hidden!important;
-    height:100dvh!important;
-    max-height:100dvh!important;
-  }
-  body.nf-dashboard-mode #view-dashboard.active{
-    height:calc(100dvh - 88px - 68px)!important;
-    max-height:calc(100dvh - 88px - 68px)!important;
-    overflow:hidden!important;
-  }
-  body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub{
-    height:100%!important;
-    max-height:100%!important;
-    overflow:hidden!important;
-    display:flex!important;
-    flex-direction:column!important;
-  }
-  body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-my-customers-head{
-    position:sticky!important;
-    top:0!important;
-    flex:0 0 50px!important;
-    height:50px!important;
-    min-height:50px!important;
-    max-height:50px!important;
-    z-index:50!important;
-  }
-  body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
-    flex:1 1 auto!important;
-    height:auto!important;
-    min-height:0!important;
-    max-height:none!important;
-    overflow-y:auto!important;
-    overflow-x:hidden!important;
-    overscroll-behavior:contain!important;
-    -webkit-overflow-scrolling:touch!important;
-    touch-action:pan-y!important;
-  }
-}
-</style>
+/* Home: keep the existing customer-list scroll; only the small My Customers header stays fixed. */
+html:has(body.nf-dashboard-mode){overflow:hidden!important;height:100%!important;}
+body.nf-dashboard-mode{overflow:hidden!important;height:100dvh!important;}
+body.nf-dashboard-mode #app{height:100dvh!important;overflow:hidden!important;}
+body.nf-dashboard-mode #app>.layout{height:calc(100dvh - var(--nf-header-height))!important;min-height:0!important;overflow:hidden!important;}
+body.nf-dashboard-mode #app>.layout>.main{height:100%!important;min-height:0!important;overflow:hidden!important;}
+body.nf-dashboard-mode #view-dashboard.active{height:100%!important;min-height:0!important;display:flex!important;flex-direction:column!important;overflow:hidden!important;}
+body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub{height:100%!important;min-height:0!important;overflow:hidden!important;}
+body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-my-customers-head{position:sticky!important;top:0!important;z-index:30!important;flex:0 0 50px!important;}
+body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{flex:1 1 auto!important;min-height:0!important;overflow-y:auto!important;overflow-x:hidden!important;overscroll-behavior:contain!important;-webkit-overflow-scrolling:touch!important;touch-action:pan-y!important;}
+</style></style>
 </body></html><script id="nf-v52-dashboard-scroll-fix-js">
 (function(){
   "use strict";
@@ -12551,39 +12458,37 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
     }
   },true);
 
-  /* FIX 2 RESTORED: Home uses the customer-list inner scroll.
-     The small My Customers header stays fixed while customer cards scroll. */
+  /* FIX 2: Home must use the document/page scroll, not an inner customer-list scroll. */
   function unlockHomeScroll(){
     try{
       var view=document.getElementById("view-dashboard");
       var hub=view&&view.querySelector(".nf-dashboard-customer-hub");
       var list=view&&view.querySelector(".nf-dch-list");
-      if(!view||!hub||!list)return;
-
-      view.style.setProperty("overflow","hidden","important");
-      view.style.setProperty("height","100%","important");
-      view.style.setProperty("max-height","100%","important");
-      view.style.setProperty("touch-action","none","important");
-
-      hub.style.setProperty("overflow","hidden","important");
-      hub.style.setProperty("height","100%","important");
-      hub.style.setProperty("min-height","0","important");
-      hub.style.setProperty("max-height","100%","important");
-
-      list.style.setProperty("overflow-y","auto","important");
-      list.style.setProperty("overflow-x","hidden","important");
-      list.style.setProperty("height","auto","important");
-      list.style.setProperty("min-height","0","important");
-      list.style.setProperty("max-height","none","important");
-      list.style.setProperty("flex","1 1 auto","important");
-      list.style.setProperty("touch-action","pan-y","important");
-      list.style.setProperty("overscroll-behavior","contain","important");
-      list.style.setProperty("-webkit-overflow-scrolling","touch","important");
-
-      document.documentElement.style.setProperty("overflow","hidden","important");
-      document.body.style.setProperty("overflow","hidden","important");
-      document.body.style.setProperty("height","100dvh","important");
-      document.body.style.setProperty("min-height","100dvh","important");
+      var head=hub&&hub.querySelector(".nf-my-customers-head");
+      if(view){
+        view.style.setProperty("overflow","hidden","important");
+        view.style.setProperty("height","100%","important");
+        view.style.setProperty("max-height","none","important");
+      }
+      if(hub){
+        hub.style.setProperty("overflow","hidden","important");
+        hub.style.setProperty("height","100%","important");
+        hub.style.setProperty("max-height","none","important");
+      }
+      if(head){
+        head.style.setProperty("position","sticky","important");
+        head.style.setProperty("top","0","important");
+        head.style.setProperty("z-index","30","important");
+      }
+      if(list){
+        list.style.setProperty("overflow-y","auto","important");
+        list.style.setProperty("overflow-x","hidden","important");
+        list.style.setProperty("flex","1 1 auto","important");
+        list.style.setProperty("min-height","0","important");
+        list.style.setProperty("overscroll-behavior","contain","important");
+        list.style.setProperty("touch-action","pan-y","important");
+        list.style.setProperty("-webkit-overflow-scrolling","touch","important");
+      }
     }catch(_){ }
   }
   window.nfV22UnlockHomeScroll=unlockHomeScroll;
@@ -12617,57 +12522,20 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
 })();
 </script>
 <style id="nf-v22-two-final-fixes-css">
+/* Keep existing Home inner customer-list scroll. Do not alter other UI. */
 body.nf-dashboard-mode #view-dashboard.active{
-  overflow:visible!important;
-  height:auto!important;
-  max-height:none!important;
-  overscroll-behavior:auto!important;
+  overflow:hidden!important;height:100%!important;max-height:none!important;
 }
 body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub{
-  overflow:visible!important;
-  height:auto!important;
-  max-height:none!important;
+  overflow:hidden!important;height:100%!important;max-height:none!important;
+}
+body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-my-customers-head{
+  position:sticky!important;top:0!important;z-index:30!important;
 }
 body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
-  overflow:visible!important;
-  overflow-y:visible!important;
-  height:auto!important;
-  max-height:none!important;
-  min-height:0!important;
-  overscroll-behavior:auto!important;
-  touch-action:pan-y!important;
+  overflow-y:auto!important;overflow-x:hidden!important;
+  height:auto!important;max-height:none!important;min-height:0!important;
+  flex:1 1 auto!important;overscroll-behavior:contain!important;
+  touch-action:pan-y!important;-webkit-overflow-scrolling:touch!important;
 }
-</style>
-
-<style id="nf-v22-two-final-fixes-css">
- body.nf-dashboard-mode #view-dashboard.active{
-   overflow:hidden!important;
-   height:100%!important;
-   max-height:100%!important;
-   overscroll-behavior:none!important;
-   touch-action:none!important;
- }
- body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub{
-   display:flex!important;
-   flex-direction:column!important;
-   overflow:hidden!important;
-   height:100%!important;
-   min-height:0!important;
-   max-height:100%!important;
- }
- body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-my-customers-head{
-   position:relative!important;
-   flex:0 0 50px!important;
- }
- body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
-   flex:1 1 auto!important;
-   min-height:0!important;
-   height:auto!important;
-   max-height:none!important;
-   overflow-x:hidden!important;
-   overflow-y:auto!important;
-   overscroll-behavior:contain!important;
-   touch-action:pan-y!important;
-   -webkit-overflow-scrolling:touch!important;
- }
 </style>
