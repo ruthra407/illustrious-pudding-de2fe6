@@ -12955,4 +12955,46 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
 .nf-v130-person-blouse>.nfBlouseStatusGrid{margin-top:10px}
 .nf-v130-person-blouse>.nfChudiHandoverGrid{margin-bottom:10px}
 @media(max-width:560px){.nf-v130-blouse-body{padding:8px}.nf-v130-blouse-person{border-radius:14px}.nf-v130-blouse-person-name{font-size:15px;padding:8px 10px}.nf-v130-multi-blouse>.nf-collection-title{padding:11px 12px!important}}
-</style>
+</style><script id="nf-v170-calc-hooks-scroll-js">
+(function(){
+  function addCalcHook(section){
+    if(!section || section.dataset.nf170Ready)return;
+    var head=section.querySelector(':scope > h4');
+    if(!head)return;
+    section.dataset.nf170Ready='1';
+    var btn=document.createElement('button');
+    btn.type='button'; btn.className='nf-v170-calc-hook';
+    btn.setAttribute('aria-expanded','false'); btn.title='Details பார்க்க';
+    var text=head.textContent.trim();
+    btn.innerHTML='<span></span><b>＋</b>';
+    btn.querySelector('span').textContent=text;
+    head.textContent=''; head.appendChild(btn);
+    var body=[]; for(var i=1;i<section.children.length;i++)body.push(section.children[i]);
+    body.forEach(function(x){x.classList.add('nf-v170-calc-body');x.style.display='none';});
+    btn.onclick=function(e){
+      e.preventDefault();e.stopPropagation();
+      var open=btn.getAttribute('aria-expanded')==='true';
+      btn.setAttribute('aria-expanded',String(!open));
+      btn.querySelector('b').textContent=open?'＋':'−';
+      body.forEach(function(x){x.style.display=open?'none':'';});
+    };
+  }
+  function enhance(){
+    document.querySelectorAll('.nf-v120-customer-cash-box .customerWorkSection, .nf-v130-blouse-person .customerWorkSection').forEach(addCalcHook);
+  }
+  function boot(){
+    enhance();
+    [100,300,700,1200,2000].forEach(function(t){setTimeout(enhance,t);});
+    if(window.__nf170Observer)return; window.__nf170Observer=true;
+    var timer=0;
+    new MutationObserver(function(){
+      clearTimeout(timer); timer=setTimeout(enhance,120);
+    }).observe(document.body,{childList:true,subtree:true});
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
+})();</script><style id="nf-v170-calc-hooks-scroll-css">
+.nf-v170-calc-hook{width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;border:0;background:transparent;padding:0;margin:0;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.nf-v170-calc-hook span{min-width:0;flex:1}.nf-v170-calc-hook b{width:28px;height:28px;min-width:28px;border-radius:50%;display:grid;place-items:center;background:#fff;border:1px solid rgba(100,70,160,.25);font-size:19px;line-height:1}
+.nf-v170-calc-body{overflow:hidden}
+html{scroll-behavior:smooth!important}</style>
+
