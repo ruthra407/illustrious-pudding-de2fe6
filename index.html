@@ -10644,6 +10644,152 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
   .nf-v133-hook-icon{width:32px;height:32px;flex-basis:32px;font-size:21px}
 }
 </style>
+
+<script id="nf-v190-customer-section-groups-js">
+(function(){
+  "use strict";
+  if(window.__nfV190CustomerGroups)return;
+  window.__nfV190CustomerGroups=true;
+  var PARENT_RE=/(?:^|\|\s*)(?:NF_MULTI_PARENT|NF_PARENT_CUSTOMER):\s*([^|\s]+)/i;
+  function all(){return (typeof state!=="undefined"&&Array.isArray(state.customers))?state.customers:[];}
+  function parentId(c){var m=String(c&&c.notes||"").match(PARENT_RE);return m?String(m[1]||""):"";}
+  function kids(id){var sid=String(id||""),seen={};return all().filter(function(c){var cid=String(c&&c.id||"");if(parentId(c)!==sid||!cid||seen[cid])return false;seen[cid]=1;return true;});}
+  function ids(mainId){return [String(mainId)].concat(kids(mainId).map(function(c){return String(c.id);}));}
+  function cardHtml(id){
+    try{
+      var fn=window.nfV120OriginalCustomerCard||window.customerCard;
+      if(typeof fn!=="function")return null;
+      var h=document.createElement("div");h.innerHTML=fn(String(id));
+      return h;
+    }catch(e){return null;}
+  }
+  function direct(h,sel){return h.querySelector(":scope > "+sel)||h.querySelector(sel);}
+  function cloneSection(h,sel){var x=direct(h,sel);return x?x.cloneNode(true):null;}
+  function makeDeliveryPart(h,wantChudi){
+    var d=direct(h,".nf-delivery-card");if(!d)return null;
+    var out=d.cloneNode(true);
+    out.querySelectorAll(":scope > .nf-delivery-type-row").forEach(function(row){
+      var text=String(row.textContent||"").toLowerCase();
+      var isChudi=/chudi|சுடிதார்/.test(text);
+      if(wantChudi!==isChudi)row.remove();
+    });
+    if(!out.querySelector(":scope > .nf-delivery-type-row"))return null;
+    return out;
+  }
+  function titleText(section){
+    var t=section.querySelector(":scope > .nf-collection-title h4");
+    return t?String(t.textContent||"").trim():"";
+  }
+  function addHook(section,label){
+    if(!section)return;
+    var head=section.querySelector(":scope > .nf-collection-title")||section.querySelector(":scope > .nf-delivery-heading")||section.querySelector(":scope > .nf-summary-head");
+    if(!head)return;
+    if(head.dataset&&head.dataset.nf190Ready)return;
+    if(head.dataset)head.dataset.nf190Ready="1";
+    var body=[];
+    for(var i=1;i<section.children.length;i++)body.push(section.children[i]);
+    if(!body.length)return;
+    var btn=document.createElement("button");
+    btn.type="button";btn.className="nf-v190-section-hook";btn.setAttribute("aria-expanded","false");btn.title="Details பார்க்க";
+    var text=label||titleText(section)||head.textContent.trim();
+    btn.innerHTML='<span class="nf-v190-hook-text"></span><b class="nf-v190-hook-icon">＋</b>';
+    btn.querySelector(".nf-v190-hook-text").textContent=text;
+    head.textContent="";head.appendChild(btn);
+    body.forEach(function(x){x.classList.add("nf-v190-hook-body");x.style.display="none";});
+    btn.addEventListener("click",function(e){
+      e.preventDefault();e.stopPropagation();
+      var open=btn.getAttribute("aria-expanded")==="true";
+      btn.setAttribute("aria-expanded",String(!open));
+      btn.querySelector(".nf-v190-hook-icon").textContent=open?"＋":"−";
+      body.forEach(function(x){x.style.display=open?"none":"";});
+    });
+  }
+  function calcSection(h){
+    var m=direct(h,".nfCustomerBreakdownMount");
+    if(!m)return null;
+    var out=m.cloneNode(true);
+    return out;
+  }
+  function buildCustomer(id){
+    var h=cardHtml(id);if(!h)return null;
+    var cash=cloneSection(h,".nf-cash-collection");
+    var calc=calcSection(h);
+    var blouse=cloneSection(h,".nf-blouse-collection");
+    var bs=makeDeliveryPart(h,false),ch=makeDeliveryPart(h,true);
+    if(!cash||!calc||!blouse||!bs||!ch)return null;
+    var c=all().find(function(x){return String(x&&x.id||"")===String(id);});
+    var box=document.createElement("div");box.className="nf-v190-customer-box";box.dataset.customerId=String(id);
+    var name=document.createElement("div");name.className="nf-v190-customer-name";name.textContent=c&&c.name?c.name:"Customer";
+    box.appendChild(name);
+    [
+      [cash,"Cash Collection"],
+      [calc,"Blouse / Chudi / Saree Calculation"],
+      [bs,"Blouse / Saree Collection"],
+      [ch,"Chudi Collection"]
+    ].forEach(function(pair){
+      pair[0].classList.add("nf-v190-customer-section");
+      box.appendChild(pair[0]);
+      addHook(pair[0],pair[1]);
+    });
+    return box;
+  }
+  function fixCard(card){
+    if(!card||card.dataset.nf190Done)return;
+    var id=String(card.id||"").replace(/^customer-card-/i,"");if(!id)return;
+    var c=all().find(function(x){return String(x&&x.id||"")===id;});
+    if(!c||parentId(c)||!kids(id).length)return;
+    var outer=document.createElement("section");outer.className="nf-v190-customer-groups";outer.dataset.mainCustomerId=id;
+    var body=document.createElement("div");body.className="nf-v190-groups-body";
+    var built=ids(id).map(buildCustomer).filter(Boolean);
+    if(built.length<2)return;
+    built.forEach(function(x){body.appendChild(x);});
+    outer.appendChild(body);
+    // Remove only the existing multi wrappers; the original customer details stay untouched.
+    card.querySelectorAll(":scope > .nf-v120-multi-cash-wrap, :scope > .nf-v160-multi-calculation, :scope > .nf-v130-multi-blouse, :scope > .nfCustomerBreakdownMount, :scope > .nf-cash-collection, :scope > .nf-blouse-collection, :scope > .nf-delivery-card").forEach(function(x){x.remove();});
+    var anchor=card.querySelector(":scope > .customerCardHead");
+    if(anchor)card.insertBefore(outer,anchor.nextSibling);else card.appendChild(outer);
+    card.dataset.nf190Done="1";
+  }
+  function render(){
+    var box=document.getElementById("customersTable");if(!box)return;
+    box.querySelectorAll(":scope > .customerCard").forEach(fixCard);
+  }
+  function boot(){
+    render();
+    setTimeout(render,120);setTimeout(render,450);setTimeout(render,1000);
+    var box=document.getElementById("customersTable");
+    if(box&&!box.__nfV190Observer){
+      box.__nfV190Observer=true;
+      var timer=0;
+      new MutationObserver(function(){
+        clearTimeout(timer);timer=setTimeout(function(){
+          box.querySelectorAll(":scope > .customerCard").forEach(function(c){if(!c.dataset.nf190Done)fixCard(c);});
+        },120);
+      }).observe(box,{childList:true});
+    }
+    var old=window.renderCustomers;
+    if(typeof old==="function"&&!old.__nfV190){
+      window.renderCustomers=function(){var r=old.apply(this,arguments);setTimeout(render,180);return r;};
+      window.renderCustomers.__nfV190=true;
+    }
+  }
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",boot,{once:true});else boot();
+})();
+</script>
+<style id="nf-v190-customer-section-groups-css">
+.nf-v190-customer-groups{margin:12px 0;padding:10px;border:1px solid #ddd8df;border-radius:20px;background:#fff;box-shadow:0 8px 22px rgba(35,25,30,.08);overflow:hidden}
+.nf-v190-groups-body{display:grid;gap:10px}
+.nf-v190-customer-box{border:1px solid #ddd5ef;border-radius:16px;background:#fff;overflow:hidden;box-shadow:0 5px 15px rgba(52,31,86,.06)}
+.nf-v190-customer-name{padding:10px 12px;background:linear-gradient(135deg,#f7f3ff,#fff4fa);border-bottom:1px solid #e3dceb;color:#4d267c;font-size:17px;font-weight:950}
+.nf-v190-customer-section{margin:0!important}
+.nf-v190-customer-section>.nf-collection-title,.nf-v190-customer-section>.nf-delivery-heading{cursor:default}
+.nf-v190-section-hook{width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;border:0;background:transparent;padding:0;margin:0;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.nf-v190-hook-text{min-width:0;flex:1}
+.nf-v190-hook-icon{width:30px;height:30px;min-width:30px;border-radius:50%;display:grid;place-items:center;background:#fff;border:1px solid rgba(100,70,160,.25);font-size:19px;line-height:1}
+.nf-v190-hook-body{overflow:hidden}
+.nf-v190-customer-section.nf-blouse-collection{border:0!important;border-radius:0!important;box-shadow:none!important}
+@media(max-width:560px){.nf-v190-customer-groups{padding:8px}.nf-v190-customer-name{font-size:16px;padding:8px 10px}.nf-v190-hook-icon{width:28px;height:28px;min-width:28px}}
+</style>
 </html><script id="nf-v52-dashboard-scroll-fix-js">
 (function(){
   "use strict";
