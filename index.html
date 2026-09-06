@@ -10336,64 +10336,137 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
 </style></style>
 
 
-<script id="nf-v80-main-additional-cash-collection-js">
+<script id="nf-v100-main-additional-cash-collection-js">
 (function(){
   "use strict";
-  function parentId(c){if(!c)return "";var m=String(c.notes||"").match(/(?:^|\|\s*)(?:NF_MULTI_PARENT|NF_PARENT_CUSTOMER):\s*([^|\s]+)/i);return m?String(m[1]||""):"";}
+  /* V10.0: Additional Customer uses the same Cash Collection data sources
+     as the existing Single Customer Cash Collection. Only presentation is compact. */
+  function parentId(c){
+    if(!c)return "";
+    var m=String(c.notes||"").match(/(?:^|\|\s*)(?:NF_MULTI_PARENT|NF_PARENT_CUSTOMER):\s*([^|\s]+)/i);
+    return m?String(m[1]||""):"";
+  }
   function isChild(c){return !!parentId(c);}
-  function mainId(id){var sid=String(id||"");var c=(state.customers||[]).find(function(x){return String(x&&x.id||"")===sid;});return c&&isChild(c)?parentId(c):sid;}
-  function kids(id){var mid=mainId(id);return (state.customers||[]).filter(function(c){return parentId(c)===mid;});}
-  function moneySafe(n){try{return typeof money==="function"?money(n):("₹"+Number(n||0).toFixed(2));}catch(_){return "₹"+Number(n||0).toFixed(2);}}
-  function escSafe(v){return String(v==null?"":v).replace(/[&<>"']/g,function(ch){return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[ch];});}
+  function mainId(id){
+    var sid=String(id||"");
+    var c=(state.customers||[]).find(function(x){return String(x&&x.id||"")===sid;});
+    return c&&isChild(c)?parentId(c):sid;
+  }
+  function kids(id){
+    var mid=mainId(id);
+    return (state.customers||[]).filter(function(c){return parentId(c)===mid;});
+  }
+  function moneySafe(n){
+    try{return typeof money==="function"?money(n):("₹"+Number(n||0).toFixed(2));}
+    catch(_){return "₹"+Number(n||0).toFixed(2);}
+  }
+  function escSafe(v){
+    return String(v==null?"":v).replace(/[&<>"']/g,function(ch){return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[ch];});
+  }
   function statsFor(id){try{return typeof customerStats==="function"?customerStats(id):null;}catch(_){return null;}}
-  function dateSafe(v){return typeof nfFormatPaymentDate==="function"?nfFormatPaymentDate(v):(v?dateText(v):"—");}
-  function paymentDates(id){var os=customerOrders(id)||[];var ids=new Set(os.map(function(o){return String(o.id);}));return (state.payments||[]).filter(function(p){return ids.has(String(p.order_id));}).sort(function(a,b){return String(a.payment_date||"").localeCompare(String(b.payment_date||""));});}
-  function dateInfo(id){
-    var os=(customerOrders(id)||[]).slice().sort(function(a,b){return String(b.created_at||b.order_date||"").localeCompare(String(a.created_at||a.order_date||""));});
-    var latest=os[0]||null, pays=paymentDates(id);
-    var pi=latest&&typeof nfOrderPaymentInfo==="function"?nfOrderPaymentInfo(latest):null;
-    var balanceDate=pi&&pi.balancePaidDate||"";
-    if(!balanceDate){var bp=pays.slice().reverse().find(function(p){return String(p.notes||"").match(/BALANCE_PAID_DATE:([0-9]{4}-[0-9]{2}-[0-9]{2})/);});balanceDate=bp?String(bp.notes||"").match(/BALANCE_PAID_DATE:([0-9]{4}-[0-9]{2}-[0-9]{2})/)[1]:"";}
-    return {orderDate:latest?String(latest.cloth_received_date||latest.order_date||""):"",advanceDate:pi?String(pi.advanceDate||""):"",paidDates:pays.map(function(p){return p.payment_date;}).filter(Boolean),balanceDate:balanceDate};
+  function ordersFor(id){return (state.orders||[]).filter(function(o){return String(o.customer_id)===String(id);});}
+  function latest(values){return (values||[]).filter(Boolean).map(String).sort().slice(-1)[0]||"";}
+  function fmt(v){return typeof nfFormatPaymentDate==="function"?nfFormatPaymentDate(v):(v||"—");}
+
+  /* These are deliberately the same sources used by the Single Customer Cash Collection. */
+  function cashSyncFor(id){
+    var orders=ordersFor(id);
+    var infos=orders.map(function(o){return typeof nfOrderPaymentInfo==="function"?nfOrderPaymentInfo(o):null;}).filter(Boolean);
+    var paidDates=infos.flatMap(function(info){return (info.payments||[]).map(function(p){return p.payment_date||"";});});
+    var totalDate=latest(orders.map(function(o){return o.cloth_received_date||"";}));
+    var paidDate=latest(paidDates);
+    var advanceDate=latest(infos.map(function(x){return x.advanceDate||"";}));
+    var balanceDate=latest(infos.map(function(x){return x.balancePaidDate||"";}));
+    var refundDate=latest(infos.map(function(x){return x.refundPaidDate||"";}));
+    var st=statsFor(id)||{};
+    var total=Number(st.total||0), paid=Number(st.paid||0), advance=Number(st.advance||0);
+    var totalPaid=Number(st.totalPaid!=null?st.totalPaid:(advance+paid));
+    return {
+      total:total,
+      paid:paid,
+      advance:advance,
+      balance:Number(st.balance||Math.max(0,total-totalPaid)),
+      refund:Math.max(0,totalPaid-total),
+      totalDate:totalDate,
+      paidDate:paidDate,
+      advanceDate:advanceDate,
+      balanceDate:balanceDate,
+      refundDate:refundDate
+    };
   }
-  function dateHtml(info){
-    var paid=info.paidDates.length?info.paidDates.map(dateSafe).join(" · "):"—";
-    return '<div class="nf-v90-cash-dates"><span>Order: '+dateSafe(info.orderDate)+'</span><span>Paid: '+paid+'</span><span>Advance: '+dateSafe(info.advanceDate)+'</span><span>Balance: '+dateSafe(info.balanceDate)+'</span></div>';
+
+  function compactRow(k){
+    var sync=cashSyncFor(k.id);
+    var sid=escSafe(k.id);
+    var paymentCount=ordersFor(k.id).reduce(function(n,o){return n+(state.payments||[]).filter(function(p){return String(p.order_id)===String(o.id);}).length;},0);
+    var balanceLabel=sync.refund>0?"Customer-க்கு கொடுக்க வேண்டும்":"இன்னும் கொடுக்க வேண்டும்";
+    var balanceAmount=sync.refund>0?sync.refund:sync.balance;
+    return '<div class="nf-v100-add-row" data-customer-id="'+sid+'">'+
+      '<div class="nf-v100-add-main">'+
+        '<div class="nf-v100-add-name"><span>👤</span><strong>'+escSafe(k.name||"Additional Customer")+'</strong></div>'+ 
+        '<div class="nf-v100-add-meta">'+
+          '<span>📅 '+escSafe(fmt(sync.totalDate))+'</span>'+ 
+          '<span>'+moneySafe(sync.total)+'</span>'+ 
+        '</div>'+ 
+      '</div>'+ 
+      '<div class="nf-v100-add-mini">'+
+        '<span>Paid: '+moneySafe(sync.paid)+'</span>'+ 
+        '<span>Advance: '+moneySafe(sync.advance)+'</span>'+ 
+        '<span>'+balanceLabel+': '+moneySafe(balanceAmount)+'</span>'+ 
+      '</div>'+ 
+      '<div class="nf-v100-add-actions">'+
+        '<button type="button" class="nf-cash-payment-btn nf-v100-add-payment" onclick="event.stopPropagation();openCustomerPayment(\''+sid+'\')" title="Payment" aria-label="Payment">💰 <span>Payment</span></button>'+ 
+        '<button type="button" class="nf-cash-edit-payment-btn nf-v100-add-edit" onclick="event.stopPropagation();openLatestCustomerOrderEdit(\''+sid+'\')" title="Edit Order" aria-label="Edit Order">✏️</button>'+ 
+      '</div>'+ 
+      '<div class="nf-v100-add-dates" aria-label="Cash Collection dates">'+
+        '<span>Order: '+escSafe(fmt(sync.totalDate))+'</span>'+ 
+        '<span>Paid: '+escSafe(fmt(sync.paidDate))+'</span>'+ 
+        '<span>Advance: '+escSafe(fmt(sync.advanceDate))+'</span>'+ 
+        '<span>Balance: '+escSafe(fmt(sync.balanceDate||sync.refundDate))+'</span>'+ 
+      '</div>'+ 
+    '</div>';
   }
-  function actionHtml(id){var sid=escSafe(id);return '<div class="nf-v90-cash-actions"><button type="button" class="btn success" onclick="event.stopPropagation();openCustomerPayment(\''+sid+'\')">💰 Payment</button><button type="button" class="btn secondary" onclick="event.stopPropagation();openLatestCustomerOrderEdit(\''+sid+'\')">✏️ Edit</button></div>';}
-  function sectionHtml(label,id,extraClass){var st=statsFor(id);if(!st)return "";var info=dateInfo(id);return '<div class="nf-v80-cash-section '+(extraClass||'')+'"><div class="nf-v80-cash-section-head"><span>👤</span><div><strong>'+escSafe(label)+'</strong><small>Order • Paid • Advance • Balance</small></div></div><div class="customerMoneyGrid nf-v80-cash-grid"><div class="moneyStat"><b>'+moneySafe(st.total)+'</b><span>மொத்த order</span></div><div class="moneyStat"><b>'+moneySafe(st.paid)+'</b><span>Customer paid</span></div><div class="moneyStat"><b>'+moneySafe(st.advance)+'</b><span>Advance வாங்கியது</span></div><div class="moneyStat clickable" onclick="goView(\'payments\')"><b>'+moneySafe(st.balance)+'</b><span>இன்னும் கொடுக்க வேண்டும்</span></div></div>'+dateHtml(info)+actionHtml(id)+'</div>';}
-  function addV80Cash(card,id){if(!card)return;var kidsList=kids(id);if(!kidsList.length)return;var cash=card.querySelector('.nf-cash-collection');if(!cash)return;var mid=mainId(id),main=(state.customers||[]).find(function(c){return String(c.id)===String(mid);});if(!main)return;var head=cash.querySelector('.nf-collection-title'),oldButton=cash.querySelector('.nf-cash-payment-action'),mainStats=statsFor(mid);if(!mainStats)return;var mainInfo=dateInfo(mid);var html='<div class="nf-v80-cash-main"><div class="nf-v80-cash-label">👤 Main Customer <span>('+escSafe(main.name||'Main Customer')+')</span></div><div class="customerMoneyGrid nf-v80-cash-grid"><div class="moneyStat"><b>'+moneySafe(mainStats.total)+'</b><span>மொத்த order</span></div><div class="moneyStat"><b>'+moneySafe(mainStats.paid)+'</b><span>Customer paid</span></div><div class="moneyStat"><b>'+moneySafe(mainStats.advance)+'</b><span>Advance வாங்கியது</span></div><div class="moneyStat clickable" onclick="goView(\'payments\')"><b>'+moneySafe(mainStats.balance)+'</b><span>இன்னும் கொடுக்க வேண்டும்</span></div></div>'+dateHtml(mainInfo)+'</div>';html+='<div class="nf-v80-additional-wrap"><div class="nf-v80-additional-head"><span>👥</span><div><strong>Additional Customer Cash Collection</strong><small>'+kidsList.length+' Additional Customer'+(kidsList.length>1?'s':'')+'</small></div></div>'+kidsList.map(function(k){return sectionHtml(k.name||'Additional Customer',k.id,'nf-v80-additional-section');}).join('')+'</div>';var keepButton=oldButton?oldButton.outerHTML:'';cash.innerHTML=(head?head.outerHTML:'')+keepButton+html;cash.classList.add('nf-v80-multi-cash');}
-  function patch(){var base=window.customerCard;if(typeof base!=="function"||base.__nfV90MultiCash)return;var wrapped=function(id){var html=base.apply(this,arguments);try{var holder=document.createElement('div');holder.innerHTML=html;var card=holder.querySelector('.customerCard');if(card){addV80Cash(card,id);return card.outerHTML;}}catch(e){console.warn('V9.0 Multi Customer Cash Collection:',e);}return html;};wrapped.__nfV90MultiCash=true;window.customerCard=wrapped;}
-  patch();if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',patch,{once:true});else setTimeout(patch,0);
+
+  function addV100Cash(card,id){
+    if(!card)return;
+    var kidsList=kids(id); if(!kidsList.length)return;
+    var cash=card.querySelector('.nf-cash-collection'); if(!cash)return;
+    if(cash.querySelector('.nf-v100-additional-wrap'))return;
+    var wrap=document.createElement('div');
+    wrap.className='nf-v100-additional-wrap';
+    wrap.innerHTML='<div class="nf-v100-additional-head"><span>👥</span><div><strong>Additional Customer Cash Collection</strong><small>'+kidsList.length+' Additional Customer'+(kidsList.length>1?'s':'')+'</small></div></div>'+kidsList.map(compactRow).join('');
+    cash.appendChild(wrap);
+    cash.classList.add('nf-v100-multi-cash');
+  }
+
+  function patch(){
+    var base=window.customerCard;
+    if(typeof base!=="function"||base.__nfV100MultiCash)return;
+    var wrapped=function(id){
+      var html=base.apply(this,arguments);
+      try{
+        var holder=document.createElement('div'); holder.innerHTML=html;
+        var card=holder.querySelector('.customerCard');
+        if(card){addV100Cash(card,id);return card.outerHTML;}
+      }catch(e){console.warn('V10.0 Multi Customer Cash Collection:',e);}
+      return html;
+    };
+    wrapped.__nfV100MultiCash=true;
+    window.customerCard=wrapped;
+  }
+  patch();
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',patch,{once:true});else setTimeout(patch,0);
 })();
 </script>
-<style id="nf-v80-main-additional-cash-collection-css">
-.nf-v80-multi-cash{border:2px solid #f0c95a!important;background:linear-gradient(145deg,#fffaf0,#fff6dc)!important;box-shadow:0 10px 24px rgba(193,137,22,.13)!important}
-.nf-v80-cash-main{padding:10px 0 2px;border-bottom:2px solid #e6c96b}
-.nf-v80-cash-label{margin:0 12px 8px;padding:9px 11px;border-radius:12px;background:linear-gradient(100deg,#eee8ff,#e8f3ff);border:2px solid #b7a4e8;color:#3d277c;font-size:16px;font-weight:950}
-.nf-v80-cash-label span{font-weight:800;color:#665d70}
-.nf-v80-cash-grid{display:grid!important;grid-template-columns:1fr!important;gap:0!important;margin:0!important;padding:0 12px!important}
-.nf-v80-cash-grid .moneyStat{min-height:56px!important;padding:11px 3px!important;border-bottom:1px solid #e3dfe7!important;background:rgba(255,255,255,.86)!important}
-.nf-v80-cash-grid .moneyStat:last-child{border-bottom:0!important}
-.nf-v80-cash-grid .moneyStat b{font-size:16px!important;font-weight:950!important;white-space:nowrap}
-.nf-v80-cash-grid .moneyStat span{font-size:14px!important;font-weight:800!important}
-.nf-v80-additional-wrap{margin-top:10px;padding:10px 10px 12px;border:3px solid #9c63e9;border-radius:17px;background:linear-gradient(145deg,#f5efff,#fff0f8);box-shadow:0 8px 20px rgba(115,64,190,.12)}
-.nf-v80-additional-head{display:flex;align-items:center;gap:9px;margin-bottom:8px;padding:9px 10px;border-radius:12px;background:linear-gradient(100deg,#7042e8,#d744a2);color:#fff;box-shadow:0 6px 14px rgba(105,62,210,.18)}
-.nf-v80-additional-head>span{font-size:23px}.nf-v80-additional-head strong{display:block;font-size:16px;font-weight:950}.nf-v80-additional-head small{display:block;margin-top:2px;font-size:11px;font-weight:750;opacity:.9}
-.nf-v80-additional-section{margin-top:9px;border:2px solid #67cdb4;border-radius:14px;overflow:hidden;background:#f5fffb;box-shadow:0 5px 14px rgba(42,151,119,.08)}
-.nf-v80-additional-section .nf-v80-cash-section-head{display:flex;align-items:center;gap:8px;padding:8px 10px;background:linear-gradient(100deg,#d9fff1,#e9f5ff);border-bottom:1px solid #b8dfd4;color:#155f52}
-.nf-v80-additional-section .nf-v80-cash-section-head>span{font-size:20px}.nf-v80-additional-section .nf-v80-cash-section-head strong{font-size:15px;font-weight:950}.nf-v80-additional-section .nf-v80-cash-section-head small{display:block;font-size:10px;font-weight:700;color:#60706b}
-.nf-v80-additional-section .nf-v80-cash-grid{padding:0 9px!important}
-.nf-v80-additional-section .moneyStat{background:rgba(255,255,255,.82)!important}
-.nf-v80-additional-section .moneyStat b{color:#146f60!important}
-@media(max-width:560px){
- .nf-v80-cash-label{margin-left:10px;margin-right:10px;font-size:14px}
- .nf-v80-additional-wrap{margin-left:8px;margin-right:8px;border-width:2px;padding:8px}
- .nf-v80-additional-head strong{font-size:14px}.nf-v80-additional-head small{font-size:10px}
- .nf-v80-cash-grid{padding:0 10px!important}.nf-v80-cash-grid .moneyStat span{font-size:13px!important}.nf-v80-cash-grid .moneyStat b{font-size:15px!important}
-}
-</style><style id="nf-v90-multi-cash-collection-css">
-.nf-v90-cash-dates{display:flex;flex-direction:column;gap:3px;margin:8px 0 4px;padding:8px 10px;border-radius:10px;background:#f7f4fb;border:1px solid #e3dceb;font-size:12px;font-weight:750;color:#5d5662}.nf-v90-cash-actions{display:flex;gap:7px;margin-top:8px}.nf-v90-cash-actions .btn{flex:1;min-height:38px}.nf-v80-cash-main,.nf-v80-additional-wrap{margin:10px 12px}.nf-v80-additional-wrap{padding:10px;border:2px solid #d8b4f2;border-radius:15px;background:linear-gradient(135deg,#fff8ff,#f4f8ff)}
+<style id="nf-v100-multi-cash-collection-css">
+.nf-v100-multi-cash{border:2px solid #f0c95a!important;background:linear-gradient(145deg,#fffaf0,#fff6dc)!important;box-shadow:0 10px 24px rgba(193,137,22,.13)!important}
+.nf-v100-additional-wrap{margin:10px 10px 4px;padding:0 0 5px;border:2px solid #d8b4f2;border-radius:15px;background:linear-gradient(135deg,#fff8ff,#f4f8ff);overflow:hidden}
+.nf-v100-additional-head{display:flex;align-items:center;gap:8px;padding:9px 11px;background:linear-gradient(100deg,#7042e8,#d744a2);color:#fff}.nf-v100-additional-head>span{font-size:21px}.nf-v100-additional-head strong{display:block;font-size:15px;font-weight:950}.nf-v100-additional-head small{display:block;margin-top:1px;font-size:10px;font-weight:750;opacity:.9}
+.nf-v100-add-row{display:grid;grid-template-columns:minmax(170px,1.45fr) minmax(180px,1.2fr) auto;align-items:center;gap:8px;min-height:58px;padding:7px 9px;margin:7px 8px 0;border:2px solid #67cdb4;border-radius:13px;background:linear-gradient(100deg,#edfffa,#f2f7ff);box-shadow:0 4px 10px rgba(42,151,119,.08)}
+.nf-v100-add-main{min-width:0;display:flex;align-items:center;gap:10px}.nf-v100-add-name{display:flex;align-items:center;gap:6px;min-width:0;max-width:48%}.nf-v100-add-name span{font-size:19px}.nf-v100-add-name strong{font-size:15px;font-weight:950;color:#155f52;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.nf-v100-add-meta{display:flex;align-items:center;gap:9px;min-width:0}.nf-v100-add-meta span:first-child{font-size:12px;font-weight:800;color:#5d5662;white-space:nowrap}.nf-v100-add-meta span:last-child{font-size:17px;font-weight:950;color:#4d267c;white-space:nowrap}
+.nf-v100-add-mini{display:flex;align-items:center;justify-content:flex-start;gap:8px;flex-wrap:wrap;font-size:10px;font-weight:800;color:#5f5960}.nf-v100-add-mini span{white-space:nowrap}.nf-v100-add-actions{display:flex;align-items:center;gap:5px;justify-content:flex-end}.nf-v100-add-actions button{height:40px!important;min-height:40px!important;padding:0 11px!important;border-radius:12px!important;font-size:15px!important;font-weight:900!important;white-space:nowrap}.nf-v100-add-payment{border:1px solid rgba(0,137,92,.28)!important;background:linear-gradient(135deg,#dff8ec,#a9e8ce)!important;color:#08754f!important}.nf-v100-add-edit{width:40px!important;min-width:40px!important;padding:0!important;border:1px solid rgba(112,74,180,.22)!important;background:linear-gradient(135deg,#f0eaff,#e4d8ff)!important;color:#4d267c!important}
+.nf-v100-add-dates{display:none}
+@media(max-width:700px){.nf-v100-additional-wrap{margin-left:7px;margin-right:7px}.nf-v100-add-row{grid-template-columns:1fr auto;gap:5px;padding:7px;margin-left:5px;margin-right:5px}.nf-v100-add-main{gap:7px}.nf-v100-add-name{max-width:52%}.nf-v100-add-name strong{font-size:12px}.nf-v100-add-meta{gap:5px}.nf-v100-add-meta span:first-child{font-size:9px}.nf-v100-add-meta span:last-child{font-size:14px}.nf-v100-add-mini{grid-column:1/-1;gap:6px;font-size:9px;padding-left:25px}.nf-v100-add-actions{grid-column:2;grid-row:1;align-self:center}.nf-v100-add-actions button{height:34px!important;min-height:34px!important;padding:0 7px!important;font-size:12px!important}.nf-v100-add-edit{width:34px!important;min-width:34px!important;padding:0!important}}
 </style>
 </body></html><script id="nf-v52-dashboard-scroll-fix-js">
 (function(){
