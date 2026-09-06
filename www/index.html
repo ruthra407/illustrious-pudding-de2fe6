@@ -10321,128 +10321,6 @@ setTimeout(decorateAll,100);
 })();
 </script>
 
-
-<script id="nf-v20-final-two-fixes">
-(function(){
-  "use strict";
-  function all(){return (typeof state!=="undefined"&&Array.isArray(state.customers))?state.customers:[];}
-  function latestOrder(id){
-    var list=(state.orders||[]).filter(function(o){return String(o.customer_id)===String(id);});
-    list.sort(function(a,b){return String(b.created_at||b.order_date||"").localeCompare(String(a.created_at||a.order_date||""));});
-    return list[0]||null;
-  }
-
-  /* Additional Customer → Edit Order: use the canonical order-edit UI directly,
-     without the older overwritten routing function. */
-  window.nfV20AdditionalEditOrder=async function(customerId){
-    var order=latestOrder(customerId);
-    if(!order){
-      if(typeof window.openOrdersNewOrderForCustomer==="function"){
-        window.openOrdersNewOrderForCustomer(String(customerId));
-        return;
-      }
-      if(typeof toast==="function")toast("இந்த Additional Customer-க்கு Order இல்லை.",true);
-      return;
-    }
-    try{
-      var modal=$("ordersNewOrderScreen"),panel=$("ordersNewOrderContent");
-      if(!modal||!panel)throw new Error("Edit Order screen கிடைக்கவில்லை.");
-      var holder=document.createElement("div");
-      holder.innerHTML=customerCard(order.customer_id);
-      var source=holder.querySelector("#quick-order-"+CSS.escape(String(order.customer_id)));
-      if(!source)throw new Error("Edit Order form கிடைக்கவில்லை.");
-      var key="orders_edit_"+String(order.id).replace(/[^a-zA-Z0-9_-]/g,"_");
-      var markup=source.outerHTML.split(String(order.customer_id)).join(key);
-      markup=markup.replace("saveQuickOrder('"+key+"')","saveQuickOrder('"+key+"','"+String(order.customer_id).replace(/'/g,"\\'")+"')");
-      panel.innerHTML='<div class="field" style="margin-bottom:12px"><label>Customer</label><select id="ordersQuickEditCustomer" class="input" disabled><option selected>'+escSafe(customerName(order.customer_id))+'</option></select></div>'+markup;
-      var box=$("quick-order-"+key);
-      if(!box)throw new Error("Edit Order form உருவாக்க முடியவில்லை.");
-      box.classList.remove("hidden");
-      box.classList.add("nf-edit-mode");
-      box.dataset.editOrderId=order.id;
-      if(typeof updateQuickOrderEditLabels==="function")updateQuickOrderEditLabels(key);
-      var title=box.querySelector(".nf-quick-edit-title");if(title)title.textContent="✏️ Edit Order — "+(order.order_no||"Order");
-      var save=box.querySelector(".nf-quick-save-btn");if(save)save.textContent="💾 Update Order";
-      if(typeof populateQuickOrderEditor==="function")populateQuickOrderEditor(key,order);
-      if(typeof updateQuickGarment==="function")updateQuickGarment(key);
-      if(typeof updateChudiLiningLabel==="function")updateChudiLiningLabel(key);
-      var screenTitle=$("ordersNewOrderScreenTitle");if(screenTitle)screenTitle.textContent="✏️ Edit Order";
-      modal.classList.add("open");modal.setAttribute("aria-hidden","false");
-      var base=history.state||{view:"orders"};
-      if(!base.__nfOrdersNewOrder)history.pushState({...base,__nfOrdersNewOrder:true,__nfOrdersEditOrder:true},"",location.hash||"#orders-edit-order");
-      setTimeout(function(){box.scrollIntoView({behavior:"smooth",block:"start"});},60);
-    }catch(err){
-      console.error("V2.0 Additional Edit Order:",err);
-      if(typeof toast==="function")toast(err.message||"Edit Order திறக்க முடியவில்லை.",true);
-    }
-  };
-
-  /* Additional Customer → Delete: dedicated child cleanup, independent of the
-     older global delete wrapper. */
-  window.nfV20DeleteAdditional=async function(id){
-    var sid=String(id||""),c=all().find(function(x){return String(x.id)===sid;});
-    if(!c)return;
-    if(!confirm("“"+(c.name||"Additional Customer")+"”-ஐ delete செய்யவா?\n\nஇந்த customer-ன் orders, payments, measurements, alterations ஆகிய records-ம் delete ஆகும்."))return;
-    try{
-      var orders=(state.orders||[]).filter(function(o){return String(o.customer_id)===sid;});
-      var ids=orders.map(function(o){return o.id;}).filter(Boolean);
-      if(ids.length){
-        var pe=await supabaseClient.from("payments").delete().in("order_id",ids);if(pe.error)throw pe.error;
-        var ae=await supabaseClient.from("alterations").delete().in("order_id",ids);if(ae.error)throw ae.error;
-      }
-      var ac=await supabaseClient.from("alterations").delete().eq("customer_id",sid);if(ac.error)throw ac.error;
-      var me=await supabaseClient.from("measurements").delete().eq("customer_id",sid);if(me.error)throw me.error;
-      var oe=await supabaseClient.from("orders").delete().eq("customer_id",sid);if(oe.error)throw oe.error;
-      var ce=await supabaseClient.from("customers").delete().eq("id",sid);if(ce.error)throw ce.error;
-      state.customers=all().filter(function(x){return String(x.id)!==sid;});
-      state.orders=(state.orders||[]).filter(function(o){return String(o.customer_id)!==sid;});
-      try{localStorage.removeItem("nf_village_"+sid);localStorage.removeItem("nf_customer_designs_"+sid);localStorage.removeItem("nf_customer_selected_designs_"+sid);localStorage.removeItem("nf_customer_cloth_photos_"+sid);if(typeof nfIdbDelete==="function")await nfIdbDelete(sid);}catch(_){ }
-      await loadAll(true);
-      if(typeof renderCustomers==="function")renderCustomers();
-      if(typeof renderDashboardCustomers==="function")renderDashboardCustomers();
-      if(typeof renderSidebarCustomerList==="function")renderSidebarCustomerList();
-      if(typeof renderMyCustomersSlideMenu==="function")renderMyCustomersSlideMenu();
-      if(typeof toast==="function")toast("Additional Customer deleted successfully.");
-    }catch(err){
-      console.error("V2.0 Additional Delete:",err);
-      if(typeof toast==="function")toast("Delete failed: "+(err&&err.message||err),true);
-    }
-  };
-
-  /* Rebind only the two buttons rendered by the V1.16 stable group. */
-  document.addEventListener("click",function(e){
-    var edit=e.target.closest&&e.target.closest(".nf116-edit");
-    if(edit){e.preventDefault();e.stopImmediatePropagation();window.nfV20AdditionalEditOrder(edit.getAttribute("data-nf116-id"));return;}
-    var del=e.target.closest&&e.target.closest(".nf116-delete");
-    if(del){e.preventDefault();e.stopImmediatePropagation();window.nfV20DeleteAdditional(del.getAttribute("data-nf116-id"));return;}
-  },true);
-
-  /* Home: let the document itself scroll; remove the nested customer-list scroll lock. */
-  function unlockHomeScroll(){
-    var view=document.getElementById("view-dashboard");
-    var hub=view&&view.querySelector(".nf-dashboard-customer-hub");
-    var list=view&&view.querySelector(".nf-dch-list");
-    if(view){view.style.overflow="visible";view.style.height="auto";view.style.maxHeight="none";view.style.touchAction="pan-y";}
-    if(hub){hub.style.overflow="visible";hub.style.height="auto";hub.style.maxHeight="none";}
-    if(list){list.style.overflow="visible";list.style.height="auto";list.style.maxHeight="none";list.style.minHeight="0";list.style.touchAction="pan-y";list.style.overscrollBehavior="auto";}
-    document.documentElement.style.overflowY="auto";
-    document.body.style.overflowY="auto";
-  }
-  function refreshHomeScroll(){if(document.body.classList.contains("nf-dashboard-mode"))unlockHomeScroll();}
-  document.addEventListener("DOMContentLoaded",function(){setTimeout(refreshHomeScroll,50);setTimeout(refreshHomeScroll,300);setTimeout(refreshHomeScroll,900);},{once:true});
-  var oldGo=window.goView;
-  if(typeof oldGo==="function"&&!oldGo.__nfV20Scroll){
-    window.goView=function(view,push){var r=oldGo.apply(this,arguments);if(view==="dashboard")setTimeout(refreshHomeScroll,0);return r;};
-    window.goView.__nfV20Scroll=true;
-  }
-})();
-</script>
-<style id="nf-v20-final-two-fixes-css">
-/* Home page must use the document scroll, not a nested customer-list scroll. */
-body.nf-dashboard-mode #view-dashboard.active{overflow:visible!important;height:auto!important;max-height:none!important;overscroll-behavior:auto!important;}
-body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub{overflow:visible!important;height:auto!important;max-height:none!important;}
-body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{overflow:visible!important;height:auto!important;max-height:none!important;min-height:0!important;overscroll-behavior:auto!important;touch-action:pan-y!important;}
-</style>
 </body></html><script id="nf-v52-dashboard-scroll-fix-js">
 (function(){
   "use strict";
@@ -12364,7 +12242,7 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{o
     sec.innerHTML='<div class="nf116-group-head"><div class="nf116-group-title">👥 Additional Customers <span>· '+list.length+' பேர்</span></div><span class="nf116-tag">ADDITIONAL</span></div>';
     list.forEach(function(k){
       var row=document.createElement("div");row.className="nf116-person";
-      row.innerHTML='<div class="nf116-person-info"><span class="nf116-person-tag">ADDITIONAL</span><b>'+esc(k.name||"Customer")+'</b><small>📞 '+esc(k.phone||"Phone இல்லை")+'</small></div><div class="nf116-actions"><button type="button" class="nf116-edit" data-nf116-id="${esc(k.id)}">✏️ Edit Order</button><button type="button" class="nf116-delete" data-nf116-id="${esc(k.id)}">🗑️ Delete</button></div>';
+      row.innerHTML='<div class="nf116-person-info"><span class="nf116-person-tag">ADDITIONAL</span><b>'+esc(k.name||"Customer")+'</b><small>📞 '+esc(k.phone||"Phone இல்லை")+'</small></div><div class="nf116-actions"><button type="button" class="nf116-edit" data-nf116-id="'+esc(k.id)+'">✏️ Edit Order</button><button type="button" class="nf116-delete" data-nf116-id="'+esc(k.id)+'">🗑️ Delete</button></div>';
       row.querySelector(".nf116-edit").onclick=function(e){e.preventDefault();e.stopPropagation();if(typeof window.nfMultiCustomerEditOrder==="function")window.nfMultiCustomerEditOrder(String(k.id));};
       row.querySelector(".nf116-delete").onclick=function(e){e.preventDefault();e.stopPropagation();if(typeof window.deleteCustomer==="function")window.deleteCustomer(String(k.id));};
       sec.appendChild(row);
@@ -12476,4 +12354,159 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{o
 </script>
 <style id="nf-v116-stable-multi-customer-css">
 .nf116-customer-group{margin:10px 0 12px;padding:12px;border:2px solid transparent;border-radius:17px;background:linear-gradient(145deg,#faf7ff,#fff7fb) padding-box,linear-gradient(135deg,#7050e8,#e34d8d) border-box;box-shadow:0 8px 22px rgba(89,56,145,.10);position:relative;overflow:hidden}.nf116-customer-group:before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:linear-gradient(180deg,#6545e8,#e94678,#f2a52b)}.nf116-group-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding-bottom:8px;border-bottom:1px solid rgba(108,69,232,.13)}.nf116-group-title{font-size:15px;font-weight:950;color:#4d2e8e}.nf116-group-title span{font-weight:800;color:#776b87}.nf116-tag,.nf116-person-tag,.nf116-home-tag{display:inline-flex;align-items:center;padding:4px 7px;border-radius:999px;background:linear-gradient(135deg,#eee8ff,#ffeaf2);color:#5c3bb0;font-size:9px;font-weight:950;letter-spacing:.25px;white-space:nowrap}.nf116-person{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 0;border-top:1px solid #e6dff0}.nf116-person:first-of-type{border-top:0}.nf116-person-info{min-width:0;flex:1}.nf116-person-info b{display:block;margin-top:3px;font-size:15px;color:#2b2530;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.nf116-person-info small{display:block;margin-top:2px;font-size:12px;color:#6d6672}.nf116-actions{display:flex;gap:6px;flex:0 0 auto}.nf116-actions button{border:0;border-radius:10px;padding:8px 10px;font-weight:900;cursor:pointer;white-space:nowrap}.nf116-edit{background:#eee8ff;color:#5131a0}.nf116-delete{background:#ffe9ed;color:#b32645}.nf116-home-group{margin-top:8px;padding:9px 10px;border:1.5px solid transparent;border-radius:13px;background:linear-gradient(135deg,#f4efff,#fff0f7) padding-box,linear-gradient(135deg,#7a55ef,#e54d91) border-box;box-shadow:0 5px 15px rgba(89,56,145,.08)}.nf116-home-head{display:flex;align-items:center;justify-content:space-between;gap:7px;margin-bottom:4px}.nf116-home-title{font-size:12px;color:#4d2e8e}.nf116-home-title span{font-weight:800;color:#776b87}.nf116-home-person{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 0;border-top:1px solid rgba(108,69,232,.12);font-size:11px}.nf116-home-person b{display:block;margin-top:3px;font-size:12px;color:#30263d}.nf116-home-person>span{color:#706879;white-space:nowrap}.nf116-home-person-tag{font-size:8px;padding:2px 5px;border-radius:999px;background:#fff;color:#6944c8;border:1px solid rgba(108,69,232,.18);font-weight:950}@media(max-width:560px){.nf116-customer-group{padding:10px;margin-top:8px}.nf116-group-title{font-size:14px}.nf116-person{gap:7px;padding:8px 0}.nf116-actions{gap:4px}.nf116-actions button{padding:7px 8px;font-size:11px}.nf116-home-group{margin-top:7px;padding:8px}.nf116-home-person{padding:5px 0}}
+</style>
+
+<script id="nf-v22-two-final-fixes">
+(function(){
+  "use strict";
+
+  /* FIX 1: Additional Customer Edit Order + Delete.
+     These handlers intentionally bypass older stacked Multi-Customer wrappers. */
+  function latestChildOrder(customerId){
+    var list=(typeof state!=="undefined"&&Array.isArray(state.orders))
+      ? state.orders.filter(function(o){return String(o&&o.customer_id||"")===String(customerId||"");}) : [];
+    list.sort(function(a,b){
+      return String(b&&b.created_at||b&&b.order_date||"").localeCompare(String(a&&a.created_at||a&&a.order_date||""));
+    });
+    return list[0]||null;
+  }
+
+  async function deleteAdditionalDirect(customerId){
+    var cid=String(customerId||"");
+    if(!cid||typeof supabaseClient==="undefined")return;
+    var customers=(typeof state!=="undefined"&&Array.isArray(state.customers))?state.customers:[];
+    var c=customers.find(function(x){return String(x&&x.id||"")===cid;});
+    if(!c)return;
+    if(!confirm("“"+String(c.name||"Customer")+"” Additional Customer-ஐ delete செய்யவா?\n\nஇந்த customer-ன் orders, payments, measurements, alterations ஆகிய தொடர்புடைய records-ம் delete ஆகும்."))return;
+    try{
+      var orders=(state.orders||[]).filter(function(o){return String(o&&o.customer_id||"")===cid;});
+      var ids=orders.map(function(o){return o&&o.id;}).filter(Boolean);
+      if(ids.length){
+        var p=await supabaseClient.from("payments").delete().in("order_id",ids);if(p.error)throw p.error;
+        var a=await supabaseClient.from("alterations").delete().in("order_id",ids);if(a.error)throw a.error;
+      }
+      var ac=await supabaseClient.from("alterations").delete().eq("customer_id",cid);if(ac.error)throw ac.error;
+      var m=await supabaseClient.from("measurements").delete().eq("customer_id",cid);if(m.error)throw m.error;
+      var o=await supabaseClient.from("orders").delete().eq("customer_id",cid);if(o.error)throw o.error;
+      var cc=await supabaseClient.from("customers").delete().eq("id",cid);if(cc.error)throw cc.error;
+      localStorage.removeItem("nf_village_"+cid);
+      localStorage.removeItem("nf_customer_designs_"+cid);
+      localStorage.removeItem("nf_customer_selected_designs_"+cid);
+      localStorage.removeItem("nf_customer_cloth_photos_"+cid);
+      try{if(typeof nfIdbDelete==="function")await nfIdbDelete(cid);}catch(_){ }
+      if(typeof loadAll==="function")await loadAll(true);
+      if(typeof renderCustomers==="function")renderCustomers();
+      if(typeof renderDashboardCustomers==="function")renderDashboardCustomers();
+      if(typeof renderSidebarCustomerList==="function")renderSidebarCustomerList();
+      if(typeof renderMyCustomersSlideMenu==="function")renderMyCustomersSlideMenu();
+      if(typeof toast==="function")toast("Additional Customer delete செய்யப்பட்டது.");
+    }catch(err){
+      if(typeof toast==="function")toast("Additional Customer delete failed: "+(err&&err.message||err),true);
+    }
+  }
+
+  function editAdditional(customerId){
+    var cid=String(customerId||"");
+    if(!cid)return;
+    var order=latestChildOrder(cid);
+    if(order && typeof window.openOrdersEditOrder==="function"){
+      window.openOrdersEditOrder(String(order.id));
+      return;
+    }
+    if(typeof window.openOrdersNewOrderForCustomer==="function"){
+      window.openOrdersNewOrderForCustomer(cid);
+      return;
+    }
+    if(typeof toast==="function")toast("Edit Order screen கிடைக்கவில்லை.",true);
+  }
+
+  window.nfV22AdditionalEditOrder=editAdditional;
+  window.nfV22AdditionalDelete=deleteAdditionalDirect;
+
+  document.addEventListener("click",function(e){
+    var edit=e.target&&e.target.closest?e.target.closest(".nf116-edit"):null;
+    if(edit){
+      e.preventDefault();e.stopImmediatePropagation();
+      var row=edit.closest(".nf116-person");
+      var children=(typeof state!=="undefined"&&Array.isArray(state.customers))?state.customers:[];
+      var parent=edit.closest(".nf116-customer-group");
+      var name=row&&row.querySelector(".nf116-person-info b")?.textContent||"";
+      var c=children.find(function(x){return String(x&&x.name||"").trim()===String(name).trim() && parent;});
+      var id=edit.getAttribute("data-nf116-id")||c&&c.id||"";
+      if(id)editAdditional(id);
+      return;
+    }
+    var del=e.target&&e.target.closest?e.target.closest(".nf116-delete"):null;
+    if(del){
+      e.preventDefault();e.stopImmediatePropagation();
+      var id2=del.getAttribute("data-nf116-id")||"";
+      if(id2)deleteAdditionalDirect(id2);
+      return;
+    }
+  },true);
+
+  /* FIX 2: Home must use the document/page scroll, not an inner customer-list scroll. */
+  function unlockHomeScroll(){
+    try{
+      var view=document.getElementById("view-dashboard");
+      var hub=view&&view.querySelector(".nf-dashboard-customer-hub");
+      var list=view&&view.querySelector(".nf-dch-list");
+      if(view){view.style.overflow="visible";view.style.height="auto";view.style.maxHeight="none";view.style.touchAction="pan-y";}
+      if(hub){hub.style.overflow="visible";hub.style.height="auto";hub.style.maxHeight="none";}
+      if(list){list.style.overflow="visible";list.style.overflowY="visible";list.style.height="auto";list.style.maxHeight="none";list.style.minHeight="0";list.style.touchAction="pan-y";list.style.overscrollBehavior="auto";}
+      document.documentElement.style.overflowY="auto";
+      document.body.style.overflowY="auto";
+    }catch(_){ }
+  }
+  window.nfV22UnlockHomeScroll=unlockHomeScroll;
+
+  function scheduleHomeScrollUnlock(){
+    setTimeout(unlockHomeScroll,0);
+    setTimeout(unlockHomeScroll,80);
+    setTimeout(unlockHomeScroll,300);
+    setTimeout(unlockHomeScroll,900);
+  }
+
+  var baseGoView=window.goView;
+  if(typeof baseGoView==="function"&&!baseGoView.__nfV22HomeScroll){
+    window.goView=function(view,push){
+      var r=baseGoView.apply(this,arguments);
+      if(view==="dashboard")scheduleHomeScrollUnlock();
+      return r;
+    };
+    window.goView.__nfV22HomeScroll=true;
+  }
+
+  if(document.readyState==="loading"){
+    document.addEventListener("DOMContentLoaded",scheduleHomeScrollUnlock,{once:true});
+  }else scheduleHomeScrollUnlock();
+
+  window.addEventListener("pageshow",scheduleHomeScrollUnlock);
+  window.addEventListener("resize",function(){
+    var view=document.getElementById("view-dashboard");
+    if(view&&view.classList.contains("active"))unlockHomeScroll();
+  });
+})();
+</script>
+<style id="nf-v22-two-final-fixes-css">
+body.nf-dashboard-mode #view-dashboard.active{
+  overflow:visible!important;
+  height:auto!important;
+  max-height:none!important;
+  overscroll-behavior:auto!important;
+}
+body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub{
+  overflow:visible!important;
+  height:auto!important;
+  max-height:none!important;
+}
+body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
+  overflow:visible!important;
+  overflow-y:visible!important;
+  height:auto!important;
+  max-height:none!important;
+  min-height:0!important;
+  overscroll-behavior:auto!important;
+  touch-action:pan-y!important;
+}
 </style>
