@@ -10500,12 +10500,16 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
 .r100-delivery-card-link:active{transform:scale(.985)}.r100-delivery-card-link strong{display:block;font-size:16px;font-weight:950;line-height:1.15}.r100-delivery-card-link small{display:block;margin-top:3px;font-size:10px;font-weight:800;opacity:.7}.r100-delivery-card-link .arrow{font-size:24px;font-weight:950}
 .r100-delivery-wa{border-color:#b8e9c7;background:linear-gradient(135deg,#f5fff8,#fff)}.r100-delivery-wa strong{color:#128c45}.r100-delivery-wa .arrow{color:#18a957}
 .r100-delivery-del{border-color:#cfc3f5;background:linear-gradient(135deg,#fbf9ff,#fff)}.r100-delivery-del strong{color:#5d39a5}.r100-delivery-del .arrow{color:#754be7}
-/* V113: Delivery heading stays locked while only customer rows scroll. */
+/* V114: selected customer first, all customers remain visible, and Delivery heading stays compact/locked. */
 #view-delivery.active{height:100%!important;min-height:0!important;display:flex!important;flex-direction:column!important;overflow:hidden!important}
 #view-delivery.active>.pagehead{flex:0 0 auto!important;display:none!important}
 #view-delivery.active>#r100DeliveryContent{flex:1 1 auto!important;min-height:0!important;overflow-y:auto!important;overflow-x:hidden!important;-webkit-overflow-scrolling:touch!important;padding-bottom:78px!important}
 #view-delivery .r100-delivery-list-wrap{padding-top:4px}
-#view-delivery .r100-delivery-list-head{position:sticky!important;top:0!important;z-index:20!important;margin-bottom:10px!important;box-shadow:0 8px 18px rgba(54,39,84,.18)!important}
+#view-delivery .r100-delivery-list-head{position:sticky!important;top:0!important;z-index:20!important;margin-bottom:8px!important;padding:8px 12px!important;border-radius:14px!important;box-shadow:0 6px 14px rgba(54,39,84,.16)!important}
+#view-delivery .r100-delivery-list-head h2{font-size:18px!important;line-height:1.1!important}
+#view-delivery .r100-delivery-list-head small{margin-top:2px!important;font-size:10px!important;line-height:1.2!important}
+#view-delivery .r100-delivery-selected{box-shadow:0 0 0 3px rgba(111,53,232,.18),0 9px 22px rgba(73,35,115,.13)!important;transform:translateY(-1px)}
+#view-delivery .r100-delivery-selected .r100-delivery-customer-badge{background:linear-gradient(135deg,#eee5ff,#ffe6f4)!important;border-color:#9b73e8!important;color:#5b2e9d!important}
 #view-delivery .r100-delivery-customer-row{border-width:2px!important}
 #view-delivery .nf-delivery-color-0{background:linear-gradient(135deg,#fff7d6,#fff0f5);border-color:#f0c76b}
 #view-delivery .nf-delivery-color-1{background:linear-gradient(135deg,#e9fff3,#eef7ff);border-color:#8ed8b1}
@@ -10514,9 +10518,9 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
 #view-delivery .nf-delivery-color-4{background:linear-gradient(135deg,#fff0df,#fff7cf);border-color:#efb67a}
 #view-delivery .nf-delivery-color-5{background:linear-gradient(135deg,#ffeaf2,#f0ecff);border-color:#e6a4c3}
 @media(max-width:700px){#view-delivery.active>#r100DeliveryContent{padding-bottom:74px!important}}
-@media(max-width:560px){.r100-delivery-list-wrap{gap:10px;padding:4px 0 86px}.r100-delivery-list-head{padding:12px 13px}.r100-delivery-list-head h2{font-size:21px}.r100-delivery-customer-row{padding:10px;border-radius:17px}.r100-delivery-num{width:38px;height:38px;min-width:38px;border-radius:11px;font-size:19px}.r100-delivery-customer-name{font-size:20px}.r100-delivery-customer-badge{font-size:10px;padding:5px 7px}.r100-delivery-additional{margin-left:48px;font-size:11px}.r100-delivery-card-links{gap:7px}.r100-delivery-card-link{min-height:56px;padding:8px 9px}.r100-delivery-card-link strong{font-size:14px}.r100-delivery-card-link .arrow{font-size:21px}}
+@media(max-width:560px){.r100-delivery-list-wrap{gap:10px;padding:4px 0 86px}.r100-delivery-list-head{padding:8px 10px!important;border-radius:13px!important}.r100-delivery-list-head h2{font-size:17px!important}.r100-delivery-list-head small{font-size:9px!important}.r100-delivery-customer-row{padding:10px;border-radius:17px}.r100-delivery-num{width:38px;height:38px;min-width:38px;border-radius:11px;font-size:19px}.r100-delivery-customer-name{font-size:20px}.r100-delivery-customer-badge{font-size:10px;padding:5px 7px}.r100-delivery-additional{margin-left:48px;font-size:11px}.r100-delivery-card-links{gap:7px}.r100-delivery-card-link{min-height:56px;padding:8px 9px}.r100-delivery-card-link strong{font-size:14px}.r100-delivery-card-link .arrow{font-size:21px}}
 </style>
-<script id="ruthran-v113-delivery-list-system">
+<script id="ruthran-v114-delivery-list-system">
 (function(){
   "use strict";
   var selectedId="";
@@ -10543,6 +10547,13 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
     if(sid&&cs.some(function(c){return String(c&&c.id||'')===sid;}))return sid;
     var remembered=String(window.__nfDeliveryLastCustomerId||'');
     if(remembered&&cs.some(function(c){return String(c&&c.id||'')===remembered;}))return remembered;
+    try{
+      var savedId=String(sessionStorage.getItem('nfDeliverySelectedCustomerId')||'');
+      if(savedId&&cs.some(function(c){return String(c&&c.id||'')===savedId;})){
+        window.__nfDeliveryLastCustomerId=savedId;
+        return savedId;
+      }
+    }catch(e){}
     return '';
   }
   function ordersFor(id){return (typeof state!=='undefined'&&Array.isArray(state.orders)?state.orders:[]).filter(function(o){return String(o&&o.customer_id||'')===String(id||'');});}
@@ -10575,7 +10586,10 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
   }
   function setSelected(id){
     selectedId=String(id||'');
-    if(selectedId)window.__nfDeliveryLastCustomerId=selectedId;
+    if(selectedId){
+      window.__nfDeliveryLastCustomerId=selectedId;
+      try{sessionStorage.setItem('nfDeliverySelectedCustomerId',selectedId);}catch(e){}
+    }
     deliveryBlobStore={whatsapp:null,delivery:null,whatsappBuilt:null};
     if((history.state&&history.state.view)==='delivery')render();
   }
@@ -10741,12 +10755,22 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
     if(!allMains.length){box.innerHTML='<div class="r100-empty">👥 Customer இன்னும் சேர்க்கப்படவில்லை.</div>';return;}
     var active=resolveDeliverySelection();
     var selectedMain=active?groupFor(active)[0]:null;
-    var mains=selectedMain?[selectedMain]:allMains;
-    var isFiltered=!!selectedMain;
-    var html='<div class="r100-delivery-list-wrap"><div class="r100-delivery-list-head"><h2>🚚 Delivery</h2><small>'+(isFiltered?('Selected Customer · '+escText(selectedMain.name||'Customer')):(allMains.length+' Main Customer'+(allMains.length===1?'':'s')))+' · Card-ஐ தட்டி தனியாக Open செய்யலாம்</small></div>';
+    /* Keep every main customer visible. If the side menu has selected one, move
+       that customer to the top instead of filtering the rest out. */
+    var mains=allMains.slice();
+    if(selectedMain){
+      mains.sort(function(a,b){
+        var sa=String(a&&a.id||'')===String(selectedMain.id||'');
+        var sb=String(b&&b.id||'')===String(selectedMain.id||'');
+        return sa===sb?0:(sa?-1:1);
+      });
+    }
+    var isSelected=!!selectedMain;
+    var html='<div class="r100-delivery-list-wrap"><div class="r100-delivery-list-head"><h2>🚚 Delivery</h2><small>'+(isSelected?('Selected Customer First · '+escText(selectedMain.name||'Customer')):(allMains.length+' Main Customer'+(allMains.length===1?'':'s')))+' · Card-ஐ தட்டி தனியாக Open செய்யலாம்</small></div>';
     mains.forEach(function(c,i){
       var group=groupFor(c.id),extra=group.slice(1),badge=extra.length?'👥 Multi · '+group.length:'👤 Single';
-      html+='<section class="r100-delivery-customer-row nf-delivery-color-'+(i%6)+'"><div class="r100-delivery-customer-top"><div class="r100-delivery-num">'+(isFiltered?'👤':(i+1))+'</div><div class="r100-delivery-customer-name">'+escText(c.name||'Customer')+'</div><span class="r100-delivery-customer-badge">'+badge+'</span></div>';
+      var isThisSelected=isSelected&&String(c.id||'')===String(selectedMain.id||'');
+      html+='<section class="r100-delivery-customer-row nf-delivery-color-'+(i%6)+(isThisSelected?' nf-delivery-selected':'')+'"><div class="r100-delivery-customer-top"><div class="r100-delivery-num">'+(i+1)+'</div><div class="r100-delivery-customer-name">'+escText(c.name||'Customer')+'</div><span class="r100-delivery-customer-badge">'+badge+(isThisSelected?' · SELECTED':'')+'</span></div>';
       if(extra.length){html+='<div class="r100-delivery-additional">'+extra.map(function(x){return '<span>👤 '+escText(x.name||'Customer')+'</span>';}).join('')+'</div>';}
       html+='<div class="r100-delivery-card-links"><button type="button" class="r100-delivery-card-link r100-delivery-wa" data-r100-kind="whatsapp" data-r100-customer="'+escText(c.id)+'"><span><strong>🟢 WhatsApp Card</strong><small>Tap → தனியாக Card Open</small></span><span class="arrow">›</span></button><button type="button" class="r100-delivery-card-link r100-delivery-del" data-r100-kind="delivery" data-r100-customer="'+escText(c.id)+'"><span><strong>🚚 Delivery Card</strong><small>Tap → தனியாக Card Open</small></span><span class="arrow">›</span></button></div></section>';
     });
@@ -10769,7 +10793,31 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
     e.preventDefault();e.stopPropagation();
     openCustomerCard(b.getAttribute('data-r100-kind')||'delivery',b.getAttribute('data-r100-customer')||'');
   },true);
-  document.addEventListener('DOMContentLoaded',function(){setTimeout(function(){if(currentIsDelivery())render();},80);});
+  /* Preserve Delivery as the active page across a real browser/Android reload. */
+  function rememberDeliveryReload(){
+    try{
+      if(currentIsDelivery()){
+        sessionStorage.setItem('nfDeliveryReloadView','delivery');
+        var id=String(selectedId||window.__nfDeliveryLastCustomerId||'');
+        if(id)sessionStorage.setItem('nfDeliverySelectedCustomerId',id);
+      }else{
+        sessionStorage.removeItem('nfDeliveryReloadView');
+      }
+    }catch(e){}
+  }
+  window.addEventListener('beforeunload',rememberDeliveryReload);
+  window.addEventListener('pagehide',rememberDeliveryReload);
+  document.addEventListener('DOMContentLoaded',function(){
+    setTimeout(function(){
+      var restore=false;
+      try{restore=sessionStorage.getItem('nfDeliveryReloadView')==='delivery';}catch(e){}
+      if(restore && typeof window.goView==='function' && !currentIsDelivery()){
+        selectedId=resolveDeliverySelection();
+        window.goView('delivery',false);
+      }
+      if(currentIsDelivery())render();
+    },80);
+  });
 })();
 </script></body>
 <script id="nf-v120-single-cash-dedupe-fix">
