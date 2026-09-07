@@ -7907,16 +7907,27 @@ function nfWacRows(os){
   });
   return rows;
 }
+var nfWacCloudPhotoHydrationPromise=null;
+var nfWacCloudPhotoHydrationAt=0;
+async function nfWacEnsureCloudPhotos(){
+  if(!navigator.onLine || typeof nfHydrateCloudClothPhotos!=="function")return;
+  var now=Date.now();
+  if(nfWacCloudPhotoHydrationPromise && (now-nfWacCloudPhotoHydrationAt)<15000)return nfWacCloudPhotoHydrationPromise;
+  nfWacCloudPhotoHydrationAt=now;
+  nfWacCloudPhotoHydrationPromise=nfWacWithTimeout(nfHydrateCloudClothPhotos(),5000,"cloud-photo-hydrate").catch(function(e){
+    console.warn("WhatsApp card cloud photo hydration timeout/skipped:",e);
+  }).finally(function(){
+    setTimeout(function(){nfWacCloudPhotoHydrationPromise=null;},15000);
+  });
+  return nfWacCloudPhotoHydrationPromise;
+}
 async function nfWacResolvePhotos(id){
   var key=String(id||"");
   var photos=typeof customerClothPhotos==="function"?customerClothPhotos(key):[];
-  /* Online: cloud is authoritative. Refresh first so an old local photo
-     cannot win just because it already has a src. Offline: keep local data. */
-  if(navigator.onLine && typeof nfHydrateCloudClothPhotos==="function"){
-    try{await nfWacWithTimeout(nfHydrateCloudClothPhotos(),5000,"cloud-photo-hydrate");}
-    catch(e){console.warn("WhatsApp card cloud photo hydration timeout/skipped:",e)}
-    photos=typeof customerClothPhotos==="function"?customerClothPhotos(key):photos;
-  }
+  /* Online: refresh cloud once per short window, not once for every customer.
+     This prevents Multi Customer cards from serially blocking the UI. */
+  await nfWacEnsureCloudPhotos();
+  photos=typeof customerClothPhotos==="function"?customerClothPhotos(key):photos;
   if(Array.isArray(photos)&&photos.some(function(p){return p&&p.src})) return photos;
   if(typeof initCustomerClothPhotoStore==="function"){
     try{await nfWacWithTimeout(initCustomerClothPhotoStore(),1500,"photo-store-init");}catch(e){console.warn("WhatsApp card photo store init timeout/skipped:",e)}
@@ -10618,12 +10629,12 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
     /* Keep Multi Customer given-cloth photos tied to the correct customer.
        First allocate one photo per customer, then fill remaining slots. */
     var photoPools=people.map(function(c){return {name:c.name||'Customer',photos:[]};});
-    for(var pi=0;pi<people.length;pi++){
+    await Promise.all(photoPools.map(async function(pool,pi){
       try{
         var pp=typeof nfWacResolvePhotos==='function'?await nfWacResolvePhotos(people[pi].id):[];
-        photoPools[pi].photos=(pp||[]).filter(function(p){return p&&p.src}).slice(0,4);
+        pool.photos=(pp||[]).filter(function(p){return p&&p.src}).slice(0,4);
       }catch(e){console.warn('Multi customer photo load skipped',e);}
-    }
+    }));
     photoPools.forEach(function(pool){if(pool.photos[0]&&photos.length<8)photos.push(Object.assign({},pool.photos[0],{customerName:pool.name}));});
     for(var pass=1;pass<4&&photos.length<8;pass++){
       photoPools.forEach(function(pool){var p=pool.photos[pass];if(p&&photos.length<8)photos.push(Object.assign({},p,{customerName:pool.name}));});
@@ -10753,13 +10764,19 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
   async function openCustomerCard(kind,id){
     var cid=String(id||'');if(!cid)return;
     var label=kind==='whatsapp'?'🟢 WhatsApp Customer Card':'🚚 Delivery Card';
+    var previewToken=null;
     try{
-      if(typeof window.__nfDeliveryOpenPreview!=='function')throw new Error('preview-unavailable');
+      if(typeof window.__nfDeliveryPreparePreview!=='function')throw new Error('preview-unavailable');
+      previewToken=window.__nfDeliveryPreparePreview(label,kind,cid);
       var b=kind==='whatsapp'?await makeWhatsAppImage(cid):await makeDeliveryImage(cid);
       if(kind==='whatsapp')deliveryBlobStore.whatsapp=b.blob;
       else deliveryBlobStore.delivery=b;
-      window.__nfDeliveryOpenPreview(b.blob||b,label,kind,cid);
-    }catch(e){console.error('Delivery list card open failed',e);if(typeof toast==='function')toast('❌ Card open ஆகவில்லை.',true);}
+      if(typeof window.__nfDeliverySetPreviewBlob==='function')window.__nfDeliverySetPreviewBlob(previewToken,b.blob||b,label);
+    }catch(e){
+      console.error('Delivery list card open failed',e);
+      if(typeof window.__nfDeliveryPreviewError==='function')window.__nfDeliveryPreviewError(previewToken);
+      else if(typeof toast==='function')toast('❌ Card open ஆகவில்லை.',true);
+    }
   }
   window.r100OpenCustomerCard=function(kind,id){return openCustomerCard(kind,id);};
   window.r100GetDeliveryCustomer=function(id){var cs=allCustomers();return cs.find(function(c){return String(c&&c.id||'')===String(id||'');})||null;};
@@ -13430,98 +13447,62 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
 </style>
 
 
-<style id="nf-delivery-card-preview-v2">
+<style id="nf-delivery-card-preview-v3">
 .nf-dcp-overlay{position:fixed;inset:0;z-index:2147483646;background:rgba(12,8,20,.94);display:none;align-items:center;justify-content:center;padding:10px;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);overscroll-behavior:none}
 .nf-dcp-overlay.open{display:flex}
 .nf-dcp-stage{position:relative;width:100%;height:100%;display:flex;align-items:center;justify-content:center;overflow:auto;overscroll-behavior:contain;border-radius:18px;touch-action:none;padding:64px 8px 118px;box-sizing:border-box}
 .nf-dcp-image{display:block;max-width:94vw;max-height:calc(100vh - 190px);width:auto;height:auto;object-fit:contain;transform:scale(1);transform-origin:center center;transition:transform .16s ease;box-shadow:0 20px 70px rgba(0,0,0,.35);border-radius:12px;background:#fff;user-select:none;-webkit-user-drag:none}
-.nf-dcp-close{position:fixed;right:16px;top:calc(18px + env(safe-area-inset-top,0px));width:48px;height:48px;border:0;border-radius:50%;background:rgba(255,255,255,.97);color:#281d35;font-size:25px;font-weight:950;z-index:6;box-shadow:0 8px 24px rgba(0,0,0,.28)}
-.nf-dcp-title{position:fixed;left:16px;top:calc(25px + env(safe-area-inset-top,0px));z-index:6;color:#fff;font-weight:950;font-size:14px;text-shadow:0 2px 8px rgba(0,0,0,.5);max-width:62vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.nf-dcp-tools{position:fixed;left:50%;bottom:calc(22px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);display:flex;align-items:center;justify-content:center;gap:14px;z-index:6;padding:0;background:transparent;box-shadow:none}
-.nf-dcp-tools button{height:52px;border:0;border-radius:16px;color:#fff;font-size:18px;font-weight:950;padding:0 24px;box-shadow:0 10px 28px rgba(0,0,0,.32);white-space:nowrap}
-.nf-dcp-share{background:#25d366!important;min-width:132px}.nf-dcp-download{background:#6c4df6!important;min-width:150px}
-@media(max-width:560px){.nf-dcp-stage{padding:58px 6px 108px}.nf-dcp-image{max-width:93vw;max-height:calc(100vh - 175px)}.nf-dcp-close{right:10px;top:calc(16px + env(safe-area-inset-top,0px));width:44px;height:44px;font-size:23px}.nf-dcp-title{left:10px;top:calc(22px + env(safe-area-inset-top,0px));font-size:12px;max-width:58vw}.nf-dcp-tools{bottom:calc(20px + env(safe-area-inset-bottom,0px));gap:12px}.nf-dcp-tools button{height:50px;border-radius:15px;font-size:17px;padding:0 17px}.nf-dcp-share{min-width:122px}.nf-dcp-download{min-width:138px}}
+.nf-dcp-close{position:fixed;right:16px;top:calc(18px + env(safe-area-inset-top,0px));width:48px;height:48px;border:0;border-radius:50%;background:rgba(255,255,255,.97);color:#281d35;font-size:25px;font-weight:950;z-index:8;box-shadow:0 8px 24px rgba(0,0,0,.28);touch-action:manipulation}
+.nf-dcp-title{position:fixed;left:16px;top:calc(25px + env(safe-area-inset-top,0px));z-index:8;color:#fff;font-weight:950;font-size:14px;text-shadow:0 2px 8px rgba(0,0,0,.5);max-width:62vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nf-dcp-loading{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:7;color:#fff;text-align:center;font-weight:900;font-size:17px;text-shadow:0 2px 10px rgba(0,0,0,.7);pointer-events:none}
+.nf-dcp-loading .spin{display:inline-block;width:28px;height:28px;border:4px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:nfDcpSpin .8s linear infinite;vertical-align:middle;margin-right:10px}
+@keyframes nfDcpSpin{to{transform:rotate(360deg)}}
+.nf-dcp-tools{position:fixed;left:50%;bottom:calc(22px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);display:flex;align-items:center;justify-content:center;gap:18px;z-index:8;padding:0;background:transparent;box-shadow:none}
+.nf-dcp-tools button{height:54px;border:0;border-radius:16px;color:#fff;font-size:18px;font-weight:950;padding:0 26px;box-shadow:0 10px 28px rgba(0,0,0,.32);white-space:nowrap;touch-action:manipulation}
+.nf-dcp-share{background:#25d366!important;min-width:138px}.nf-dcp-download{background:#6c4df6!important;min-width:158px}
+@media(max-width:560px){.nf-dcp-stage{padding:58px 6px 108px}.nf-dcp-image{max-width:93vw;max-height:calc(100vh - 175px)}.nf-dcp-close{right:10px;top:calc(16px + env(safe-area-inset-top,0px));width:44px;height:44px;font-size:23px}.nf-dcp-title{left:10px;top:calc(22px + env(safe-area-inset-top,0px));font-size:12px;max-width:58vw}.nf-dcp-tools{bottom:calc(20px + env(safe-area-inset-bottom,0px));gap:16px}.nf-dcp-tools button{height:52px;border-radius:15px;font-size:17px;padding:0 19px}.nf-dcp-share{min-width:128px}.nf-dcp-download{min-width:146px}}
 </style>
 <div aria-hidden="true" class="nf-dcp-overlay" id="nfDeliveryCardPreviewOverlay">
   <div class="nf-dcp-title" id="nfDcpTitle">Card Preview</div>
   <button class="nf-dcp-close" id="nfDcpClose" type="button" aria-label="Close preview">✕</button>
+  <div class="nf-dcp-loading" id="nfDcpLoading"><span class="spin"></span>Card தயாராகிறது...</div>
   <div class="nf-dcp-stage" id="nfDcpStage"><img class="nf-dcp-image" id="nfDcpImage" alt="Card preview"></div>
   <div class="nf-dcp-tools" aria-label="Card actions">
     <button id="nfDcpShare" class="nf-dcp-share" type="button" aria-label="Share card">🟢 Share</button>
     <button id="nfDcpDownload" class="nf-dcp-download" type="button" aria-label="Download card">⬇️ Download</button>
   </div>
 </div>
-<script id="nf-delivery-card-preview-v2-script">
+<script id="nf-delivery-card-preview-v3-script">
 (function(){
   "use strict";
-  var overlay=document.getElementById("nfDeliveryCardPreviewOverlay"),stage=document.getElementById("nfDcpStage"),img=document.getElementById("nfDcpImage"),title=document.getElementById("nfDcpTitle");
+  var overlay=document.getElementById("nfDeliveryCardPreviewOverlay"),stage=document.getElementById("nfDcpStage"),img=document.getElementById("nfDcpImage"),title=document.getElementById("nfDcpTitle"),loading=document.getElementById("nfDcpLoading");
   if(!overlay||!stage||!img)return;
-  var scale=1,startX=0,startY=0,startDist=0,startScale=1,touchMode="",edgeTracking=false,currentBlobUrl="",currentBlob=null,currentKind="delivery",currentCustomerId="",historyOpen=false,closing=false;
+  var scale=1,startX=0,startY=0,startDist=0,startScale=1,touchMode="",edgeTracking=false,currentBlobUrl="",currentBlob=null,currentKind="delivery",currentCustomerId="",historyOpen=false,closing=false,requestSeq=0;
   function setScale(v){scale=Math.max(1,Math.min(4,Number(v)||1));img.style.transform="scale("+scale+")";}
-  function cleanup(){if(currentBlobUrl){try{URL.revokeObjectURL(currentBlobUrl)}catch(e){}currentBlobUrl="";}currentBlob=null;currentCustomerId="";setScale(1);stage.scrollTop=0;stage.scrollLeft=0;}
-  function finishClose(){overlay.classList.remove("open");overlay.setAttribute("aria-hidden","true");document.body.style.overflow="";cleanup();closing=false;}
-  function close(useHistory){if(!overlay.classList.contains("open"))return;if(closing)return;closing=true;overlay.classList.remove("open");overlay.setAttribute("aria-hidden","true");document.body.style.overflow="";cleanup();if(useHistory&&historyOpen){historyOpen=false;try{history.back();}catch(e){closing=false;}}else{historyOpen=false;closing=false;}}
-  window.__nfDeliveryOpenPreview=function(blob,label,kind,customerId){
-    if(!blob)return;
-    if(currentBlobUrl){try{URL.revokeObjectURL(currentBlobUrl)}catch(e){}}
-    currentBlob=blob;currentKind=kind||"delivery";currentCustomerId=String(customerId||"");currentBlobUrl=URL.createObjectURL(blob);
-    img.src=currentBlobUrl;img.alt=label||"Card preview";title.textContent=label||"Card Preview";setScale(1);overlay.classList.add("open");overlay.setAttribute("aria-hidden","false");document.body.style.overflow="hidden";
-    if(!historyOpen){
-      var base=history.state||{view:"delivery"};
-      var next=Object.assign({},base,{__nfDeliveryPreview:true});
-      history.pushState(next,"",location.href);historyOpen=true;
-    }
-  };
-  async function shareCurrent(){
-    if(!currentBlob){if(typeof toast==='function')toast('Card இன்னும் தயாராகவில்லை.',true);return;}
-    var b=document.getElementById('nfDcpShare');if(b)b.disabled=true;
-    try{
-      if(typeof window.__nfWacShareBlob!=='function')throw new Error('share-bridge-unavailable');
-      var main=null;
-      if(currentCustomerId&&typeof window.r100GetDeliveryCustomer==='function')main=window.r100GetDeliveryCustomer(currentCustomerId);
-      await window.__nfWacShareBlob(currentBlob,'',currentKind==='whatsapp'?'whatsapp-customer-card.jpg':'delivery-card.jpg',main&&main.phone||'');
-      if(typeof toast==='function')toast('✅ Card image மட்டும் share செய்யப்பட்டது.');
-    }catch(e){console.error('Fullscreen card share failed',e);if(typeof toast==='function')toast('❌ Card share ஆகவில்லை.',true)}finally{if(b)b.disabled=false;}
+  function setLoading(on){if(loading)loading.style.display=on?"block":"none";}
+  function cleanup(){if(currentBlobUrl){try{URL.revokeObjectURL(currentBlobUrl)}catch(e){}currentBlobUrl="";}currentBlob=null;currentCustomerId="";setScale(1);stage.scrollTop=0;stage.scrollLeft=0;setLoading(false);}
+  function finishClose(){requestSeq++;overlay.classList.remove("open");overlay.setAttribute("aria-hidden","true");document.body.style.overflow="";cleanup();closing=false;}
+  function close(useHistory){if(!overlay.classList.contains("open"))return;if(closing)return;closing=true;requestSeq++;overlay.classList.remove("open");overlay.setAttribute("aria-hidden","true");document.body.style.overflow="";cleanup();if(useHistory&&historyOpen){historyOpen=false;try{history.back();}catch(e){closing=false;}}else{historyOpen=false;closing=false;}}
+  function openBase(label,kind,customerId){
+    requestSeq++;var token=requestSeq;currentBlob=null;currentKind=kind||"delivery";currentCustomerId=String(customerId||"");title.textContent=label||"Card Preview";img.removeAttribute("src");setScale(1);setLoading(true);overlay.classList.add("open");overlay.setAttribute("aria-hidden","false");document.body.style.overflow="hidden";
+    if(!historyOpen){var base=history.state||{view:"delivery"};var next=Object.assign({},base,{__nfDeliveryPreview:true});try{history.pushState(next,"",location.href);historyOpen=true;}catch(e){historyOpen=false;}}
+    return token;
   }
-  async function downloadCurrent(){
-    if(!currentBlob){if(typeof toast==='function')toast('Card இன்னும் தயாராகவில்லை.',true);return;}
-    var b=document.getElementById('nfDcpDownload');if(b)b.disabled=true;
-    try{if(typeof window.__nfWacDownloadBlob!=='function')throw new Error('download-bridge-unavailable');await window.__nfWacDownloadBlob(currentBlob,currentKind==='whatsapp'?'whatsapp-customer-card.jpg':'delivery-card.jpg');if(typeof toast==='function')toast('✅ Card download செய்யப்பட்டது.');}
-    catch(e){console.error('Fullscreen card download failed',e);if(typeof toast==='function')toast('❌ Card download ஆகவில்லை.',true)}finally{if(b)b.disabled=false;}
-  }
-  document.getElementById("nfDcpClose").addEventListener("click",function(){close(true)});
-  document.getElementById("nfDcpShare").addEventListener("click",shareCurrent);
-  document.getElementById("nfDcpDownload").addEventListener("click",downloadCurrent);
+  window.__nfDeliveryPreparePreview=function(label,kind,customerId){return openBase(label,kind,customerId);};
+  window.__nfDeliverySetPreviewBlob=function(token,blob,label){if(!blob||token!==requestSeq||!overlay.classList.contains("open"))return false;currentBlob=blob;if(currentBlobUrl){try{URL.revokeObjectURL(currentBlobUrl)}catch(e){}}currentBlobUrl=URL.createObjectURL(blob);img.src=currentBlobUrl;img.alt=label||title.textContent||"Card preview";setLoading(false);return true;};
+  window.__nfDeliveryPreviewError=function(token){if(token!==requestSeq||!overlay.classList.contains("open"))return;setLoading(false);if(typeof toast==='function')toast('❌ Card open ஆகவில்லை.',true);close(true);};
+  window.__nfDeliveryOpenPreview=function(blob,label,kind,customerId){if(!blob)return;var token=openBase(label,kind,customerId);window.__nfDeliverySetPreviewBlob(token,blob,label);};
+  async function shareCurrent(){if(!currentBlob){if(typeof toast==='function')toast('⏳ Card இன்னும் தயாராகிறது.',true);return;}var b=document.getElementById('nfDcpShare');if(b)b.disabled=true;try{if(typeof window.__nfWacShareBlob!=='function')throw new Error('share-bridge-unavailable');var main=null;if(currentCustomerId&&typeof window.r100GetDeliveryCustomer==='function')main=window.r100GetDeliveryCustomer(currentCustomerId);await window.__nfWacShareBlob(currentBlob,'',currentKind==='whatsapp'?'whatsapp-customer-card.jpg':'delivery-card.jpg',main&&main.phone||'');if(typeof toast==='function')toast('✅ Card image மட்டும் share செய்யப்பட்டது.');}catch(e){console.error('Fullscreen card share failed',e);if(typeof toast==='function')toast('❌ Card share ஆகவில்லை.',true)}finally{if(b)b.disabled=false;}}
+  async function downloadCurrent(){if(!currentBlob){if(typeof toast==='function')toast('⏳ Card இன்னும் தயாராகிறது.',true);return;}var b=document.getElementById('nfDcpDownload');if(b)b.disabled=true;try{if(typeof window.__nfWacDownloadBlob!=='function')throw new Error('download-bridge-unavailable');await window.__nfWacDownloadBlob(currentBlob,currentKind==='whatsapp'?'whatsapp-customer-card.jpg':'delivery-card.jpg');if(typeof toast==='function')toast('✅ Card download செய்யப்பட்டது.');}catch(e){console.error('Fullscreen card download failed',e);if(typeof toast==='function')toast('❌ Card download ஆகவில்லை.',true)}finally{if(b)b.disabled=false;}}
+  document.getElementById("nfDcpClose").addEventListener("click",function(e){e.preventDefault();e.stopPropagation();close(true)});
+  document.getElementById("nfDcpShare").addEventListener("click",shareCurrent);document.getElementById("nfDcpDownload").addEventListener("click",downloadCurrent);
   overlay.addEventListener("click",function(e){if(e.target===overlay)close(true)});
-  stage.addEventListener("dblclick",function(){setScale(scale>1?1:2)});
-  stage.addEventListener("wheel",function(e){if(e.ctrlKey||Math.abs(e.deltaY)>0){e.preventDefault();setScale(scale+(e.deltaY<0?.15:-.15));}},{passive:false});
-  stage.addEventListener("touchstart",function(e){
-    if(e.touches.length===1){startX=e.touches[0].clientX;startY=e.touches[0].clientY;touchMode="swipe";edgeTracking=startX<=38&&scale<=1.01;}
-    else if(e.touches.length===2){touchMode="pinch";edgeTracking=false;var dx=e.touches[0].clientX-e.touches[1].clientX,dy=e.touches[0].clientY-e.touches[1].clientY;startDist=Math.hypot(dx,dy);startScale=scale;}
-  },{passive:true});
-  stage.addEventListener("touchmove",function(e){
-    if(e.touches.length===2){var dx=e.touches[0].clientX-e.touches[1].clientX,dy=e.touches[0].clientY-e.touches[1].clientY;if(startDist>0)setScale(startScale*(Math.hypot(dx,dy)/startDist));return;}
-    if(touchMode!=="swipe"||e.touches.length!==1)return;
-    var dx=e.touches[0].clientX-startX,dy=e.touches[0].clientY-startY;
-    if(!edgeTracking&&dx<-18&&Math.abs(dx)>Math.abs(dy)*1.15)e.preventDefault();
-  },{passive:false});
-  stage.addEventListener("touchend",function(e){
-    if(touchMode!=="swipe"||e.changedTouches.length!==1){touchMode="";return;}
-    var dx=e.changedTouches[0].clientX-startX,dy=e.changedTouches[0].clientY-startY;
-    var edgeBack=edgeTracking&&scale<=1.01&&dx>65&&Math.abs(dx)>Math.abs(dy)*1.15;
-    var leftSwipe=!edgeTracking&&scale<=1.01&&dx<-80&&Math.abs(dx)>Math.abs(dy)*1.2;
-    touchMode="";edgeTracking=false;
-    if(edgeBack||leftSwipe)close(true);
-  },{passive:true});
-  window.addEventListener("popstate",function(e){
-    if(!overlay.classList.contains("open"))return;
-    if(closing){historyOpen=false;closing=false;return;}
-    historyOpen=false;finishClose();
-  });
+  stage.addEventListener("dblclick",function(){if(currentBlob)setScale(scale>1?1:2)});
+  stage.addEventListener("touchstart",function(e){if(e.touches.length===1){startX=e.touches[0].clientX;startY=e.touches[0].clientY;touchMode="swipe";edgeTracking=startX<=38&&scale<=1.01;}else if(e.touches.length===2){touchMode="pinch";edgeTracking=false;var dx=e.touches[0].clientX-e.touches[1].clientX,dy=e.touches[0].clientY-e.touches[1].clientY;startDist=Math.hypot(dx,dy);startScale=scale;}},{passive:true});
+  stage.addEventListener("touchmove",function(e){if(e.touches.length===2){var dx=e.touches[0].clientX-e.touches[1].clientX,dy=e.touches[0].clientY-e.touches[1].clientY;if(startDist>0)setScale(startScale*(Math.hypot(dx,dy)/startDist));return;}if(touchMode!=="swipe"||e.touches.length!==1)return;var dx=e.touches[0].clientX-startX,dy=e.touches[0].clientY-startY;if(!edgeTracking&&dx<-18&&Math.abs(dx)>Math.abs(dy)*1.15)e.preventDefault();},{passive:false});
+  stage.addEventListener("touchend",function(e){if(touchMode!=="swipe"||e.changedTouches.length!==1){touchMode="";edgeTracking=false;return;}var dx=e.changedTouches[0].clientX-startX,dy=e.changedTouches[0].clientY-startY;var edgeBack=edgeTracking&&scale<=1.01&&dx>65&&Math.abs(dx)>Math.abs(dy)*1.15;var leftSwipe=!edgeTracking&&scale<=1.01&&dx<-80&&Math.abs(dx)>Math.abs(dy)*1.2;touchMode="";edgeTracking=false;if(edgeBack||leftSwipe)close(true);},{passive:true});
+  window.addEventListener("popstate",function(){if(!overlay.classList.contains("open"))return;if(closing){historyOpen=false;closing=false;return;}historyOpen=false;finishClose();});
   document.addEventListener("keydown",function(e){if(e.key==="Escape"&&overlay.classList.contains("open"))close(true);});
-  try{
-    var cap=window.Capacitor,app=cap&&cap.Plugins&&cap.Plugins.App;
-    if(app&&typeof app.addListener==="function")app.addListener("backButton",function(){if(overlay.classList.contains("open")){close(true);}});
-  }catch(e){console.warn('Delivery preview back listener unavailable',e);}
+  try{var cap=window.Capacitor,app=cap&&cap.Plugins&&cap.Plugins.App;if(app&&typeof app.addListener==="function")app.addListener("backButton",function(){if(overlay.classList.contains("open"))close(true);});}catch(e){console.warn('Delivery preview back listener unavailable',e);}
 })();
 </script>
