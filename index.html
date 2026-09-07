@@ -10143,6 +10143,7 @@ setTimeout(decorateAll,100);
     return !!(o&&target&&o.contains(target));
   }
   window.addEventListener("touchstart",function(e){
+    if(e.target&&e.target.closest&&e.target.closest("#nfDeliveryCardPreviewOverlay"))return;
     if(!active()||!insideOverlay(e.target)||!e.touches||e.touches.length!==1)return;
     var t=e.touches[0]; sx=t.clientX; sy=t.clientY; tracking=true;
     e.stopImmediatePropagation();
@@ -13434,7 +13435,7 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
 .nf-dcp-overlay.open{display:flex}
 .nf-dcp-stage{position:relative;width:100%;height:100%;display:flex;align-items:center;justify-content:center;overflow:auto;overscroll-behavior:contain;border-radius:18px;touch-action:pan-x pan-y pinch-zoom}
 .nf-dcp-image{display:block;max-width:96vw;max-height:88vh;width:auto;height:auto;object-fit:contain;transform:scale(1);transform-origin:center center;transition:transform .16s ease;box-shadow:0 20px 70px rgba(0,0,0,.35);border-radius:12px;background:#fff;user-select:none;-webkit-user-drag:none}
-.nf-dcp-close{position:fixed;right:16px;top:16px;width:46px;height:46px;border:0;border-radius:50%;background:rgba(255,255,255,.94);color:#281d35;font-size:24px;font-weight:950;z-index:3;box-shadow:0 8px 24px rgba(0,0,0,.24)}
+.nf-dcp-close{position:fixed;right:16px;top:52px;width:46px;height:46px;border:0;border-radius:50%;background:rgba(255,255,255,.94);color:#281d35;font-size:24px;font-weight:950;z-index:3;box-shadow:0 8px 24px rgba(0,0,0,.24)}
 .nf-dcp-tools{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);display:flex;gap:7px;z-index:3;padding:7px;border-radius:16px;background:rgba(255,255,255,.94);box-shadow:0 10px 30px rgba(0,0,0,.28)}
 .nf-dcp-tools button{width:44px;height:42px;border:0;border-radius:11px;background:#f0ebff;color:#4d31b4;font-size:20px;font-weight:950}
 .nf-dcp-tools .reset{font-size:13px;width:58px}
@@ -13446,7 +13447,7 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
 .r100-card-actions .r100-download{background:#6c4df6;color:#fff}
 .r100-card-image{cursor:zoom-in}
 @media(max-width:560px){
- .nf-dcp-close{right:10px;top:10px;width:42px;height:42px}
+ .nf-dcp-close{right:10px;top:46px;width:42px;height:42px}
  .nf-dcp-title{left:12px;top:14px;font-size:12px;max-width:65vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
  .nf-dcp-hint{top:auto;bottom:78px;font-size:10px}
  .nf-dcp-tools{bottom:10px}
@@ -13494,7 +13495,7 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
   stage.addEventListener("touchend",function(e){
     if(!swipeTracking||e.changedTouches.length!==1)return;
     var dx=e.changedTouches[0].clientX-startX,dy=e.changedTouches[0].clientY-startY;
-    if(dx < -80 && Math.abs(dx)>Math.abs(dy)*1.2)close();
+    if(scale<=1.01 && dx < -80 && Math.abs(dx)>Math.abs(dy)*1.2)close();
     swipeTracking=false;
   },{passive:true});
   document.addEventListener("keydown",function(e){if(e.key==="Escape"&&overlay.classList.contains("open"))close();});
