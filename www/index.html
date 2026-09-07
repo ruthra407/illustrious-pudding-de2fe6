@@ -1634,6 +1634,26 @@ body.nf-photo-preview-scroll-locked{overscroll-behavior:none!important}
 
 
 
+<style id="ruthran-v100-card-viewer-css">
+.r100-card-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:10px}
+.r100-card-action{min-height:44px;border:0;border-radius:13px;font-weight:900;color:#fff;box-shadow:0 7px 18px rgba(47,35,74,.14)}
+.r100-card-action.share{background:linear-gradient(135deg,#16a36d,#23c68a)}
+.r100-card-action.download{background:linear-gradient(135deg,#6542e8,#9a54e8)}
+.r100-card-image{cursor:zoom-in}
+.r100-card-viewer{position:fixed;inset:0;z-index:6000;display:none;background:rgba(12,9,22,.94);color:#fff;touch-action:none}
+.r100-card-viewer.open{display:flex;flex-direction:column}
+.r100-card-viewer-head{height:58px;display:flex;align-items:center;gap:8px;padding:7px 10px;background:rgba(20,14,32,.96);border-bottom:1px solid rgba(255,255,255,.14);flex:0 0 58px}
+.r100-card-viewer-title{flex:1;min-width:0;font-weight:900;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.r100-card-viewer-btn{min-width:42px;height:42px;border:1px solid rgba(255,255,255,.20);border-radius:12px;background:rgba(255,255,255,.10);color:#fff;font-weight:900}
+.r100-card-viewer-share{background:linear-gradient(135deg,#16a36d,#23c68a);border:0}
+.r100-card-viewer-download{background:linear-gradient(135deg,#6542e8,#9a54e8);border:0}
+.r100-card-viewer-stage{position:relative;flex:1;min-height:0;overflow:auto;display:flex;align-items:flex-start;justify-content:center;padding:14px;-webkit-overflow-scrolling:touch}
+.r100-card-viewer-stage img{display:block;max-width:none;width:min(100%,1024px);height:auto;transform-origin:center top;border-radius:12px;background:#fff;box-shadow:0 20px 70px rgba(0,0,0,.35);user-select:none;-webkit-user-drag:none}
+.r100-card-viewer-zoom{position:absolute;right:12px;bottom:14px;display:flex;gap:7px}
+.r100-card-viewer-zoom button{width:46px;height:46px;border:0;border-radius:50%;background:rgba(255,255,255,.92);color:#33204f;font-size:24px;font-weight:950;box-shadow:0 8px 22px rgba(0,0,0,.24)}
+.r100-card-viewer-hint{position:absolute;left:12px;bottom:18px;padding:7px 10px;border-radius:999px;background:rgba(0,0,0,.48);font-size:11px;font-weight:800;color:#fff}
+@media(max-width:560px){.r100-card-actions{gap:7px}.r100-card-action{min-height:42px;font-size:12px}.r100-card-viewer-head{height:56px;flex-basis:56px;padding:6px 7px}.r100-card-viewer-title{font-size:12px}.r100-card-viewer-btn{min-width:40px;height:40px}.r100-card-viewer-stage{padding:8px}.r100-card-viewer-stage img{width:100%}}
+</style>
 <style id="ruthran-v100-delivery-css">
 #view-delivery{max-width:1100px;margin:0 auto}
 .r100-delivery-shell{background:rgba(255,255,255,.82);border:1px solid rgba(70,58,95,.10);border-radius:24px;padding:14px;box-shadow:0 12px 34px rgba(40,38,68,.08)}
@@ -1728,7 +1748,11 @@ body.nf-photo-preview-scroll-locked{overscroll-behavior:none!important}
 <div class="nf-v600-hint">ON செய்தால் Android native notification schedule செய்யப்படும். OFF செய்தால் 24 schedule-களும் cancel ஆகும்.</div>
 </div>
 </div>
-</section><section class="view" id="view-daily-update"><div class="nf-daily-page-head"><button aria-label="Back to Home" class="nf-daily-back" onclick="goView('dashboard')" type="button">‹</button><div><h2>📊 Daily Update</h2><p>இன்றைய நிலவரம்</p></div></div><div aria-label="Daily Update Summary" id="nfDailySummaryCard"><div class="nfDailySummaryHead"><b>📊 Daily Update</b><span>இன்றைய நிலவரம்</span></div><div id="dailyUpdate"></div></div></section><section class="view" id="view-delivery">
+</section><section class="view" id="view-daily-update"><div class="nf-daily-page-head"><button aria-label="Back to Home" class="nf-daily-back" onclick="goView('dashboard')" type="button">‹</button><div><h2>📊 Daily Update</h2><p>இன்றைய நிலவரம்</p></div></div><div aria-label="Daily Update Summary" id="nfDailySummaryCard"><div class="nfDailySummaryHead"><b>📊 Daily Update</b><span>இன்றைய நிலவரம்</span></div><div id="dailyUpdate"></div></div></section><div aria-hidden="true" class="r100-card-viewer" id="r100CardViewer">
+<div class="r100-card-viewer-head"><button aria-label="Back" class="r100-card-viewer-btn" id="r100ViewerBack" type="button">←</button><div class="r100-card-viewer-title" id="r100ViewerTitle">Card Preview</div><button aria-label="Share" class="r100-card-viewer-btn r100-card-viewer-share" id="r100ViewerShare" type="button">🟢</button><button aria-label="Download" class="r100-card-viewer-btn r100-card-viewer-download" id="r100ViewerDownload" type="button">⬇️</button></div>
+<div class="r100-card-viewer-stage" id="r100ViewerStage"><img id="r100ViewerImage" alt="Card preview" draggable="false"/><div class="r100-card-viewer-hint">👈 Swipe left · 🔍 Zoom</div><div class="r100-card-viewer-zoom"><button id="r100ZoomOut" type="button">−</button><button id="r100ZoomReset" type="button">1×</button><button id="r100ZoomIn" type="button">+</button></div></div>
+</div>
+<section class="view" id="view-delivery">
   <div class="pagehead"><div><h2>🚚 Delivery</h2><p>Customer-wise WhatsApp Card + Delivery Card.</p></div><div class="spacer"></div></div>
   <div class="r100-delivery-shell" id="r100DeliveryContent"><div class="r100-empty">👥 Side menu-ல் ஒரு customer-ஐ தேர்வு செய்யுங்கள்.</div></div>
 </section><section class="view" id="view-customers"><div class="pagehead nf-search-pagehead nf-customer-cards-head"><button aria-label="Open customer names" class="nf-customer-cards-menu-btn" onclick="toggleMyCustomersSlideMenu(event)" title="Customer names" type="button">☰</button><div class="nf-customer-cards-title"><h2>Customer Cards</h2></div><div class="nf-customer-cards-right"><button aria-label="Search customers" class="btn secondary nf-search-icon-btn" onclick="toggleCompactSearch('customer')" title="Search" type="button">🔍</button></div></div><div class="nf-customer-cards-add-wrap"><button class="btn primary nf-customer-cards-add-btn" onclick="openModal('customer')">＋ Add Customer</button></div><div class="nf-compact-search-panel" hidden="" id="customerSearchPanel"><div class="nf-compact-search-row"><span class="nf-compact-search-icon">🔍</span><input autocomplete="off" class="input search" id="customerSearch" placeholder="Search name / phone / address / village"/><button aria-label="Close search" class="btn secondary nf-compact-close" onclick="toggleCompactSearch('customer',false)" type="button">✕</button><button class="btn secondary nf-compact-refresh" onclick="loadAll()" title="Refresh" type="button">↻</button></div></div><div class="customerCards" id="customersTable"></div></section><section class="view" id="view-measurements"><div class="pagehead"><div><h2>Measurements</h2><p>Customer-wise measurements.</p></div><div class="spacer"></div><button class="btn primary" onclick="openModal('measurement')">＋ Add Measurement</button></div><div class="card"><div class="toolbar"><input class="input search" id="measurementSearch" placeholder="Search customer / garment"/><button class="btn secondary" onclick="loadAll()">↻ Refresh</button></div><div id="measurementsTable"></div></div></section><section class="view" id="view-orders"><div class="pagehead nf-search-pagehead"><div><h2>Orders</h2><p>Customer Card-ல் எடுத்த New Order-கள் மட்டும் இங்கே வரும்.</p></div><div class="spacer"></div><button aria-label="Search orders" class="btn secondary nf-search-icon-btn" onclick="toggleCompactSearch('orders')" title="Search" type="button">🔍</button></div><div class="nf-compact-search-panel" hidden="" id="ordersSearchPanel"><div class="nf-compact-search-row nf-orders-search-row"><span class="nf-compact-search-icon">🔍</span><input autocomplete="off" class="input search" id="orderSearch" placeholder="Search order / customer / garment"/><select class="input nf-order-status-select" id="orderStatusFilter"><option value="">All status</option><option>Pending</option><option>In Progress</option><option>Ready</option><option>Delivered</option><option>Cancelled</option></select><button aria-label="Close search" class="btn secondary nf-compact-close" onclick="toggleCompactSearch('orders',false)" type="button">✕</button><button class="btn secondary nf-compact-refresh" onclick="loadAll()" title="Refresh" type="button">↻</button></div></div><div class="card nf-section-card"><div id="ordersTable"></div></div></section><section class="view" id="view-alterations"><div class="pagehead"><div><h2>Alterations</h2><p>Alteration work and delivery tracking.</p></div><div class="spacer"></div><button class="btn primary" onclick="openModal('alteration')">＋ Add Alteration</button></div><div class="card"><div class="toolbar"><input class="input search" id="alterationSearch" placeholder="Search customer / details"/><button class="btn secondary" onclick="loadAll()">↻ Refresh</button></div><div id="alterationsTable"></div></div></section><section class="view" id="view-designs"><div class="pagehead"><div><h2>🎨 Blouse Design Studio</h2><p>Online-ல் design தேடி, பிடித்த design-ஐ இங்கே save செய்து customer-க்கு காட்டலாம்.</p></div><div class="spacer"></div><button class="btn primary" onclick="openModal('design')">＋ Add Design</button></div><div class="card"><div class="designTools"><input class="input" id="onlineDesignQuery" placeholder="எ.கா. bridal blouse design / simple blouse design"/><button class="btn primary" id="onlineDesignBtn">🔎 Search Designs</button><button class="btn secondary" id="googleDesignBtn">🌐 Google Images</button></div><div class="mini">Google Images முழு results-ஐ Google-ல் திறக்கலாம். கீழே preview results-ல் save செய்யக்கூடிய படங்களும் வரும்.</div><div class="designSearchResults" id="onlineDesignResults"></div></div><div class="card" style="margin-top:14px"><div class="pagehead"><div><h3 style="margin:0">💾 Saved Designs</h3><p>உங்கள் design catalogue</p></div></div><div class="designGallery" id="designGallery"></div></div><div class="card" style="margin-top:14px"><div class="toolbar"><input class="input search" id="designSearch" placeholder="Search saved design no / name / category"/><button class="btn secondary" onclick="loadAll()">↻ Refresh</button></div><div id="designsTable"></div></div></section></main></div></div><div aria-hidden="true" class="modal nf-orders-new-order-screen" id="ordersNewOrderScreen"><div class="modalbox nf-orders-new-order-box"><div class="modalhead"><h3 id="ordersNewOrderScreenTitle">🧾 New Order</h3><button class="close" onclick="closeOrdersQuickAdd()" type="button">✕</button></div><div id="ordersNewOrderContent"></div></div></div><button aria-label="Add" class="p4FabButton" id="p4Fab" type="button">＋</button><nav aria-label="Quick navigation" id="p4MobileNav"><button data-p4-view="dashboard"><span class="p4Icon">⌂</span><span>Home</span></button><button data-p4-view="customers"><span class="p4Icon">👥</span><span>Customers</span></button><button data-p4-view="orders"><span class="p4Icon">🧾</span><span>Orders</span></button><button data-p4-view="delivery"><span class="p4Icon">🚚</span><span>Delivery</span></button></nav><div aria-hidden="true" class="modal nf-order-full-details" id="nfOrderFullDetails"><div class="modalbox nf-order-full-details-box"><div class="modalhead nf-order-full-details-head"><h3 id="nfOrderFullDetailsTitle">Order Full Details</h3><button class="close" onclick="closeOrderFullDetails()" type="button">✕</button></div><div id="nfOrderFullDetailsContent"></div></div></div><div class="modal" id="modal"><div class="modalbox"><div class="modalhead"><h3 id="modalTitle">Add</h3><button class="close" onclick="closeModal()">✕</button></div><form id="dataForm"><div class="formgrid" id="formFields"></div><div class="modalfoot"><button class="btn secondary" onclick="closeModal()" type="button">Cancel</button><button class="btn danger hidden" id="nfModalDeletePayment" title="Delete Payment" type="button">🗑️ Delete Payment</button><button class="btn primary" id="saveBtn" type="submit">Save</button></div><div class="msg" id="formMsg"></div></form></div></div><div class="toast" id="toast"></div><div aria-hidden="true" class="passkeyGate" id="passkeyGate"><section class="passkeyGateBox"><div class="passkeyIcon">🔐</div><h3>NEW FASHION</h3><p>இந்த சாதனத்தின் Fingerprint / Face / Screen Lock மூலம் App-ஐ unlock செய்யுங்கள்.</p><button class="btn primary" id="passkeyUnlockBtn" type="button">Unlock with Passkey</button><div class="passkeyGateMsg" id="passkeyGateMsg"></div></section></div><script>
@@ -8374,6 +8398,9 @@ rr(margin,detailY,inner,detailH,16,"#fff","#6c4df6",3);
     }
   };
 
+window.nfWacBuildForCustomer=async function(id){activeCustomerId=String(id||"");return await nfWacBuildStable();};
+window.nfWacShareForCustomer=async function(id){activeCustomerId=String(id||"");return await window.shareCustomerWhatsAppCard();};
+window.nfWacDownloadForCustomer=async function(id){activeCustomerId=String(id||"");return await window.downloadCustomerWhatsAppCard();};
 window.addEventListener("keydown",function(e){if(e.key==="Escape")window.closeCustomerWhatsAppCard()});
 })();
 </script>
@@ -10401,9 +10428,8 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
   window.r100SelectDeliveryCustomer=setSelected;
 
   async function makeWhatsAppImage(id){
-    if(typeof buildCustomerCardBlob!=="function") throw new Error("WhatsApp card generator unavailable");
-    var old=typeof activeCustomerId!=="undefined"?activeCustomerId:"";
-    try{activeCustomerId=String(id);return await buildCustomerCardBlob();}finally{activeCustomerId=old;}
+    if(typeof window.nfWacBuildForCustomer!=="function") throw new Error("WhatsApp card bridge unavailable");
+    return await window.nfWacBuildForCustomer(id);
   }
 
   async function makeDeliveryImage(mainId){
@@ -10427,8 +10453,63 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
   }
 
   async function blobUrl(blob){return URL.createObjectURL(blob)}
-  function showImage(id,blob,slot,title){var el=document.getElementById(slot);if(!el)return;var url=URL.createObjectURL(blob);el.innerHTML='<img class="r100-card-image" src="'+url+'" alt="'+escText(title)+'">';el.dataset.url=url;}
+  var viewerState={blob:null,kind:"",id:"",url:"",scale:1,startX:0,startY:0,pinchStart:0,pinchScale:1};
+  function showImage(id,blob,slot,title){
+    var el=document.getElementById(slot);if(!el)return;clearOldUrl(el);
+    var url=URL.createObjectURL(blob);
+    el.innerHTML='<img class="r100-card-image" src="'+url+'" alt="'+escText(title)+'" draggable="false">';
+    el.dataset.url=url;
+    var img=el.querySelector("img");if(img)img.addEventListener("click",function(e){e.preventDefault();openViewer(blob,id,title);});
+  }
   function clearOldUrl(el){if(el&&el.dataset.url){try{URL.revokeObjectURL(el.dataset.url)}catch(e){}el.dataset.url="";}}
+  function viewerApply(){var img=document.getElementById("r100ViewerImage");if(img)img.style.transform="scale("+viewerState.scale+")";}
+  function openViewer(blob,id,title){
+    var overlay=document.getElementById("r100CardViewer"),img=document.getElementById("r100ViewerImage"),stage=document.getElementById("r100ViewerStage"),t=document.getElementById("r100ViewerTitle");if(!overlay||!img)return;
+    if(viewerState.url)try{URL.revokeObjectURL(viewerState.url)}catch(e){}
+    viewerState.blob=blob;viewerState.kind=String(id).indexOf("whatsapp:")===0?"whatsapp":"delivery";viewerState.id=String(id).replace(/^(?:whatsapp:|delivery:)/,"");viewerState.url=URL.createObjectURL(blob);viewerState.scale=1;
+    img.src=viewerState.url;img.style.transform="scale(1)";t.textContent=title||"Card Preview";overlay.classList.add("open");overlay.setAttribute("aria-hidden","false");document.body.style.overflow="hidden";if(stage)stage.scrollTop=0;
+    try{history.pushState({r100CardViewer:true},"",location.href)}catch(e){}
+  }
+  function closeViewer(useHistory){
+    var overlay=document.getElementById("r100CardViewer");if(!overlay)return;overlay.classList.remove("open");overlay.setAttribute("aria-hidden","true");document.body.style.overflow="";
+    if(viewerState.url)try{URL.revokeObjectURL(viewerState.url)}catch(e){}viewerState.url="";viewerState.blob=null;viewerState.scale=1;if(useHistory!==false)try{history.back()}catch(e){}
+  }
+  function viewerZoom(delta){viewerState.scale=Math.max(.7,Math.min(3,viewerState.scale+delta));viewerApply();}
+  async function viewerShare(){
+    var blob=viewerState.blob,id=viewerState.id;if(!blob)return;
+    if(viewerState.kind==="whatsapp"){if(typeof window.nfWacShareForCustomer==="function")return await window.nfWacShareForCustomer(id);return;}
+    var file=new File([blob],"NEW_FASHION_TAILORING_DELIVERY_CARD.jpg",{type:"image/jpeg"});
+    try{
+      var cap=window.Capacitor,plug=cap&&cap.Plugins&&cap.Plugins.NativeCardShare;
+      if(plug&&typeof plug.shareCardFromBase64==="function"){
+        var b64=await new Promise(function(resolve,reject){var r=new FileReader();r.onload=function(){var x=String(r.result||""),i=x.indexOf(",");resolve(i>=0?x.slice(i+1):x)};r.onerror=reject;r.readAsDataURL(blob);});
+        await plug.shareCardFromBase64({base64:b64,filename:"NEW_FASHION_TAILORING_DELIVERY_CARD.jpg",mimeType:"image/jpeg",text:"",phone:"8524931003"});return;
+      }
+      if(navigator.share&&(!navigator.canShare||navigator.canShare({files:[file]}))){await navigator.share({title:"NEW FASHION TAILORING – DELIVERY CARD",files:[file]});return;}
+      var u=URL.createObjectURL(blob),a=document.createElement("a");a.href=u;a.target="_blank";a.rel="noopener";a.click();setTimeout(function(){URL.revokeObjectURL(u)},60000);
+    }catch(e){if(e&&e.name!=="AbortError"&&typeof toast==="function")toast("❌ Delivery Card share ஆகவில்லை.",true);}
+  }
+  async function viewerDownload(){
+    var blob=viewerState.blob,id=viewerState.id;if(!blob)return;
+    if(viewerState.kind==="whatsapp"){if(typeof window.nfWacDownloadForCustomer==="function")return await window.nfWacDownloadForCustomer(id);return;}
+    try{
+      var cap=window.Capacitor,plug=cap&&cap.Plugins&&cap.Plugins.NativeCardDownload;
+      if(plug&&typeof plug.saveCardFromBase64==="function"){
+        var b64=await new Promise(function(resolve,reject){var r=new FileReader();r.onload=function(){var x=String(r.result||""),i=x.indexOf(",");resolve(i>=0?x.slice(i+1):x)};r.onerror=reject;r.readAsDataURL(blob);});
+        await plug.saveCardFromBase64({base64:b64,filename:"NEW_FASHION_TAILORING_DELIVERY_CARD.jpg",mimeType:"image/jpeg"});if(typeof toast==="function")toast("✅ Delivery Card save செய்யப்பட்டது.");return;
+      }
+      var u=URL.createObjectURL(blob),a=document.createElement("a");a.href=u;a.download="NEW_FASHION_TAILORING_DELIVERY_CARD.jpg";a.rel="noopener";document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(u)},3000);
+    }catch(e){if(typeof toast==="function")toast("❌ Delivery Card download ஆகவில்லை.",true);}
+  }
+  function bindViewer(){
+    var back=document.getElementById("r100ViewerBack"),share=document.getElementById("r100ViewerShare"),down=document.getElementById("r100ViewerDownload"),out=document.getElementById("r100ZoomOut"),reset=document.getElementById("r100ZoomReset"),zin=document.getElementById("r100ZoomIn"),img=document.getElementById("r100ViewerImage");
+    if(back)back.onclick=function(){closeViewer(true)};if(share)share.onclick=viewerShare;if(down)down.onclick=viewerDownload;if(out)out.onclick=function(){viewerZoom(-.25)};if(zin)zin.onclick=function(){viewerZoom(.25)};if(reset)reset.onclick=function(){viewerState.scale=1;viewerApply()};
+    if(img)img.addEventListener("touchstart",function(e){if(!e.touches.length)return;viewerState.startX=e.touches[0].clientX;viewerState.startY=e.touches[0].clientY;if(e.touches.length===2){viewerState.pinchStart=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);viewerState.pinchScale=viewerState.scale;}},{passive:true});
+    if(img)img.addEventListener("touchmove",function(e){if(e.touches.length===2){var d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);if(viewerState.pinchStart){viewerState.scale=Math.max(.7,Math.min(3,viewerState.pinchScale*(d/viewerState.pinchStart)));viewerApply();}}else if(e.touches.length===1){var dx=e.touches[0].clientX-viewerState.startX,dy=e.touches[0].clientY-viewerState.startY;if(dx< -85&&Math.abs(dy)<70)closeViewer(true);}},{passive:true});
+  }
+  document.addEventListener("DOMContentLoaded",bindViewer,{once:true});
+  window.addEventListener("popstate",function(){var o=document.getElementById("r100CardViewer");if(o&&o.classList.contains("open"))closeViewer(false);});
+
 
   async function render(){
     var box=document.getElementById("r100DeliveryContent");if(!box)return;
@@ -10436,12 +10517,15 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
     if(!selectedId){box.innerHTML='<div class="r100-empty">👥 Side menu-ல் ஒரு customer-ஐ தேர்வு செய்யுங்கள்.</div>';return;}
     var group=groupFor(selectedId),main=group[0];if(!main){box.innerHTML='<div class="r100-empty">Customer கிடைக்கவில்லை.</div>';return;}
     box.innerHTML='<div class="r100-delivery-customer-head"><div class="avatar">👤</div><div><h3>'+escText(main.name||"Customer")+'</h3><small>'+escText(main.phone||"")+(group.length>1?' · '+group.length+' Customers group':"")+'</small></div></div>'+
-      '<div class="r100-card-box"><div class="r100-card-title"><span>🟢 WhatsApp Card</span><span>Existing card</span></div><div class="r100-card-loading" id="r100WhatsappImage">⏳ WhatsApp Card உருவாக்கப்படுகிறது…</div></div>'+
-      '<div class="r100-card-box"><div class="r100-card-title"><span>🚚 Delivery Card</span><span>New colourful card</span></div><div class="r100-card-loading" id="r100DeliveryImage">⏳ Delivery Card உருவாக்கப்படுகிறது…</div></div>';
-    try{var wb=await makeWhatsAppImage(main.id);showImage("r100WhatsappImage",wb,"r100WhatsappImage","WhatsApp Card");}catch(e){var w=document.getElementById("r100WhatsappImage");if(w)w.innerHTML='<div class="r100-delivery-placeholder">🟢 WhatsApp Card load ஆகவில்லை.<br><small>'+escText(e&&e.message||"")+'</small></div>';}
-    try{var db=await makeDeliveryImage(main.id);showImage("r100DeliveryImage",db,"r100DeliveryImage","Delivery Card");}catch(e){var d=document.getElementById("r100DeliveryImage");if(d)d.innerHTML='<div class="r100-delivery-placeholder">🚚 Delivery Card உருவாக்க முடியவில்லை.</div>';}
-  }
+      '<div class="r100-card-box"><div class="r100-card-title"><span>🟢 WhatsApp Card</span><span>Existing card</span></div><div class="r100-card-loading" id="r100WhatsappImage">⏳ WhatsApp Card உருவாக்கப்படுகிறது…</div><div class="r100-card-actions"><button class="r100-card-action share" type="button" onclick="r100ShareWhatsApp(\''+escText(main.id)+'\')">🟢 WhatsApp Share</button><button class="r100-card-action download" type="button" onclick="r100DownloadWhatsApp(\''+escText(main.id)+'\')">⬇️ Download</button></div></div>'+
+      '<div class="r100-card-box"><div class="r100-card-title"><span>🚚 Delivery Card</span><span>New colourful card</span></div><div class="r100-card-loading" id="r100DeliveryImage">⏳ Delivery Card உருவாக்கப்படுகிறது…</div><div class="r100-card-actions"><button class="r100-card-action share" type="button" onclick="r100ShareDelivery(\''+escText(main.id)+'\')">🟢 WhatsApp Share</button><button class="r100-card-action download" type="button" onclick="r100DownloadDelivery(\''+escText(main.id)+'\')">⬇️ Download</button></div></div>';
+    try{var wb=await makeWhatsAppImage(main.id);showImage("r100WhatsappImage",wb,"whatsapp:"+main.id,"WhatsApp Card");}catch(e){var w=document.getElementById("r100WhatsappImage");if(w)w.innerHTML='<div class="r100-delivery-placeholder">🟢 WhatsApp Card load ஆகவில்லை.<br><small>'+escText(e&&e.message||"")+'</small></div>';}
+    try{var db=await makeDeliveryImage(main.id);showImage("r100DeliveryImage",db,"delivery:"+main.id,"Delivery Card");}catch(e){var d=document.getElementById("r100DeliveryImage");if(d)d.innerHTML='<div class="r100-delivery-placeholder">🚚 Delivery Card உருவாக்க முடியவில்லை.</div>';}
 
+  window.r100ShareWhatsApp=async function(id){try{await window.nfWacShareForCustomer(id);}catch(e){if(typeof toast==="function")toast("❌ WhatsApp Card share ஆகவில்லை.",true);}};
+  window.r100DownloadWhatsApp=async function(id){try{await window.nfWacDownloadForCustomer(id);}catch(e){if(typeof toast==="function")toast("❌ WhatsApp Card download ஆகவில்லை.",true);}};
+  window.r100ShareDelivery=async function(id){try{var blob=await makeDeliveryImage(id);viewerState.blob=blob;viewerState.kind="delivery";viewerState.id=String(id);await viewerShare();}catch(e){if(typeof toast==="function")toast("❌ Delivery Card share ஆகவில்லை.",true);}};
+  window.r100DownloadDelivery=async function(id){try{var blob=await makeDeliveryImage(id);viewerState.blob=blob;viewerState.kind="delivery";viewerState.id=String(id);await viewerDownload();}catch(e){if(typeof toast==="function")toast("❌ Delivery Card download ஆகவில்லை.",true);}};
   function currentIsDelivery(){return (history.state&&history.state.view)==="delivery";}
   document.addEventListener("click",function(e){
     if(!currentIsDelivery())return;
