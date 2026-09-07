@@ -1667,7 +1667,8 @@ body.nf-photo-preview-scroll-locked{overscroll-behavior:none!important}
 #view-delivery .r100-card-actions .r100-share{background:linear-gradient(135deg,#6c45e8,#9c54e8);color:#fff}
 #view-delivery .r100-card-actions .r100-download{background:#f3f0f7;color:#46365a;border:1px solid #ded7e8}
 @media(max-width:700px){#view-delivery .r100-delivery-shell{padding:8px;border-radius:18px}#view-delivery .r100-delivery-customer-head{padding:12px;border-radius:16px}#view-delivery .r100-delivery-customer-head h3{font-size:19px}#view-delivery .r100-card-box{padding:8px;border-radius:18px}#view-delivery .r100-card-title{font-size:14px;align-items:flex-start}#view-delivery .r100-card-title span:last-child{font-size:9px}#view-delivery .r100-card-actions button{min-height:44px;font-size:12px}}
-</style></head><body><div class="loginpage" id="loginPage"><section class="loginbox"><div class="brand">NEW FASHION</div><div class="gold">TAILORING INDUSTRY</div><div class="sub">Online Tailoring Management Software</div><form id="loginForm"><div class="field"><label>Email</label><input autocomplete="email" class="input" id="loginEmail" placeholder="உங்கள் Email" required="" type="email"/></div><div class="field"><label>Password</label><input autocomplete="current-password" class="input" id="loginPassword" placeholder="Password" required="" type="password"/></div><button class="btn primary" id="loginBtn" type="submit">🔐 LOGIN</button><div class="msg" id="loginMsg"></div></form><button class="btn primary nf-reset-password-btn" id="resetPasswordBtn" type="button">🔄 RESET PASSWORD</button>
+</style><!-- V120: Cloudflare D1 bridge added; set NF_D1_API_URL after Worker deployment. -->
+</head><body><div class="loginpage" id="loginPage"><section class="loginbox"><div class="brand">NEW FASHION</div><div class="gold">TAILORING INDUSTRY</div><div class="sub">Online Tailoring Management Software</div><form id="loginForm"><div class="field"><label>Email</label><input autocomplete="email" class="input" id="loginEmail" placeholder="உங்கள் Email" required="" type="email"/></div><div class="field"><label>Password</label><input autocomplete="current-password" class="input" id="loginPassword" placeholder="Password" required="" type="password"/></div><button class="btn primary" id="loginBtn" type="submit">🔐 LOGIN</button><div class="msg" id="loginMsg"></div></form><button class="btn primary nf-reset-password-btn" id="resetPasswordBtn" type="button">🔄 RESET PASSWORD</button>
 <div class="nf-forgot-row">
 <button class="btn secondary nf-forgot-btn" id="forgotBtn" type="button">Forgot password?</button>
 </div>
@@ -1769,7 +1770,44 @@ const NF_APP_DB="nf_full_local_first_v2";
 const NF_APP_STORE="state";
 const NF_QUEUE_STORE="queue";
 const NF_TABLES=["customers","orders","measurements","alterations","payments","designs"];
-const nfRawFrom=supabaseClient.from.bind(supabaseClient);
+/* V120 D1 BRIDGE: local-first app data -> Cloudflare D1 through Worker. */
+const NF_D1_API_URL="https://illustrious-pudding-de2fe6.ruthra407.workers.dev";
+let nfD1AccessToken="";
+async function nfD1GetAccessToken(){
+ try{const r=await supabaseClient.auth.getSession();return r?.data?.session?.access_token||""}catch(_){return ""}
+}
+function nfD1Headers(){return {"Content-Type":"application/json",...(nfD1AccessToken?{"Authorization":"Bearer "+nfD1AccessToken}:{})}}
+function nfD1Enabled(){return !!String(NF_D1_API_URL||"").trim()}
+function nfD1Builder(table){
+ let operation="select",payload=null,filters=[],orderSpec=null,singleMode=null;
+ const b={
+  select(){operation="select";return b},
+  insert(v){operation="insert";payload=v;return b},
+  update(v){operation="update";payload=v;return b},
+  delete(){operation="delete";return b},
+  eq(field,value){filters.push({field,value});return b},
+  in(field,values){filters.push({field,__in:Array.isArray(values)?values:[]});return b},
+  gt(field,value){filters.push({field,__gt:value});return b},
+  order(field,opts){orderSpec={field,ascending:opts?.ascending!==false};return b},
+  single(){singleMode="single";return b},
+  maybeSingle(){singleMode="maybe";return b},
+  then(resolve,reject){return nfD1Execute(table,operation,payload,filters,orderSpec,singleMode).then(resolve,reject)}
+ };return b;
+}
+async function nfD1Execute(table,operation,payload,filters,orderSpec,singleMode){
+ if(!nfD1Enabled()) return nfRawFromSupabase(table).then(x=>x);
+ if(!NF_TABLES.includes(table)) return nfRawFromSupabase(table).then(x=>x);
+ nfD1AccessToken=await nfD1GetAccessToken();
+ const base=String(NF_D1_API_URL).replace(/\/$/,"")+"/api/db";
+ try{
+  const res=await fetch(base,{method:"POST",headers:nfD1Headers(),body:JSON.stringify({table,operation,payload,filters,order:orderSpec,single:singleMode})});
+  const json=await res.json().catch(()=>({}));
+  if(!res.ok)return {data:null,error:{message:json?.error||("D1 request failed ("+res.status+")")}};
+  return {data:json.data??null,error:json.error?{message:json.error}:null};
+ }catch(e){return {data:null,error:{message:String(e?.message||e)}}}
+}
+const nfRawFromSupabase=supabaseClient.from.bind(supabaseClient);
+const nfRawFrom=(table)=>nfD1Enabled()?nfD1Builder(table):nfRawFromSupabase(table);
 let nfAppDbPromise=null;
 let nfSyncTimer=null;
 let nfSyncBusy=false;
