@@ -10487,7 +10487,7 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
 .nf-v230-hook-box{margin:8px;border:1px solid #ddd5ef;border-radius:14px;overflow:hidden;background:#fff}.nf-v230-hook{width:100%;min-height:52px;padding:9px 11px;border:0;background:linear-gradient(135deg,#f7f3ff,#fff4fa);color:#4d267c;display:flex;align-items:center;justify-content:space-between;gap:10px;text-align:left;font:inherit;font-weight:900;cursor:pointer}.nf-v230-hook-label{min-width:0;overflow-wrap:anywhere}.nf-v230-hook-plus{width:34px;height:34px;min-width:34px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(135deg,#6c3df5,#ef4f9a);color:#fff;font-size:23px;font-weight:500;line-height:1}.nf-v230-hook-body{display:none;padding:0;background:#fff}.nf-v230-hook-body>.nf-collection-panel,.nf-v230-hook-body>.nf-blouse-collection{margin:0!important;border:0!important;border-radius:0!important;box-shadow:none!important}.nf-v230-hook-body>.nfCustomerBreakdownMount,.nf-v230-hook-body>.customerWorkSummary{margin:0!important}
 @media(max-width:560px){.nf-v230-four-hook-group{border-radius:17px}.nf-v230-person{margin:8px}.nf-v230-person-name{font-size:16px;padding:8px 10px}.nf-v230-hook-box{margin:7px}.nf-v230-hook{min-height:48px;padding:8px 10px}.nf-v230-hook-plus{width:32px;height:32px;min-width:32px;font-size:21px}}
 </style>
-<script id="ruthran-v110-delivery-system">
+<script id="ruthran-v111-delivery-system">
 (function(){
   "use strict";
   var selectedId="";
@@ -10504,6 +10504,18 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
     var main=cs.find(function(x){return String(x&&x.id||'')===mid&&!parentOf(x);});
     if(!main)return[c];
     return [main].concat(cs.filter(function(x){return String(x&&x.id||'')!==String(main.id||'')&&parentOf(x)===String(main.id||'');}));
+  }
+  function deliveryMainCustomers(){
+    var cs=allCustomers();
+    return cs.filter(function(c){return c&&!parentOf(c);});
+  }
+  function resolveDeliverySelection(){
+    var cs=allCustomers(),sid=String(selectedId||'');
+    if(sid&&cs.some(function(c){return String(c&&c.id||'')===sid;}))return sid;
+    var remembered=String(window.__nfDeliveryLastCustomerId||'');
+    if(remembered&&cs.some(function(c){return String(c&&c.id||'')===remembered;}))return remembered;
+    var mains=deliveryMainCustomers();
+    return mains.length?String(mains[0].id||''):'';
   }
   function ordersFor(id){return (typeof state!=='undefined'&&Array.isArray(state.orders)?state.orders:[]).filter(function(o){return String(o&&o.customer_id||'')===String(id||'');});}
   function moneyText(v){try{return typeof money==='function'?money(v):'₹'+Number(v||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});}catch(e){return '₹'+Number(v||0).toFixed(2);}}
@@ -10533,7 +10545,12 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
       return true;
     }catch(e){console.warn('R2 card sync skipped:',e);return false;}finally{delete cardSyncBusy[key];}
   }
-  function setSelected(id){selectedId=String(id||'');deliveryBlobStore={whatsapp:null,delivery:null,whatsappBuilt:null};if((history.state&&history.state.view)==='delivery')render();}
+  function setSelected(id){
+    selectedId=String(id||'');
+    if(selectedId)window.__nfDeliveryLastCustomerId=selectedId;
+    deliveryBlobStore={whatsapp:null,delivery:null,whatsappBuilt:null};
+    if((history.state&&history.state.view)==='delivery')render();
+  }
   window.r100SelectDeliveryCustomer=setSelected;
 
   function roundRect(ctx,x,y,w,h,r,fill,stroke,lw){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();if(fill){ctx.fillStyle=fill;ctx.fill();}if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=lw||2;ctx.stroke();}}
@@ -10680,8 +10697,15 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
 
   async function render(){
     var box=document.getElementById('r100DeliveryContent');if(!box)return;
-    if(!selectedId){box.innerHTML='<div class="r100-empty">👥 Side menu-ல் ஒரு customer-ஐ தேர்வு செய்யுங்கள்.</div>';return;}
-    var group=groupFor(selectedId),main=group[0];if(!main){box.innerHTML='<div class="r100-empty">Customer கிடைக்கவில்லை.</div>';return;}
+    selectedId=resolveDeliverySelection();
+    if(!selectedId){box.innerHTML='<div class="r100-empty">👥 Customer இன்னும் சேர்க்கப்படவில்லை.</div>';return;}
+    window.__nfDeliveryLastCustomerId=selectedId;
+    var group=groupFor(selectedId),main=group[0];
+    if(!main){
+      selectedId='';
+      box.innerHTML='<div class="r100-empty">Customer கிடைக்கவில்லை.</div>';
+      return;
+    }
     deliveryBlobStore={whatsapp:null,delivery:null,whatsappBuilt:null};
     box.innerHTML='<div class="r100-delivery-customer-head"><div class="avatar">👤</div><div><h3>'+escText(main.name||'Customer')+'</h3><small>'+(group.length>1?'👥 Multi Customer · '+group.length+' Customers':'👤 Single Customer')+'</small></div></div>'+ '<div class="r100-card-box"><div class="r100-card-title"><span>🟢 WhatsApp Card</span><span>Image Card</span></div><div class="r100-card-loading" id="r100WhatsappImage">⏳ WhatsApp Card உருவாக்கப்படுகிறது…</div><div class="r100-card-actions"><button class="r100-share" data-r100-share="whatsapp" onclick="window.r100ShareDeliveryCard(\'whatsapp\')" type="button">📲 WhatsApp Share</button><button class="r100-download" data-r100-download="whatsapp" onclick="window.r100DownloadDeliveryCard(\'whatsapp\')" type="button">⬇️ Download</button></div></div>'+ '<div class="r100-card-box"><div class="r100-card-title"><span>🚚 Delivery Card</span><span>Image Card</span></div><div class="r100-card-loading" id="r100DeliveryImage">⏳ Delivery Card உருவாக்கப்படுகிறது…</div><div class="r100-card-actions"><button class="r100-share" data-r100-share="delivery" onclick="window.r100ShareDeliveryCard(\'delivery\')" type="button">📲 WhatsApp Share</button><button class="r100-download" data-r100-download="delivery" onclick="window.r100DownloadDeliveryCard(\'delivery\')" type="button">⬇️ Download</button></div></div>';
     try{var wb=await makeWhatsAppImage(main.id);deliveryBlobStore.whatsapp=wb.blob;deliveryBlobStore.whatsappBuilt=wb;showImage('r100WhatsappImage',wb.blob,'WhatsApp Card');syncCardToR2(main.id,'whatsapp',wb.blob);}catch(e){var w=document.getElementById('r100WhatsappImage');if(w)w.innerHTML='<div class="r100-delivery-placeholder">🟢 WhatsApp Card load ஆகவில்லை.<br><small>'+escText(e&&e.message||'')+'</small></div>';}
@@ -10691,7 +10715,7 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
   window.r100DownloadDeliveryCard=function(kind){return downloadDeliveryBlob(kind||'delivery');};
   function currentIsDelivery(){return(history.state&&history.state.view)==='delivery';}
   document.addEventListener('click',function(e){if(!currentIsDelivery())return;var b=e.target&&e.target.closest?e.target.closest('#nfSidebarCustomerList .nfSidebarCustomerRow'):null;if(!b)return;e.preventDefault();e.stopImmediatePropagation();var m=(b.getAttribute('onclick')||'').match(/openSidebarCustomer\(['\"]([^'\"]+)/);if(m)setSelected(m[1]);var drawer=document.getElementById('sidebar');if(drawer)drawer.classList.remove('open');},true);
-  var oldGo=window.goView;if(typeof oldGo==='function'&&!oldGo.__r102Delivery){window.goView=function(view,push){var r=oldGo.apply(this,arguments);if(view!=='delivery')selectedId='';if(view==='delivery')setTimeout(render,0);return r;};window.goView.__r103Delivery=true;}
+  var oldGo=window.goView;if(typeof oldGo==='function'&&!oldGo.__r102Delivery){window.goView=function(view,push){var r=oldGo.apply(this,arguments);if(view==='delivery'){selectedId=resolveDeliverySelection();setTimeout(render,0);}return r;};window.goView.__r103Delivery=true;}
   document.addEventListener('DOMContentLoaded',function(){setTimeout(function(){if(currentIsDelivery())render();},80);});
 })();
 </script></body>
