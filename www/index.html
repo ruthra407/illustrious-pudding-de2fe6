@@ -1854,20 +1854,29 @@ function nfScheduleSync(){clearTimeout(nfSyncTimer);nfSyncTimer=setTimeout(async
 window.addEventListener("online",()=>{nfScheduleSync();setTimeout(nfRunPendingPhotoDeletes,1000)});document.addEventListener("visibilitychange",()=>{if(!document.hidden)nfScheduleSync()});
 /* Replace only table CRUD. Auth and Storage APIs remain untouched. */
 supabaseClient.from=function(table){return nfLocalBuilder(table)};
+let nfInitialDataLoading=false;
 async function nfLocalFirstLoadAll(silent=false,forceCloud=false){
  if(!state.user)return;
+ nfInitialDataLoading=true;
  /* Restore customer photo metadata from IndexedDB before the first render.
     This keeps saved photos visible after refresh/reopen, including offline. */
  try{await initCustomerClothPhotoStore();}catch(e){console.warn("Customer photo store init skipped",e)}
- /* Cloud is the source of truth. Local IndexedDB is not required for recovery. */
+ /* First paint from the last locally saved snapshot, then refresh from Cloud.
+    This removes the first-open empty-state flash while keeping Cloud as source of truth. */
+ try{
+  const hadLocal=await nfLoadState(state.user.id);
+  if(hadLocal)try{renderAll()}catch(e){console.warn("Local first render skipped",e)}
+ }catch(e){console.warn("Local first load skipped",e)}
  if(navigator.onLine){
   const result=await Promise.allSettled(NF_TABLES.map(t=>nfRawFrom(t).select("*").order("created_at",{ascending:false})));
   result.forEach((r,i)=>{if(r.status==="fulfilled"&&!r.value.error)state[NF_TABLES[i]]=r.value.data||[]});
+  nfInitialDataLoading=false;
   try{renderAll()}catch(e){console.error("Cloud render error",e)}
   try{setTimeout(()=>{nfHydrateCloudClothPhotos().catch(e=>console.warn("R2 photo hydrate skipped",e))},0)}catch(e){}
  }else{
-  /* Offline fallback only; cloud remains the primary source. */
-  try{await nfLoadState(state.user.id);renderAll()}catch(e){console.warn("Offline local fallback unavailable",e)}
+  /* Offline fallback: the local snapshot above is already rendered. */
+  nfInitialDataLoading=false;
+  try{renderAll()}catch(e){console.warn("Offline local fallback unavailable",e)}
  }
  await nfRunSync();
  setTimeout(()=>{try{nfHydrateCloudClothPhotos();nfRunPendingPhotoDeletes()}catch(_){ }},900);
@@ -2249,6 +2258,10 @@ function renderDashboardCustomers(){
  if(countNew)countNew.textContent=fresh.length;
  if(countDelivered)countDelivered.textContent=delivered.length;
  const source=dashboardCustomerTab==="new"?fresh:dashboardCustomerTab==="delivered"?delivered:all;
+ if(!source.length && nfInitialDataLoading){
+   box.innerHTML='<div class="nf-dch-empty">⏳ Customers data load ஆகிறது…</div>';
+   return;
+ }
  box.innerHTML=source.length?source.map((c,i)=>dashboardCustomerCard(c,i,dashboardCustomerTab==="delivered"?"delivered":"new")).join(""):`<div class="nf-dch-empty">${dashboardCustomerTab==="delivered"?"இன்னும் Delivered Customers இல்லை.":"Customers இன்னும் சேர்க்கப்படவில்லை."}</div>`;
 }
 function renderDashboardDues(){
