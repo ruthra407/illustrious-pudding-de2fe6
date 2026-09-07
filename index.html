@@ -2952,7 +2952,10 @@ window.nfScrollToMultiCustomer=function(id){
   }
   document.querySelectorAll('.nf-v240-person.nf-multi-customer-target-focus').forEach(function(x){x.classList.remove('nf-multi-customer-target-focus');});
   person.classList.add('nf-multi-customer-target-focus');
-  person.scrollIntoView({behavior:'smooth',block:'start'});
+  /* Instant navigation: tapping a name must move to that exact customer now,
+     not wait for a long smooth scroll animation. */
+  var top=person.getBoundingClientRect().top+Number(window.scrollY||window.pageYOffset||0)-18;
+  window.scrollTo({top:Math.max(0,top),behavior:'auto'});
   setTimeout(function(){person.classList.remove('nf-multi-customer-target-focus');},1800);
 };
 async function saveCustomerClothPhoto(id,slot,file){
@@ -2991,6 +2994,7 @@ async function saveCustomerClothPhoto(id,slot,file){
   }
 }
 async function removeCustomerClothPhoto(id,slot){
+  const photoContext=nfCaptureCustomerPhotoContext(id);
   const key=String(id), cloudKey=key+":"+slot;
   const arr=customerClothPhotos(id);
   const old=arr[slot];
@@ -3005,6 +3009,7 @@ async function removeCustomerClothPhoto(id,slot){
   setTimeout(nfRunPendingPhotoDeletes,300);
   delete nfClothPhotoCloudPathCache[cloudKey];
   renderCustomers();
+  nfRestoreCustomerPhotoContext(photoContext);
   toast("Customer துணி photo நீக்கப்பட்டது.");
 }
 async function nfRunPendingPhotoDeletes(){
@@ -13103,6 +13108,11 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
 })();
 </script>
 
+<style id="nf-v109-instant-customer-routing-css">
+/* V109: instant tap navigation; no waiting for smooth-scroll animation. */
+.nf116-person-info{touch-action:manipulation;cursor:pointer}
+.nf-v240-person{scroll-margin-top:18px}
+</style>
 <style id="nf-v108-customer-routing-photo-fix-css">
 .nf116-person-info{cursor:pointer;-webkit-tap-highlight-color:transparent;border-radius:10px;padding:2px 4px;margin:-2px -4px}
 .nf116-person-info:active{background:#f0eaff}
