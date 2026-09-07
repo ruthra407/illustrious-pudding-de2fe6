@@ -13433,24 +13433,20 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
 <style id="nf-delivery-card-preview-v2">
 .nf-dcp-overlay{position:fixed;inset:0;z-index:2147483646;background:rgba(12,8,20,.94);display:none;align-items:center;justify-content:center;padding:10px;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);overscroll-behavior:none}
 .nf-dcp-overlay.open{display:flex}
-.nf-dcp-stage{position:relative;width:100%;height:100%;display:flex;align-items:center;justify-content:center;overflow:auto;overscroll-behavior:contain;border-radius:18px;touch-action:none}
-.nf-dcp-image{display:block;max-width:96vw;max-height:86vh;width:auto;height:auto;object-fit:contain;transform:scale(1);transform-origin:center center;transition:transform .16s ease;box-shadow:0 20px 70px rgba(0,0,0,.35);border-radius:12px;background:#fff;user-select:none;-webkit-user-drag:none}
-.nf-dcp-close{position:fixed;right:14px;top:calc(74px + env(safe-area-inset-top,0px));width:46px;height:46px;border:0;border-radius:50%;background:rgba(255,255,255,.96);color:#281d35;font-size:24px;font-weight:950;z-index:5;box-shadow:0 8px 24px rgba(0,0,0,.28)}
-.nf-dcp-title{position:fixed;left:14px;top:calc(76px + env(safe-area-inset-top,0px));z-index:5;color:#fff;font-weight:950;font-size:14px;text-shadow:0 2px 8px rgba(0,0,0,.5);max-width:58vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.nf-dcp-hint{position:fixed;left:50%;top:calc(112px + env(safe-area-inset-top,0px));transform:translateX(-50%);z-index:5;color:rgba(255,255,255,.82);font-size:11px;font-weight:750;white-space:nowrap}
-.nf-dcp-tools{position:fixed;left:50%;bottom:calc(12px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);display:flex;gap:7px;z-index:5;padding:7px;border-radius:16px;background:rgba(255,255,255,.95);box-shadow:0 10px 30px rgba(0,0,0,.28)}
-.nf-dcp-tools button{height:42px;min-width:44px;border:0;border-radius:11px;background:#f0ebff;color:#4d31b4;font-size:19px;font-weight:950;padding:0 11px}.nf-dcp-tools .reset{font-size:13px;min-width:58px}.nf-dcp-share{background:#25d366!important;color:#fff!important}.nf-dcp-download{background:#6c4df6!important;color:#fff!important}
-@media(max-width:560px){.nf-dcp-close{right:10px;top:calc(74px + env(safe-area-inset-top,0px));width:42px;height:42px}.nf-dcp-title{left:10px;top:calc(77px + env(safe-area-inset-top,0px));font-size:12px;max-width:52vw}.nf-dcp-hint{top:calc(116px + env(safe-area-inset-top,0px));font-size:9px}.nf-dcp-tools{bottom:calc(9px + env(safe-area-inset-bottom,0px));gap:5px;padding:6px}.nf-dcp-tools button{height:40px;min-width:39px;padding:0 8px;font-size:17px}.nf-dcp-tools .reset{min-width:52px;font-size:12px}}
+.nf-dcp-stage{position:relative;width:100%;height:100%;display:flex;align-items:center;justify-content:center;overflow:auto;overscroll-behavior:contain;border-radius:18px;touch-action:none;padding:64px 8px 118px;box-sizing:border-box}
+.nf-dcp-image{display:block;max-width:94vw;max-height:calc(100vh - 190px);width:auto;height:auto;object-fit:contain;transform:scale(1);transform-origin:center center;transition:transform .16s ease;box-shadow:0 20px 70px rgba(0,0,0,.35);border-radius:12px;background:#fff;user-select:none;-webkit-user-drag:none}
+.nf-dcp-close{position:fixed;right:16px;top:calc(18px + env(safe-area-inset-top,0px));width:48px;height:48px;border:0;border-radius:50%;background:rgba(255,255,255,.97);color:#281d35;font-size:25px;font-weight:950;z-index:6;box-shadow:0 8px 24px rgba(0,0,0,.28)}
+.nf-dcp-title{position:fixed;left:16px;top:calc(25px + env(safe-area-inset-top,0px));z-index:6;color:#fff;font-weight:950;font-size:14px;text-shadow:0 2px 8px rgba(0,0,0,.5);max-width:62vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nf-dcp-tools{position:fixed;left:50%;bottom:calc(22px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);display:flex;align-items:center;justify-content:center;gap:14px;z-index:6;padding:0;background:transparent;box-shadow:none}
+.nf-dcp-tools button{height:52px;border:0;border-radius:16px;color:#fff;font-size:18px;font-weight:950;padding:0 24px;box-shadow:0 10px 28px rgba(0,0,0,.32);white-space:nowrap}
+.nf-dcp-share{background:#25d366!important;min-width:132px}.nf-dcp-download{background:#6c4df6!important;min-width:150px}
+@media(max-width:560px){.nf-dcp-stage{padding:58px 6px 108px}.nf-dcp-image{max-width:93vw;max-height:calc(100vh - 175px)}.nf-dcp-close{right:10px;top:calc(16px + env(safe-area-inset-top,0px));width:44px;height:44px;font-size:23px}.nf-dcp-title{left:10px;top:calc(22px + env(safe-area-inset-top,0px));font-size:12px;max-width:58vw}.nf-dcp-tools{bottom:calc(20px + env(safe-area-inset-bottom,0px));gap:12px}.nf-dcp-tools button{height:50px;border-radius:15px;font-size:17px;padding:0 17px}.nf-dcp-share{min-width:122px}.nf-dcp-download{min-width:138px}}
 </style>
 <div aria-hidden="true" class="nf-dcp-overlay" id="nfDeliveryCardPreviewOverlay">
   <div class="nf-dcp-title" id="nfDcpTitle">Card Preview</div>
-  <div class="nf-dcp-hint">← Back gesture / swipe · Pinch / zoom buttons</div>
   <button class="nf-dcp-close" id="nfDcpClose" type="button" aria-label="Close preview">✕</button>
   <div class="nf-dcp-stage" id="nfDcpStage"><img class="nf-dcp-image" id="nfDcpImage" alt="Card preview"></div>
-  <div class="nf-dcp-tools" aria-label="Card preview controls">
-    <button id="nfDcpMinus" type="button" aria-label="Zoom out">−</button>
-    <button id="nfDcpReset" class="reset" type="button" aria-label="Reset zoom">100%</button>
-    <button id="nfDcpPlus" type="button" aria-label="Zoom in">+</button>
+  <div class="nf-dcp-tools" aria-label="Card actions">
     <button id="nfDcpShare" class="nf-dcp-share" type="button" aria-label="Share card">🟢 Share</button>
     <button id="nfDcpDownload" class="nf-dcp-download" type="button" aria-label="Download card">⬇️ Download</button>
   </div>
@@ -13461,7 +13457,7 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
   var overlay=document.getElementById("nfDeliveryCardPreviewOverlay"),stage=document.getElementById("nfDcpStage"),img=document.getElementById("nfDcpImage"),title=document.getElementById("nfDcpTitle");
   if(!overlay||!stage||!img)return;
   var scale=1,startX=0,startY=0,startDist=0,startScale=1,touchMode="",edgeTracking=false,currentBlobUrl="",currentBlob=null,currentKind="delivery",currentCustomerId="",historyOpen=false,closing=false;
-  function setScale(v){scale=Math.max(1,Math.min(4,Number(v)||1));img.style.transform="scale("+scale+")";var b=document.getElementById("nfDcpReset");if(b)b.textContent=Math.round(scale*100)+"%";}
+  function setScale(v){scale=Math.max(1,Math.min(4,Number(v)||1));img.style.transform="scale("+scale+")";}
   function cleanup(){if(currentBlobUrl){try{URL.revokeObjectURL(currentBlobUrl)}catch(e){}currentBlobUrl="";}currentBlob=null;currentCustomerId="";setScale(1);stage.scrollTop=0;stage.scrollLeft=0;}
   function finishClose(){overlay.classList.remove("open");overlay.setAttribute("aria-hidden","true");document.body.style.overflow="";cleanup();closing=false;}
   function close(useHistory){if(!overlay.classList.contains("open"))return;if(closing)return;closing=true;overlay.classList.remove("open");overlay.setAttribute("aria-hidden","true");document.body.style.overflow="";cleanup();if(useHistory&&historyOpen){historyOpen=false;try{history.back();}catch(e){closing=false;}}else{historyOpen=false;closing=false;}}
@@ -13494,9 +13490,6 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
     catch(e){console.error('Fullscreen card download failed',e);if(typeof toast==='function')toast('❌ Card download ஆகவில்லை.',true)}finally{if(b)b.disabled=false;}
   }
   document.getElementById("nfDcpClose").addEventListener("click",function(){close(true)});
-  document.getElementById("nfDcpMinus").addEventListener("click",function(){setScale(scale-.25)});
-  document.getElementById("nfDcpPlus").addEventListener("click",function(){setScale(scale+.25)});
-  document.getElementById("nfDcpReset").addEventListener("click",function(){setScale(1)});
   document.getElementById("nfDcpShare").addEventListener("click",shareCurrent);
   document.getElementById("nfDcpDownload").addEventListener("click",downloadCurrent);
   overlay.addEventListener("click",function(e){if(e.target===overlay)close(true)});
