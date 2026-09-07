@@ -2892,12 +2892,76 @@ function previewCustomerDeliveryPhoto(id,type,status,slot){
   box.classList.add("open");nfLockPhotoPreviewScroll();
   if(typeof window.__nfResetPhotoZoom==="function")window.__nfResetPhotoZoom();
 }
+function nfFindMultiCustomerPerson(id){
+  var sid=String(id||"");
+  var list=document.querySelectorAll('.nf-v240-person[data-customer-id]');
+  for(var i=0;i<list.length;i++){if(String(list[i].getAttribute('data-customer-id')||'')===sid)return list[i];}
+  return null;
+}
+function nfCaptureCustomerPhotoContext(id){
+  var sid=String(id||"");
+  var person=nfFindMultiCustomerPerson(sid);
+  var card=document.getElementById('customer-card-'+sid);
+  var anchor=person||card;
+  var hook=person&&person.querySelector('.nf-v240-hook-photos');
+  var btn=hook&&hook.querySelector(':scope > .nf-v240-hook');
+  return {
+    id:sid,
+    scrollY:Number(window.scrollY||window.pageYOffset||0),
+    anchorTop:anchor?anchor.getBoundingClientRect().top:null,
+    hookOpen:!!(btn&&btn.getAttribute('aria-expanded')==='true')
+  };
+}
+function nfRestoreCustomerPhotoContext(ctx){
+  if(!ctx||!ctx.id)return;
+  function restore(){
+    var person=nfFindMultiCustomerPerson(ctx.id);
+    var card=document.getElementById('customer-card-'+ctx.id);
+    var anchor=person||card;
+    if(!anchor)return;
+    var hook=person&&person.querySelector('.nf-v240-hook-photos');
+    var btn=hook&&hook.querySelector(':scope > .nf-v240-hook');
+    if(ctx.hookOpen && btn && btn.getAttribute('aria-expanded')!=='true' && typeof window.nfV240ToggleHook==='function'){
+      window.nfV240ToggleHook(btn);
+    }
+    if(ctx.anchorTop!==null && Number.isFinite(ctx.anchorTop)){
+      var nowTop=anchor.getBoundingClientRect().top;
+      var target=Number(window.scrollY||window.pageYOffset||0)+(nowTop-ctx.anchorTop);
+      window.scrollTo({top:Math.max(0,target),behavior:'auto'});
+    }else{
+      anchor.scrollIntoView({behavior:'auto',block:'center'});
+    }
+  }
+  restore();
+  setTimeout(restore,80);
+  setTimeout(restore,260);
+  setTimeout(restore,650);
+}
+window.nfScrollToMultiCustomer=function(id){
+  var sid=String(id||"");
+  if(!sid)return;
+  var person=nfFindMultiCustomerPerson(sid);
+  if(!person){
+    var card=document.getElementById('customer-card-'+sid);
+    if(card)person=nfFindMultiCustomerPerson(sid);
+  }
+  if(!person){
+    if(typeof window.renderCustomers==='function')window.renderCustomers();
+    setTimeout(function(){window.nfScrollToMultiCustomer(sid);},100);
+    return;
+  }
+  document.querySelectorAll('.nf-v240-person.nf-multi-customer-target-focus').forEach(function(x){x.classList.remove('nf-multi-customer-target-focus');});
+  person.classList.add('nf-multi-customer-target-focus');
+  person.scrollIntoView({behavior:'smooth',block:'start'});
+  setTimeout(function(){person.classList.remove('nf-multi-customer-target-focus');},1800);
+};
 async function saveCustomerClothPhoto(id,slot,file){
   if(!file)return;
   if(slot<0||slot>3){toast("Photo slot சரியாக இல்லை.",true);return}
   if(!file.type || !file.type.startsWith("image/")){toast("Image file மட்டும் தேர்வு செய்யுங்கள்.",true);return}
   if(file.size>40*1024*1024){toast("Photo 40MB-க்கு குறைவாக இருக்க வேண்டும்.",true);return}
   if(!navigator.onLine){toast("Internet connection தேவை. Photo cloud-ல் சேமிக்கப்படுகிறது.",true);return}
+  const photoContext=nfCaptureCustomerPhotoContext(id);
   toast("Photo R2 cloud-ல் சேமிக்கப்படுகிறது...");
   try{
     const path=await nfUploadCustomerClothPhoto(id,slot,file,file.type);
@@ -2914,12 +2978,15 @@ async function saveCustomerClothPhoto(id,slot,file){
     };
     const existingRec=nfClothPhotoCache[String(id)]||{};
     const existingDesigns=Array.isArray(existingRec?.blouseDesigns)?existingRec.blouseDesigns:Array(8).fill(null);
-    nfClothPhotoCache[String(id)]={photos:arr,blouseDesigns:existingDesigns};
+    const existingDelivery=Array.isArray(existingRec?.deliveryPhotos)?existingRec.deliveryPhotos:(typeof customerDeliveryPhotos==='function'?customerDeliveryPhotos(id):[]);
+    nfClothPhotoCache[String(id)]={photos:arr,blouseDesigns:existingDesigns,deliveryPhotos:existingDelivery};
     nfClothPhotoCloudPathCache[String(id)+":"+slot]=path;
     toast(`Customer துணி photo ${slot+1} cloud-ல் சேமிக்கப்பட்டது. ☁️`);
     renderCustomers();
+    nfRestoreCustomerPhotoContext(photoContext);
   }catch(err){
     console.error("saveCustomerClothPhoto failed",err);
+    nfRestoreCustomerPhotoContext(photoContext);
     toast("Photo cloud-ல் சேமிக்க முடியவில்லை. மீண்டும் முயற்சி செய்யுங்கள்.",true);
   }
 }
@@ -12624,7 +12691,12 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
     sec.innerHTML='<div class="nf116-group-head"><div class="nf116-group-title">👥 Additional Customers <span>· '+list.length+' பேர்</span></div><span class="nf116-tag">ADDITIONAL</span></div>';
     list.forEach(function(k){
       var row=document.createElement("div");row.className="nf116-person";
-      row.innerHTML='<div class="nf116-person-info"><span class="nf116-person-tag">ADDITIONAL</span><b>'+esc(k.name||"Customer")+'</b><small>📞 '+esc(k.phone||"Phone இல்லை")+'</small></div><div class="nf116-actions"><button type="button" class="nf116-edit" data-nf116-id="'+esc(k.id)+'">✏️ Edit Order</button><button type="button" class="nf116-delete" data-nf116-id="'+esc(k.id)+'">🗑️ Delete</button></div>';
+      row.innerHTML='<div class="nf116-person-info" role="button" tabindex="0" title="இந்த Customer section-க்கு செல்ல"> <span class="nf116-person-tag">ADDITIONAL</span><b>'+esc(k.name||"Customer")+'</b><small>📞 '+esc(k.phone||"Phone இல்லை")+'</small></div><div class="nf116-actions"><button type="button" class="nf116-edit" data-nf116-id="'+esc(k.id)+'">✏️ Edit Order</button><button type="button" class="nf116-delete" data-nf116-id="'+esc(k.id)+'">🗑️ Delete</button></div>';
+      var info=row.querySelector(".nf116-person-info");
+      if(info){
+        info.onclick=function(e){e.preventDefault();e.stopPropagation();if(typeof window.nfScrollToMultiCustomer==="function")window.nfScrollToMultiCustomer(String(k.id));};
+        info.onkeydown=function(e){if(e.key==="Enter"||e.key===" "){e.preventDefault();e.stopPropagation();if(typeof window.nfScrollToMultiCustomer==="function")window.nfScrollToMultiCustomer(String(k.id));}};
+      }
       row.querySelector(".nf116-edit").onclick=function(e){e.preventDefault();e.stopPropagation();if(typeof window.nfMultiCustomerEditOrder==="function")window.nfMultiCustomerEditOrder(String(k.id));};
       row.querySelector(".nf116-delete").onclick=function(e){e.preventDefault();e.stopPropagation();if(typeof window.deleteCustomer==="function")window.deleteCustomer(String(k.id));};
       sec.appendChild(row);
@@ -13031,6 +13103,12 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
 })();
 </script>
 
+<style id="nf-v108-customer-routing-photo-fix-css">
+.nf116-person-info{cursor:pointer;-webkit-tap-highlight-color:transparent;border-radius:10px;padding:2px 4px;margin:-2px -4px}
+.nf116-person-info:active{background:#f0eaff}
+.nf-v240-person.nf-multi-customer-target-focus{animation:nfMultiCustomerTargetPulse 1.8s ease both;scroll-margin-top:18px}
+@keyframes nfMultiCustomerTargetPulse{0%,100%{box-shadow:0 0 0 0 rgba(108,69,232,0)}25%,70%{box-shadow:0 0 0 5px rgba(108,69,232,.24)}}
+</style>
 <style id="nf-v250-four-hook-dress-css">
 /* V25: visual styling only — keeps the existing customer/calculation logic intact. */
 .nf-v240-four-hook-group{
