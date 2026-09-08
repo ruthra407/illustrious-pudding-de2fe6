@@ -154,6 +154,7 @@ export default {
       if (!customerId) return json({ error: "customer_id is required" }, 400);
 
       try {
+        // Verify the customer belongs to the logged-in owner.
         const customer = await env.DB.prepare(
           `SELECT id FROM customers WHERE id = ? AND owner_id = ? LIMIT 1`
         ).bind(customerId, user.id).first();
@@ -162,6 +163,7 @@ export default {
           return json({ error: "Customer not found" }, 404);
         }
 
+        // Collect order IDs before deleting orders.
         const orderResult = await env.DB.prepare(
           `SELECT id FROM orders WHERE customer_id = ? AND owner_id = ?`
         ).bind(customerId, user.id).all();
@@ -170,13 +172,16 @@ export default {
           .map(r => String(r.id || ""))
           .filter(Boolean);
 
+        // D1 child records: delete everything tied to this customer/order.
+        // Do not assume optional columns exist: older migrated schemas can differ.
+        // We inspect the real D1 schema first so one missing column cannot abort the
+        // entire customer delete.
         const [paymentCols, alterationCols, measurementCols, designCols] = await Promise.all([
           tableColumns(env.DB, "payments"),
           tableColumns(env.DB, "alterations"),
           tableColumns(env.DB, "measurements"),
           tableColumns(env.DB, "designs")
         ]);
-
         const statements = [];
 
         if (paymentCols.has("customer_id")) {
@@ -185,21 +190,18 @@ export default {
               .bind(user.id, customerId)
           );
         }
-
         if (alterationCols.has("customer_id")) {
           statements.push(
             env.DB.prepare(`DELETE FROM alterations WHERE owner_id = ? AND customer_id = ?`)
               .bind(user.id, customerId)
           );
         }
-
         if (measurementCols.has("customer_id")) {
           statements.push(
             env.DB.prepare(`DELETE FROM measurements WHERE owner_id = ? AND customer_id = ?`)
               .bind(user.id, customerId)
           );
         }
-
         if (designCols.has("customer_id")) {
           statements.push(
             env.DB.prepare(`DELETE FROM designs WHERE owner_id = ? AND customer_id = ?`)
@@ -214,7 +216,6 @@ export default {
                 .bind(user.id, orderId)
             );
           }
-
           if (alterationCols.has("order_id")) {
             statements.push(
               env.DB.prepare(`DELETE FROM alterations WHERE owner_id = ? AND order_id = ?`)
@@ -227,7 +228,8 @@ export default {
           env.DB.prepare(`DELETE FROM orders WHERE owner_id = ? AND customer_id = ?`)
             .bind(user.id, customerId)
         );
-
+        // Delete the customer last. Ownership was already verified above,
+        // so use the customer id directly and verify the row is really gone.
         statements.push(
           env.DB.prepare(`DELETE FROM customers WHERE id = ?`)
             .bind(customerId)
@@ -241,62 +243,52 @@ export default {
 
         if (customerStillThere) {
           throw new Error("Customer D1 delete failed: customer row still exists");
-        }        const remaining = {};
-        const checks = [];
+        }
 
+        // Verify every customer/order-linked D1 row is gone before reporting success.
+        const remaining = {};
+        const checks = [];
         checks.push(["orders", env.DB.prepare(
           `SELECT COUNT(*) AS n FROM orders WHERE owner_id = ? AND customer_id = ?`
         ).bind(user.id, customerId)]);
-
         if (measurementCols.has("customer_id")) {
           checks.push(["measurements", env.DB.prepare(
             `SELECT COUNT(*) AS n FROM measurements WHERE owner_id = ? AND customer_id = ?`
           ).bind(user.id, customerId)]);
         }
-
         if (alterationCols.has("customer_id")) {
           checks.push(["alterations_customer", env.DB.prepare(
             `SELECT COUNT(*) AS n FROM alterations WHERE owner_id = ? AND customer_id = ?`
           ).bind(user.id, customerId)]);
         }
-
         if (paymentCols.has("customer_id")) {
           checks.push(["payments_customer", env.DB.prepare(
             `SELECT COUNT(*) AS n FROM payments WHERE owner_id = ? AND customer_id = ?`
           ).bind(user.id, customerId)]);
         }
-
         if (designCols.has("customer_id")) {
           checks.push(["designs_customer", env.DB.prepare(
             `SELECT COUNT(*) AS n FROM designs WHERE owner_id = ? AND customer_id = ?`
           ).bind(user.id, customerId)]);
         }
-
         if (orderIds.length && paymentCols.has("order_id")) {
           checks.push(["payments_orders", env.DB.prepare(
             `SELECT COUNT(*) AS n FROM payments WHERE owner_id = ? AND order_id IN (${orderIds.map(() => "?").join(",")})`
           ).bind(user.id, ...orderIds)]);
         }
-
         if (orderIds.length && alterationCols.has("order_id")) {
           checks.push(["alterations_orders", env.DB.prepare(
             `SELECT COUNT(*) AS n FROM alterations WHERE owner_id = ? AND order_id IN (${orderIds.map(() => "?").join(",")})`
           ).bind(user.id, ...orderIds)]);
         }
-
-        const checkResults = await Promise.all(
-          checks.map(async ([name, stmt]) => [name, await stmt.first()])
-        );
-
+        const checkResults = await Promise.all(checks.map(async ([name, stmt]) => [name, await stmt.first()]));
         for (const [name, row] of checkResults) {
           remaining[name] = Number(row?.n || 0);
-          if (remaining[name] !== 0) {
-            throw new Error(
-              `Customer cascade verification failed: ${name}=${remaining[name]}`
-            );
-          }
+          if (remaining[name] !== 0) throw new Error(`Customer cascade verification failed: ${name}=${remaining[name]}`);
         }
 
+        // R2: remove the entire customer prefix and every order prefix.
+        // This catches photos/cards/design files without needing hard-coded slots.
         const prefixes = new Set([
           `${customerId}/`,
           `customers/${customerId}/`
@@ -310,7 +302,6 @@ export default {
 
         for (const prefix of prefixes) {
           let cursor;
-
           do {
             const listed = await env.MY_BUCKET.list({
               prefix,
@@ -318,9 +309,7 @@ export default {
               ...(cursor ? { cursor } : {})
             });
 
-            const keys = (listed.objects || [])
-              .map(o => o.key)
-              .filter(Boolean);
+            const keys = (listed.objects || []).map(o => o.key).filter(Boolean);
 
             if (keys.length) {
               await env.MY_BUCKET.delete(keys);
@@ -338,7 +327,6 @@ export default {
           orders_deleted: orderIds.length,
           r2_objects_deleted: deletedObjects
         });
-
       } catch (e) {
         return json({
           error: String(e?.message || e)
@@ -351,29 +339,16 @@ export default {
       await env.MY_BUCKET.put("r2-test.txt", "R2 WORKS", {
         httpMetadata: { contentType: "text/plain" }
       });
-
-      return new Response("R2 upload OK", {
-        headers: corsHeaders
-      });
+      return new Response("R2 upload OK", { headers: corsHeaders });
     }
 
     if (url.pathname.startsWith("/api/r2/") && request.method === "PUT") {
-      const key = decodeURIComponent(
-        url.pathname.slice("/api/r2/".length)
-      );
-
-      if (!key) {
-        return new Response("Missing file name", {
-          status: 400,
-          headers: corsHeaders
-        });
-      }
+      const key = decodeURIComponent(url.pathname.slice("/api/r2/".length));
+      if (!key) return new Response("Missing file name", { status: 400, headers: corsHeaders });
 
       await env.MY_BUCKET.put(key, request.body, {
         httpMetadata: {
-          contentType:
-            request.headers.get("content-type") ||
-            "application/octet-stream"
+          contentType: request.headers.get("content-type") || "application/octet-stream"
         }
       });
 
@@ -381,50 +356,27 @@ export default {
     }
 
     if (url.pathname.startsWith("/api/r2/") && request.method === "GET") {
-      const key = decodeURIComponent(
-        url.pathname.slice("/api/r2/".length)
-      );
-
+      const key = decodeURIComponent(url.pathname.slice("/api/r2/".length));
       const object = await env.MY_BUCKET.get(key);
 
-      if (!object) {
-        return new Response("File not found", {
-          status: 404,
-          headers: corsHeaders
-        });
-      }
+      if (!object) return new Response("File not found", { status: 404, headers: corsHeaders });
 
       const headers = new Headers(corsHeaders);
-
-      headers.set(
-        "Content-Type",
-        object.httpMetadata?.contentType ||
-        "application/octet-stream"
-      );
-
+      headers.set("Content-Type", object.httpMetadata?.contentType || "application/octet-stream");
       headers.set("Cache-Control", "no-store");
 
       return new Response(object.body, { headers });
     }
 
     if (url.pathname.startsWith("/api/r2/") && request.method === "DELETE") {
-      const key = decodeURIComponent(
-        url.pathname.slice("/api/r2/".length)
-      );
-
+      const key = decodeURIComponent(url.pathname.slice("/api/r2/".length));
       await env.MY_BUCKET.delete(key);
-
       return json({ ok: true, key });
     }
 
-    if (env.ASSETS?.fetch) {
-      return env.ASSETS.fetch(request);
-    }
+    if (env.ASSETS?.fetch) return env.ASSETS.fetch(request);
 
-    return new Response("Not found", {
-      status: 404,
-      headers: corsHeaders
-    });
+    return new Response("Not found", { status: 404, headers: corsHeaders });
   }
 };
 
@@ -433,10 +385,7 @@ function validCol(c) {
 }
 
 function safeCol(c) {
-  if (!validCol(c)) {
-    throw new Error("Invalid column");
-  }
-
+  if (!validCol(c)) throw new Error("Invalid column");
   return c;
 }
 
@@ -454,58 +403,28 @@ function addFilters(filters, add) {
         [` AND ${field} IN (${f.__in.map(() => "?").join(",")})`],
         f.__in
       );
-
     } else if (Object.prototype.hasOwnProperty.call(f, "__gt")) {
-      add(
-        [` AND ${field} > ?`],
-        [f.__gt]
-      );
-
+      add([` AND ${field} > ?`], [f.__gt]);
     } else {
-      add(
-        [` AND ${field} = ?`],
-        [f.value]
-      );
+      add([` AND ${field} = ?`], [f.value]);
     }
   }
 }
 
 async function tableColumns(db, table) {
-  const allowed = new Set([
-    "customers",
-    "orders",
-    "measurements",
-    "alterations",
-    "payments",
-    "designs"
-  ]);
-
-  if (!allowed.has(table)) {
-    throw new Error("Invalid table");
-  }
-
-  const r = await db
-    .prepare(`PRAGMA table_info(${table})`)
-    .all();
-
-  return new Set(
-    (r.results || []).map(
-      x => String(x.name || "")
-    )
-  );
+  const allowed = new Set(["customers", "orders", "measurements", "alterations", "payments", "designs"]);
+  if (!allowed.has(table)) throw new Error("Invalid table");
+  const r = await db.prepare(`PRAGMA table_info(${table})`).all();
+  return new Set((r.results || []).map(x => String(x.name || "")));
 }
 
 async function insertRow(db, table, row) {
   const cols = Object.keys(row).filter(validCol);
-
   const sql =
     `INSERT INTO ${table} (${cols.join(",")}) ` +
     `VALUES (${cols.map(() => "?").join(",")})`;
 
-  await db
-    .prepare(sql)
-    .bind(...cols.map(c => row[c]))
-    .run();
+  await db.prepare(sql).bind(...cols.map(c => row[c])).run();
 }
 
 async function selectAfter(db, table, owner, filters, single) {
@@ -517,50 +436,34 @@ async function selectAfter(db, table, owner, filters, single) {
     args.push(...a);
   });
 
-  const r = await db
-    .prepare(sql)
-    .bind(...args)
-    .all();
-
+  const r = await db.prepare(sql).bind(...args).all();
   const rows = r.results || [];
 
   if (single === "single") {
     if (rows.length !== 1) {
       return json({
         data: null,
-        error: rows.length
-          ? "Multiple rows returned"
-          : "No rows found"
+        error: rows.length ? "Multiple rows returned" : "No rows found"
       });
     }
-
-    return json({
-      data: rows[0],
-      error: null
-    });
+    return json({ data: rows[0], error: null });
   }
 
   return json({
-    data: single === "maybe"
-      ? (rows[0] || null)
-      : rows,
+    data: single === "maybe" ? (rows[0] || null) : rows,
     error: null
   });
 }
 
 async function verifySupabaseUser(token) {
-  const r = await fetch(
-    `${SUPABASE_URL}/auth/v1/user`,
-    {
-      headers: {
-        apikey: SUPABASE_ANON_KEY,
-        Authorization: `Bearer ${token}`
-      }
+  const r = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+    headers: {
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${token}`
     }
-  );
+  });
 
   if (!r.ok) return null;
-
   return r.json();
 }
 
@@ -574,11 +477,8 @@ function cors() {
 }
 
 function json(data, status = 200) {
-  return new Response(
-    JSON.stringify(data),
-    {
-      status,
-      headers: cors()
-    }
-  );
-        }
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: cors()
+  });
+}
