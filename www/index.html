@@ -10833,7 +10833,10 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
     try{
       if(typeof window.__nfDeliveryPreparePreview!=='function')throw new Error('preview-unavailable');
       previewToken=window.__nfDeliveryPreparePreview(label,kind,cid);
-      var b=kind==='whatsapp'?await makeWhatsAppImage(cid):await makeDeliveryImage(cid);
+      var b=await Promise.race([
+        kind==='whatsapp'?makeWhatsAppImage(cid):makeDeliveryImage(cid),
+        new Promise(function(_,reject){setTimeout(function(){reject(new Error('card-build-timeout'));},35000);})
+      ]);
       if(kind==='whatsapp')deliveryBlobStore.whatsapp=b.blob;
       else deliveryBlobStore.delivery=b;
       if(typeof window.__nfDeliverySetPreviewBlob==='function')window.__nfDeliverySetPreviewBlob(previewToken,b.blob||b,label);
@@ -10980,7 +10983,7 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
   box-shadow:0 5px 13px rgba(108,61,245,.22);
 }
 .nf-v120-customer-name{padding:0!important}
-.nf-v130-blouse-person-name{padding:0!important}
+.nf-v132-blouse-person-name{padding:0!important}
 .nf-v133-collapsible-body{min-width:0}
 @media(max-width:560px){
   .nf-v133-person-hook{min-height:42px;padding:7px 9px}
@@ -13232,16 +13235,16 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
 /* V22: superseded by the single stable customer-group renderer. */
 </script>
 <style id="nf-v132-multi-blouse-sync-css">
-.nf-v130-multi-blouse{padding:0!important;overflow:hidden!important;background:#fff!important;border:1px solid #cfc0f4!important}
-.nf-v130-multi-blouse>.nf-collection-title{margin:0!important;padding:12px 15px!important;border-radius:0!important;background:linear-gradient(135deg,#e3d8ff,#f0d7ff)!important;border-bottom:1px solid #d8caf4!important;color:#4d267c!important}
-.nf-v130-blouse-body{padding:10px 12px 12px;display:grid;gap:10px}
-.nf-v130-blouse-person{border:1px solid #ddd5ef;border-radius:16px;background:#fff;overflow:hidden;box-shadow:0 5px 15px rgba(52,31,86,.06)}
-.nf-v130-blouse-person-name{padding:9px 11px;background:linear-gradient(135deg,#f7f3ff,#fff4fa);border-bottom:1px solid #e3dceb;color:#4d267c;font-size:16px;font-weight:950}
-.nf-v130-person-blouse{margin:0!important;padding:0!important;border:0!important;border-radius:0!important;box-shadow:none!important;background:#fff!important}
-.nf-v130-person-blouse>.nfBlouseStatusGrid,.nf-v130-person-blouse>.nfBlouseHandoverGrid,.nf-v130-person-blouse>.nf-garment-subtitle,.nf-v130-person-blouse>.nfChudiTotalBox,.nf-v130-person-blouse>.nfChudiHandoverGrid{margin-left:12px;margin-right:12px}
-.nf-v130-person-blouse>.nfBlouseStatusGrid{margin-top:10px}
-.nf-v130-person-blouse>.nfChudiHandoverGrid{margin-bottom:10px}
-@media(max-width:560px){.nf-v130-blouse-body{padding:8px}.nf-v130-blouse-person{border-radius:14px}.nf-v130-blouse-person-name{font-size:15px;padding:8px 10px}.nf-v130-multi-blouse>.nf-collection-title{padding:11px 12px!important}}
+.nf-v132-multi-blouse{padding:0!important;overflow:hidden!important;background:#fff!important;border:1px solid #cfc0f4!important}
+.nf-v132-multi-blouse>.nf-collection-title{margin:0!important;padding:12px 15px!important;border-radius:0!important;background:linear-gradient(135deg,#e3d8ff,#f0d7ff)!important;border-bottom:1px solid #d8caf4!important;color:#4d267c!important}
+.nf-v132-blouse-body{padding:10px 12px 12px;display:grid;gap:10px}
+.nf-v132-blouse-person{border:1px solid #ddd5ef;border-radius:16px;background:#fff;overflow:hidden;box-shadow:0 5px 15px rgba(52,31,86,.06)}
+.nf-v132-blouse-person-name{padding:9px 11px;background:linear-gradient(135deg,#f7f3ff,#fff4fa);border-bottom:1px solid #e3dceb;color:#4d267c;font-size:16px;font-weight:950}
+.nf-v132-person-blouse{margin:0!important;padding:0!important;border:0!important;border-radius:0!important;box-shadow:none!important;background:#fff!important}
+.nf-v132-person-blouse>.nfBlouseStatusGrid,.nf-v132-person-blouse>.nfBlouseHandoverGrid,.nf-v132-person-blouse>.nf-garment-subtitle,.nf-v132-person-blouse>.nfChudiTotalBox,.nf-v132-person-blouse>.nfChudiHandoverGrid{margin-left:12px;margin-right:12px}
+.nf-v132-person-blouse>.nfBlouseStatusGrid{margin-top:10px}
+.nf-v132-person-blouse>.nfChudiHandoverGrid{margin-bottom:10px}
+@media(max-width:560px){.nf-v132-blouse-body{padding:8px}.nf-v132-blouse-person{border-radius:14px}.nf-v132-blouse-person-name{font-size:15px;padding:8px 10px}.nf-v132-multi-blouse>.nf-collection-title{padding:11px 12px!important}}
 </style><script id="nf-v170-calc-hooks-scroll-js">
 /* V22: superseded by the single stable customer-group renderer. */
 </script><style id="nf-v170-calc-hooks-scroll-css">
@@ -13316,7 +13319,7 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
     return person;
   }
   function stripOld(card){
-    [".nf-v210-four-hook-group",".nf-v220-four-hook-group",".nf-v230-four-hook-group",".nf-v240-four-hook-group",".nf-v120-multi-cash-wrap",".nf-v160-multi-calculation",".nf-v130-multi-blouse",".nfCustomerBreakdownMount",".nf-cash-collection",".nf-blouse-collection",".nf-customer-cloth-photo-manager",".nf-delivery-card"].forEach(function(sel){card.querySelectorAll(":scope > "+sel).forEach(function(x){x.remove();});});
+    [".nf-v210-four-hook-group",".nf-v220-four-hook-group",".nf-v230-four-hook-group",".nf-v240-four-hook-group",".nf-v120-multi-cash-wrap",".nf-v160-multi-calculation",".nf-v132-multi-blouse",".nfCustomerBreakdownMount",".nf-cash-collection",".nf-blouse-collection",".nf-customer-cloth-photo-manager",".nf-delivery-card"].forEach(function(sel){card.querySelectorAll(":scope > "+sel).forEach(function(x){x.remove();});});
   }
   function moveGroupBeforePhotos(card,group){
     /* V29: photo managers live inside each customer's 5th hook.
@@ -13547,7 +13550,22 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
   function setLoading(on){if(loading)loading.style.display=on?"block":"none";}
   function cleanup(){if(currentBlobUrl){try{URL.revokeObjectURL(currentBlobUrl)}catch(e){}currentBlobUrl="";}currentBlob=null;currentCustomerId="";setScale(1);stage.scrollTop=0;stage.scrollLeft=0;setLoading(false);}
   function finishClose(){requestSeq++;overlay.classList.remove("open");overlay.setAttribute("aria-hidden","true");document.body.style.overflow="";cleanup();closing=false;}
-  function close(useHistory){if(!overlay.classList.contains("open"))return;if(closing)return;closing=true;requestSeq++;overlay.classList.remove("open");overlay.setAttribute("aria-hidden","true");document.body.style.overflow="";cleanup();if(useHistory&&historyOpen){historyOpen=false;try{history.back();}catch(e){closing=false;}}else{historyOpen=false;closing=false;}}
+  function close(useHistory){
+  if(!overlay.classList.contains("open"))return;
+  if(closing)return;
+  closing=true;
+  var hadHistory=!!(useHistory&&historyOpen);
+  requestSeq++;
+  overlay.classList.remove("open");
+  overlay.setAttribute("aria-hidden","true");
+  document.body.style.overflow="";
+  cleanup();
+  historyOpen=false;
+  closing=false;
+  if(hadHistory){
+    try{history.back();}catch(e){}
+  }
+}
   function openBase(label,kind,customerId){
     requestSeq++;var token=requestSeq;currentBlob=null;currentKind=kind||"delivery";currentCustomerId=String(customerId||"");title.textContent=label||"Card Preview";img.removeAttribute("src");setScale(1);setLoading(true);overlay.classList.add("open");overlay.setAttribute("aria-hidden","false");document.body.style.overflow="hidden";
     if(!historyOpen){var base=history.state||{view:"delivery"};var next=Object.assign({},base,{__nfDeliveryPreview:true});try{history.pushState(next,"",location.href);historyOpen=true;}catch(e){historyOpen=false;}}
