@@ -10794,7 +10794,7 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
     var bw=(inner-24)/3;[['TOTAL AMOUNT',sum.total,'#5e3be0'],['PAID AMOUNT',sum.paid,'#0e9367'],['BALANCE',sum.balance,'#db3f6b']].forEach(function(a,i){var x=pad+i*(bw+12);roundRect(ctx,x,y,bw,payH,18,a[2]);drawText(ctx,a[0],x+18,y+36,21,900,'#fff');drawText(ctx,moneyText(a[1]),x+18,y+83,38,950,'#fff');});y+=payH;
     if(photos.length){
       y+=16;var pg=ctx.createLinearGradient(pad,y,W-pad,y);pg.addColorStop(0,'#7112c4');pg.addColorStop(1,'#d30a61');ctx.fillStyle=pg;ctx.fillRect(pad,y,inner,photoTitleH);drawText(ctx,'📸 CUSTOMER PHOTOS',pad+24,y+33,30,950,'#fff');y+=photoTitleH+10;
-      for(var i=0;i<photos.length;i++){var p=photos[i],col=i%2,row=Math.floor(i/2),x=pad+col*((inner-18)/2),yy=y+row*(photoCellH+gap),cw=(inner-18)/2;roundRect(ctx,x,yy,cw,photoCellH,16,'#fff','#d36b9c',2);drawText(ctx,p.customerName||'Customer',x+18,yy+27,22,950,'#6e1e56');if(p.src)try{var im=await new Promise(function(resolve,reject){var z=new Image();z.onload=function(){resolve(z)};z.onerror=reject;z.src=p.src;});var sc=Math.min((cw-36)/im.width,220/im.height),dw=im.width*sc,dh=im.height*sc;ctx.drawImage(im,x+cw/2-dw/2,yy+140-dh/2,dw,dh);}catch(e){} }
+      for(var i=0;i<photos.length;i++){var p=photos[i],col=i%2,row=Math.floor(i/2),x=pad+col*((inner-18)/2),yy=y+row*(photoCellH+gap),cw=(inner-18)/2;roundRect(ctx,x,yy,cw,photoCellH,16,'#fff','#d36b9c',2);drawText(ctx,p.customerName||'Customer',x+18,yy+27,22,950,'#6e1e56');if(p.src)try{var im=await new Promise(function(resolve,reject){var z=new Image();z.crossOrigin='anonymous';z.onload=function(){resolve(z)};z.onerror=reject;z.src=p.src;});var sc=Math.min((cw-36)/im.width,220/im.height),dw=im.width*sc,dh=im.height*sc;ctx.drawImage(im,x+cw/2-dw/2,yy+140-dh/2,dw,dh);}catch(e){} }
       y+=photoRows*(photoCellH+gap)-gap;
     }
     y+=22;var fg=ctx.createLinearGradient(pad,y,W-pad,y);fg.addColorStop(0,'#24105d');fg.addColorStop(1,'#b80c61');roundRect(ctx,pad,y,inner,128,20,fg);drawText(ctx,'Thank you for choosing us!',W/2,y+38,34,950,'#ffd84c','center');drawText(ctx,'NEW FASHION TAILORING',W/2,y+78,27,950,'#fff','center');drawText(ctx,'☎ PHONE: 8524931003',W/2,y+108,34,950,'#fff','center');
@@ -10859,25 +10859,78 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
         });
       }catch(e){}
     });
-    /* Prefer local data URLs, otherwise hydrate/fetch the R2 object. */
+    /* Resolve saved photos directly from R2. Do not depend on the local photo-count/cache mapping. */
+    async function blobToDataPhoto(pb,meta){
+      if(!pb)return null;
+      try{
+        var purl=await new Promise(function(resolve,reject){var fr=new FileReader();fr.onload=function(){resolve(String(fr.result||''));};fr.onerror=reject;fr.readAsDataURL(pb);});
+        return /^data:image\//i.test(purl)?Object.assign({},meta,{src:purl}):null;
+      }catch(_){return null;}
+    }
     async function resolvePhoto(p){
       if(!p)return null;
       var src=String(p.src||'');
       if(/^data:image\//i.test(src))return Object.assign({},p,{src:src});
       var candidates=[];
       if(p.cloudPath&&typeof nfR2PhotoUrl==='function')candidates.push(nfR2PhotoUrl(p.cloudPath));
-      if(src)candidates.push(src);
+      if(src && candidates.indexOf(src)<0)candidates.push(src);
+      /* R2 can be briefly slow on mobile; retry each cloud URL before giving up. */
       for(var ci=0;ci<candidates.length;ci++){
-        try{
-          if(typeof nfWacFetchBlob==='function'){
-            var pb=await nfWacFetchBlob(candidates[ci],7000);
-            var purl=await new Promise(function(resolve,reject){var fr=new FileReader();fr.onload=function(){resolve(String(fr.result||''));};fr.onerror=reject;fr.readAsDataURL(pb);});
-            if(/^data:image\//i.test(purl))return Object.assign({},p,{src:purl});
-          }
-        }catch(_){}
+        for(var attempt=0;attempt<3;attempt++){
+          try{
+            var pb=await nfWacFetchBlob(candidates[ci],9000);
+            var got=await blobToDataPhoto(pb,p);
+            if(got)return got;
+          }catch(_){}
+          if(attempt<2)await new Promise(function(r){setTimeout(r,250)});
+        }
       }
       return null;
     }
+    async function discoverR2DeliveryPhotos(customerId){
+      var foundGiven=[],foundPending=[];
+      var dst=typeof customerStats==='function'?customerStats(customerId):{};
+      var defs=[
+        ['normal','given',dst.handedNormal],['normal','pending',dst.pendingNormal],
+        ['lining','given',dst.handedLining],['lining','pending',dst.pendingLining],
+        ['design','given',dst.handedDesign],['design','pending',dst.pendingDesign],
+        ['chudi','given',dst.handedChudi],['chudi','pending',dst.pendingChudi]
+      ];
+      var jobs=[];
+      defs.forEach(function(d){
+        var limit=Math.min(NF_DELIVERY_SLOT_CAP,8,Math.max(0,Number(d[2]||0)));
+        for(var slot=0;slot<limit;slot++){
+          var path=nfDeliveryPhotoPath(customerId,d[0],d[1],slot);
+          jobs.push({type:d[1],path:path,slot:slot});
+        }
+      });
+      var results=await Promise.all(jobs.map(async function(j){
+        try{
+          var url=nfR2PhotoUrl(j.path),pb=await nfWacFetchBlob(url,9000);
+          return await blobToDataPhoto(pb,{src:'',cloudPath:j.path,name:'Delivery '+j.type+' '+(j.slot+1),photoType:j.type,slot:j.slot});
+        }catch(_){return null;}
+      }));
+      results.forEach(function(x){
+        if(!x)return;
+        if(x.photoType==='given'){if(foundGiven.length<8)foundGiven.push(x)}
+        else if(x.photoType==='pending'){if(foundPending.length<8)foundPending.push(x)}
+      });
+      return {given:foundGiven,pending:foundPending};
+    }
+    var cloudPhotoMap=Object.create(null);
+    for(var ci2=0;ci2<people.length;ci2++){
+      try{cloudPhotoMap[String(people[ci2].id)]=await discoverR2DeliveryPhotos(String(people[ci2].id));}catch(_){cloudPhotoMap[String(people[ci2].id)]={given:[],pending:[]};}
+    }
+    /* Merge locally known photos with direct R2 discovery, de-duplicating by cloud path. */
+    function mergePhotos(localArr,cloudArr){
+      var out=[],seen=new Set();
+      (localArr||[]).concat(cloudArr||[]).forEach(function(x){var k=String(x?.cloudPath||x?.src||'');if(!x||seen.has(k))return;seen.add(k);out.push(x);});
+      return out;
+    }
+    var mergedGiven=[],mergedPending=[];
+    group.forEach(function(c){var m=cloudPhotoMap[String(c.id)]||{given:[],pending:[]};mergedGiven=mergedGiven.concat(m.given||[]);mergedPending=mergedPending.concat(m.pending||[]);});
+    givenPhotos=mergePhotos(givenPhotos,mergedGiven);
+    pendingPhotos=mergePhotos(pendingPhotos,mergedPending);
     var allPhotoSets=[['given',givenPhotos],['pending',pendingPhotos]],resolvedGiven=[],resolvedPending=[];
     for(var psi=0;psi<allPhotoSets.length;psi++){
       var arrp=allPhotoSets[psi][1],outp=allPhotoSets[psi][0]==='given'?resolvedGiven:resolvedPending;
