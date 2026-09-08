@@ -22,33 +22,20 @@ export default {
       });
     }
 
-    /* =========================================================
-       CUSTOMER FULL DELETE
-       Customer + Orders + Payments + Measurements +
-       Alterations + Designs + R2 files
-       ========================================================= */
-
-    if (
-      url.pathname === "/api/customer-delete" &&
-      request.method === "POST"
-    ) {
+    if (url.pathname === "/api/db" && request.method === "POST") {
       const auth = request.headers.get("Authorization") || "";
       const token = auth.startsWith("Bearer ")
         ? auth.slice(7)
         : "";
 
       if (!token) {
-        return json({
-          error: "Authentication required"
-        }, 401);
+        return json({ error: "Authentication required" }, 401);
       }
 
       const user = await verifySupabaseUser(token);
 
       if (!user?.id) {
-        return json({
-          error: "Invalid session"
-        }, 401);
+        return json({ error: "Invalid session" }, 401);
       }
 
       let body;
@@ -56,221 +43,186 @@ export default {
       try {
         body = await request.json();
       } catch {
-        return json({
-          error: "Invalid JSON"
-        }, 400);
+        return json({ error: "Invalid JSON" }, 400);
       }
 
-      const customerId = String(
-        body?.customer_id || ""
-      ).trim();
+      const table = String(body.table || "");
 
-      if (!customerId) {
-        return json({
-          error: "customer_id is required"
-        }, 400);
+      if (!TABLES.has(table)) {
+        return json({ error: "Invalid table" }, 400);
       }
 
       try {
-        /* Verify customer belongs to current user */
+        const op = String(body.operation || "select");
+        const filters = Array.isArray(body.filters)
+          ? body.filters
+          : [];
 
-        const customer = await env.DB
-          .prepare(
-            `SELECT id
-             FROM customers
-             WHERE id = ?
-             AND owner_id = ?
-             LIMIT 1`
-          )
-          .bind(customerId, user.id)
-          .first();
+        if (op === "select") {
+          let sql =
+            `SELECT * FROM ${table} WHERE owner_id = ?`;
 
-        if (!customer) {
+          const args = [user.id];
+
+          addFilters(filters, (s, a) => {
+            sql += s;
+            args.push(...a);
+          });
+
+          if (body.order?.field) {
+            sql +=
+              ` ORDER BY ${safeCol(body.order.field)} ` +
+              `${body.order.ascending === false ? "DESC" : "ASC"}`;
+          }
+
+          const r = await env.DB
+            .prepare(sql)
+            .bind(...args)
+            .all();
+
+          const rows = r.results || [];
+
+          if (body.single === "single") {
+            if (rows.length !== 1) {
+              return json({
+                data: null,
+                error: rows.length
+                  ? "Multiple rows returned"
+                  : "No rows found"
+              });
+            }
+
+            return json({
+              data: rows[0],
+              error: null
+            });
+          }
+
           return json({
-            error: "Customer not found"
-          }, 404);
+            data:
+              body.single === "maybe"
+                ? rows[0] || null
+                : rows,
+            error: null
+          });
         }
 
-        /* Get all orders first */
+        if (op === "insert") {
+          const input = Array.isArray(body.payload)
+            ? body.payload
+            : [body.payload];
 
-        const orderResult = await env.DB
-          .prepare(
-            `SELECT id
-             FROM orders
-             WHERE customer_id = ?
-             AND owner_id = ?`
-          )
-          .bind(customerId, user.id)
-          .all();
+          const out = [];
 
-        const orderIds = (orderResult.results || [])
-          .map(row => String(row.id))
-          .filter(Boolean);
+          for (const raw of input) {
+            const row = { ...(raw || {}) };
 
-        /* -----------------------------------------------------
-           D1 DELETE
-           ----------------------------------------------------- */
+            row.id ||= crypto.randomUUID();
+            row.owner_id = user.id;
+            row.created_at ||= new Date().toISOString();
+            row.updated_at ||= row.created_at;
 
-        const statements = [];
+            await insertRow(env.DB, table, row);
 
-        /* Payments */
+            out.push(row);
+          }
 
-        statements.push(
-          env.DB
-            .prepare(
-              `DELETE FROM payments
-               WHERE owner_id = ?
-               AND (
-                 customer_id = ?
-                 OR order_id IN (
-                   SELECT id
-                   FROM orders
-                   WHERE customer_id = ?
-                   AND owner_id = ?
-                 )
-               )`
-            )
-            .bind(
-              user.id,
-              customerId,
-              customerId,
-              user.id
-            )
-        );
-
-        /* Alterations */
-
-        statements.push(
-          env.DB
-            .prepare(
-              `DELETE FROM alterations
-               WHERE owner_id = ?
-               AND (
-                 customer_id = ?
-                 OR order_id IN (
-                   SELECT id
-                   FROM orders
-                   WHERE customer_id = ?
-                   AND owner_id = ?
-                 )
-               )`
-            )
-            .bind(
-              user.id,
-              customerId,
-              customerId,
-              user.id
-            )
-        );
-
-        /* Measurements */
-
-        statements.push(
-          env.DB
-            .prepare(
-              `DELETE FROM measurements
-               WHERE customer_id = ?
-               AND owner_id = ?`
-            )
-            .bind(
-              customerId,
-              user.id
-            )
-        );
-
-        /* Designs */
-
-        statements.push(
-          env.DB
-            .prepare(
-              `DELETE FROM designs
-               WHERE customer_id = ?
-               AND owner_id = ?`
-            )
-            .bind(
-              customerId,
-              user.id
-            )
-        );
-
-        /* Orders */
-
-        statements.push(
-          env.DB
-            .prepare(
-              `DELETE FROM orders
-               WHERE customer_id = ?
-               AND owner_id = ?`
-            )
-            .bind(
-              customerId,
-              user.id
-            )
-        );
-
-        /* Customer */
-
-        statements.push(
-          env.DB
-            .prepare(
-              `DELETE FROM customers
-               WHERE id = ?
-               AND owner_id = ?`
-            )
-            .bind(
-              customerId,
-              user.id
-            )
-        );
-
-        await env.DB.batch(statements);
-
-        /* -----------------------------------------------------
-           R2 DELETE
-           ----------------------------------------------------- */
-
-        const prefixes = [
-          `${customerId}/`,
-          `customers/${customerId}/`
-        ];
-
-        for (const orderId of orderIds) {
-          prefixes.push(`orders/${orderId}/`);
+          return json({
+            data: body.single
+              ? out[0] || null
+              : out,
+            error: null
+          });
         }
 
-        for (const prefix of prefixes) {
-          await deleteR2Prefix(
-            env.MY_BUCKET,
-            prefix
+        if (op === "update") {
+          const payload = {
+            ...(body.payload || {})
+          };
+
+          delete payload.id;
+          delete payload.owner_id;
+
+          const cols = Object.keys(payload)
+            .filter(validCol);
+
+          if (!cols.length) {
+            return json({
+              data: [],
+              error: null
+            });
+          }
+
+          let sql =
+            `UPDATE ${table} SET ` +
+            `${cols
+              .map(c => `${safeCol(c)} = ?`)
+              .join(", ")}, updated_at = ? ` +
+            `WHERE owner_id = ?`;
+
+          const args = cols.map(c => payload[c]);
+
+          args.push(
+            new Date().toISOString(),
+            user.id
+          );
+
+          addFilters(filters, (s, a) => {
+            sql += s;
+            args.push(...a);
+          });
+
+          await env.DB
+            .prepare(sql)
+            .bind(...args)
+            .run();
+
+          return selectAfter(
+            env.DB,
+            table,
+            user.id,
+            filters,
+            body.single
           );
         }
 
+        if (op === "delete") {
+          let sql =
+            `DELETE FROM ${table} WHERE owner_id = ?`;
+
+          const args = [user.id];
+
+          addFilters(filters, (s, a) => {
+            sql += s;
+            args.push(...a);
+          });
+
+          await env.DB
+            .prepare(sql)
+            .bind(...args)
+            .run();
+
+          return json({
+            data: null,
+            error: null
+          });
+        }
+
         return json({
-          ok: true,
-          customer_id: customerId,
-          order_ids: orderIds,
-          deleted: {
-            customer: true,
-            orders: orderIds.length,
-            r2: true
-          }
-        });
+          error: "Unsupported operation"
+        }, 400);
 
       } catch (e) {
         return json({
-          error: String(
-            e?.message || e
-          )
+          error: String(e?.message || e)
         }, 500);
       }
     }
 
-    /* =========================================================
-       D1 API
-       ========================================================= */
+    /* CUSTOMER CASCADE DELETE */
 
     if (
-      url.pathname === "/api/db" &&
+      url.pathname === "/api/customer-delete" &&
       request.method === "POST"
     ) {
       const auth =
@@ -306,220 +258,250 @@ export default {
         }, 400);
       }
 
-      const table =
-        String(body.table || "");
+      const customerId =
+        String(body.customer_id || "").trim();
 
-      if (!TABLES.has(table)) {
+      if (!customerId) {
         return json({
-          error: "Invalid table"
+          error: "customer_id is required"
         }, 400);
       }
 
       try {
-        const op =
-          String(body.operation || "select");
+        const customer =
+          await env.DB
+            .prepare(
+              `SELECT id
+               FROM customers
+               WHERE id = ?
+               AND owner_id = ?
+               LIMIT 1`
+            )
+            .bind(
+              customerId,
+              user.id
+            )
+            .first();
 
-        const filters =
-          Array.isArray(body.filters)
-            ? body.filters
-            : [];
-
-        if (op === "select") {
-          let sql =
-            `SELECT * FROM ${table} WHERE owner_id = ?`;
-
-          const args = [user.id];
-
-          addFilters(
-            filters,
-            (s, a) => {
-              sql += s;
-              args.push(...a);
-            }
-          );
-
-          if (body.order?.field) {
-            sql +=
-              ` ORDER BY ${safeCol(body.order.field)} ` +
-              `${body.order.ascending === false
-                ? "DESC"
-                : "ASC"}`;
-          }
-
-          const r =
-            await env.DB
-              .prepare(sql)
-              .bind(...args)
-              .all();
-
-          const rows =
-            r.results || [];
-
-          if (body.single === "single") {
-            if (rows.length !== 1) {
-              return json({
-                data: null,
-                error:
-                  rows.length
-                    ? "Multiple rows returned"
-                    : "No rows found"
-              });
-            }
-
-            return json({
-              data: rows[0],
-              error: null
-            });
-          }
-
+        if (!customer) {
           return json({
-            data:
-              body.single === "maybe"
-                ? rows[0] || null
-                : rows,
-            error: null
-          });
+            error: "Customer not found"
+          }, 404);
         }
 
-        if (op === "insert") {
-          const input =
-            Array.isArray(body.payload)
-              ? body.payload
-              : [body.payload];
+        const orderResult =
+          await env.DB
+            .prepare(
+              `SELECT id
+               FROM orders
+               WHERE customer_id = ?
+               AND owner_id = ?`
+            )
+            .bind(
+              customerId,
+              user.id
+            )
+            .all();
 
-          const out = [];
+        const orderIds =
+          (orderResult.results || [])
+            .map(row => String(row.id || ""))
+            .filter(Boolean);
 
-          for (const raw of input) {
-            const row = {
-              ...(raw || {})
+        const statements = [];
+
+        statements.push(
+          env.DB.prepare(
+            `DELETE FROM payments
+             WHERE owner_id = ?
+             AND customer_id = ?`
+          ).bind(
+            user.id,
+            customerId
+          )
+        );
+
+        for (const orderId of orderIds) {
+          statements.push(
+            env.DB.prepare(
+              `DELETE FROM payments
+               WHERE owner_id = ?
+               AND order_id = ?`
+            ).bind(
+              user.id,
+              orderId
+            )
+          );
+        }
+
+        statements.push(
+          env.DB.prepare(
+            `DELETE FROM alterations
+             WHERE owner_id = ?
+             AND customer_id = ?`
+          ).bind(
+            user.id,
+            customerId
+          )
+        );
+
+        for (const orderId of orderIds) {
+          statements.push(
+            env.DB.prepare(
+              `DELETE FROM alterations
+               WHERE owner_id = ?
+               AND order_id = ?`
+            ).bind(
+              user.id,
+              orderId
+            )
+          );
+        }
+
+        statements.push(
+          env.DB.prepare(
+            `DELETE FROM measurements
+             WHERE owner_id = ?
+             AND customer_id = ?`
+          ).bind(
+            user.id,
+            customerId
+          )
+        );
+
+        statements.push(
+          env.DB.prepare(
+            `DELETE FROM designs
+             WHERE owner_id = ?
+             AND customer_id = ?`
+          ).bind(
+            user.id,
+            customerId
+          )
+        );
+
+        statements.push(
+          env.DB.prepare(
+            `DELETE FROM orders
+             WHERE owner_id = ?
+             AND customer_id = ?`
+          ).bind(
+            user.id,
+            customerId
+          )
+        );
+
+        /* CUSTOMER DELETE */
+
+        const customerDelete =
+          await env.DB
+            .prepare(
+              `DELETE FROM customers
+               WHERE id = ?
+               RETURNING id`
+            )
+            .bind(customerId)
+            .all();
+
+        const deletedCustomerIds =
+          customerDelete.results || [];
+
+        if (deletedCustomerIds.length !== 1) {
+          throw new Error(
+            "Customer D1 delete failed"
+          );
+        }
+
+        const customerStillThere =
+          await env.DB
+            .prepare(
+              `SELECT id
+               FROM customers
+               WHERE id = ?
+               LIMIT 1`
+            )
+            .bind(customerId)
+            .first();
+
+        if (customerStillThere) {
+          throw new Error(
+            "Customer D1 delete failed: customer row still exists"
+          );
+        }
+
+        const prefixes = new Set([
+          `${customerId}/`,
+          `customers/${customerId}/`
+        ]);
+
+        for (const orderId of orderIds) {
+          prefixes.add(
+            `orders/${orderId}/`
+          );
+        }
+
+        let deletedObjects = 0;
+
+        for (const prefix of prefixes) {
+          let cursor;
+
+          do {
+            const listOptions = {
+              prefix,
+              limit: 1000
             };
 
-            row.id ||= crypto.randomUUID();
-            row.owner_id = user.id;
-            row.created_at ||=
-              new Date().toISOString();
-            row.updated_at ||=
-              row.created_at;
-
-            await insertRow(
-              env.DB,
-              table,
-              row
-            );
-
-            out.push(row);
-          }
-
-          return json({
-            data:
-              body.single
-                ? out[0] || null
-                : out,
-            error: null
-          });
-        }
-
-        if (op === "update") {
-          const payload = {
-            ...(body.payload || {})
-          };
-
-          delete payload.id;
-          delete payload.owner_id;
-
-          const cols =
-            Object.keys(payload)
-              .filter(validCol);
-
-          if (!cols.length) {
-            return json({
-              data: [],
-              error: null
-            });
-          }
-
-          let sql =
-            `UPDATE ${table} SET ` +
-            `${cols
-              .map(
-                c =>
-                  `${safeCol(c)} = ?`
-              )
-              .join(", ")}, updated_at = ? ` +
-            `WHERE owner_id = ?`;
-
-          const args =
-            cols.map(c => payload[c]);
-
-          args.push(
-            new Date().toISOString(),
-            user.id
-          );
-
-          addFilters(
-            filters,
-            (s, a) => {
-              sql += s;
-              args.push(...a);
+            if (cursor) {
+              listOptions.cursor = cursor;
             }
-          );
 
-          await env.DB
-            .prepare(sql)
-            .bind(...args)
-            .run();
+            const listed =
+              await env.MY_BUCKET.list(
+                listOptions
+              );
 
-          return selectAfter(
-            env.DB,
-            table,
-            user.id,
-            filters,
-            body.single
-          );
-        }
+            const keys =
+              (listed.objects || [])
+                .map(obj => obj.key)
+                .filter(Boolean);
 
-        if (op === "delete") {
-          let sql =
-            `DELETE FROM ${table}
-             WHERE owner_id = ?`;
-
-          const args = [user.id];
-
-          addFilters(
-            filters,
-            (s, a) => {
-              sql += s;
-              args.push(...a);
+            if (keys.length) {
+              await env.MY_BUCKET.delete(keys);
+              deletedObjects += keys.length;
             }
-          );
 
-          await env.DB
-            .prepare(sql)
-            .bind(...args)
-            .run();
+            cursor =
+              listed.truncated
+                ? listed.cursor
+                : undefined;
 
-          return json({
-            data: null,
-            error: null
-          });
+          } while (cursor);
         }
 
         return json({
-          error: "Unsupported operation"
-        }, 400);
+          ok: true,
+          customer_id: customerId,
+          order_ids: orderIds,
+          orders_deleted: orderIds.length,
+          r2_objects_deleted: deletedObjects
+        });
 
       } catch (e) {
+        console.error(
+          "Customer cascade delete failed:",
+          e
+        );
+
         return json({
+          ok: false,
           error: String(
             e?.message || e
           )
         }, 500);
       }
-    }
-
-    /* =========================================================
+          }    /* =========================
        R2 TEST
-       ========================================================= */
+    ========================= */
 
     if (
       url.pathname === "/api/r2-test"
@@ -542,9 +524,10 @@ export default {
       );
     }
 
-    /* =========================================================
-       R2 PUT
-       ========================================================= */
+
+    /* =========================
+       R2 PUT / UPLOAD
+    ========================= */
 
     if (
       url.pathname.startsWith("/api/r2/") &&
@@ -587,9 +570,10 @@ export default {
       });
     }
 
-    /* =========================================================
-       R2 GET
-       ========================================================= */
+
+    /* =========================
+       R2 GET / DOWNLOAD
+    ========================= */
 
     if (
       url.pathname.startsWith("/api/r2/") &&
@@ -635,9 +619,10 @@ export default {
       );
     }
 
-    /* =========================================================
+
+    /* =========================
        R2 DELETE
-       ========================================================= */
+    ========================= */
 
     if (
       url.pathname.startsWith("/api/r2/") &&
@@ -658,9 +643,10 @@ export default {
       });
     }
 
-    /* =========================================================
-       ASSETS
-       ========================================================= */
+
+    /* =========================
+       STATIC ASSETS
+    ========================= */
 
     if (env.ASSETS?.fetch) {
       return env.ASSETS.fetch(request);
@@ -677,50 +663,16 @@ export default {
 };
 
 
-/* =============================================================
-   R2 PREFIX DELETE
-   ============================================================= */
-
-async function deleteR2Prefix(
-  bucket,
-  prefix
-) {
-  let cursor;
-
-  do {
-    const result =
-      await bucket.list({
-        prefix,
-        cursor,
-        limit: 1000
-      });
-
-    const keys =
-      (result.objects || [])
-        .map(obj => obj.key);
-
-    if (keys.length) {
-      await bucket.delete(keys);
-    }
-
-    cursor =
-      result.truncated
-        ? result.cursor
-        : undefined;
-
-  } while (cursor);
-}
-
-
-/* =============================================================
-   SQL HELPERS
-   ============================================================= */
+/* =====================================================
+   HELPERS
+===================================================== */
 
 function validCol(c) {
   return /^[A-Za-z_][A-Za-z0-9_]*$/.test(
     String(c || "")
   );
 }
+
 
 function safeCol(c) {
   if (!validCol(c)) {
@@ -732,12 +684,15 @@ function safeCol(c) {
   return c;
 }
 
+
 function addFilters(filters, add) {
   for (const f of filters) {
+
     const field =
       safeCol(f.field);
 
     if (Array.isArray(f.__in)) {
+
       if (!f.__in.length) {
         add(
           [` AND 0`],
@@ -749,9 +704,8 @@ function addFilters(filters, add) {
       add(
         [
           ` AND ${field} IN (` +
-          `${f.__in
-            .map(() => "?")
-            .join(",")})`
+          `${f.__in.map(() => "?").join(",")}` +
+          `)`
         ],
         f.__in
       );
@@ -762,12 +716,14 @@ function addFilters(filters, add) {
         "__gt"
       )
     ) {
+
       add(
         [` AND ${field} > ?`],
         [f.__gt]
       );
 
     } else {
+
       add(
         [` AND ${field} = ?`],
         [f.value]
@@ -776,10 +732,6 @@ function addFilters(filters, add) {
   }
 }
 
-
-/* =============================================================
-   INSERT
-   ============================================================= */
 
 async function insertRow(
   db,
@@ -806,10 +758,6 @@ async function insertRow(
 }
 
 
-/* =============================================================
-   SELECT AFTER UPDATE
-   ============================================================= */
-
 async function selectAfter(
   db,
   table,
@@ -818,8 +766,8 @@ async function selectAfter(
   single
 ) {
   let sql =
-    `SELECT * FROM ${table}
-     WHERE owner_id = ?`;
+    `SELECT * FROM ${table} ` +
+    `WHERE owner_id = ?`;
 
   const args = [owner];
 
@@ -841,6 +789,7 @@ async function selectAfter(
     r.results || [];
 
   if (single === "single") {
+
     if (rows.length !== 1) {
       return json({
         data: null,
@@ -867,10 +816,6 @@ async function selectAfter(
 }
 
 
-/* =============================================================
-   SUPABASE AUTH
-   ============================================================= */
-
 async function verifySupabaseUser(
   token
 ) {
@@ -879,8 +824,7 @@ async function verifySupabaseUser(
       `${SUPABASE_URL}/auth/v1/user`,
       {
         headers: {
-          apikey:
-            SUPABASE_ANON_KEY,
+          apikey: SUPABASE_ANON_KEY,
           Authorization:
             `Bearer ${token}`
         }
@@ -895,10 +839,6 @@ async function verifySupabaseUser(
 }
 
 
-/* =============================================================
-   CORS
-   ============================================================= */
-
 function cors() {
   return {
     "Access-Control-Allow-Origin": "*",
@@ -912,10 +852,6 @@ function cors() {
 }
 
 
-/* =============================================================
-   JSON
-   ============================================================= */
-
 function json(
   data,
   status = 200
@@ -927,4 +863,4 @@ function json(
       headers: cors()
     }
   );
-              }
+}
