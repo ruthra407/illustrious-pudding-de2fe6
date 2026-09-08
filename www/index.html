@@ -4545,6 +4545,7 @@ async function deleteCustomer(id){
    if(measurementError)throw measurementError;
    const {error:orderError}=await supabaseClient.from("orders").delete().eq("customer_id",id);
    if(orderError)throw orderError;
+   await nfDeleteCustomerR2Photos(id, orders);
    const {error:customerError}=await supabaseClient.from("customers").delete().eq("id",id);
    if(customerError)throw customerError;
    localStorage.removeItem("nf_village_"+id);
@@ -9288,6 +9289,40 @@ setTimeout(decorateAll,100);
     }
   };
 
+  /* V122 FIX — delete every R2 object belonging to a customer. */
+  const nfDeleteCustomerR2Photos = async function(customerId, orders){
+    const id = String(customerId || "");
+    if(!id) return;
+    const paths = new Set();
+    const add = function(v){ if(v) paths.add(String(v)); };
+    for(let slot=0; slot<4; slot++) add(nfCloudPhotoPath(id, slot));
+    for(let slot=0; slot<8; slot++) add(nfBlouseDesignPhotoPath(id, slot));
+    add(nfCustomerDesignIndexPath(id));
+    const cap = Number(typeof NF_DELIVERY_SLOT_CAP === "number" ? NF_DELIVERY_SLOT_CAP : 4);
+    for(const type of ["normal","lining","design","chudi"]){
+      for(const status of ["given","pending"]){
+        for(let slot=0; slot<cap; slot++) add(nfDeliveryPhotoPath(id,type,status,slot));
+      }
+    }
+    for(const o of (Array.isArray(orders) ? orders : [])){
+      const oid=String(o?.id||"");
+      if(oid) for(let slot=0;slot<3;slot++){
+        add(nfOrderPhotoPath(id,oid,"",slot,"cloth"));
+        add(nfOrderPhotoPath(id,oid,"",slot,"design"));
+      }
+      try{
+        const items=typeof window.nfDesignItems==="function"?window.nfDesignItems(o):[];
+        for(const item of (Array.isArray(items)?items:[])){
+          add(item?.clothPhotoPath); add(item?.designPhotoPath);
+        }
+      }catch(_){}
+    }
+    const list=Array.from(paths);
+    for(let i=0;i<list.length;i+=12){
+      await Promise.all(list.slice(i,i+12).map(path=>nfR2Delete(path)));
+    }
+  };
+
   const nfR2Url = function(path){
     return path ? nfR2PhotoUrl(path) : "";
   };
@@ -12869,6 +12904,7 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
     var d=await supabaseClient.from("alterations").delete().eq("customer_id",id);if(d.error)throw d.error;
     var m=await supabaseClient.from("measurements").delete().eq("customer_id",id);if(m.error)throw m.error;
     var o=await supabaseClient.from("orders").delete().eq("customer_id",id);if(o.error)throw o.error;
+    await nfDeleteCustomerR2Photos(id, orders);
     var cc=await supabaseClient.from("customers").delete().eq("id",id);if(cc.error)throw cc.error;
   }
 
