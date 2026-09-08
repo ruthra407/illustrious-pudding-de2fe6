@@ -1,108 +1,62 @@
 const SUPABASE_URL = "https://pdlsicwzfmartkwcwozx.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_eCKne6Tzs6-QYSXpJb-aSQ_6AHe8n9O";
 
-const TABLES = new Set([
-  "customers",
-  "orders",
-  "measurements",
-  "alterations",
-  "payments",
-  "designs"
-]);
+const TABLES = new Set(["customers","orders","measurements","alterations","payments","designs"]);
 
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     const corsHeaders = cors();
 
-    if (request.method === "OPTIONS") {
-      return new Response("", {
-        status: 204,
-        headers: corsHeaders
-      });
-    }
+    if (request.method === "OPTIONS") return new Response("", { status: 204, headers: corsHeaders });
 
+    // D1 API
     if (url.pathname === "/api/db" && request.method === "POST") {
       const auth = request.headers.get("Authorization") || "";
-      const token = auth.startsWith("Bearer ")
-        ? auth.slice(7)
-        : "";
-
-      if (!token) {
-        return json({ error: "Authentication required" }, 401);
-      }
+      const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
+      if (!token) return json({ error: "Authentication required" }, 401);
 
       const user = await verifySupabaseUser(token);
-
-      if (!user?.id) {
-        return json({ error: "Invalid session" }, 401);
-      }
+      if (!user?.id) return json({ error: "Invalid session" }, 401);
 
       let body;
-
-      try {
-        body = await request.json();
-      } catch {
-        return json({ error: "Invalid JSON" }, 400);
-      }
+      try { body = await request.json(); } catch { return json({ error: "Invalid JSON" }, 400); }
 
       const table = String(body.table || "");
-
-      if (!TABLES.has(table)) {
-        return json({ error: "Invalid table" }, 400);
-      }
+      if (!TABLES.has(table)) return json({ error: "Invalid table" }, 400);
 
       try {
         const op = String(body.operation || "select");
-        const filters = Array.isArray(body.filters)
-          ? body.filters
-          : [];
+        const filters = Array.isArray(body.filters) ? body.filters : [];
 
         if (op === "select") {
-          let sql =
-            `SELECT * FROM ${table} WHERE owner_id = ?`;
-
+          let sql = `SELECT * FROM ${table} WHERE owner_id = ?`;
           const args = [user.id];
 
-          addFilters(filters, (s, a) => {
+          addFilters(filters, (s,a) => {
             sql += s;
             args.push(...a);
           });
 
           if (body.order?.field) {
-            sql +=
-              ` ORDER BY ${safeCol(body.order.field)} ` +
-              `${body.order.ascending === false ? "DESC" : "ASC"}`;
+            sql += ` ORDER BY ${safeCol(body.order.field)} ${body.order.ascending === false ? "DESC" : "ASC"}`;
           }
 
-          const r = await env.DB
-            .prepare(sql)
-            .bind(...args)
-            .all();
-
+          const r = await env.DB.prepare(sql).bind(...args).all();
           const rows = r.results || [];
 
           if (body.single === "single") {
             if (rows.length !== 1) {
               return json({
                 data: null,
-                error: rows.length
-                  ? "Multiple rows returned"
-                  : "No rows found"
+                error: rows.length ? "Multiple rows returned" : "No rows found"
               });
             }
-
-            return json({
-              data: rows[0],
-              error: null
-            });
+            return json({ data: rows[0], error: null });
           }
 
           return json({
-            data:
-              body.single === "maybe"
-                ? rows[0] || null
-                : rows,
+            data: body.single === "maybe" ? (rows[0] || null) : rows,
             error: null
           });
         }
@@ -123,310 +77,224 @@ export default {
             row.updated_at ||= row.created_at;
 
             await insertRow(env.DB, table, row);
-
             out.push(row);
           }
 
           return json({
-            data: body.single
-              ? out[0] || null
-              : out,
+            data: body.single ? (out[0] || null) : out,
             error: null
           });
         }
 
         if (op === "update") {
-          const payload = {
-            ...(body.payload || {})
-          };
+          const payload = { ...(body.payload || {}) };
 
           delete payload.id;
           delete payload.owner_id;
 
-          const cols = Object.keys(payload)
-            .filter(validCol);
+          const cols = Object.keys(payload).filter(validCol);
 
           if (!cols.length) {
-            return json({
-              data: [],
-              error: null
-            });
+            return json({ data: [], error: null });
           }
 
           let sql =
             `UPDATE ${table} SET ` +
-            `${cols
-              .map(c => `${safeCol(c)} = ?`)
-              .join(", ")}, updated_at = ? ` +
+            `${cols.map(c => `${safeCol(c)} = ?`).join(", ")}, updated_at = ? ` +
             `WHERE owner_id = ?`;
 
           const args = cols.map(c => payload[c]);
+          args.push(new Date().toISOString(), user.id);
 
-          args.push(
-            new Date().toISOString(),
-            user.id
-          );
-
-          addFilters(filters, (s, a) => {
+          addFilters(filters, (s,a) => {
             sql += s;
             args.push(...a);
           });
 
-          await env.DB
-            .prepare(sql)
-            .bind(...args)
-            .run();
+          await env.DB.prepare(sql).bind(...args).run();
 
-          return selectAfter(
-            env.DB,
-            table,
-            user.id,
-            filters,
-            body.single
-          );
+          return selectAfter(env.DB, table, user.id, filters, body.single);
         }
 
         if (op === "delete") {
-          let sql =
-            `DELETE FROM ${table} WHERE owner_id = ?`;
-
+          let sql = `DELETE FROM ${table} WHERE owner_id = ?`;
           const args = [user.id];
 
-          addFilters(filters, (s, a) => {
+          addFilters(filters, (s,a) => {
             sql += s;
             args.push(...a);
           });
 
-          await env.DB
-            .prepare(sql)
-            .bind(...args)
-            .run();
+          await env.DB.prepare(sql).bind(...args).run();
 
-          return json({
-            data: null,
-            error: null
-          });
+          return json({ data: null, error: null });
         }
 
-        return json({
-          error: "Unsupported operation"
-        }, 400);
+        return json({ error: "Unsupported operation" }, 400);
 
       } catch (e) {
-        return json({
-          error: String(e?.message || e)
-        }, 500);
+        return json({ error: String(e?.message || e) }, 500);
       }
     }
 
-    /* CUSTOMER CASCADE DELETE */
+    // V128: ONE customer delete = complete D1 + R2 cascade.
+    if (url.pathname === "/api/customer-delete" && request.method === "POST") {
+      const auth = request.headers.get("Authorization") || "";
+      const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
+      if (!token) return json({ error: "Authentication required" }, 401);
 
-    if (
-      url.pathname === "/api/customer-delete" &&
-      request.method === "POST"
-    ) {
-      const auth =
-        request.headers.get("Authorization") || "";
-
-      const token =
-        auth.startsWith("Bearer ")
-          ? auth.slice(7)
-          : "";
-
-      if (!token) {
-        return json({
-          error: "Authentication required"
-        }, 401);
-      }
-
-      const user =
-        await verifySupabaseUser(token);
-
-      if (!user?.id) {
-        return json({
-          error: "Invalid session"
-        }, 401);
-      }
+      const user = await verifySupabaseUser(token);
+      if (!user?.id) return json({ error: "Invalid session" }, 401);
 
       let body;
+      try { body = await request.json(); }
+      catch { return json({ error: "Invalid JSON" }, 400); }
+
+      const customerId = String(body.customer_id || "").trim();
+      if (!customerId) return json({ error: "customer_id is required" }, 400);
 
       try {
-        body = await request.json();
-      } catch {
-        return json({
-          error: "Invalid JSON"
-        }, 400);
-      }
-
-      const customerId =
-        String(body.customer_id || "").trim();
-
-      if (!customerId) {
-        return json({
-          error: "customer_id is required"
-        }, 400);
-      }
-
-      try {
-        const customer =
-          await env.DB
-            .prepare(
-              `SELECT id
-               FROM customers
-               WHERE id = ?
-               AND owner_id = ?
-               LIMIT 1`
-            )
-            .bind(
-              customerId,
-              user.id
-            )
-            .first();
+        const customer = await env.DB.prepare(
+          `SELECT id FROM customers WHERE id = ? AND owner_id = ? LIMIT 1`
+        ).bind(customerId, user.id).first();
 
         if (!customer) {
-          return json({
-            error: "Customer not found"
-          }, 404);
+          return json({ error: "Customer not found" }, 404);
         }
 
-        const orderResult =
-          await env.DB
-            .prepare(
-              `SELECT id
-               FROM orders
-               WHERE customer_id = ?
-               AND owner_id = ?`
-            )
-            .bind(
-              customerId,
-              user.id
-            )
-            .all();
+        const orderResult = await env.DB.prepare(
+          `SELECT id FROM orders WHERE customer_id = ? AND owner_id = ?`
+        ).bind(customerId, user.id).all();
 
-        const orderIds =
-          (orderResult.results || [])
-            .map(row => String(row.id || ""))
-            .filter(Boolean);
+        const orderIds = (orderResult.results || [])
+          .map(r => String(r.id || ""))
+          .filter(Boolean);
+
+        const [paymentCols, alterationCols, measurementCols, designCols] = await Promise.all([
+          tableColumns(env.DB, "payments"),
+          tableColumns(env.DB, "alterations"),
+          tableColumns(env.DB, "measurements"),
+          tableColumns(env.DB, "designs")
+        ]);
 
         const statements = [];
 
-        statements.push(
-          env.DB.prepare(
-            `DELETE FROM payments
-             WHERE owner_id = ?
-             AND customer_id = ?`
-          ).bind(
-            user.id,
-            customerId
-          )
-        );
+        if (paymentCols.has("customer_id")) {
+          statements.push(
+            env.DB.prepare(`DELETE FROM payments WHERE owner_id = ? AND customer_id = ?`)
+              .bind(user.id, customerId)
+          );
+        }
+
+        if (alterationCols.has("customer_id")) {
+          statements.push(
+            env.DB.prepare(`DELETE FROM alterations WHERE owner_id = ? AND customer_id = ?`)
+              .bind(user.id, customerId)
+          );
+        }
+
+        if (measurementCols.has("customer_id")) {
+          statements.push(
+            env.DB.prepare(`DELETE FROM measurements WHERE owner_id = ? AND customer_id = ?`)
+              .bind(user.id, customerId)
+          );
+        }
+
+        if (designCols.has("customer_id")) {
+          statements.push(
+            env.DB.prepare(`DELETE FROM designs WHERE owner_id = ? AND customer_id = ?`)
+              .bind(user.id, customerId)
+          );
+        }
 
         for (const orderId of orderIds) {
-          statements.push(
-            env.DB.prepare(
-              `DELETE FROM payments
-               WHERE owner_id = ?
-               AND order_id = ?`
-            ).bind(
-              user.id,
-              orderId
-            )
-          );
+          if (paymentCols.has("order_id")) {
+            statements.push(
+              env.DB.prepare(`DELETE FROM payments WHERE owner_id = ? AND order_id = ?`)
+                .bind(user.id, orderId)
+            );
+          }
+
+          if (alterationCols.has("order_id")) {
+            statements.push(
+              env.DB.prepare(`DELETE FROM alterations WHERE owner_id = ? AND order_id = ?`)
+                .bind(user.id, orderId)
+            );
+          }
         }
 
         statements.push(
-          env.DB.prepare(
-            `DELETE FROM alterations
-             WHERE owner_id = ?
-             AND customer_id = ?`
-          ).bind(
-            user.id,
-            customerId
-          )
-        );
-
-        for (const orderId of orderIds) {
-          statements.push(
-            env.DB.prepare(
-              `DELETE FROM alterations
-               WHERE owner_id = ?
-               AND order_id = ?`
-            ).bind(
-              user.id,
-              orderId
-            )
-          );
-        }
-
-        statements.push(
-          env.DB.prepare(
-            `DELETE FROM measurements
-             WHERE owner_id = ?
-             AND customer_id = ?`
-          ).bind(
-            user.id,
-            customerId
-          )
+          env.DB.prepare(`DELETE FROM orders WHERE owner_id = ? AND customer_id = ?`)
+            .bind(user.id, customerId)
         );
 
         statements.push(
-          env.DB.prepare(
-            `DELETE FROM designs
-             WHERE owner_id = ?
-             AND customer_id = ?`
-          ).bind(
-            user.id,
-            customerId
-          )
-        );
-
-        statements.push(
-          env.DB.prepare(
-            `DELETE FROM orders
-             WHERE owner_id = ?
-             AND customer_id = ?`
-          ).bind(
-            user.id,
-            customerId
-          )
-        );
-
-        /* CUSTOMER DELETE */
-
-        const customerDelete =
-          await env.DB
-            .prepare(
-              `DELETE FROM customers
-               WHERE id = ?
-               RETURNING id`
-            )
+          env.DB.prepare(`DELETE FROM customers WHERE id = ?`)
             .bind(customerId)
-            .all();
+        );
 
-        const deletedCustomerIds =
-          customerDelete.results || [];
+        await env.DB.batch(statements);
 
-        if (deletedCustomerIds.length !== 1) {
-          throw new Error(
-            "Customer D1 delete failed"
-          );
-        }
-
-        const customerStillThere =
-          await env.DB
-            .prepare(
-              `SELECT id
-               FROM customers
-               WHERE id = ?
-               LIMIT 1`
-            )
-            .bind(customerId)
-            .first();
+        const customerStillThere = await env.DB.prepare(
+          `SELECT id FROM customers WHERE id = ? LIMIT 1`
+        ).bind(customerId).first();
 
         if (customerStillThere) {
-          throw new Error(
-            "Customer D1 delete failed: customer row still exists"
-          );
+          throw new Error("Customer D1 delete failed: customer row still exists");
+        }        const remaining = {};
+        const checks = [];
+
+        checks.push(["orders", env.DB.prepare(
+          `SELECT COUNT(*) AS n FROM orders WHERE owner_id = ? AND customer_id = ?`
+        ).bind(user.id, customerId)]);
+
+        if (measurementCols.has("customer_id")) {
+          checks.push(["measurements", env.DB.prepare(
+            `SELECT COUNT(*) AS n FROM measurements WHERE owner_id = ? AND customer_id = ?`
+          ).bind(user.id, customerId)]);
+        }
+
+        if (alterationCols.has("customer_id")) {
+          checks.push(["alterations_customer", env.DB.prepare(
+            `SELECT COUNT(*) AS n FROM alterations WHERE owner_id = ? AND customer_id = ?`
+          ).bind(user.id, customerId)]);
+        }
+
+        if (paymentCols.has("customer_id")) {
+          checks.push(["payments_customer", env.DB.prepare(
+            `SELECT COUNT(*) AS n FROM payments WHERE owner_id = ? AND customer_id = ?`
+          ).bind(user.id, customerId)]);
+        }
+
+        if (designCols.has("customer_id")) {
+          checks.push(["designs_customer", env.DB.prepare(
+            `SELECT COUNT(*) AS n FROM designs WHERE owner_id = ? AND customer_id = ?`
+          ).bind(user.id, customerId)]);
+        }
+
+        if (orderIds.length && paymentCols.has("order_id")) {
+          checks.push(["payments_orders", env.DB.prepare(
+            `SELECT COUNT(*) AS n FROM payments WHERE owner_id = ? AND order_id IN (${orderIds.map(() => "?").join(",")})`
+          ).bind(user.id, ...orderIds)]);
+        }
+
+        if (orderIds.length && alterationCols.has("order_id")) {
+          checks.push(["alterations_orders", env.DB.prepare(
+            `SELECT COUNT(*) AS n FROM alterations WHERE owner_id = ? AND order_id IN (${orderIds.map(() => "?").join(",")})`
+          ).bind(user.id, ...orderIds)]);
+        }
+
+        const checkResults = await Promise.all(
+          checks.map(async ([name, stmt]) => [name, await stmt.first()])
+        );
+
+        for (const [name, row] of checkResults) {
+          remaining[name] = Number(row?.n || 0);
+          if (remaining[name] !== 0) {
+            throw new Error(
+              `Customer cascade verification failed: ${name}=${remaining[name]}`
+            );
+          }
         }
 
         const prefixes = new Set([
@@ -435,9 +303,7 @@ export default {
         ]);
 
         for (const orderId of orderIds) {
-          prefixes.add(
-            `orders/${orderId}/`
-          );
+          prefixes.add(`orders/${orderId}/`);
         }
 
         let deletedObjects = 0;
@@ -446,35 +312,22 @@ export default {
           let cursor;
 
           do {
-            const listOptions = {
+            const listed = await env.MY_BUCKET.list({
               prefix,
-              limit: 1000
-            };
+              limit: 1000,
+              ...(cursor ? { cursor } : {})
+            });
 
-            if (cursor) {
-              listOptions.cursor = cursor;
-            }
-
-            const listed =
-              await env.MY_BUCKET.list(
-                listOptions
-              );
-
-            const keys =
-              (listed.objects || [])
-                .map(obj => obj.key)
-                .filter(Boolean);
+            const keys = (listed.objects || [])
+              .map(o => o.key)
+              .filter(Boolean);
 
             if (keys.length) {
               await env.MY_BUCKET.delete(keys);
               deletedObjects += keys.length;
             }
 
-            cursor =
-              listed.truncated
-                ? listed.cursor
-                : undefined;
-
+            cursor = listed.truncated ? listed.cursor : undefined;
           } while (cursor);
         }
 
@@ -487,120 +340,61 @@ export default {
         });
 
       } catch (e) {
-        console.error(
-          "Customer cascade delete failed:",
-          e
-        );
-
         return json({
-          ok: false,
-          error: String(
-            e?.message || e
-          )
+          error: String(e?.message || e)
         }, 500);
       }
-          }    /* =========================
-       R2 TEST
-    ========================= */
-
-    if (
-      url.pathname === "/api/r2-test"
-    ) {
-      await env.MY_BUCKET.put(
-        "r2-test.txt",
-        "R2 WORKS",
-        {
-          httpMetadata: {
-            contentType: "text/plain"
-          }
-        }
-      );
-
-      return new Response(
-        "R2 upload OK",
-        {
-          headers: corsHeaders
-        }
-      );
     }
 
+    // Existing R2 API — preserved.
+    if (url.pathname === "/api/r2-test") {
+      await env.MY_BUCKET.put("r2-test.txt", "R2 WORKS", {
+        httpMetadata: { contentType: "text/plain" }
+      });
 
-    /* =========================
-       R2 PUT / UPLOAD
-    ========================= */
-
-    if (
-      url.pathname.startsWith("/api/r2/") &&
-      request.method === "PUT"
-    ) {
-      const key =
-        decodeURIComponent(
-          url.pathname.slice(
-            "/api/r2/".length
-          )
-        );
-
-      if (!key) {
-        return new Response(
-          "Missing file name",
-          {
-            status: 400,
-            headers: corsHeaders
-          }
-        );
-      }
-
-      await env.MY_BUCKET.put(
-        key,
-        request.body,
-        {
-          httpMetadata: {
-            contentType:
-              request.headers.get(
-                "content-type"
-              ) ||
-              "application/octet-stream"
-          }
-        }
-      );
-
-      return json({
-        ok: true,
-        key
+      return new Response("R2 upload OK", {
+        headers: corsHeaders
       });
     }
 
+    if (url.pathname.startsWith("/api/r2/") && request.method === "PUT") {
+      const key = decodeURIComponent(
+        url.pathname.slice("/api/r2/".length)
+      );
 
-    /* =========================
-       R2 GET / DOWNLOAD
-    ========================= */
-
-    if (
-      url.pathname.startsWith("/api/r2/") &&
-      request.method === "GET"
-    ) {
-      const key =
-        decodeURIComponent(
-          url.pathname.slice(
-            "/api/r2/".length
-          )
-        );
-
-      const object =
-        await env.MY_BUCKET.get(key);
-
-      if (!object) {
-        return new Response(
-          "File not found",
-          {
-            status: 404,
-            headers: corsHeaders
-          }
-        );
+      if (!key) {
+        return new Response("Missing file name", {
+          status: 400,
+          headers: corsHeaders
+        });
       }
 
-      const headers =
-        new Headers(corsHeaders);
+      await env.MY_BUCKET.put(key, request.body, {
+        httpMetadata: {
+          contentType:
+            request.headers.get("content-type") ||
+            "application/octet-stream"
+        }
+      });
+
+      return json({ ok: true, key });
+    }
+
+    if (url.pathname.startsWith("/api/r2/") && request.method === "GET") {
+      const key = decodeURIComponent(
+        url.pathname.slice("/api/r2/".length)
+      );
+
+      const object = await env.MY_BUCKET.get(key);
+
+      if (!object) {
+        return new Response("File not found", {
+          status: 404,
+          headers: corsHeaders
+        });
+      }
+
+      const headers = new Headers(corsHeaders);
 
       headers.set(
         "Content-Type",
@@ -608,122 +402,66 @@ export default {
         "application/octet-stream"
       );
 
-      headers.set(
-        "Cache-Control",
-        "no-store"
-      );
+      headers.set("Cache-Control", "no-store");
 
-      return new Response(
-        object.body,
-        { headers }
-      );
+      return new Response(object.body, { headers });
     }
 
-
-    /* =========================
-       R2 DELETE
-    ========================= */
-
-    if (
-      url.pathname.startsWith("/api/r2/") &&
-      request.method === "DELETE"
-    ) {
-      const key =
-        decodeURIComponent(
-          url.pathname.slice(
-            "/api/r2/".length
-          )
-        );
+    if (url.pathname.startsWith("/api/r2/") && request.method === "DELETE") {
+      const key = decodeURIComponent(
+        url.pathname.slice("/api/r2/".length)
+      );
 
       await env.MY_BUCKET.delete(key);
 
-      return json({
-        ok: true,
-        key
-      });
+      return json({ ok: true, key });
     }
-
-
-    /* =========================
-       STATIC ASSETS
-    ========================= */
 
     if (env.ASSETS?.fetch) {
       return env.ASSETS.fetch(request);
     }
 
-    return new Response(
-      "Not found",
-      {
-        status: 404,
-        headers: corsHeaders
-      }
-    );
+    return new Response("Not found", {
+      status: 404,
+      headers: corsHeaders
+    });
   }
 };
 
-
-/* =====================================================
-   HELPERS
-===================================================== */
-
 function validCol(c) {
-  return /^[A-Za-z_][A-Za-z0-9_]*$/.test(
-    String(c || "")
-  );
+  return /^[A-Za-z_][A-Za-z0-9_]*$/.test(String(c || ""));
 }
-
 
 function safeCol(c) {
   if (!validCol(c)) {
-    throw new Error(
-      "Invalid column"
-    );
+    throw new Error("Invalid column");
   }
 
   return c;
 }
 
-
 function addFilters(filters, add) {
   for (const f of filters) {
-
-    const field =
-      safeCol(f.field);
+    const field = safeCol(f.field);
 
     if (Array.isArray(f.__in)) {
-
       if (!f.__in.length) {
-        add(
-          [` AND 0`],
-          []
-        );
+        add([` AND 0`], []);
         continue;
       }
 
       add(
-        [
-          ` AND ${field} IN (` +
-          `${f.__in.map(() => "?").join(",")}` +
-          `)`
-        ],
+        [` AND ${field} IN (${f.__in.map(() => "?").join(",")})`],
         f.__in
       );
 
-    } else if (
-      Object.prototype.hasOwnProperty.call(
-        f,
-        "__gt"
-      )
-    ) {
-
+    } else if (Object.prototype.hasOwnProperty.call(f, "__gt")) {
       add(
         [` AND ${field} > ?`],
         [f.__gt]
       );
 
     } else {
-
       add(
         [` AND ${field} = ?`],
         [f.value]
@@ -732,71 +470,67 @@ function addFilters(filters, add) {
   }
 }
 
+async function tableColumns(db, table) {
+  const allowed = new Set([
+    "customers",
+    "orders",
+    "measurements",
+    "alterations",
+    "payments",
+    "designs"
+  ]);
 
-async function insertRow(
-  db,
-  table,
-  row
-) {
-  const cols =
-    Object.keys(row)
-      .filter(validCol);
+  if (!allowed.has(table)) {
+    throw new Error("Invalid table");
+  }
+
+  const r = await db
+    .prepare(`PRAGMA table_info(${table})`)
+    .all();
+
+  return new Set(
+    (r.results || []).map(
+      x => String(x.name || "")
+    )
+  );
+}
+
+async function insertRow(db, table, row) {
+  const cols = Object.keys(row).filter(validCol);
 
   const sql =
-    `INSERT INTO ${table} ` +
-    `(${cols.join(",")}) ` +
-    `VALUES (` +
-    `${cols.map(() => "?").join(",")}` +
-    `)`;
+    `INSERT INTO ${table} (${cols.join(",")}) ` +
+    `VALUES (${cols.map(() => "?").join(",")})`;
 
   await db
     .prepare(sql)
-    .bind(
-      ...cols.map(c => row[c])
-    )
+    .bind(...cols.map(c => row[c]))
     .run();
 }
 
-
-async function selectAfter(
-  db,
-  table,
-  owner,
-  filters,
-  single
-) {
-  let sql =
-    `SELECT * FROM ${table} ` +
-    `WHERE owner_id = ?`;
-
+async function selectAfter(db, table, owner, filters, single) {
+  let sql = `SELECT * FROM ${table} WHERE owner_id = ?`;
   const args = [owner];
 
-  addFilters(
-    filters,
-    (s, a) => {
-      sql += s;
-      args.push(...a);
-    }
-  );
+  addFilters(filters, (s,a) => {
+    sql += s;
+    args.push(...a);
+  });
 
-  const r =
-    await db
-      .prepare(sql)
-      .bind(...args)
-      .all();
+  const r = await db
+    .prepare(sql)
+    .bind(...args)
+    .all();
 
-  const rows =
-    r.results || [];
+  const rows = r.results || [];
 
   if (single === "single") {
-
     if (rows.length !== 1) {
       return json({
         data: null,
-        error:
-          rows.length
-            ? "Multiple rows returned"
-            : "No rows found"
+        error: rows.length
+          ? "Multiple rows returned"
+          : "No rows found"
       });
     }
 
@@ -807,55 +541,39 @@ async function selectAfter(
   }
 
   return json({
-    data:
-      single === "maybe"
-        ? rows[0] || null
-        : rows,
+    data: single === "maybe"
+      ? (rows[0] || null)
+      : rows,
     error: null
   });
 }
 
-
-async function verifySupabaseUser(
-  token
-) {
-  const r =
-    await fetch(
-      `${SUPABASE_URL}/auth/v1/user`,
-      {
-        headers: {
-          apikey: SUPABASE_ANON_KEY,
-          Authorization:
-            `Bearer ${token}`
-        }
+async function verifySupabaseUser(token) {
+  const r = await fetch(
+    `${SUPABASE_URL}/auth/v1/user`,
+    {
+      headers: {
+        apikey: SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${token}`
       }
-    );
+    }
+  );
 
-  if (!r.ok) {
-    return null;
-  }
+  if (!r.ok) return null;
 
   return r.json();
 }
 
-
 function cors() {
   return {
     "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Headers":
-      "Authorization,Content-Type",
-    "Access-Control-Allow-Methods":
-      "GET,PUT,DELETE,POST,OPTIONS",
-    "Content-Type":
-      "application/json"
+    "Access-Control-Allow-Headers": "Authorization,Content-Type",
+    "Access-Control-Allow-Methods": "GET,PUT,DELETE,POST,OPTIONS",
+    "Content-Type": "application/json"
   };
 }
 
-
-function json(
-  data,
-  status = 200
-) {
+function json(data, status = 200) {
   return new Response(
     JSON.stringify(data),
     {
@@ -863,4 +581,4 @@ function json(
       headers: cors()
     }
   );
-}
+        }
