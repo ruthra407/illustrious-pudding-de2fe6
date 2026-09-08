@@ -2440,6 +2440,12 @@ function blouseHandover(o){
  try{const x=JSON.parse(m[1]);return {normal:Math.min(Number(s.normal||0),Math.max(0,Number(x.normal||0))),lining:Math.min(Number(s.lining||0),Math.max(0,Number(x.lining||0))),design:Math.min(Number(s.design||0),Math.max(0,Number(x.design||0)))};}catch{return {normal:0,lining:0,design:0};}
 }
 function blousePending(o){const s=blouseSplit(o||{}),h=blouseHandover(o||{});return {normal:Math.max(0,Number(s.normal||0)-Number(h.normal||0)),lining:Math.max(0,Number(s.lining||0)-Number(h.lining||0)),design:Math.max(0,Number(s.design||0)-Number(h.design||0))};}
+function nfBlouseDeliveryCounts(o){
+  const s=blouseSplit(o||{}),h=blouseHandover(o||{});
+  const total=Math.max(0,Number(s.normal||0)+Number(s.lining||0)+Number(s.design||0));
+  const given=Math.min(total,Math.max(0,Number(h.normal||0)+Number(h.lining||0)+Number(h.design||0)));
+  return {total,given,pending:Math.max(0,total-given)};
+}
 function blouseHandoverDates(o){
   const m=String(o?.notes||"").match(/BLOUSE_HANDOVER_DATES:(\{[^}]+\})/);
   if(!m)return {normal:"",lining:"",design:[]};
@@ -10793,7 +10799,28 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
     });
     photoPools.forEach(function(pool){if(pool.items[0]&&photos.length<8)photos.push(pool.items[0]);});
     for(var pass=1;pass<40&&photos.length<8;pass++)photoPools.forEach(function(pool){var p=pool.items[pass];if(p&&photos.length<8)photos.push(p);});
-    if(photos.length){var safePhotos=[];for(var spi=0;spi<photos.length;spi++){var sp=photos[spi];if(!sp||!sp.src)continue;try{var src=sp.cloudPath&&typeof nfR2PhotoUrl==='function'?nfR2PhotoUrl(sp.cloudPath):String(sp.src||'');if(/^data:image\//i.test(src)){safePhotos.push(Object.assign({},sp,{src:src}));continue;}if(typeof nfWacFetchBlob==='function'){var pb=await nfWacFetchBlob(src,7000);var purl=await new Promise(function(resolve,reject){var fr=new FileReader();fr.onload=function(){resolve(String(fr.result||''));};fr.onerror=reject;fr.readAsDataURL(pb);});if(purl)safePhotos.push(Object.assign({},sp,{src:purl}));}}catch(pe){console.warn('Delivery card photo embed skipped:',pe);}}photos=safePhotos;}
+    if(photos.length){var safePhotos=[];for(var spi=0;spi<photos.length;spi++){var sp=photos[spi];if(!sp||!sp.src)continue;try{
+      /* Prefer an existing local/data image. This keeps the Delivery Card working
+         even when an old cloudPath points to a deleted test R2 object. */
+      var localSrc=String(sp.src||'');
+      if(/^data:image\//i.test(localSrc)){
+        safePhotos.push(Object.assign({},sp,{src:localSrc}));
+        continue;
+      }
+      var cloudSrc=sp.cloudPath&&typeof nfR2PhotoUrl==='function'?nfR2PhotoUrl(sp.cloudPath):'';
+      var fetchSrc=cloudSrc||localSrc;
+      if(typeof nfWacFetchBlob==='function'&&fetchSrc){
+        var pb=await nfWacFetchBlob(fetchSrc,7000);
+        var purl=await new Promise(function(resolve,reject){var fr=new FileReader();fr.onload=function(){resolve(String(fr.result||''));};fr.onerror=reject;fr.readAsDataURL(pb);});
+        if(purl)safePhotos.push(Object.assign({},sp,{src:purl}));
+      }else if(localSrc){
+        safePhotos.push(Object.assign({},sp,{src:localSrc}));
+      }
+    }catch(pe){
+      /* If cloud fetch fails, fall back to the local image source when available. */
+      if(sp&&/^data:image\//i.test(String(sp.src||'')))safePhotos.push(Object.assign({},sp,{src:String(sp.src)}));
+      else console.warn('Delivery card photo embed skipped:',pe);
+    }}photos=safePhotos;}
     var main=people[0]||{},mainOrders=ordersFor(main.id),clothDates=mainOrders.map(function(o){return o.cloth_received_date||o.order_date||'';}).filter(Boolean).sort(),deliveryDates=mainOrders.map(function(o){return o.delivery_date||'';}).filter(Boolean).sort();
     var clothDate=clothDates[0]||'',deliveryDate=deliveryDates[0]||'';
     var givenTotal=rows.reduce(function(a,r){return a+r.given;},0),remainingTotal=rows.reduce(function(a,r){return a+r.remaining;},0),totalAmount=sum.total,paidAmount=sum.paid,balanceAmount=sum.balance;
@@ -10919,8 +10946,8 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
   });
 })();
 </script>
-<style id="nf-v134-home-customer-card-compact">
-/* V134: Home customer cards must wrap to their content, never stretch vertically. */
+<style id="nf-v136-home-customer-card-compact">
+/* V136: Home customer cards must wrap to their content, never stretch vertically. */
 body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
   align-content:start!important;
   align-items:start!important;
@@ -10932,6 +10959,35 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-card{
   align-self:start!important;
 }
 </style>
+
+<script id="nf-v136-delivery-calculation-fix">
+(function(){
+  function patchDeliveryText(root){
+    if(!root)return;
+    const orders=window.state&&Array.isArray(window.state.orders)?window.state.orders:[];
+    root.querySelectorAll('[data-order-id], [data-id]').forEach(function(el){
+      const oid=el.getAttribute('data-order-id')||el.getAttribute('data-id');
+      const o=orders.find(x=>String(x.id)===String(oid));
+      if(!o)return;
+      const c=String(o.garment_type||'').toLowerCase();
+      if(c!=='blouse')return;
+      const dc=typeof nfBlouseDeliveryCounts==='function'?nfBlouseDeliveryCounts(o):null;
+      if(!dc)return;
+      el.querySelectorAll('*').forEach(function(n){
+        if(n.children.length) return;
+        const t=String(n.textContent||'');
+        if(/மீதம்|pending/i.test(t)){
+          n.textContent=t.replace(/(மீதம்|pending)\s*[:：]?\s*\d+/i,'$1 ${dc.pending}');
+        }
+        if(/கொடுத்தது|வாங்கிச் சென்றது|given/i.test(t)){
+          n.textContent=t.replace(/(கொடுத்தது|வாங்கிச் சென்றது|given)\s*[:：]?\s*\d+/i,'$1 ${dc.given}');
+        }
+      });
+    });
+  }
+  window.nfPatchDeliveryCalculation=patchDeliveryText;
+})();
+</script>
 </body>
 <script id="nf-v120-single-cash-dedupe-fix">
 /* V22: superseded by the single stable customer-group renderer. */
@@ -10961,11 +11017,11 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-card{
 @media(max-width:560px){.nf-v160-multi-calculation-title{padding:11px 12px}.nf-v160-multi-calculation-title h4{font-size:17px}.nf-v160-multi-calculation-body{padding:8px}.nf-v160-customer-calc-name{font-size:15px;padding:8px 10px}}
 </style>
 
-<script id="nf-v134-customer-hooks-js">
+<script id="nf-v136-customer-hooks-js">
 /* V22: superseded by the single stable customer-group renderer. */
 </script>
-<style id="nf-v134-customer-hooks-css">
-.nf-v134-person-hook{
+<style id="nf-v136-customer-hooks-css">
+.nf-v136-person-hook{
   width:100%;
   min-height:44px;
   padding:8px 10px;
@@ -10981,8 +11037,8 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-card{
   font-weight:inherit;
   cursor:pointer;
 }
-.nf-v134-person-name-text{min-width:0;overflow-wrap:anywhere}
-.nf-v134-hook-icon{
+.nf-v136-person-name-text{min-width:0;overflow-wrap:anywhere}
+.nf-v136-hook-icon{
   flex:0 0 34px;
   width:34px;
   height:34px;
@@ -10997,11 +11053,11 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-card{
   box-shadow:0 5px 13px rgba(108,61,245,.22);
 }
 .nf-v120-customer-name{padding:0!important}
-.nf-v134-blouse-person-name{padding:0!important}
-.nf-v134-collapsible-body{min-width:0}
+.nf-v136-blouse-person-name{padding:0!important}
+.nf-v136-collapsible-body{min-width:0}
 @media(max-width:560px){
-  .nf-v134-person-hook{min-height:42px;padding:7px 9px}
-  .nf-v134-hook-icon{width:32px;height:32px;flex-basis:32px;font-size:21px}
+  .nf-v136-person-hook{min-height:42px;padding:7px 9px}
+  .nf-v136-hook-icon{width:32px;height:32px;flex-basis:32px;font-size:21px}
 }
 </style>
 
@@ -13245,20 +13301,20 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
 </style>
 
 
-<script id="nf-v134-multi-blouse-sync-js">
+<script id="nf-v136-multi-blouse-sync-js">
 /* V22: superseded by the single stable customer-group renderer. */
 </script>
-<style id="nf-v134-multi-blouse-sync-css">
-.nf-v134-multi-blouse{padding:0!important;overflow:hidden!important;background:#fff!important;border:1px solid #cfc0f4!important}
-.nf-v134-multi-blouse>.nf-collection-title{margin:0!important;padding:12px 15px!important;border-radius:0!important;background:linear-gradient(135deg,#e3d8ff,#f0d7ff)!important;border-bottom:1px solid #d8caf4!important;color:#4d267c!important}
-.nf-v134-blouse-body{padding:10px 12px 12px;display:grid;gap:10px}
-.nf-v134-blouse-person{border:1px solid #ddd5ef;border-radius:16px;background:#fff;overflow:hidden;box-shadow:0 5px 15px rgba(52,31,86,.06)}
-.nf-v134-blouse-person-name{padding:9px 11px;background:linear-gradient(135deg,#f7f3ff,#fff4fa);border-bottom:1px solid #e3dceb;color:#4d267c;font-size:16px;font-weight:950}
-.nf-v134-person-blouse{margin:0!important;padding:0!important;border:0!important;border-radius:0!important;box-shadow:none!important;background:#fff!important}
-.nf-v134-person-blouse>.nfBlouseStatusGrid,.nf-v134-person-blouse>.nfBlouseHandoverGrid,.nf-v134-person-blouse>.nf-garment-subtitle,.nf-v134-person-blouse>.nfChudiTotalBox,.nf-v134-person-blouse>.nfChudiHandoverGrid{margin-left:12px;margin-right:12px}
-.nf-v134-person-blouse>.nfBlouseStatusGrid{margin-top:10px}
-.nf-v134-person-blouse>.nfChudiHandoverGrid{margin-bottom:10px}
-@media(max-width:560px){.nf-v134-blouse-body{padding:8px}.nf-v134-blouse-person{border-radius:14px}.nf-v134-blouse-person-name{font-size:15px;padding:8px 10px}.nf-v134-multi-blouse>.nf-collection-title{padding:11px 12px!important}}
+<style id="nf-v136-multi-blouse-sync-css">
+.nf-v136-multi-blouse{padding:0!important;overflow:hidden!important;background:#fff!important;border:1px solid #cfc0f4!important}
+.nf-v136-multi-blouse>.nf-collection-title{margin:0!important;padding:12px 15px!important;border-radius:0!important;background:linear-gradient(135deg,#e3d8ff,#f0d7ff)!important;border-bottom:1px solid #d8caf4!important;color:#4d267c!important}
+.nf-v136-blouse-body{padding:10px 12px 12px;display:grid;gap:10px}
+.nf-v136-blouse-person{border:1px solid #ddd5ef;border-radius:16px;background:#fff;overflow:hidden;box-shadow:0 5px 15px rgba(52,31,86,.06)}
+.nf-v136-blouse-person-name{padding:9px 11px;background:linear-gradient(135deg,#f7f3ff,#fff4fa);border-bottom:1px solid #e3dceb;color:#4d267c;font-size:16px;font-weight:950}
+.nf-v136-person-blouse{margin:0!important;padding:0!important;border:0!important;border-radius:0!important;box-shadow:none!important;background:#fff!important}
+.nf-v136-person-blouse>.nfBlouseStatusGrid,.nf-v136-person-blouse>.nfBlouseHandoverGrid,.nf-v136-person-blouse>.nf-garment-subtitle,.nf-v136-person-blouse>.nfChudiTotalBox,.nf-v136-person-blouse>.nfChudiHandoverGrid{margin-left:12px;margin-right:12px}
+.nf-v136-person-blouse>.nfBlouseStatusGrid{margin-top:10px}
+.nf-v136-person-blouse>.nfChudiHandoverGrid{margin-bottom:10px}
+@media(max-width:560px){.nf-v136-blouse-body{padding:8px}.nf-v136-blouse-person{border-radius:14px}.nf-v136-blouse-person-name{font-size:15px;padding:8px 10px}.nf-v136-multi-blouse>.nf-collection-title{padding:11px 12px!important}}
 </style><script id="nf-v170-calc-hooks-scroll-js">
 /* V22: superseded by the single stable customer-group renderer. */
 </script><style id="nf-v170-calc-hooks-scroll-css">
@@ -13333,7 +13389,7 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
     return person;
   }
   function stripOld(card){
-    [".nf-v210-four-hook-group",".nf-v220-four-hook-group",".nf-v230-four-hook-group",".nf-v240-four-hook-group",".nf-v120-multi-cash-wrap",".nf-v160-multi-calculation",".nf-v134-multi-blouse",".nfCustomerBreakdownMount",".nf-cash-collection",".nf-blouse-collection",".nf-customer-cloth-photo-manager",".nf-delivery-card"].forEach(function(sel){card.querySelectorAll(":scope > "+sel).forEach(function(x){x.remove();});});
+    [".nf-v210-four-hook-group",".nf-v220-four-hook-group",".nf-v230-four-hook-group",".nf-v240-four-hook-group",".nf-v120-multi-cash-wrap",".nf-v160-multi-calculation",".nf-v136-multi-blouse",".nfCustomerBreakdownMount",".nf-cash-collection",".nf-blouse-collection",".nf-customer-cloth-photo-manager",".nf-delivery-card"].forEach(function(sel){card.querySelectorAll(":scope > "+sel).forEach(function(x){x.remove();});});
   }
   function moveGroupBeforePhotos(card,group){
     /* V29: photo managers live inside each customer's 5th hook.
