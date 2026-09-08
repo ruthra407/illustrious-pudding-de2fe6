@@ -1855,6 +1855,14 @@ const nfRawFromSupabase=supabaseClient.from.bind(supabaseClient);
 })();
 
 const nfRawFrom=(table)=>nfD1Enabled()?nfD1Builder(table):nfRawFromSupabase(table);
+/* V124 FIX — route normal app database operations through Cloudflare D1. */
+(function(){
+  const __nfOriginalFrom = supabaseClient.from.bind(supabaseClient);
+  supabaseClient.from = function(table){
+    if(NF_TABLES.includes(table) && nfD1Enabled()) return nfD1Builder(table);
+    return __nfOriginalFrom(table);
+  };
+})();
 let nfAppDbPromise=null;
 let nfSyncTimer=null;
 let nfSyncBusy=false;
@@ -1873,33 +1881,14 @@ async function nfDbGet(store,id){const db=await nfOpenAppDb();return new Promise
 async function nfDbPut(store,value){const db=await nfOpenAppDb();return new Promise((resolve,reject)=>{const tx=db.transaction(store,"readwrite");tx.objectStore(store).put(value);tx.oncomplete=()=>resolve(true);tx.onerror=()=>reject(tx.error||new Error("Local write failed"));tx.onabort=()=>reject(tx.error||new Error("Local write aborted"))})}
 async function nfDbDelete(store,id){const db=await nfOpenAppDb();return new Promise((resolve,reject)=>{const tx=db.transaction(store,"readwrite");tx.objectStore(store).delete(id);tx.oncomplete=()=>resolve(true);tx.onerror=()=>reject(tx.error||new Error("Local delete failed"))})}
 async function nfDbAll(store){const db=await nfOpenAppDb();return new Promise((resolve,reject)=>{const tx=db.transaction(store,"readonly"),r=tx.objectStore(store).getAll();r.onsuccess=()=>resolve(r.result||[]);r.onerror=()=>reject(r.error||new Error("Local list failed"))})}
-async function nfPurgeCustomerQueue(customerId,orderIds=[]){
- const cid=String(customerId);const ids=new Set((orderIds||[]).map(String));
- const items=await nfDbAll(NF_QUEUE_STORE);
- for(const item of items){
-  const p=item?.payload||{};const t=String(item?.table||"");
-  const pid=String(p.id||"");const pc=String(p.customer_id||"");const po=String(p.order_id||"");
-  const hit=(t==="customers"&&pid===cid)||
-    (t==="orders"&&(pid&&ids.has(pid)||pc===cid))||
-    ((t==="payments"||t==="alterations")&&(pc===cid||ids.has(po)))||
-    ((t==="measurements"||t==="designs")&&pc===cid);
-  if(hit)await nfDbDelete(NF_QUEUE_STORE,item.key);
- }
-}
 async function nfSaveState(){if(!state.user)return;await nfDbPut(NF_APP_STORE,{id:String(state.user.id),savedAt:Date.now(),tables:Object.fromEntries(NF_TABLES.map(t=>[t,Array.isArray(state[t])?state[t]:[]]))})}
 async function nfLoadState(userId){const rec=await nfDbGet(NF_APP_STORE,String(userId));if(!rec?.tables)return false;NF_TABLES.forEach(t=>{state[t]=Array.isArray(rec.tables[t])?rec.tables[t]:[]});return true}
 async function nfQueueOp(table,op,payload,filters=[]){
  const id=payload?.id||filters.find(f=>f.field==="id")?.value||nfUuid();
  const key=table+"|"+String(id);
  if(op==="delete"){
-   /* Always queue DELETE. A D1 row may already exist even when the local row
-      was created/changed offline. Removing the queue item would leave D1 data alive. */
-   const old=await nfDbGet(NF_QUEUE_STORE,key);
-   if(old?.op==="insert"){
-     await nfDbPut(NF_QUEUE_STORE,{...old,op:"delete",payload:{id:String(id)},filters:[{field:"id",value:id}],queuedAt:Date.now()});
-     setTimeout(nfRunSync,250);
-     return;
-   }
+   const db=await nfOpenAppDb();const old=await nfDbGet(NF_QUEUE_STORE,key);
+   if(old?.op==="insert"){await nfDbDelete(NF_QUEUE_STORE,key);return}
  }
  const old=await nfDbGet(NF_QUEUE_STORE,key);
  let item={key,table,op,payload,filters,queuedAt:Date.now()};
@@ -1953,29 +1942,7 @@ async function nfExecuteLocal(table,operation,payload,filters,orderSpec,singleMo
 }
 async function nfRunSync(){
  if(nfSyncBusy||!navigator.onLine||!state.user)return;nfSyncBusy=true;
- try{
-  let q=await nfDbAll(NF_QUEUE_STORE);q.sort((a,b)=>a.queuedAt-b.queuedAt);
-  for(const item of q){
-   if(!navigator.onLine)break;
-   let res;
-   if(item.op==="insert"){
-    res=await nfRawFrom(item.table).insert(item.payload);
-   }else if(item.op==="update"){
-    res=await nfRawFrom(item.table).update(item.payload).eq("id",item.payload.id);
-    /* If an old local record is missing from D1, an UPDATE affects 0 rows.
-       Promote that queued update to an INSERT so existing local orders/records
-       are not silently lost after the D1 migration. */
-    if(!res?.error && (!res?.data || (Array.isArray(res.data)&&res.data.length===0))){
-      res=await nfRawFrom(item.table).insert(item.payload);
-    }
-   }else{
-    res=await nfRawFrom(item.table).delete().eq("id",item.payload.id);
-   }
-   if(res?.error){console.warn("Background sync paused",res.error);break}
-   await nfDbDelete(NF_QUEUE_STORE,item.key);
-  }
- }catch(e){console.warn("Background sync error",e)}finally{nfSyncBusy=false}
-}
+ try{let q=await nfDbAll(NF_QUEUE_STORE);q.sort((a,b)=>a.queuedAt-b.queuedAt);for(const item of q){if(!navigator.onLine)break;let req;if(item.op==="insert")req=nfRawFrom(item.table).insert(item.payload);else if(item.op==="update")req=nfRawFrom(item.table).update(item.payload).eq("id",item.payload.id);else req=nfRawFrom(item.table).delete().eq("id",item.payload.id);const res=await req;if(res?.error){console.warn("Background sync paused",res.error);break}await nfDbDelete(NF_QUEUE_STORE,item.key)}}catch(e){console.warn("Background sync error",e)}finally{nfSyncBusy=false}}
 function nfScheduleSync(){clearTimeout(nfSyncTimer);nfSyncTimer=setTimeout(async()=>{await nfRunSync();try{await nfHydrateCloudClothPhotos()}catch(e){console.warn("R2 photo sync skipped",e)}},800)}
 window.addEventListener("online",()=>{nfScheduleSync();setTimeout(nfRunPendingPhotoDeletes,1000)});document.addEventListener("visibilitychange",()=>{if(!document.hidden)nfScheduleSync()});
 /* Replace only table CRUD. Auth and Storage APIs remain untouched. */
@@ -4567,43 +4534,40 @@ async function markDelivered(id){
 await updateOrderStatus(id,"Delivered");
 }
 async function deleteCustomer(id){
- const c=state.customers.find(x=>String(x.id)===String(id));
+ const c=state.customers.find(x=>x.id===id);
  if(!c)return;
- const ok=confirm(`“${c.name}” customer-ஐ delete செய்யவா?\n\nஇந்த customer-ன் orders, payments, measurements, alterations, designs மற்றும் R2 photos எல்லாமே delete ஆகும்.`);
+ const orders=state.orders.filter(o=>o.customer_id===id);
+ const orderIds=orders.map(o=>o.id).filter(Boolean);
+ const ok=confirm(`“${c.name}” customer-ஐ delete செய்யவா?\n\nஇந்த customer-ன் orders, payments, measurements, alterations ஆகிய தொடர்புடைய records-ம் delete ஆகும்.`);
  if(!ok)return;
  try{
-   if(!nfD1Enabled())throw new Error("Cloudflare D1 API is not configured");
-   nfD1AccessToken=await nfD1GetAccessToken();
-   if(!nfD1AccessToken)throw new Error("Authentication session கிடைக்கவில்லை. மீண்டும் login செய்யுங்கள்.");
-   const res=await fetch(String(NF_D1_API_URL).replace(/\/$/,"")+"/api/customer-delete",{
-     method:"POST",
-     headers:nfD1Headers(),
-     body:JSON.stringify({customer_id:id})
-   });
-   const data=await res.json().catch(()=>({}));
-   if(!res.ok||!data?.ok)throw new Error(data?.error||("Customer delete failed ("+res.status+")"));
-   const orderIds=Array.isArray(data.order_ids)?data.order_ids:[];
-
-   /* Remove stale local queue operations so deleted data cannot resurrect. */
-   await nfPurgeCustomerQueue(id,orderIds);
-   NF_TABLES.forEach(t=>{
-     if(t==="customers"||t==="measurements"||t==="designs")state[t]=(state[t]||[]).filter(r=>String(r.customer_id||r.id)!==String(id));
-     else if(t==="orders")state[t]=(state[t]||[]).filter(r=>String(r.customer_id)!==String(id)&&!orderIds.map(String).includes(String(r.id)));
-     else if(t==="payments"||t==="alterations")state[t]=(state[t]||[]).filter(r=>String(r.customer_id)!==String(id)&&!orderIds.map(String).includes(String(r.order_id)));
-   });
-   await nfSaveState();
+   if(orderIds.length){
+     const {error:paymentError}=await supabaseClient.from("payments").delete().in("order_id",orderIds);
+     if(paymentError)throw paymentError;
+     const {error:alterOrderError}=await supabaseClient.from("alterations").delete().in("order_id",orderIds);
+     if(alterOrderError)throw alterOrderError;
+   }
+   const {error:alterCustomerError}=await supabaseClient.from("alterations").delete().eq("customer_id",id);
+   if(alterCustomerError)throw alterCustomerError;
+   const {error:measurementError}=await supabaseClient.from("measurements").delete().eq("customer_id",id);
+   if(measurementError)throw measurementError;
+   const {error:orderError}=await supabaseClient.from("orders").delete().eq("customer_id",id);
+   if(orderError)throw orderError;
+   await nfDeleteCustomerR2Photos(id, orders);
+   const {error:customerError}=await supabaseClient.from("customers").delete().eq("id",id);
+   if(customerError)throw customerError;
    localStorage.removeItem("nf_village_"+id);
    localStorage.removeItem("nf_customer_designs_"+id);
    localStorage.removeItem("nf_customer_selected_designs_"+id);
-   localStorage.removeItem("nf_customer_cloth_photos_"+id);
    await nfIdbDelete(id);
+   localStorage.removeItem("nf_customer_cloth_photos_"+id);
    await loadAll(true);
-   toast("Customer + எல்லா D1 data + R2 photos delete செய்யப்பட்டது.");
+   toast("Customer மற்றும் தொடர்புடைய records delete செய்யப்பட்டது.");
  }catch(err){
-   console.error("Customer cascade delete failed",err);
    toast("Customer delete failed: "+err.message,true);
  }
 }
+
 async function removeRow(table,id){
 if(!confirm("இந்த record-ஐ delete செய்ய வேண்டுமா?"))return;
 try{const {error}=await supabaseClient.from(table).delete().eq("id",id);if(error)throw error;await loadAll(true);toast("Deleted online")}catch(err){toast("Delete failed: "+err.message,true)}
@@ -9333,64 +9297,37 @@ setTimeout(decorateAll,100);
     }
   };
 
-  /* V126 — complete customer cleanup: D1 records + every known R2 asset. */
-  window.nfDeleteCustomerAllData = async function(customerId, orders){
+  /* V122 FIX — delete every R2 object belonging to a customer. */
+  const nfDeleteCustomerR2Photos = async function(customerId, orders){
     const id = String(customerId || "");
     if(!id) return;
-
     const paths = new Set();
-    const add = v => { if(v) paths.add(String(v)); };
-
-    // Customer cloth photos
+    const add = function(v){ if(v) paths.add(String(v)); };
     for(let slot=0; slot<4; slot++) add(nfCloudPhotoPath(id, slot));
-
-    // Blouse design photos
-    for(let slot=0; slot<8; slot++){
-      if(typeof nfBlouseDesignPhotoPath === "function") add(nfBlouseDesignPhotoPath(id, slot));
-    }
-
-    // Customer design index + all design files referenced by it
-    const indexPath = (typeof nfCustomerDesignIndexPath === "function")
-      ? nfCustomerDesignIndexPath(id)
-      : "customers/" + id + "/designs/index.json";
-    try{
-      const res = await fetch(nfR2PhotoUrl(indexPath), {method:"GET",cache:"no-store"});
-      if(res.ok){
-        const items = await res.json().catch(()=>[]);
-        if(Array.isArray(items)){
-          items.forEach(x => add(x?.cloudPath));
-        }
-      }
-    }catch(_){}
-    add(indexPath);
-
-    // Customer cards
-    add(id + "/cards/customer-card.jpg");
-    add(id + "/cards/delivery-card.jpg");
-
-    // Delivery photos
-    if(typeof nfDeliveryPhotoPath === "function"){
-      const cap = Number(typeof NF_DELIVERY_SLOT_CAP === "number" ? NF_DELIVERY_SLOT_CAP : 4);
-      for(const type of ["normal","lining","design","chudi"]){
-        for(const status of ["given","pending"]){
-          for(let slot=0; slot<cap; slot++) add(nfDeliveryPhotoPath(id,type,status,slot));
-        }
+    for(let slot=0; slot<8; slot++) add(nfBlouseDesignPhotoPath(id, slot));
+    add(nfCustomerDesignIndexPath(id));
+    const cap = Number(typeof NF_DELIVERY_SLOT_CAP === "number" ? NF_DELIVERY_SLOT_CAP : 4);
+    for(const type of ["normal","lining","design","chudi"]){
+      for(const status of ["given","pending"]){
+        for(let slot=0; slot<cap; slot++) add(nfDeliveryPhotoPath(id,type,status,slot));
       }
     }
-
-    // Order photos
     for(const o of (Array.isArray(orders) ? orders : [])){
-      const oid = String(o?.id || "");
-      if(!oid) continue;
-      for(let slot=0; slot<3; slot++){
+      const oid=String(o?.id||"");
+      if(oid) for(let slot=0;slot<3;slot++){
         add(nfOrderPhotoPath(id,oid,"",slot,"cloth"));
         add(nfOrderPhotoPath(id,oid,"",slot,"design"));
       }
+      try{
+        const items=typeof window.nfDesignItems==="function"?window.nfDesignItems(o):[];
+        for(const item of (Array.isArray(items)?items:[])){
+          add(item?.clothPhotoPath); add(item?.designPhotoPath);
+        }
+      }catch(_){}
     }
-
-    const list = Array.from(paths);
-    for(let i=0; i<list.length; i+=12){
-      await Promise.all(list.slice(i,i+12).map(p => nfR2Delete(p)));
+    const list=Array.from(paths);
+    for(let i=0;i<list.length;i+=12){
+      await Promise.all(list.slice(i,i+12).map(path=>nfR2Delete(path)));
     }
   };
 
@@ -12966,20 +12903,17 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
 
   async function deleteCustomerDirect(id){
     var c=all().find(function(x){return String(x.id)===String(id);});if(!c)return;
-    if(!nfD1Enabled())throw new Error("Cloudflare D1 API is not configured");
-    nfD1AccessToken=await nfD1GetAccessToken();
-    if(!nfD1AccessToken)throw new Error("Authentication session கிடைக்கவில்லை.");
-    var res=await fetch(String(NF_D1_API_URL).replace(/\/$/,"")+"/api/customer-delete",{
-      method:"POST",headers:nfD1Headers(),body:JSON.stringify({customer_id:id})
-    });
-    var data=await res.json().catch(function(){return {};});
-    if(!res.ok||!data?.ok)throw new Error(data?.error||("Customer delete failed ("+res.status+")"));
-    await nfPurgeCustomerQueue(id,Array.isArray(data.order_ids)?data.order_ids:[]);
-    localStorage.removeItem("nf_village_"+id);
-    localStorage.removeItem("nf_customer_designs_"+id);
-    localStorage.removeItem("nf_customer_selected_designs_"+id);
-    localStorage.removeItem("nf_customer_cloth_photos_"+id);
-    await nfIdbDelete(id);
+    var orders=(state.orders||[]).filter(function(o){return String(o.customer_id)===String(id);});
+    var ids=orders.map(function(o){return o.id;}).filter(Boolean);
+    if(ids.length){
+      var a=await supabaseClient.from("payments").delete().in("order_id",ids);if(a.error)throw a.error;
+      var b=await supabaseClient.from("alterations").delete().in("order_id",ids);if(b.error)throw b.error;
+    }
+    var d=await supabaseClient.from("alterations").delete().eq("customer_id",id);if(d.error)throw d.error;
+    var m=await supabaseClient.from("measurements").delete().eq("customer_id",id);if(m.error)throw m.error;
+    var o=await supabaseClient.from("orders").delete().eq("customer_id",id);if(o.error)throw o.error;
+    await nfDeleteCustomerR2Photos(id, orders);
+    var cc=await supabaseClient.from("customers").delete().eq("id",id);if(cc.error)throw cc.error;
   }
 
   /* Keep the existing Main Customer edit form and its Save button untouched; only append the group editor. */
