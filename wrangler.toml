@@ -1,10 +1,10 @@
 name = "illustrious-pudding-de2fe6"
 compatibility_date = "2026-09-02"
 
-# Keep Cloudflare bindings in Git so future GitHub deployments do not remove them.
 [[d1_databases]]
 binding = "DB"
 database_name = "new-fashion-tailoring"
+database_id = "3c52d78e-1347-4c31-a18c-8c4fa134231e"
 
 [[r2_buckets]]
 binding = "MY_BUCKET"
