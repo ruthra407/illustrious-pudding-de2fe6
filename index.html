@@ -4516,11 +4516,30 @@ const labels={"In Progress":"Progress","Ready":"Ready","Delivered":"Delivered","
 if(!["In Progress","Ready","Delivered","Cancelled"].includes(status))return;
 const label=labels[status]||status;
 if(!confirm(`இந்த order-ஐ ${label} என்று மாற்றவா?`))return;
-const {error}=await supabaseClient.from("orders").update({status}).eq("id",id);
-if(error){toast("Status update failed: "+error.message,true);return;}
+const o=state.orders.find(x=>String(x.id)===String(id));
+let payload={status};
+if(status==="Delivered" && o){
+  const bs=blouseSplit(o||{}),gx=typeof nfGarmentExtra==="function"?nfGarmentExtra(o):{chudi:0,saree:0};
+  payload.normal_handover=Math.max(0,Number(bs.normal||0));
+  payload.lining_handover=Math.max(0,Number(bs.lining||0));
+  payload.design_handover=Math.max(0,Number(bs.design||0));
+  payload.chudi_handover=Math.max(0,Number(gx.chudi||0));
+  payload.saree_handover=Math.max(0,Number(gx.saree||0));
+  let notes=String(o.notes||'').replace(/BLOUSE_HANDOVER:(\{[^}]+\})/g,'').replace(/GARMENT_HANDOVER:(\{[^}]+\})/g,'').trim();
+  const bh={normal:payload.normal_handover,lining:payload.lining_handover,design:payload.design_handover};
+  const gh={chudi:payload.chudi_handover,saree:payload.saree_handover};
+  notes+=(notes?'\n':'')+'BLOUSE_HANDOVER:'+JSON.stringify(bh)+'\nGARMENT_HANDOVER:'+JSON.stringify(gh);
+  payload.notes=notes;
+}
+let result={error:null};
+try{
+  if(nfD1Enabled()) result=await nfD1Builder("orders").update(payload).eq("id",id);
+  else result=await supabaseClient.from("orders").update(payload).eq("id",id);
+}catch(e){result={error:{message:String(e?.message||e)}}}
+if(result?.error){toast("Status update failed: "+result.error.message,true);return;}
 await loadAll(true);
 openOrderFullDetails(id);
-toast(`Order ${label} என்று சேமிக்கப்பட்டது`);
+toast(status==="Delivered"?`Order Delivered • கொடுத்தது முழு அளவாக update செய்யப்பட்டது`:`Order ${label} என்று சேமிக்கப்பட்டது`);
 }
 async function markDelivered(id){
 await updateOrderStatus(id,"Delivered");
@@ -10777,29 +10796,66 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
       rows.push({name:c.name||'Customer',garment:label,totalQty:total,given:given,remaining:Math.max(0,total-given),amount:typeof orderTotal==='function'?Number(orderTotal(o)||0):n(o.total_amount||o.total),paid:pay?Number(pay.totalPaid||0):n(o.paid),status:o.status||'Pending'});
     }
     var photoPools=[];
-    group.forEach(function(c){ordersFor(c.id).forEach(function(o){
-      var added=false;
-      if(n(o.normal_qty)){addRow(c,o,'Normal Blouse',o.normal_qty,o.normal_handover);added=true;}
-      if(n(o.lining_qty)){addRow(c,o,'Lining Blouse',o.lining_qty,o.lining_handover);added=true;}
-      if(n(o.design_qty)){addRow(c,o,'Design Blouse',o.design_qty,o.design_handover);added=true;}
-      if(n(o.chudi_qty)){addRow(c,o,'Chudidhar / சுடிதார்',o.chudi_qty,o.chudi_handover);added=true;}
-      if(n(o.saree_qty)){addRow(c,o,'Saree / சேலை',o.saree_qty,o.saree_handover);added=true;}
-      if(!added)addRow(c,o,String(o.garment||o.garment_type||o.item_name||'Work'),o.quantity||o.qty||1,o.handover||o.quantity_handover||0);
+    var givenPhotos=[],pendingPhotos=[];
+    group.forEach(function(c){
+      ordersFor(c.id).forEach(function(o){
+        var x=typeof nfGarmentExtra==='function'?nfGarmentExtra(o):{chudi:0,saree:0};
+        var bh=blouseHandover(o),bs=blouseSplit(o);
+        /* Use actual handover columns first; notes are a compatibility fallback. */
+        var hn=Number(o.normal_handover||bh.normal||0),hl=Number(o.lining_handover||bh.lining||0),hd=Number(o.design_handover||bh.design||0),hc=Number(o.chudi_handover||0),hs=Number(o.saree_handover||0);
+        if(n(o.normal_qty)){addRow(c,o,'Normal Blouse',o.normal_qty,hn);}
+        if(n(o.lining_qty)){addRow(c,o,'Lining Blouse',o.lining_qty,hl);}
+        if(n(o.design_qty)){addRow(c,o,'Design Blouse',o.design_qty,hd);}
+        if(n(o.chudi_qty)){addRow(c,o,'Chudidhar / சுடிதார்',o.chudi_qty,hc);}
+        if(n(o.saree_qty)){addRow(c,o,'Saree / சேலை',o.saree_qty,hs);}
+        if(!n(o.normal_qty)&&!n(o.lining_qty)&&!n(o.design_qty)&&!n(o.chudi_qty)&&!n(o.saree_qty)){addRow(c,o,String(o.garment||o.garment_type||o.item_name||'Work'),o.quantity||o.qty||1,o.handover||o.quantity_handover||0);}
+      });
+      function addPhoto(target,x,i,label){
+        if(!x)return;
+        target.push({src:String(x.src||''),name:c.name||'Customer',photoType:label,slot:i,cloudPath:String(x.cloudPath||'')});
+      }
+      try{(customerClothPhotos(c.id)||[]).forEach(function(x,i){if(x)addPhoto(givenPhotos,x,i,'கொடுத்த துணி');});}catch(e){}
+      try{
+        var cp=customerDeliveryPhotos(c.id)||[];
+        cp.forEach(function(x,i){if(!x)return;
+          var block=Math.floor(i/NF_DELIVERY_SLOT_CAP),status=(block%2===0)?'given':'pending';
+          addPhoto(status==='given'?givenPhotos:pendingPhotos,x,i,status==='given'?'கொடுத்த':'மீதமுள்ள');
+        });
+      }catch(e){}
     });
-      var pool={name:c.name||'Customer',items:[]},seen={};
-      try{var cps=typeof customerClothPhotos==='function'?customerClothPhotos(c.id):[];(cps||[]).forEach(function(x,i){if(x&&x.src){var k=String(x.cloudPath||x.src);if(!seen[k]){seen[k]=1;pool.items.push({src:x.src,name:c.name||'Customer',photoType:'GIVEN CLOTH',slot:i,cloudPath:x.cloudPath||''});}}});}catch(e){}
-      try{var cp=typeof customerDeliveryPhotos==='function'?customerDeliveryPhotos(c.id):[];cp.forEach(function(x,i){if(x&&x.src){var k=String(x.cloudPath||x.src);if(!seen[k]){seen[k]=1;pool.items.push({src:x.src,name:c.name||'Customer',photoType:'DELIVERY',slot:i,cloudPath:x.cloudPath||''});}}});}catch(e){}
-      photoPools.push(pool);
-    });
-    photoPools.forEach(function(pool){if(pool.items[0]&&photos.length<8)photos.push(pool.items[0]);});
-    for(var pass=1;pass<40&&photos.length<8;pass++)photoPools.forEach(function(pool){var p=pool.items[pass];if(p&&photos.length<8)photos.push(p);});
-    if(photos.length){var safePhotos=[];for(var spi=0;spi<photos.length;spi++){var sp=photos[spi];if(!sp||!sp.src)continue;try{var src=String(sp.src||'');if(/^data:image\//i.test(src)){safePhotos.push(Object.assign({},sp,{src:src}));continue;}if(sp.cloudPath&&typeof nfR2PhotoUrl==='function'&&typeof nfWacFetchBlob==='function'){try{var pb=await nfWacFetchBlob(nfR2PhotoUrl(sp.cloudPath),7000);var purl=await new Promise(function(resolve,reject){var fr=new FileReader();fr.onload=function(){resolve(String(fr.result||''));};fr.onerror=reject;fr.readAsDataURL(pb);});if(purl){safePhotos.push(Object.assign({},sp,{src:purl}));continue;}}catch(_){}}if(typeof nfWacFetchBlob==='function'){var pb=await nfWacFetchBlob(src,7000);var purl=await new Promise(function(resolve,reject){var fr=new FileReader();fr.onload=function(){resolve(String(fr.result||''));};fr.onerror=reject;fr.readAsDataURL(pb);});if(purl)safePhotos.push(Object.assign({},sp,{src:purl}));}}catch(pe){console.warn('Delivery card photo embed skipped:',pe);}}photos=safePhotos;}
+    /* Prefer local data URLs, otherwise hydrate/fetch the R2 object. */
+    async function resolvePhoto(p){
+      if(!p)return null;
+      var src=String(p.src||'');
+      if(/^data:image\//i.test(src))return Object.assign({},p,{src:src});
+      var candidates=[];
+      if(p.cloudPath&&typeof nfR2PhotoUrl==='function')candidates.push(nfR2PhotoUrl(p.cloudPath));
+      if(src)candidates.push(src);
+      for(var ci=0;ci<candidates.length;ci++){
+        try{
+          if(typeof nfWacFetchBlob==='function'){
+            var pb=await nfWacFetchBlob(candidates[ci],7000);
+            var purl=await new Promise(function(resolve,reject){var fr=new FileReader();fr.onload=function(){resolve(String(fr.result||''));};fr.onerror=reject;fr.readAsDataURL(pb);});
+            if(/^data:image\//i.test(purl))return Object.assign({},p,{src:purl});
+          }
+        }catch(_){}
+      }
+      return null;
+    }
+    var allPhotoSets=[['given',givenPhotos],['pending',pendingPhotos]],resolvedGiven=[],resolvedPending=[];
+    for(var psi=0;psi<allPhotoSets.length;psi++){
+      var arrp=allPhotoSets[psi][1],outp=allPhotoSets[psi][0]==='given'?resolvedGiven:resolvedPending;
+      for(var pxi=0;pxi<arrp.length&&outp.length<8;pxi++){var rp=await resolvePhoto(arrp[pxi]);if(rp)outp.push(rp);}
+    }
+    var photos=resolvedGiven.concat(resolvedPending).slice(0,12);
+    var photoSections=[{title:'📸 கொடுத்த போட்டோஸ்',items:resolvedGiven},{title:'📸 மீதமுள்ள போட்டோஸ்',items:resolvedPending}].filter(function(x){return x.items.length;});
     var main=people[0]||{},mainOrders=ordersFor(main.id),clothDates=mainOrders.map(function(o){return o.cloth_received_date||o.order_date||'';}).filter(Boolean).sort(),deliveryDates=mainOrders.map(function(o){return o.delivery_date||'';}).filter(Boolean).sort();
     var clothDate=clothDates[0]||'',deliveryDate=deliveryDates[0]||'';
     var givenTotal=rows.reduce(function(a,r){return a+r.given;},0),remainingTotal=rows.reduce(function(a,r){return a+r.remaining;},0),totalAmount=sum.total,paidAmount=sum.paid,balanceAmount=sum.balance;
     var headH=210,metaH=140,peopleH=70+people.length*72,tableHead=86,rowH=88,amountH=138,settleH=120;
-    var photoRows=photos.length?Math.ceil(photos.length/2):0,photoCellH=300,photoH=photos.length?76+photoRows*photoCellH+(photoRows-1)*18:0;
-    var H=pad+headH+18+metaH+18+peopleH+18+tableHead+Math.max(1,rows.length)*rowH+18+amountH+18+settleH+(photos.length?18+photoH:0)+18+140+pad;
+    var photoCellH=300,photoH=0;
+    photoSections.forEach(function(sec){var rrn=Math.ceil(sec.items.length/2);photoH+=76+rrn*photoCellH+Math.max(0,rrn-1)*18+18;});
+    var H=pad+headH+18+metaH+18+peopleH+18+tableHead+Math.max(1,rows.length)*rowH+18+amountH+18+settleH+(photoH?18+photoH:0)+18+140+pad;
     var canvas=document.createElement('canvas');canvas.width=W*S;canvas.height=H*S;var ctx=canvas.getContext('2d');if(!ctx)throw new Error('canvas-unavailable');ctx.scale(S,S);
     function rr(x,y,w,h,r,fill,stroke,lw){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();if(fill){ctx.fillStyle=fill;ctx.fill()}if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=lw||2;ctx.stroke()}}
     function txt(v,x,y,size,weight,fill,align){ctx.font=(weight||700)+' '+size+'px Noto Sans Tamil,Arial,sans-serif';ctx.fillStyle=fill||'#171923';ctx.textAlign=align||'left';ctx.textBaseline='middle';ctx.fillText(String(v==null?'':v),x,y);}
@@ -10812,7 +10868,7 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
     rows.forEach(function(r,i){var yy=y+i*rowH;rr(pad+12,yy+7,inner-24,rowH-14,12,i%2?'#fff':'#faf7ff','#e7dfef',1);txt((r.name||'Customer')+'  •  '+r.garment,pad+28,yy+rowH/2,30,950,'#111318');txt(String(r.totalQty),W-420,yy+rowH/2,34,950,'#17131b','center');txt(String(r.given),W-250,yy+rowH/2,34,950,'#0a5d3f','center');txt(String(r.remaining),W-82,yy+rowH/2,34,950,r.remaining?'#9e2525':'#0a5d3f','right');});y+=Math.max(1,rows.length)*rowH+18;
     var bw=(inner-24)/3;[['TOTAL AMOUNT',totalAmount,'#5f3ee1'],['CUSTOMER PAID',paidAmount,'#0e9367'],['BALANCE',balanceAmount,'#d83e68']].forEach(function(a,i){var x=pad+i*(bw+12);rr(x,y,bw,amountH,18,a[2]);txt(a[0],x+18,y+39,21,900,'#fff');txt(moneyText(a[1]),x+18,y+88,40,950,'#fff');});y+=amountH+18;
     var settled=balanceAmount<=0.005,workDone=remainingTotal<=0;rr(pad,y,inner,settleH,20,settled?'#e8fff4':'#fff4df',settled?'#1caa73':'#e1ad35',3);txt(settled?'✅ FULL SETTLEMENT':'💰 PAYMENT PENDING',pad+28,y+34,32,950,settled?'#087c50':'#996700');txt(settled?'Customer payment fully settled • Balance ₹0':'Customer இன்னும் கொடுக்க வேண்டியது: '+moneyText(balanceAmount),pad+28,y+79,24,850,settled?'#087c50':'#996700');txt(workDone?'✅ ALL CLOTHES GIVEN':'📦 CLOTHES REMAINING: '+remainingTotal,W-pad-28,y+57,24,950,workDone?'#087c50':'#b64c3e','right');y+=settleH+18;
-    if(photos.length){var pg=ctx.createLinearGradient(pad,y,W-pad,y);pg.addColorStop(0,'#6b20ca');pg.addColorStop(1,'#d30a61');ctx.fillStyle=pg;ctx.fillRect(pad,y,inner,66);txt('📸 CUSTOMER PHOTOS',pad+24,y+33,30,950,'#fff');y+=76;var cw=(inner-18)/2;for(var pi=0;pi<photos.length;pi++){var p=photos[pi],col=pi%2,row=Math.floor(pi/2),x=pad+col*(cw+18),yy=y+row*(photoCellH+18);rr(x,yy,cw,photoCellH,16,'#fff','#d9cce9',2);txt((p.name||'Customer')+'  •  '+(p.photoType||'PHOTO'),x+18,yy+28,21,950,'#4d304f');try{var im=await new Promise(function(resolve,reject){var z=new Image();z.onload=function(){resolve(z)};z.onerror=reject;z.src=p.src;});var sc=Math.min((cw-36)/im.width,230/im.height),dw=im.width*sc,dh=im.height*sc;ctx.drawImage(im,x+cw/2-dw/2,yy+148-dh/2,dw,dh);}catch(e){txt('Photo unavailable',x+cw/2,yy+148,18,700,'#777','center');}}y+=photoRows*photoCellH+(photoRows-1)*18;}
+    if(photoSections.length){var cw=(inner-18)/2;for(var si2=0;si2<photoSections.length;si2++){var sec=photoSections[si2];var pg=ctx.createLinearGradient(pad,y,W-pad,y);pg.addColorStop(0,'#6b20ca');pg.addColorStop(1,'#d30a61');ctx.fillStyle=pg;ctx.fillRect(pad,y,inner,66);txt(sec.title,pad+24,y+33,30,950,'#fff');y+=76;var pr=Math.ceil(sec.items.length/2);for(var pi=0;pi<sec.items.length;pi++){var p=sec.items[pi],col=pi%2,row=Math.floor(pi/2),x=pad+col*(cw+18),yy=y+row*(photoCellH+18);rr(x,yy,cw,photoCellH,16,'#fff','#d9cce9',2);txt((p.name||'Customer')+'  •  '+(p.photoType||'PHOTO'),x+18,yy+28,21,950,'#4d304f');try{var im=await new Promise(function(resolve,reject){var z=new Image();z.onload=function(){resolve(z)};z.onerror=reject;z.src=p.src;});var sc=Math.min((cw-36)/im.width,230/im.height),dw=im.width*sc,dh=im.height*sc;ctx.drawImage(im,x+cw/2-dw/2,yy+148-dh/2,dw,dh);}catch(e){txt('Photo unavailable',x+cw/2,yy+148,18,700,'#777','center');}}y+=pr*photoCellH+Math.max(0,pr-1)*18+18;}}
     var fg=ctx.createLinearGradient(pad,y,W-pad,y);fg.addColorStop(0,'#24105d');fg.addColorStop(1,'#b80c61');rr(pad,y,inner,140,22,fg);txt(settled?'FULL SETTLEMENT':'PAYMENT PENDING',W/2,y+38,36,950,settled?'#7dffcc':'#ffe06b','center');txt(workDone?'ALL CLOTHES DELIVERED':'CLOTHES STILL PENDING: '+remainingTotal,W/2,y+78,25,900,'#fff','center');txt('☎ PHONE: 8524931003',W/2,y+120,32,950,'#ffeaf4','center');
     return canvasBlob(canvas);
   }
@@ -10932,37 +10988,6 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-card{
   align-self:start!important;
 }
 </style>
-<script>
-(function(){
-  function n(v){return Math.max(0,Number(v||0));}
-  function stripNotes(s){return String(s||'').replace(/\s*\|?\s*BLOUSE_HANDOVER:\{[^}]+\}/g,'').replace(/\s*\|?\s*GARMENT_HANDOVER:\{[^}]+\}/g,'').trim();}
-  window.markDelivered=async function(id){
-    const o=(state.orders||[]).find(x=>String(x.id)===String(id)); if(!o)return;
-    if(!confirm('இந்த order-ஐ Delivered என்று மாற்றவா?'))return;
-    const bs=typeof blouseSplit==='function'?blouseSplit(o):{normal:n(o.normal_qty),lining:n(o.lining_qty),design:n(o.design_qty)};
-    const gg=typeof nfGarmentExtra==='function'?nfGarmentExtra(o):{chudi:n(o.chudi_qty),saree:n(o.saree_qty)};
-    const bh={normal:n(bs.normal),lining:n(bs.lining),design:n(bs.design)};
-    const gh={chudi:n(gg.chudi),saree:n(gg.saree)};
-    let notes=stripNotes(o.notes);
-    notes+=(notes?' | ':'')+'BLOUSE_HANDOVER:'+JSON.stringify(bh)+' | GARMENT_HANDOVER:'+JSON.stringify(gh);
-    const payload={status:'Delivered',normal_handover:bh.normal,lining_handover:bh.lining,design_handover:bh.design,chudi_handover:gh.chudi,saree_handover:gh.saree,notes:notes};
-    try{
-      let error=null;
-      if(typeof nfD1Enabled==='function'&&nfD1Enabled()&&typeof nfD1Builder==='function'){
-        nfD1AccessToken=await nfD1GetAccessToken();
-        const r=await nfD1Builder('orders').update(payload).eq('id',id); error=r&&r.error;
-      }else{ const r=await supabaseClient.from('orders').update(payload).eq('id',id); error=r&&r.error; }
-      if(error)throw error;
-      await loadAll(true); openOrderFullDetails(id); toast('Order Delivered என்று சேமிக்கப்பட்டது');
-    }catch(e){toast('Status update failed: '+(e.message||e),true)}
-  };
-  const oldDelivery=window.r100OpenCustomerCard;
-  if(typeof oldDelivery==='function'&&!oldDelivery.__nfV137){
-    window.r100OpenCustomerCard=function(kind,id){return oldDelivery.apply(this,arguments)};
-    window.r100OpenCustomerCard.__nfV137=true;
-  }
-})();
-</script>
 </body>
 <script id="nf-v120-single-cash-dedupe-fix">
 /* V22: superseded by the single stable customer-group renderer. */
