@@ -1855,6 +1855,14 @@ const nfRawFromSupabase=supabaseClient.from.bind(supabaseClient);
 })();
 
 const nfRawFrom=(table)=>nfD1Enabled()?nfD1Builder(table):nfRawFromSupabase(table);
+/* V124 FIX — route normal app database operations through Cloudflare D1. */
+(function(){
+  const __nfOriginalFrom = supabaseClient.from.bind(supabaseClient);
+  supabaseClient.from = function(table){
+    if(NF_TABLES.includes(table) && nfD1Enabled()) return nfD1Builder(table);
+    return __nfOriginalFrom(table);
+  };
+})();
 let nfAppDbPromise=null;
 let nfSyncTimer=null;
 let nfSyncBusy=false;
