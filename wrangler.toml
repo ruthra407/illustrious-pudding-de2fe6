@@ -9,3 +9,5 @@ database_id = "3c52d78e-1347-4c31-a18c-8c4fa134231e"
 [[r2_buckets]]
 binding = "MY_BUCKET"
 bucket_name = "new-fashion-tailoring"
+
+# deploy
