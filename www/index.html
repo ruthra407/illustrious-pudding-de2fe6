@@ -13236,7 +13236,11 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-card{
   function renderCustomersStable(){
     var box=document.getElementById("customersTable");if(!box)return;
     var q=(document.getElementById("customerSearch")?.value||"").toLowerCase();
-    var list=mains().filter(function(c){return [c.name,c.phone,c.address,c.village].join(" ").toLowerCase().includes(q);});
+    var list=mains();
+    /* Safety fallback: if old/malformed multi-customer metadata marks every
+       customer as a child, never hide the Customer Cards page completely. */
+    if(!list.length) list=all();
+    list=list.filter(function(c){return [c.name,c.phone,c.address,c.village].join(" ").toLowerCase().includes(q);});
     box.innerHTML=list.length?list.map(function(c){return window.customerCard(c.id);}).join(""):"<div class=\"card empty\" style=\"grid-column:1/-1\">No customers found.</div>";
     /* Never leave the whole page hidden if an old focus target no longer exists. */
     var view=document.getElementById("view-customers");
