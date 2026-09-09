@@ -11012,13 +11012,14 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-card{
   window.addEventListener("touchmove",function(e){
     if(!edge || !e.touches || e.touches.length!==1)return;
     var t=e.touches[0],dx=t.clientX-sx,dy=t.clientY-sy;
-    if(Math.abs(dx)<10 || Math.abs(dx)<=Math.abs(dy)*LOCK)return;
-    if(edge==="left" && dx<=0){edge="";return;}
-    if(edge==="right" && dx>=0){edge="";return;}
-    if(edge==="home-right" && dx>=0){edge="";return;}
-    tracking=true;
-    if(e.cancelable)e.preventDefault();
-    e.stopImmediatePropagation();
+    if(Math.abs(dx)>=10 && Math.abs(dx)>Math.abs(dy)*LOCK){
+      if(edge==="left" && dx<=0){edge="";return;}
+      if(edge==="right" && dx>=0){edge="";return;}
+      if(edge==="home-right" && dx>=0){edge="";return;}
+      tracking=true;
+      if(e.cancelable)e.preventDefault();
+      e.stopImmediatePropagation();
+    }
   },{passive:false,capture:true});
 
   window.addEventListener("touchend",function(e){
@@ -11028,13 +11029,12 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-card{
     var t=e.changedTouches&&e.changedTouches[0];
     if(!t)return;
     var dx=t.clientX-sx,dy=t.clientY-sy;
-    if(!tracking || Math.abs(dx)<MIN || Math.abs(dx)<=Math.abs(dy)*LOCK)return;
+    /* Do not depend on touchmove firing. Some Android WebViews hand the
+       gesture directly to touchend; the final distance is enough. */
+    if(Math.abs(dx)<MIN || Math.abs(dx)<=Math.abs(dy)*LOCK)return;
     if(e.cancelable)e.preventDefault();
     e.stopImmediatePropagation();
 
-    /* Right-edge -> left is the dedicated page-back gesture.
-       Left-edge -> right remains the existing drawer gesture on Home,
-       but acts as Back on inner pages so the drawer behavior is preserved. */
     if((usedEdge==="right" || usedEdge==="home-right") && dx<0){
       if(currentView()==="dashboard")doHomeDoubleSwipe();
       else doBack();
@@ -11044,6 +11044,32 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-card{
       doBack();
     }
   },{passive:false,capture:true});
+
+  /* Pointer fallback for Android WebView / hybrid builds where touchend can
+     be inconsistent. Home exit uses the same two-swipe state machine. */
+  var psx=0, psy=0, pEdge="";
+  window.addEventListener("pointerdown",function(e){
+    if(e.pointerType==="mouse" || window.innerWidth>900 || commonOverlayOpen())return;
+    psx=e.clientX; psy=e.clientY; pEdge="";
+    if(currentView()==="dashboard"){
+      pEdge=(psx<=EDGE)?"left":"home-right";
+    }else{
+      if(psx<=EDGE)pEdge="left";
+      else if(psx>=window.innerWidth-EDGE)pEdge="right";
+    }
+  },{passive:true,capture:true});
+  window.addEventListener("pointerup",function(e){
+    if(!pEdge || e.pointerType==="mouse")return;
+    var used=pEdge; pEdge="";
+    var dx=e.clientX-psx,dy=e.clientY-psy;
+    if(Math.abs(dx)<MIN || Math.abs(dx)<=Math.abs(dy)*LOCK)return;
+    if((used==="right" || used==="home-right") && dx<0){
+      if(currentView()==="dashboard")doHomeDoubleSwipe();
+      else doBack();
+    }else if(used==="left" && dx>0 && currentView()!=="dashboard"){
+      doBack();
+    }
+  },{passive:true,capture:true});
 
   window.addEventListener("touchcancel",function(){tracking=false;edge="";},{passive:true,capture:true});
 
