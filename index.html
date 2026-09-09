@@ -10941,9 +10941,8 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-card{
   window.__nfNavigationGestureFixInstalled=true;
 
   var sx=0, sy=0, tracking=false, edge="";
-  var EDGE=50, MIN=65, LOCK=1.15;
-  var lastHomeSwipe=0, HOME_DOUBLE_MS=2500;
-  var homeSwipeArmed=false;
+  var EDGE=34, MIN=60, LOCK=1.15;
+  var lastHomeSwipe=0, HOME_DOUBLE_MS=1800;
 
   function currentView(){ return (history.state && history.state.view) || "dashboard"; }
   function sidebarOpen(){
@@ -10977,26 +10976,37 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-card{
   }
   function doHomeDoubleSwipe(){
     var now=Date.now();
-    if(lastHomeSwipe && (now-lastHomeSwipe)<=HOME_DOUBLE_MS){
-      lastHomeSwipe=0; homeSwipeArmed=false;
+    if(now-lastHomeSwipe<=HOME_DOUBLE_MS){
+      lastHomeSwipe=0;
       try{
-        if(typeof window.nfExitApp==="function"){ window.nfExitApp(); return true; }
-        var cap=window.Capacitor, app=cap&&cap.Plugins&&cap.Plugins.App;
-        if(app&&typeof app.exitApp==="function"){ app.exitApp(); return true; }
+        if(typeof window.nfExitApp==="function"){
+          window.nfExitApp();
+        }else{
+          var cap=window.Capacitor, app=cap&&cap.Plugins&&cap.Plugins.App;
+          if(app&&typeof app.exitApp==="function")app.exitApp();
+        }
       }catch(_){ }
       return true;
     }
-    lastHomeSwipe=now; homeSwipeArmed=true;
+    lastHomeSwipe=now;
     if(typeof toast==="function")toast("வெளியேற மீண்டும் swipe செய்யவும்.");
     return true;
   }
+
   window.addEventListener("touchstart",function(e){
     if(window.innerWidth>900 || !e.touches || e.touches.length!==1)return;
     if(commonOverlayOpen())return;
     var t=e.touches[0], x=t.clientX;
     sx=x; sy=t.clientY; tracking=false; edge="";
-    if(x<=EDGE)edge="left";
-    else if(x>=window.innerWidth-EDGE)edge="right";
+    if(currentView()==="dashboard"){
+      /* Home: right-to-left exit swipe may start anywhere.
+         Left-to-right still uses the edge for the drawer. */
+      if(x<=EDGE)edge="left";
+      else edge="home-right";
+    }else{
+      if(x<=EDGE)edge="left";
+      else if(x>=window.innerWidth-EDGE)edge="right";
+    }
   },{passive:true,capture:true});
 
   window.addEventListener("touchmove",function(e){
@@ -11005,6 +11015,7 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-card{
     if(Math.abs(dx)<10 || Math.abs(dx)<=Math.abs(dy)*LOCK)return;
     if(edge==="left" && dx<=0){edge="";return;}
     if(edge==="right" && dx>=0){edge="";return;}
+    if(edge==="home-right" && dx>=0){edge="";return;}
     tracking=true;
     if(e.cancelable)e.preventDefault();
     e.stopImmediatePropagation();
@@ -11021,22 +11032,20 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-card{
     if(e.cancelable)e.preventDefault();
     e.stopImmediatePropagation();
 
-    /* Home: every completed edge swipe counts toward the double-swipe exit.
-       Inner pages keep the existing side-swipe Back behavior. */
-    if(currentView()==="dashboard"){
-      if((usedEdge==="right" && dx<0) || (usedEdge==="left" && dx>0)){
-        doHomeDoubleSwipe();
-        return;
-      }
-    }else if(usedEdge==="right" && dx<0){
-      doBack();
+    /* Right-edge -> left is the dedicated page-back gesture.
+       Left-edge -> right remains the existing drawer gesture on Home,
+       but acts as Back on inner pages so the drawer behavior is preserved. */
+    if((usedEdge==="right" || usedEdge==="home-right") && dx<0){
+      if(currentView()==="dashboard")doHomeDoubleSwipe();
+      else doBack();
       return;
-    }else if(usedEdge==="left" && dx>0){
+    }
+    if(usedEdge==="left" && dx>0 && currentView()!=="dashboard"){
       doBack();
     }
   },{passive:false,capture:true});
 
-  window.addEventListener("touchcancel",function(){tracking=false;edge="";htracking=false;},{passive:true,capture:true});
+  window.addEventListener("touchcancel",function(){tracking=false;edge="";},{passive:true,capture:true});
 
   /* Wire the existing Android-back bridge to Capacitor's App back event. */
   function installAndroidBack(){
