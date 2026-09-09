@@ -10932,6 +10932,123 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-card{
   align-self:start!important;
 }
 </style>
+
+<!-- NF navigation gesture/back fix: only restores side-swipe back + double-swipe exit. -->
+<script id="nf-navigation-gesture-back-exit-fix">
+(function(){
+  "use strict";
+  if(window.__nfNavigationGestureFixInstalled)return;
+  window.__nfNavigationGestureFixInstalled=true;
+
+  var sx=0, sy=0, tracking=false, edge="";
+  var EDGE=34, MIN=70, LOCK=1.15;
+  var lastHomeSwipe=0, HOME_DOUBLE_MS=1200;
+
+  function currentView(){ return (history.state && history.state.view) || "dashboard"; }
+  function sidebarOpen(){
+    var d=document.getElementById("sidebar");
+    return !!(d && d.classList.contains("open"));
+  }
+  function closeDrawer(){
+    var d=document.getElementById("sidebar");
+    if(d && d.classList.contains("open")){
+      d.classList.remove("open");
+      document.body.classList.remove("drawer-open");
+      return true;
+    }
+    return false;
+  }
+  function commonOverlayOpen(){
+    var modal=document.getElementById("modal");
+    if(modal && modal.classList.contains("open"))return true;
+    var photo=document.getElementById("nfPhotoPreviewOverlay");
+    if(photo && photo.classList.contains("open"))return true;
+    return false;
+  }
+  function doBack(){
+    if(commonOverlayOpen())return false;
+    if(closeDrawer())return true;
+    if(currentView()!=="dashboard"){
+      history.back();
+      return true;
+    }
+    return false;
+  }
+  function doHomeDoubleSwipe(){
+    var now=Date.now();
+    if(now-lastHomeSwipe<=HOME_DOUBLE_MS){
+      lastHomeSwipe=0;
+      if(typeof window.nfExitApp==="function")window.nfExitApp();
+      return true;
+    }
+    lastHomeSwipe=now;
+    if(typeof toast==="function")toast("வெளியேற மீண்டும் swipe செய்யவும்.");
+    return true;
+  }
+
+  window.addEventListener("touchstart",function(e){
+    if(window.innerWidth>900 || !e.touches || e.touches.length!==1)return;
+    if(commonOverlayOpen())return;
+    var t=e.touches[0], x=t.clientX;
+    sx=x; sy=t.clientY; tracking=false; edge="";
+    if(x<=EDGE)edge="left";
+    else if(x>=window.innerWidth-EDGE)edge="right";
+  },{passive:true,capture:true});
+
+  window.addEventListener("touchmove",function(e){
+    if(!edge || !e.touches || e.touches.length!==1)return;
+    var t=e.touches[0],dx=t.clientX-sx,dy=t.clientY-sy;
+    if(Math.abs(dx)<10 || Math.abs(dx)<=Math.abs(dy)*LOCK)return;
+    if(edge==="left" && dx<=0){edge="";return;}
+    if(edge==="right" && dx>=0){edge="";return;}
+    tracking=true;
+    if(e.cancelable)e.preventDefault();
+    e.stopImmediatePropagation();
+  },{passive:false,capture:true});
+
+  window.addEventListener("touchend",function(e){
+    if(!edge)return;
+    var usedEdge=edge;
+    edge="";
+    var t=e.changedTouches&&e.changedTouches[0];
+    if(!t)return;
+    var dx=t.clientX-sx,dy=t.clientY-sy;
+    if(!tracking || Math.abs(dx)<MIN || Math.abs(dx)<=Math.abs(dy)*LOCK)return;
+    if(e.cancelable)e.preventDefault();
+    e.stopImmediatePropagation();
+
+    /* Right-edge -> left is the dedicated page-back gesture.
+       Left-edge -> right remains the existing drawer gesture on Home,
+       but acts as Back on inner pages so the drawer behavior is preserved. */
+    if(usedEdge==="right" && dx<0){
+      if(currentView()==="dashboard")doHomeDoubleSwipe();
+      else doBack();
+      return;
+    }
+    if(usedEdge==="left" && dx>0 && currentView()!=="dashboard"){
+      doBack();
+    }
+  },{passive:false,capture:true});
+
+  window.addEventListener("touchcancel",function(){tracking=false;edge="";},{passive:true,capture:true});
+
+  /* Wire the existing Android-back bridge to Capacitor's App back event. */
+  function installAndroidBack(){
+    try{
+      var cap=window.Capacitor, app=cap&&cap.Plugins&&cap.Plugins.App;
+      if(!app || typeof app.addListener!=="function" || window.__nfAndroidBackListener)return;
+      window.__nfAndroidBackListener=true;
+      app.addListener("backButton",function(){
+        if(typeof window.__nfAndroidBack==="function")window.__nfAndroidBack();
+        else doBack();
+      });
+    }catch(_){ }
+  }
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",installAndroidBack,{once:true});
+  else installAndroidBack();
+  setTimeout(installAndroidBack,500);
+})();
+</script>
 </body>
 <script id="nf-v120-single-cash-dedupe-fix">
 /* V22: superseded by the single stable customer-group renderer. */
