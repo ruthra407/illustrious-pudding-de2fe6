@@ -3949,7 +3949,7 @@ try{
 function renderAll(){
 const jobs=[
   ["Dashboard",renderDashboard],
-  ["Customers",renderCustomers],
+  ["Customers",()=>window.renderCustomers()],
   ["Measurements",renderMeasurements],
   ["Orders",renderOrders],
   ["Alterations",renderAlterations],
@@ -13833,5 +13833,22 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
   window.addEventListener("popstate",function(){if(!overlay.classList.contains("open"))return;if(closing){historyOpen=false;closing=false;return;}historyOpen=false;finishClose();});
   document.addEventListener("keydown",function(e){if(e.key==="Escape"&&overlay.classList.contains("open"))close(true);});
   try{var cap=window.Capacitor,app=cap&&cap.Plugins&&cap.Plugins.App;if(app&&typeof app.addListener==="function")app.addListener("backButton",function(){if(overlay.classList.contains("open"))close(true);});}catch(e){console.warn('Delivery preview back listener unavailable',e);}
+})();
+</script>
+
+<script id="nf-v151-customer-render-final">
+(function(){
+  "use strict";
+  function refreshCustomersFinal(){
+    try{
+      var v=document.getElementById("view-customers");
+      if(v && v.classList.contains("active") && typeof window.renderCustomers==="function") window.renderCustomers();
+    }catch(e){}
+  }
+  document.addEventListener("click",function(e){
+    var b=e.target.closest?.('[data-view="customers"]');
+    if(b) setTimeout(refreshCustomersFinal,0);
+  },true);
+  setTimeout(refreshCustomersFinal,150);
 })();
 </script>
