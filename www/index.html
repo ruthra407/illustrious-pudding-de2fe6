@@ -10941,16 +10941,23 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-card{
   window.__nfNavigationGestureFixInstalled=true;
 
   /*
-   * Central rule: dashboard double-swipe is OBSERVE-ONLY.
-   * It does not cancel the touch event, so drawer/customer/photo/scroll
-   * gestures keep their existing event flow.
-   * Existing inner-page edge-back behavior is preserved below.
+   * Gesture ownership:
+   * - Dashboard: ONLY a clear right-edge -> left swipe is observed for
+   *   double-swipe exit. We count at the horizontal movement threshold,
+   *   rather than waiting for touchend, because Android/WebView can emit
+   *   touchcancel when another gesture/scroll system takes over.
+   * - Inner pages: preserve the existing edge-back gesture below.
+   * - We never call preventDefault/stopPropagation for dashboard exit.
    */
-  var sx=0, sy=0, tracking=false, edge="";
-  var EDGE=34, MIN=70, LOCK=1.15;
-  var lastHomeSwipe=0, HOME_DOUBLE_MS=2500;
+  var sx=0,sy=0,tracking=false,counted=false,edge="";
+  var EDGE=90, MIN=70, LOCK=1.15;
+  var lastHomeSwipe=0, HOME_DOUBLE_MS=4000;
   var exitInProgress=false;
 
+  function dashboardActive(){
+    var v=document.getElementById("view-dashboard");
+    return !!(v && v.classList.contains("active"));
+  }
   function currentView(){ return (history.state && history.state.view) || "dashboard"; }
   function sidebarOpen(){
     var d=document.getElementById("sidebar");
@@ -10986,8 +10993,6 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-card{
     if(exitInProgress)return;
     exitInProgress=true;
     try{
-      /* Reuse the app's existing native-exit bridge when it is available.
-         This avoids creating a second, competing Capacitor exit path. */
       if(typeof window.nfExitApp==="function"){
         Promise.resolve(window.nfExitApp()).catch(function(err){
           console.error("Exit App failed",err);
@@ -11019,47 +11024,62 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-card{
     }
   }
 
-  function doHomeDoubleSwipe(){
+  function countHomeSwipe(){
     var now=Date.now();
     if(lastHomeSwipe && now-lastHomeSwipe<=HOME_DOUBLE_MS){
       lastHomeSwipe=0;
       if(typeof toast==="function")toast("Exit செய்யப்படுகிறது...");
-      setTimeout(nativeExit,80);
-      return true;
+      setTimeout(nativeExit,60);
+      return;
     }
     lastHomeSwipe=now;
     if(typeof toast==="function")toast("வெளியேற மீண்டும் வலமிருந்து இடமாக swipe செய்யவும்.");
-    return true;
   }
 
-  /* Dashboard: watch every clear right-to-left horizontal swipe.
-     No preventDefault/stopPropagation here by design. */
+  function resetDashboardTouch(){
+    tracking=false;
+    counted=false;
+    sx=sy=0;
+  }
+
+  /*
+   * Dashboard exit detector.
+   * Count once when the finger crosses MIN horizontally. This is deliberately
+   * independent of touchend so a WebView touchcancel cannot lose the swipe.
+   */
   window.addEventListener("touchstart",function(e){
     if(window.innerWidth>900 || !e.touches || e.touches.length!==1)return;
-    if(currentView()!=="dashboard" || commonOverlayOpen() || sidebarOpen())return;
+    if(!dashboardActive() || commonOverlayOpen() || sidebarOpen())return;
     var t=e.touches[0];
-    sx=t.clientX; sy=t.clientY; tracking=true;
+    sx=t.clientX; sy=t.clientY;
+    tracking=(sx>=window.innerWidth-EDGE);
+    counted=false;
   },{passive:true,capture:true});
 
-  window.addEventListener("touchend",function(e){
-    if(!tracking)return;
-    tracking=false;
-    if(currentView()!=="dashboard" || commonOverlayOpen() || sidebarOpen())return;
-    var t=e.changedTouches && e.changedTouches[0];
-    if(!t)return;
-    var dx=t.clientX-sx, dy=t.clientY-sy;
+  window.addEventListener("touchmove",function(e){
+    if(!tracking || counted || !e.touches || e.touches.length!==1)return;
+    if(!dashboardActive() || commonOverlayOpen() || sidebarOpen()){
+      resetDashboardTouch();
+      return;
+    }
+    var t=e.touches[0],dx=t.clientX-sx,dy=t.clientY-sy;
     if(dx<=-MIN && Math.abs(dx)>Math.abs(dy)*LOCK){
-      doHomeDoubleSwipe();
+      counted=true;
+      countHomeSwipe();
     }
   },{passive:true,capture:true});
 
-  window.addEventListener("touchcancel",function(){tracking=false;},{passive:true,capture:true});
+  window.addEventListener("touchend",function(){
+    if(tracking)resetDashboardTouch();
+  },{passive:true,capture:true});
+  window.addEventListener("touchcancel",function(){
+    if(tracking)resetDashboardTouch();
+  },{passive:true,capture:true});
 
-  /* Existing inner-page edge-back gesture. Kept separate so the new
-     dashboard observer cannot alter existing page/drawer behavior. */
+  /* Existing inner-page edge-back gesture. Kept separate. */
   window.addEventListener("touchstart",function(e){
     if(window.innerWidth>900 || !e.touches || e.touches.length!==1)return;
-    if(currentView()==="dashboard" || commonOverlayOpen())return;
+    if(dashboardActive() || commonOverlayOpen())return;
     var t=e.touches[0], x=t.clientX;
     sx=x; sy=t.clientY; tracking=false; edge="";
     if(x<=EDGE)edge="left";
@@ -11107,26 +11127,10 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-card{
         if(typeof window.__nfAndroidBack==="function")window.__nfAndroidBack();
         else doBack();
       });
-    }catch(_){ }
+    }catch(e){console.warn("Android back listener unavailable",e);}
   }
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",installAndroidBack,{once:true});
   else installAndroidBack();
-  setTimeout(installAndroidBack,500);
-
-  function installSideExit(){
-    var btn=document.getElementById("sideExitApp");
-    if(!btn || btn.__nfExitBound)return;
-    btn.__nfExitBound=true;
-    btn.addEventListener("click",function(e){
-      e.preventDefault();
-      e.stopPropagation();
-      nativeExit();
-    });
-  }
-  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",installSideExit,{once:true});
-  else installSideExit();
-  setTimeout(installSideExit,300);
-  setTimeout(installSideExit,1000);
 })();
 </script>
 </body>
