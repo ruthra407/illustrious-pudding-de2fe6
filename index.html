@@ -7996,12 +7996,14 @@ async function nfWacEnsureCloudPhotos(){
 async function nfWacResolvePhotos(id){
   var key=String(id||"");
   var photos=typeof customerClothPhotos==="function"?customerClothPhotos(key):[];
-  /* Card export uses the same Customer Given Cloth photos as the Single Customer WhatsApp Card.
-     Initialize local metadata first, then refresh cloud metadata once for the current card/group. */
+  /* Online: refresh cloud once per short window, not once for every customer.
+     This prevents Multi Customer cards from serially blocking the UI. */
+  await nfWacEnsureCloudPhotos();
+  photos=typeof customerClothPhotos==="function"?customerClothPhotos(key):photos;
+  if(Array.isArray(photos)&&photos.some(function(p){return p&&p.src})) return photos;
   if(typeof initCustomerClothPhotoStore==="function"){
     try{await nfWacWithTimeout(initCustomerClothPhotoStore(),1500,"photo-store-init");}catch(e){console.warn("WhatsApp card photo store init timeout/skipped:",e)}
   }
-  await nfWacEnsureCloudPhotos();
   photos=typeof customerClothPhotos==="function"?customerClothPhotos(key):photos;
   return Array.isArray(photos)?photos:[];
 }
@@ -10708,37 +10710,14 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
     var deliveryDates=mainOrders.map(function(o){return o.delivery_date||'';}).filter(Boolean).sort();
     var clothDate=clothDates[0]||'';
     var deliveryDate=deliveryDates[0]||'';
-    await nfWacEnsureCloudPhotos();
     var photoPools=people.map(function(c){return {name:c.name||'Customer',photos:[]};});
     await Promise.all(photoPools.map(async function(pool,pi){
       try{var pp=typeof nfWacResolvePhotos==='function'?await nfWacResolvePhotos(people[pi].id):[];pool.photos=(pp||[]).filter(function(x){return x&&x.src}).slice(0,4);}catch(e){console.warn('Multi customer photo load skipped',e);}
     }));
     photoPools.forEach(function(pool){if(pool.photos[0]&&photos.length<8)photos.push(Object.assign({},pool.photos[0],{customerName:pool.name}));});
     for(var pass=1;pass<4&&photos.length<8;pass++)photoPools.forEach(function(pool){var p=pool.photos[pass];if(p&&photos.length<8)photos.push(Object.assign({},p,{customerName:pool.name}));});
-    /* Multi Customer must be able to render all 8 selected photos. The shared
-       single-customer helper intentionally caps at 4, so use a local 8-photo
-       resolver here without changing the existing single-customer path. */
-    if(photos.length){
-      try{
-        var multiUrls=await Promise.all(photos.slice(0,8).map(async function(p){
-          try{
-            var src=p.cloudPath&&typeof nfR2PhotoUrl==='function'?nfR2PhotoUrl(p.cloudPath):String(p.src||'');
-            if(!src||/^data:image\//i.test(src))return src;
-            if(typeof nfWacFetchBlob==='function'){
-              var b=await nfWacFetchBlob(src,6000);
-              return await new Promise(function(resolve,reject){
-                var fr=new FileReader(),tm=setTimeout(function(){try{fr.abort()}catch(_){}reject(new Error('photo-filereader-timeout'));},6000);
-                fr.onload=function(){clearTimeout(tm);resolve(String(fr.result||''));};
-                fr.onerror=function(e){clearTimeout(tm);reject(e||new Error('photo-filereader-failed'));};
-                fr.onabort=function(){clearTimeout(tm);reject(new Error('photo-filereader-aborted'));};
-                fr.readAsDataURL(b);
-              });
-            }
-            return src;
-          }catch(e){console.warn('Multi WhatsApp photo skipped',e);return '';}
-        }));
-        photos=photos.map(function(p,i){return multiUrls[i]?Object.assign({},p,{src:multiUrls[i]}):null;}).filter(Boolean);
-      }catch(e){console.warn('Multi WhatsApp photo conversion skipped',e);}
+    if(typeof nfWacPhotoDataUrls==='function'){
+      try{var urls=await nfWacPhotoDataUrls(photos.slice(0,8));photos=photos.map(function(p,i){return urls[i]?Object.assign({},p,{src:urls[i]}):null;}).filter(Boolean);}catch(e){photos=[];}
     }
     var headH=250,dateH=145,peopleHead=64,personH=92,tableHead=72,rowH=78,totalH=82,payH=124,photoTitleH=66,photoCellH=300,gap=18;
     var photoRows=photos.length?Math.ceil(photos.length/2):0,photoH=photoRows?photoRows*photoCellH+(photoRows-1)*gap+26:0;
@@ -10806,7 +10785,7 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
        Do not rely only on legacy normal_qty/lining_qty/design_qty columns because
        existing orders may store the split inside BLOUSE_SPLIT/BLOUSE_HANDOVER notes. */
     var blouseCalc={normal:{qty:0,given:0},lining:{qty:0,given:0},design:{qty:0,given:0}};
-    for(const c of group){
+    group.forEach(function(c){
       ordersFor(c.id).forEach(function(o){
         var garmentType=String(o&&o.garment_type||'Blouse').toLowerCase();
         var isBlouse=garmentType==='blouse'||!o.garment_type;
@@ -10829,42 +10808,16 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
         if(!isBlouse && !n(o.chudi_qty) && !n(o.saree_qty))addRow(c,o,String(o.garment||o.garment_type||o.item_name||'Work'),o.quantity||o.qty||1,o.handover||o.quantity_handover||0);
       });
       var pool={name:c.name||'Customer',items:[]},seen={};
-      try{
-        var cps=typeof nfWacResolvePhotos==='function'?await nfWacResolvePhotos(c.id):(typeof customerClothPhotos==='function'?customerClothPhotos(c.id):[]);
-        (cps||[]).forEach(function(x,i){if(x&&x.src){var k=String(x.cloudPath||x.src);if(!seen[k]){seen[k]=1;pool.items.push({src:x.src,name:c.name||'Customer',photoType:'GIVEN CLOTH',slot:i,cloudPath:x.cloudPath||''});}}});
-      }catch(e){console.warn('Delivery card customer photo sync skipped',e)}
+      try{var cps=typeof customerClothPhotos==='function'?customerClothPhotos(c.id):[];(cps||[]).forEach(function(x,i){if(x&&x.src){var k=String(x.cloudPath||x.src);if(!seen[k]){seen[k]=1;pool.items.push({src:x.src,name:c.name||'Customer',photoType:'GIVEN CLOTH',slot:i,cloudPath:x.cloudPath||''});}}});}catch(e){}
       try{var cp=typeof customerDeliveryPhotos==='function'?customerDeliveryPhotos(c.id):[];cp.forEach(function(x,i){if(x&&x.src){var k=String(x.cloudPath||x.src);if(!seen[k]){seen[k]=1;pool.items.push({src:x.src,name:c.name||'Customer',photoType:'DELIVERY',slot:i,cloudPath:x.cloudPath||''});}}});}catch(e){}
       photoPools.push(pool);
-    }
+    });
     if(blouseCalc.normal.qty)rows.push({name:'',garment:'Normal blouse',totalQty:blouseCalc.normal.qty,given:blouseCalc.normal.given,remaining:Math.max(0,blouseCalc.normal.qty-blouseCalc.normal.given),amount:0,paid:0,status:'Pending'});
     if(blouseCalc.lining.qty)rows.push({name:'',garment:'Lining blouse',totalQty:blouseCalc.lining.qty,given:blouseCalc.lining.given,remaining:Math.max(0,blouseCalc.lining.qty-blouseCalc.lining.given),amount:0,paid:0,status:'Pending'});
     if(blouseCalc.design.qty)rows.push({name:'',garment:'Design blouse',totalQty:blouseCalc.design.qty,given:blouseCalc.design.given,remaining:Math.max(0,blouseCalc.design.qty-blouseCalc.design.given),amount:0,paid:0,status:'Pending'});
     photoPools.forEach(function(pool){if(pool.items[0]&&photos.length<8)photos.push(pool.items[0]);});
     for(var pass=1;pass<40&&photos.length<8;pass++)photoPools.forEach(function(pool){var p=pool.items[pass];if(p&&photos.length<8)photos.push(p);});
-    if(photos.length){
-      /* Convert the maximum 8 delivery-card photos in parallel. The previous
-         serial 7s-per-photo path could exceed the outer card-build timeout. */
-      var safeResults=await Promise.all(photos.slice(0,8).map(async function(sp){
-        if(!sp||!sp.src)return null;
-        try{
-          var src=sp.cloudPath&&typeof nfR2PhotoUrl==='function'?nfR2PhotoUrl(sp.cloudPath):String(sp.src||'');
-          if(/^data:image\//i.test(src))return Object.assign({},sp,{src:src});
-          if(typeof nfWacFetchBlob==='function'){
-            var pb=await nfWacFetchBlob(src,7000);
-            var purl=await new Promise(function(resolve,reject){
-              var fr=new FileReader(),tm=setTimeout(function(){try{fr.abort()}catch(_){}reject(new Error('photo-filereader-timeout'));},7000);
-              fr.onload=function(){clearTimeout(tm);resolve(String(fr.result||''));};
-              fr.onerror=function(e){clearTimeout(tm);reject(e||new Error('photo-filereader-failed'));};
-              fr.onabort=function(){clearTimeout(tm);reject(new Error('photo-filereader-aborted'));};
-              fr.readAsDataURL(pb);
-            });
-            if(purl)return Object.assign({},sp,{src:purl});
-          }
-        }catch(pe){console.warn('Delivery card photo embed skipped:',pe);}
-        return null;
-      }));
-      photos=safeResults.filter(Boolean);
-    }
+    if(photos.length){var safePhotos=[];for(var spi=0;spi<photos.length;spi++){var sp=photos[spi];if(!sp||!sp.src)continue;try{var src=sp.cloudPath&&typeof nfR2PhotoUrl==='function'?nfR2PhotoUrl(sp.cloudPath):String(sp.src||'');if(/^data:image\//i.test(src)){safePhotos.push(Object.assign({},sp,{src:src}));continue;}if(typeof nfWacFetchBlob==='function'){var pb=await nfWacFetchBlob(src,7000);var purl=await new Promise(function(resolve,reject){var fr=new FileReader();fr.onload=function(){resolve(String(fr.result||''));};fr.onerror=reject;fr.readAsDataURL(pb);});if(purl)safePhotos.push(Object.assign({},sp,{src:purl}));}}catch(pe){console.warn('Delivery card photo embed skipped:',pe);}}photos=safePhotos;}
     var main=people[0]||{},mainOrders=ordersFor(main.id),clothDates=mainOrders.map(function(o){return o.cloth_received_date||o.order_date||'';}).filter(Boolean).sort(),deliveryDates=mainOrders.map(function(o){return o.delivery_date||'';}).filter(Boolean).sort();
     var clothDate=clothDates[0]||'',deliveryDate=deliveryDates[0]||'';
     var givenTotal=rows.reduce(function(a,r){return a+r.given;},0),remainingTotal=rows.reduce(function(a,r){return a+r.remaining;},0),totalAmount=sum.total,paidAmount=sum.paid,balanceAmount=sum.balance;
@@ -10929,42 +10882,15 @@ async function makeMultiCustomerDeliveryImage(mainId){
       if(!isBlouse&&!n(o.chudi_qty)&&!n(o.saree_qty))otherRows.push({name:c.name||'Customer',garment:String(o.garment||o.garment_type||o.item_name||'Work'),qty:n(o.quantity||o.qty||1),given:Math.min(n(o.quantity||o.qty||1),n(o.handover||o.quantity_handover||0)),total:total,paid:pay?Number(pay.totalPaid||0):n(o.paid)});
     });});
     var photoPools=[];
-    await nfWacEnsureCloudPhotos();
-    await Promise.all(people.map(async function(c){
+    group.forEach(function(c){
       var pool={name:c.name||'Customer',items:[]},seen={};
-      try{
-        var cps=typeof nfWacResolvePhotos==='function'?await nfWacResolvePhotos(c.id):(typeof customerClothPhotos==='function'?customerClothPhotos(c.id):[]);
-        (cps||[]).forEach(function(x,i){if(x&&x.src){var k=String(x.cloudPath||x.src);if(!seen[k]){seen[k]=1;pool.items.push({src:x.src,name:c.name||'Customer',photoType:'GIVEN CLOTH',slot:i,cloudPath:x.cloudPath||''});}}});
-      }catch(e){console.warn('Multi delivery customer photo sync skipped',e)}
+      try{var cps=typeof customerClothPhotos==='function'?customerClothPhotos(c.id):[];(cps||[]).forEach(function(x,i){if(x&&x.src){var k=String(x.cloudPath||x.src);if(!seen[k]){seen[k]=1;pool.items.push({src:x.src,name:c.name||'Customer',photoType:'GIVEN CLOTH',slot:i,cloudPath:x.cloudPath||''});}}});}catch(e){}
       try{var cp=typeof customerDeliveryPhotos==='function'?customerDeliveryPhotos(c.id):[];cp.forEach(function(x,i){if(x&&x.src){var k=String(x.cloudPath||x.src);if(!seen[k]){seen[k]=1;pool.items.push({src:x.src,name:c.name||'Customer',photoType:'DELIVERY',slot:i,cloudPath:x.cloudPath||''});}}});}catch(e){}
       photoPools.push(pool);
-    }));
+    });
     photoPools.forEach(function(pool){if(pool.items[0]&&photos.length<8)photos.push(pool.items[0]);});
     for(var pass=1;pass<40&&photos.length<8;pass++)photoPools.forEach(function(pool){var p=pool.items[pass];if(p&&photos.length<8)photos.push(p);});
-    if(photos.length){
-      /* Convert the maximum 8 delivery-card photos in parallel. The previous
-         serial 7s-per-photo path could exceed the outer card-build timeout. */
-      var safeResults=await Promise.all(photos.slice(0,8).map(async function(sp){
-        if(!sp||!sp.src)return null;
-        try{
-          var src=sp.cloudPath&&typeof nfR2PhotoUrl==='function'?nfR2PhotoUrl(sp.cloudPath):String(sp.src||'');
-          if(/^data:image\//i.test(src))return Object.assign({},sp,{src:src});
-          if(typeof nfWacFetchBlob==='function'){
-            var pb=await nfWacFetchBlob(src,7000);
-            var purl=await new Promise(function(resolve,reject){
-              var fr=new FileReader(),tm=setTimeout(function(){try{fr.abort()}catch(_){}reject(new Error('photo-filereader-timeout'));},7000);
-              fr.onload=function(){clearTimeout(tm);resolve(String(fr.result||''));};
-              fr.onerror=function(e){clearTimeout(tm);reject(e||new Error('photo-filereader-failed'));};
-              fr.onabort=function(){clearTimeout(tm);reject(new Error('photo-filereader-aborted'));};
-              fr.readAsDataURL(pb);
-            });
-            if(purl)return Object.assign({},sp,{src:purl});
-          }
-        }catch(pe){console.warn('Delivery card photo embed skipped:',pe);}
-        return null;
-      }));
-      photos=safeResults.filter(Boolean);
-    }
+    if(photos.length){var safePhotos=[];for(var spi=0;spi<photos.length;spi++){var sp=photos[spi];if(!sp||!sp.src)continue;try{var src=sp.cloudPath&&typeof nfR2PhotoUrl==='function'?nfR2PhotoUrl(sp.cloudPath):String(sp.src||'');if(/^data:image\//i.test(src)){safePhotos.push(Object.assign({},sp,{src:src}));continue;}if(typeof nfWacFetchBlob==='function'){var pb=await nfWacFetchBlob(src,7000);var purl=await new Promise(function(resolve,reject){var fr=new FileReader();fr.onload=function(){resolve(String(fr.result||''));};fr.onerror=reject;fr.readAsDataURL(pb);});if(purl)safePhotos.push(Object.assign({},sp,{src:purl}));}}catch(pe){console.warn('Delivery card photo embed skipped:',pe);}}photos=safePhotos;}
     var main=people[0]||{},mainOrders=ordersFor(main.id),clothDates=mainOrders.map(function(o){return o.cloth_received_date||o.order_date||'';}).filter(Boolean).sort(),deliveryDates=mainOrders.map(function(o){return o.delivery_date||'';}).filter(Boolean).sort();
     var clothDate=clothDates[0]||'',deliveryDate=deliveryDates[0]||'';
     var totalAmount=sum.total,paidAmount=sum.paid,balanceAmount=sum.balance;
@@ -11049,11 +10975,9 @@ async function makeMultiCustomerDeliveryImage(mainId){
     try{
       if(typeof window.__nfDeliveryPreparePreview!=='function')throw new Error('preview-unavailable');
       previewToken=window.__nfDeliveryPreparePreview(label,kind,cid);
-      var isMultiCard=groupFor(cid).length>1;
-      var buildTimeout=isMultiCard?90000:35000;
       var b=await Promise.race([
         kind==='whatsapp'?makeWhatsAppImage(cid):makeDeliveryImage(cid),
-        new Promise(function(_,reject){setTimeout(function(){reject(new Error('card-build-timeout'));},buildTimeout);})
+        new Promise(function(_,reject){setTimeout(function(){reject(new Error('card-build-timeout'));},35000);})
       ]);
       if(kind==='whatsapp')deliveryBlobStore.whatsapp=b.blob;
       else deliveryBlobStore.delivery=b;
