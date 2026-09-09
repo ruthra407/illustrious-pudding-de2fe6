@@ -10587,6 +10587,22 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
 .nf-v230-hook-box{margin:8px;border:1px solid #ddd5ef;border-radius:14px;overflow:hidden;background:#fff}.nf-v230-hook{width:100%;min-height:52px;padding:9px 11px;border:0;background:linear-gradient(135deg,#f7f3ff,#fff4fa);color:#4d267c;display:flex;align-items:center;justify-content:space-between;gap:10px;text-align:left;font:inherit;font-weight:900;cursor:pointer}.nf-v230-hook-label{min-width:0;overflow-wrap:anywhere}.nf-v230-hook-plus{width:34px;height:34px;min-width:34px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(135deg,#6c3df5,#ef4f9a);color:#fff;font-size:23px;font-weight:500;line-height:1}.nf-v230-hook-body{display:none;padding:0;background:#fff}.nf-v230-hook-body>.nf-collection-panel,.nf-v230-hook-body>.nf-blouse-collection{margin:0!important;border:0!important;border-radius:0!important;box-shadow:none!important}.nf-v230-hook-body>.nfCustomerBreakdownMount,.nf-v230-hook-body>.customerWorkSummary{margin:0!important}
 @media(max-width:560px){.nf-v230-four-hook-group{border-radius:17px}.nf-v230-person{margin:8px}.nf-v230-person-name{font-size:16px;padding:8px 10px}.nf-v230-hook-box{margin:7px}.nf-v230-hook{min-height:48px;padding:8px 10px}.nf-v230-hook-plus{width:32px;height:32px;min-width:32px;font-size:21px}}
 </style>
+
+<style id="nf-v153-multi-customer-photo-sync-css">
+/* V153: Multi Customer Delivery page mirrors every photo type already visible in Customer Card. */
+.r100-delivery-photo-sync{margin-top:12px;padding:10px;border:1px solid #ded3f3;border-radius:16px;background:linear-gradient(135deg,#faf8ff,#fff7fb);box-shadow:0 5px 14px rgba(65,38,105,.06)}
+.r100-delivery-photo-sync-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;color:#4d2e8e;font-size:14px;font-weight:950}
+.r100-delivery-photo-sync-head small{font-size:10px;color:#77758a;font-weight:800}
+.r100-delivery-photo-sync-person{margin-top:9px;padding-top:9px;border-top:1px dashed #ddd3e9}
+.r100-delivery-photo-sync-person:first-of-type{margin-top:0;padding-top:0;border-top:0}
+.r100-delivery-photo-sync-person-name{font-size:12px;font-weight:950;color:#39215e;margin-bottom:6px}
+.r100-delivery-photo-sync-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px}
+.r100-delivery-photo-sync-thumb{position:relative;display:block;width:100%;aspect-ratio:1;border:1px solid #ddd5ef;border-radius:12px;padding:0;overflow:hidden;background:#f5f1fb;cursor:zoom-in;-webkit-tap-highlight-color:transparent}
+.r100-delivery-photo-sync-thumb:active{transform:scale(.98)}
+.r100-delivery-photo-sync-thumb img{display:block;width:100%;height:100%;object-fit:cover}
+.r100-delivery-photo-sync-label{position:absolute;left:3px;right:3px;bottom:3px;padding:3px 4px;border-radius:7px;background:rgba(20,14,30,.72);color:#fff;font-size:8px;line-height:1.15;font-weight:850;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media(max-width:560px){.r100-delivery-photo-sync{padding:8px;border-radius:14px}.r100-delivery-photo-sync-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.r100-delivery-photo-sync-head{font-size:13px}.r100-delivery-photo-sync-head small{font-size:9px}.r100-delivery-photo-sync-person-name{font-size:11px}.r100-delivery-photo-sync-label{font-size:7.5px}}
+</style>
 <style id="ruthran-v112-delivery-list-css">
 .r100-delivery-list-wrap{padding:6px 2px 90px;display:grid;gap:12px}
 .r100-delivery-list-head{margin:0 0 2px;padding:13px 15px;border-radius:20px;background:linear-gradient(110deg,#6f35e8,#cf3fa8);color:#fff;box-shadow:0 8px 22px rgba(73,35,115,.18)}
@@ -11007,12 +11023,50 @@ async function makeMultiCustomerDeliveryImage(mainId){
       });
     }
     var isSelected=!!selectedMain;
+    function photoItemsForCustomer(cid){
+      var items=[];
+      try{
+        var cloth=typeof customerClothPhotos==='function'?customerClothPhotos(cid):[];
+        cloth.forEach(function(p,slot){if(p&&p.src)items.push({src:p.src,kind:'cloth',slot:slot,label:'👕 துணி '+(slot+1),name:p.name||''});});
+      }catch(e){}
+      try{
+        var designs=typeof customerBlouseDesignPhotos==='function'?customerBlouseDesignPhotos(cid):[];
+        designs.forEach(function(p,slot){if(p&&p.src){var pair=Math.floor(slot/2)+1,label=slot%2===0?'🥻 சேலை Blouse '+pair:'🎨 Blouse Model '+pair;items.push({src:p.src,kind:'design',slot:slot,label:label,name:p.name||''});}});
+      }catch(e){}
+      try{
+        var dp=typeof customerDeliveryPhotos==='function'?customerDeliveryPhotos(cid):[];
+        var types=['normal','lining','design','chudi'],typeLabels={normal:'Normal Blouse',lining:'Lining Blouse',design:'Design Blouse',chudi:'Chudi'};
+        var cap=typeof NF_DELIVERY_SLOT_CAP==='number'?NF_DELIVERY_SLOT_CAP:20;
+        for(var idx=0;idx<dp.length;idx++){var p=dp[idx];if(!p||!p.src)continue;var block=Math.floor(idx/cap),slot=idx%cap,ti=Math.floor(block/2),status=(block%2===0?'given':'pending');if(ti<0||ti>=types.length)continue;items.push({src:p.src,kind:'delivery',type:types[ti],status:status,slot:slot,label:'🚚 '+typeLabels[types[ti]]+' · '+(status==='given'?'கொடுத்தது':'மீதம்'),name:p.name||''});}
+      }catch(e){}
+      return items;
+    }
+    window.nfOpenMultiCustomerPhoto=function(cid,index){
+      var items=photoItemsForCustomer(String(cid||'')),p=items[Number(index)||0];if(!p||!p.src)return;
+      if(p.kind==='cloth'&&typeof previewCustomerClothPhoto==='function')return previewCustomerClothPhoto(cid,p.slot);
+      if(p.kind==='design'&&typeof previewCustomerBlouseDesignPhoto==='function')return previewCustomerBlouseDesignPhoto(cid,p.slot);
+      if(p.kind==='delivery'&&typeof previewCustomerDeliveryPhoto==='function')return previewCustomerDeliveryPhoto(cid,p.type,p.status,p.slot);
+    };
+    function photoGalleryForGroup(group){
+      var html='',found=false;
+      group.forEach(function(person){
+        var items=photoItemsForCustomer(person.id);
+        if(!items.length)return;found=true;
+        html+='<div class="r100-delivery-photo-sync-person"><div class="r100-delivery-photo-sync-person-name">👤 '+escText(person.name||'Customer')+' · '+items.length+' photos</div><div class="r100-delivery-photo-sync-grid">';
+        items.forEach(function(p,idx){
+          html+='<button type="button" class="r100-delivery-photo-sync-thumb" data-nf-multi-photo-customer="'+escText(person.id)+'" data-nf-multi-photo-index="'+idx+'" aria-label="'+escText(p.label||'Photo')+'"><img src="'+escText(p.src)+'" alt="'+escText(p.label||'Customer photo')+'" loading="lazy"><span class="r100-delivery-photo-sync-label">'+escText(p.label||'Photo')+'</span></button>';
+        });
+        html+='</div></div>';
+      });
+      return found?'<div class="r100-delivery-photo-sync"><div class="r100-delivery-photo-sync-head"><span>📸 CUSTOMER PHOTOS</span><small>Photo-வை தட்டினால் பெரியதாக பார்க்கலாம்</small></div>'+html+'</div>':'';
+    }
     var html='<div class="r100-delivery-list-wrap"><div class="r100-delivery-list-head"><h2>🚚 Delivery</h2><small>'+(isSelected?('Selected Customer First · '+escText(selectedMain.name||'Customer')):(allMains.length+' Main Customer'+(allMains.length===1?'':'s')))+' · Card-ஐ தட்டி தனியாக Open செய்யலாம்</small></div>';
     mains.forEach(function(c,i){
       var group=groupFor(c.id),extra=group.slice(1),badge=extra.length?'👥 Multi · '+group.length:'👤 Single';
       var isThisSelected=isSelected&&String(c.id||'')===String(selectedMain.id||'');
       html+='<section class="r100-delivery-customer-row nf-delivery-color-'+(i%6)+(isThisSelected?' nf-delivery-selected':'')+'"><div class="r100-delivery-customer-top"><div class="r100-delivery-num">'+(i+1)+'</div><div class="r100-delivery-customer-name">'+escText(c.name||'Customer')+'</div><span class="r100-delivery-customer-badge">'+badge+(isThisSelected?' · SELECTED':'')+'</span></div>';
       if(extra.length){html+='<div class="r100-delivery-additional">'+extra.map(function(x){return '<span>👤 '+escText(x.name||'Customer')+'</span>';}).join('')+'</div>';}
+      html+=photoGalleryForGroup(group);
       html+='<div class="r100-delivery-card-links"><button type="button" class="r100-delivery-card-link r100-delivery-wa" data-r100-kind="whatsapp" data-r100-customer="'+escText(c.id)+'"><span><strong>🟢 WhatsApp Card</strong><small>Tap → தனியாக Card Open</small></span><span class="arrow">›</span></button><button type="button" class="r100-delivery-card-link r100-delivery-del" data-r100-kind="delivery" data-r100-customer="'+escText(c.id)+'"><span><strong>🚚 Delivery Card</strong><small>Tap → தனியாக Card Open</small></span><span class="arrow">›</span></button></div></section>';
     });
     html+='</div>';box.innerHTML=html;
@@ -11030,6 +11084,8 @@ async function makeMultiCustomerDeliveryImage(mainId){
   var oldGo=window.goView;if(typeof oldGo==='function'&&!oldGo.__r102Delivery){window.goView=function(view,push){var r=oldGo.apply(this,arguments);if(view==='delivery'){selectedId=resolveDeliverySelection();setTimeout(render,0);}return r;};window.goView.__r103Delivery=true;}
   document.addEventListener('click',function(e){
     if(!currentIsDelivery())return;
+    var photo=e.target&&e.target.closest?e.target.closest('.r100-delivery-photo-sync-thumb'):null;
+    if(photo){e.preventDefault();e.stopPropagation();nfOpenMultiCustomerPhoto(photo.getAttribute('data-nf-multi-photo-customer')||'',Number(photo.getAttribute('data-nf-multi-photo-index')||0));return;}
     var b=e.target&&e.target.closest?e.target.closest('.r100-delivery-card-link'):null;if(!b)return;
     e.preventDefault();e.stopPropagation();
     openCustomerCard(b.getAttribute('data-r100-kind')||'delivery',b.getAttribute('data-r100-customer')||'');
