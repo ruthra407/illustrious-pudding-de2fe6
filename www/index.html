@@ -2657,8 +2657,12 @@ function nfCloudPhotoPath(id,slot){
 }
 const NF_R2_WORKER_URL="https://illustrious-pudding-de2fe6.ruthra407.workers.dev";
 
-function nfR2PhotoUrl(path){
-  return NF_R2_WORKER_URL.replace(/\/$/,"")+"/api/r2/"+encodeURIComponent(String(path||""));
+function nfR2PhotoUrl(path,version){
+  const base=NF_R2_WORKER_URL.replace(/\/$/,"")+"/api/r2/"+encodeURIComponent(String(path||""));
+  return version?base+"?v="+encodeURIComponent(String(version)):base;
+}
+function nfR2PhotoDisplayUrl(path,version){
+  return nfR2PhotoUrl(path,version||Date.now());
 }
 function nfDataUrlToBlob(dataUrl){
   try{
@@ -2733,7 +2737,7 @@ async function nfHydrateCloudClothPhotos(){
         try{
           const res=await fetch(nfR2PhotoUrl(path),{method:"GET",cache:"no-store"});
           if(!res.ok)continue;
-          const url=nfR2PhotoUrl(path);
+          const url=nfR2PhotoDisplayUrl(path);
           nfClothPhotoCloudPathCache[id+":"+slot]=path;
           if(!current[slot] || current[slot].cloudPath!==path || current[slot].src!==url){
             current[slot]={src:url,name:"Customer cloth photo "+(slot+1),savedAt:current[slot]?.savedAt||new Date().toISOString(),cloudPath:path,originalType:current[slot]?.originalType||"image/*"};
@@ -2748,7 +2752,7 @@ async function nfHydrateCloudClothPhotos(){
         try{
           const res=await fetch(nfR2PhotoUrl(path),{method:"GET",cache:"no-store"});
           if(!res.ok)continue;
-          const url=nfR2PhotoUrl(path);
+          const url=nfR2PhotoDisplayUrl(path);
           if(!designCurrent[slot]||designCurrent[slot].cloudPath!==path||designCurrent[slot].src!==url){
             designCurrent[slot]={src:url,name:"Blouse Design "+(slot+1),savedAt:designCurrent[slot]?.savedAt||new Date().toISOString(),cloudPath:path,originalType:designCurrent[slot]?.originalType||"image/*"};
             changed=true;
@@ -2765,7 +2769,7 @@ async function nfHydrateCloudClothPhotos(){
           try{
             const res=await fetch(nfR2PhotoUrl(path),{method:"GET",cache:"no-store"});
             if(!res.ok)continue;
-            const url=nfR2PhotoUrl(path);
+            const url=nfR2PhotoDisplayUrl(path);
             if(!deliveryCurrent[di]||deliveryCurrent[di].cloudPath!==path||deliveryCurrent[di].src!==url){
               deliveryCurrent[di]={src:url,name:"Delivery "+type+" "+status+" "+(slot+1),savedAt:deliveryCurrent[di]?.savedAt||new Date().toISOString(),cloudPath:path,originalType:deliveryCurrent[di]?.originalType||"image/*"};
               changed=true;
@@ -2973,7 +2977,7 @@ async function saveCustomerDeliveryPhoto(id,type,status,slot,file){
   try{
     const path=await nfUploadDeliveryPhoto(id,t,st,slot,file,file.type);
     if(!path)throw new Error(nfCloudPhotoLastError||"R2 upload failed");
-    const arr=customerDeliveryPhotos(id),idx=nfDeliveryPhotoIndex(t,st,slot),url=nfR2PhotoUrl(path);
+    const arr=customerDeliveryPhotos(id),idx=nfDeliveryPhotoIndex(t,st,slot),url=nfR2PhotoDisplayUrl(path);
     arr[idx]={src:url,name:"Delivery "+t+" "+st+" "+(Number(slot)+1),savedAt:new Date().toISOString(),cloudPath:path,originalType:file.type,originalSize:file.size};
     await setCustomerDeliveryPhotos(id,arr);
     toast("தைக்கப்பட்ட துணி photo cloud-ல் சேமிக்கப்பட்டது. ☁️");
@@ -3087,7 +3091,7 @@ async function saveCustomerClothPhoto(id,slot,file){
   try{
     const path=await nfUploadCustomerClothPhoto(id,slot,file,file.type);
     if(!path)throw new Error(nfCloudPhotoLastError||"R2 upload failed");
-    const url=await nfGetCustomerClothPhotoUrl(path);
+    const url=nfR2PhotoDisplayUrl(path);
     const arr=customerClothPhotos(id);
     arr[slot]={
       src:url||nfR2PhotoUrl(path),
@@ -3222,7 +3226,7 @@ async function saveCustomerBlouseDesignPhoto(id,slot,file){
   try{
     const path=await nfUploadBlouseDesignPhoto(id,slot,file,file.type);
     if(!path)throw new Error(nfCloudPhotoLastError||"R2 upload failed");
-    const url=nfR2PhotoUrl(path);
+    const url=nfR2PhotoDisplayUrl(path);
     const arr=customerBlouseDesignPhotos(id);
     arr[slot]={src:url,name:file.name.replace(/\.[^.]+$/,""),savedAt:new Date().toISOString(),cloudPath:path,originalType:file.type,originalSize:file.size};
     await setCustomerBlouseDesignPhotos(id,arr);
@@ -4475,7 +4479,7 @@ if(type==="order"){
   const alterationNotes=String(payload.notes||"").trim();
   const cid=String(payload.customer_id||"");
   if(cid){
-    const ur=await supabaseClient.from("customers").update({notes:alterationNotes}).eq("id",cid);
+    const ur=nfD1Enabled()?await nfD1Builder("customers").update({notes:alterationNotes}).eq("id",cid):await supabaseClient.from("customers").update({notes:alterationNotes}).eq("id",cid);
     if(ur.error)throw ur.error;
   }
 }
@@ -4507,6 +4511,14 @@ if(wasNewCustomer && savedCustomerId){
   /* Keep Data Sync exactly as before, but never block navigation. */
   loadAll(true).catch(err=>console.error("Background data refresh after customer save:",err));
 }else{
+  if(type==="order" && result?.data){
+    const saved=Array.isArray(result.data)?result.data[0]:result.data;
+    if(saved?.id){
+      const oi=(state.orders||[]).findIndex(x=>String(x.id)===String(saved.id));
+      if(oi>=0)state.orders[oi]=saved; else state.orders=[saved,...(state.orders||[])];
+      try{renderAll()}catch(_){}
+    }
+  }
   await loadAll(true);
   toast(id?"Updated online":"Saved online");
 }
@@ -10807,15 +10819,76 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
     return await window.__nfWacBuildForCustomer(id);
   }
 
+  async function nfEnsureSelectedCustomerPhotoCache(ids){
+  const wanted=new Set((ids||[]).map(function(x){return String(x||'');}).filter(Boolean));
+  if(!wanted.size)return;
+  const missing=[];
+  wanted.forEach(function(id){if(!Object.prototype.hasOwnProperty.call(nfClothPhotoCache,id))missing.push(id)});
+  if(!missing.length)return;
+  try{
+    const records=await nfIdbGetAll();
+    records.forEach(function(r){
+      const id=String(r?.id||'');
+      if(!wanted.has(id))return;
+      nfClothPhotoCache[id]={
+        photos:Array.isArray(r.photos)?r.photos:Array(4).fill(null),
+        blouseDesigns:Array.isArray(r.blouseDesigns)?r.blouseDesigns:Array(8).fill(null),
+        deliveryPhotos:Array.isArray(r.deliveryPhotos)?r.deliveryPhotos:Array(8*NF_DELIVERY_SLOT_CAP).fill(null)
+      };
+    });
+  }catch(e){console.warn('Selected customer photo cache load skipped:',e)}
+}
+
+async function nfHydrateSelectedCustomerCloudPhotos(ids){
+    const wanted=new Set((ids||[]).map(function(x){return String(x||'');}).filter(Boolean));
+    if(!wanted.size)return;
+    await nfEnsureSelectedCustomerPhotoCache(Array.from(wanted));
+    if(!navigator.onLine)return;
+    for(const id of wanted){
+      const current=customerClothPhotos(id);
+      /* Existing IndexedDB/cloudPath metadata is enough to display the image;
+         only probe R2 when a local slot is actually missing. */
+      for(let slot=0;slot<4;slot++){
+        if(current[slot]?.cloudPath||current[slot]?.src)continue;
+        const path=nfCloudPhotoPath(id,slot);
+        try{
+          const res=await fetch(nfR2PhotoUrl(path),{method:'GET',cache:'no-store'});
+          if(res.ok)current[slot]={src:nfR2PhotoDisplayUrl(path),name:'Customer cloth photo '+(slot+1),cloudPath:path};
+        }catch(_){}
+      }
+      const rec=nfClothPhotoCache[id]||{};
+      const delivery=customerDeliveryPhotos(id);
+      const dst=typeof customerStats==='function'?customerStats(id):{};
+      const defs=[
+        ['normal','given',dst.handedNormal],['normal','pending',dst.pendingNormal],
+        ['lining','given',dst.handedLining],['lining','pending',dst.pendingLining],
+        ['design','given',dst.handedDesign],['design','pending',dst.pendingDesign],
+        ['chudi','given',dst.handedChudi],['chudi','pending',dst.pendingChudi]
+      ];
+      for(const d of defs){
+        const limit=Math.min(8,NF_DELIVERY_SLOT_CAP,Math.max(0,Number(d[2]||0)));
+        for(let slot=0;slot<limit;slot++){
+          const idx=nfDeliveryPhotoIndex(d[0],d[1],slot);
+          if(delivery[idx]?.cloudPath||delivery[idx]?.src)continue;
+          const path=nfDeliveryPhotoPath(id,d[0],d[1],slot);
+          try{
+            const res=await fetch(nfR2PhotoUrl(path),{method:'GET',cache:'no-store'});
+            if(res.ok)delivery[idx]={src:nfR2PhotoDisplayUrl(path),name:'Delivery '+d[0]+' '+d[1]+' '+(slot+1),photoType:d[1],slot:slot,cloudPath:path};
+          }catch(_){}
+        }
+      }
+      nfClothPhotoCache[id]={photos:current,blouseDesigns:Array.isArray(rec.blouseDesigns)?rec.blouseDesigns:Array(8).fill(null),deliveryPhotos:delivery};
+    }
+  }
+
   async function makeDeliveryImage(mainId){
-    /* Always refresh cloud-backed customer/delivery photos before building the card. */
+    var group=groupFor(mainId),sum=groupSummary(group);if(!group.length)throw new Error('customer-not-found');
+    /* Refresh only the selected customer/group. */
     try{
-      if(typeof nfHydrateCloudClothPhotos==='function'){
-        window.__nfPhotoHydratedAt=0;
-        await nfHydrateCloudClothPhotos();
+      if(typeof nfHydrateSelectedCustomerCloudPhotos==='function'){
+        await nfHydrateSelectedCustomerCloudPhotos(group.map(function(c){return String(c.id||'');}).filter(Boolean));
       }
     }catch(e){console.warn('Delivery card photo hydration skipped:',e);}
-    var group=groupFor(mainId),sum=groupSummary(group);if(!group.length)throw new Error('customer-not-found');
     var W=1400,S=2,pad=48,inner=W-pad*2,people=group.slice(0,8),rows=[],photos=[];
     function n(v){return Math.max(0,Number(v||0));}
     function addRow(c,o,label,total,given){
@@ -10848,7 +10921,8 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
       });
       function addPhoto(target,x,i,label){
         if(!x)return;
-        target.push({src:String(x.src||''),name:c.name||'Customer',photoType:label,slot:i,cloudPath:String(x.cloudPath||'')});
+        var cloud=String(x.cloudPath||''),src=cloud?nfR2PhotoDisplayUrl(cloud,x.savedAt||Date.now()):String(x.src||'');
+        target.push({src:src,name:c.name||'Customer',photoType:label,slot:i,cloudPath:cloud});
       }
       try{(customerClothPhotos(c.id)||[]).forEach(function(x,i){if(x)addPhoto(givenPhotos,x,i,'கொடுத்த துணி');});}catch(e){}
       try{
@@ -10859,76 +10933,9 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
         });
       }catch(e){}
     });
-    /* Resolve saved photos directly from R2. Do not depend on the local photo-count/cache mapping. */
-    async function blobToDataPhoto(pb,meta){
-      if(!pb)return null;
-      try{
-        var purl=await new Promise(function(resolve,reject){var fr=new FileReader();fr.onload=function(){resolve(String(fr.result||''));};fr.onerror=reject;fr.readAsDataURL(pb);});
-        return /^data:image\//i.test(purl)?Object.assign({},meta,{src:purl}):null;
-      }catch(_){return null;}
-    }
-    async function resolvePhoto(p){
-      if(!p)return null;
-      var src=String(p.src||'');
-      if(/^data:image\//i.test(src))return Object.assign({},p,{src:src});
-      /* Mobile WebView: do NOT fetch R2 with fetch()/blob here. The normal
-         <img> pipeline can load the same R2 URL reliably; canvas drawing below
-         uses anonymous CORS so the image remains exportable. */
-      if(p.cloudPath&&typeof nfR2PhotoUrl==='function'){
-        return Object.assign({},p,{src:nfR2PhotoUrl(p.cloudPath)});
-      }
-      if(src)return Object.assign({},p,{src:src});
-      return null;
-    }
-    async function discoverR2DeliveryPhotos(customerId){
-      var foundGiven=[],foundPending=[];
-      var dst=typeof customerStats==='function'?customerStats(customerId):{};
-      var defs=[
-        ['normal','given',dst.handedNormal],['normal','pending',dst.pendingNormal],
-        ['lining','given',dst.handedLining],['lining','pending',dst.pendingLining],
-        ['design','given',dst.handedDesign],['design','pending',dst.pendingDesign],
-        ['chudi','given',dst.handedChudi],['chudi','pending',dst.pendingChudi]
-      ];
-      var jobs=[];
-      defs.forEach(function(d){
-        var limit=Math.min(NF_DELIVERY_SLOT_CAP,8,Math.max(0,Number(d[2]||0)));
-        for(var slot=0;slot<limit;slot++){
-          var path=nfDeliveryPhotoPath(customerId,d[0],d[1],slot);
-          jobs.push({type:d[1],path:path,slot:slot});
-        }
-      });
-      var results=await Promise.all(jobs.map(async function(j){
-        try{
-          var url=nfR2PhotoUrl(j.path),pb=await nfWacFetchBlob(url,9000);
-          return await blobToDataPhoto(pb,{src:'',cloudPath:j.path,name:'Delivery '+j.type+' '+(j.slot+1),photoType:j.type,slot:j.slot});
-        }catch(_){return null;}
-      }));
-      results.forEach(function(x){
-        if(!x)return;
-        if(x.photoType==='given'){if(foundGiven.length<8)foundGiven.push(x)}
-        else if(x.photoType==='pending'){if(foundPending.length<8)foundPending.push(x)}
-      });
-      return {given:foundGiven,pending:foundPending};
-    }
-    var cloudPhotoMap=Object.create(null);
-    for(var ci2=0;ci2<people.length;ci2++){
-      try{cloudPhotoMap[String(people[ci2].id)]=await discoverR2DeliveryPhotos(String(people[ci2].id));}catch(_){cloudPhotoMap[String(people[ci2].id)]={given:[],pending:[]};}
-    }
-    /* Merge locally known photos with direct R2 discovery, de-duplicating by cloud path. */
-    function mergePhotos(localArr,cloudArr){
-      var out=[],seen=new Set();
-      (localArr||[]).concat(cloudArr||[]).forEach(function(x){var k=String(x?.cloudPath||x?.src||'');if(!x||seen.has(k))return;seen.add(k);out.push(x);});
-      return out;
-    }
-    var mergedGiven=[],mergedPending=[];
-    group.forEach(function(c){var m=cloudPhotoMap[String(c.id)]||{given:[],pending:[]};mergedGiven=mergedGiven.concat(m.given||[]);mergedPending=mergedPending.concat(m.pending||[]);});
-    givenPhotos=mergePhotos(givenPhotos,mergedGiven);
-    pendingPhotos=mergePhotos(pendingPhotos,mergedPending);
-    var allPhotoSets=[['given',givenPhotos],['pending',pendingPhotos]],resolvedGiven=[],resolvedPending=[];
-    for(var psi=0;psi<allPhotoSets.length;psi++){
-      var arrp=allPhotoSets[psi][1],outp=allPhotoSets[psi][0]==='given'?resolvedGiven:resolvedPending;
-      for(var pxi=0;pxi<arrp.length&&outp.length<8;pxi++){var rp=await resolvePhoto(arrp[pxi]);if(rp)outp.push(rp);}
-    }
+    /* Uploaded delivery photos are restored from IndexedDB above and displayed via their R2 cloudPath. */
+    var resolvedGiven=givenPhotos.slice(0,8);
+    var resolvedPending=pendingPhotos.slice(0,8);
     var photos=resolvedGiven.concat(resolvedPending).slice(0,12);
     var photoSections=[{title:'📸 கொடுத்த போட்டோஸ்',items:resolvedGiven},{title:'📸 மீதமுள்ள போட்டோஸ்',items:resolvedPending}].filter(function(x){return x.items.length;});
     var main=people[0]||{},mainOrders=ordersFor(main.id),clothDates=mainOrders.map(function(o){return o.cloth_received_date||o.order_date||'';}).filter(Boolean).sort(),deliveryDates=mainOrders.map(function(o){return o.delivery_date||'';}).filter(Boolean).sort();
