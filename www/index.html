@@ -10895,8 +10895,8 @@ async function makeMultiCustomerDeliveryImage(mainId){
     var clothDate=clothDates[0]||'',deliveryDate=deliveryDates[0]||'';
     var totalAmount=sum.total,paidAmount=sum.paid,balanceAmount=sum.balance;
     var remainingTotal=sections.reduce(function(a,x){return a+x.calc.normal.remaining+x.calc.lining.remaining+x.calc.design.remaining;},0)+otherRows.reduce(function(a,r){return a+Math.max(0,r.qty-r.given);},0);
-    var headH=210,metaH=140,peopleHead=58,personH=68,sectionHead=64,rowH=72,payH=112,sectionGap=18,otherHead=76,otherRowH=72,amountH=138,settleH=120,photoCellH=300,photoGap=18,photoTitleH=66;
-    var sectionH=sectionHead+3*rowH+payH+18;
+    var headH=210,metaH=140,peopleHead=58,personH=68,sectionHead=64,calcHead=52,rowH=72,payH=112,sectionGap=18,otherHead=76,otherRowH=72,amountH=138,settleH=120,photoCellH=300,photoGap=18,photoTitleH=66;
+    var sectionH=sectionHead+calcHead+3*rowH+payH+18;
     var otherH=otherRows.length?otherHead+otherRows.length*otherRowH+18:0;
     var photoRows=photos.length?Math.ceil(photos.length/2):0,photoH=photos.length?photoTitleH+10+photoRows*photoCellH+(photoRows-1)*photoGap:0;
     var peopleH=peopleHead+people.length*personH+18;
@@ -10915,11 +10915,26 @@ async function makeMultiCustomerDeliveryImage(mainId){
       var sg=ctx.createLinearGradient(pad,sy,W-pad,sy);sg.addColorStop(0,'#5b1d7f');sg.addColorStop(1,'#d52d73');ctx.fillStyle=sg;ctx.fillRect(pad,sy,inner,sectionHead);
       txt('👤 '+(si+1)+'. '+(c.name||'Customer'),pad+24,sy+32,29,950,'#fff');
       var cy=sy+sectionHead;
+      /* V152: explicit blouse calculation table header + grid separators so every number has a clear meaning. */
+      var tableX=pad+12,tableW=inner-24,calcCol1=W-520,calcCol2=W-340,calcCol3=W-160;
+      rr(tableX,cy,tableW,calcHead,0,'#f0ebff','#e1d6ee',1);
+      txt('BLOUSE',pad+28,cy+calcHead/2,20,950,'#4d267c','left');
+      txt('கொடுக்க வேண்டியது',W-430,cy+calcHead/2,18,900,'#4d267c','center');
+      txt('கொடுத்தது',W-250,cy+calcHead/2,18,900,'#4d267c','center');
+      txt('மீதம்',W-82,cy+calcHead/2,18,900,'#4d267c','right');
+      ctx.strokeStyle='#d8cbe5';ctx.lineWidth=1;
+      [calcCol1,calcCol2,calcCol3].forEach(function(x){ctx.beginPath();ctx.moveTo(x,cy);ctx.lineTo(x,cy+calcHead+3*rowH);ctx.stroke();});
+      ctx.beginPath();ctx.moveTo(tableX,cy+calcHead);ctx.lineTo(tableX+tableW,cy+calcHead);ctx.stroke();
       [['Normal blouse',cl.normal],['Lining blouse',cl.lining],['Design blouse',cl.design]].forEach(function(a,ri){
-        var d=a[1],yy=cy+ri*rowH;rr(pad+12,yy+6,inner-24,rowH-12,12,ri%2?'#fff':'#fffafd','#e6dce8',1);
-        txt(a[0],pad+28,yy+rowH/2,27,900,'#17131b');txt(String(d.qty),W-430,yy+rowH/2,31,950,'#17131b','center');txt(String(d.given),W-250,yy+rowH/2,31,950,'#08794f','center');txt(String(d.remaining),W-82,yy+rowH/2,31,950,d.remaining?'#a1262d':'#08794f','right');
+        var d=a[1],yy=cy+calcHead+ri*rowH;
+        ctx.fillStyle=ri%2?'#fff':'#fffafd';ctx.fillRect(tableX,yy,tableW,rowH);
+        ctx.strokeStyle='#e6dce8';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(tableX,yy+rowH);ctx.lineTo(tableX+tableW,yy+rowH);ctx.stroke();
+        txt(a[0],pad+28,yy+rowH/2,25,900,'#17131b');
+        txt(String(d.qty),W-430,yy+rowH/2,31,950,'#17131b','center');
+        txt(String(d.given),W-250,yy+rowH/2,31,950,'#08794f','center');
+        txt(String(d.remaining),W-82,yy+rowH/2,31,950,d.remaining?'#a1262d':'#08794f','right');
       });
-      var py=cy+3*rowH;rr(pad+12,py+6,inner-24,payH-12,14,'#f7f3ff','#ddd3ef',1);
+      var py=cy+calcHead+3*rowH;rr(pad+12,py+6,inner-24,payH-12,14,'#f7f3ff','#ddd3ef',1);
       var pGap=10,pw=(inner-24-pGap*2)/3;
       [['கொடுக்க வேண்டியது',cl.total,'#5b35c8'],['கொடுத்தது',cl.paid,'#08794f'],['மீதம்',cl.balance,cl.balance?'#b4233c':'#08794f']].forEach(function(a,pi){
         var px=pad+12+pi*(pw+pGap);rr(px,py+14,pw,payH-28,12,'#fff','#e4dced',1);
