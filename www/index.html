@@ -10942,7 +10942,7 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-card{
 
   var sx=0, sy=0, tracking=false, edge="";
   var EDGE=34, MIN=70, LOCK=1.15;
-  var lastHomeSwipe=0, HOME_DOUBLE_MS=1200;
+  var lastHomeSwipe=0, HOME_DOUBLE_MS=2000;
 
   function currentView(){ return (history.state && history.state.view) || "dashboard"; }
   function sidebarOpen(){
@@ -10978,7 +10978,14 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-card{
     var now=Date.now();
     if(now-lastHomeSwipe<=HOME_DOUBLE_MS){
       lastHomeSwipe=0;
-      if(typeof window.nfExitApp==="function")window.nfExitApp();
+      try{
+        if(typeof window.nfExitApp==="function"){
+          window.nfExitApp();
+        }else{
+          var cap=window.Capacitor, app=cap&&cap.Plugins&&cap.Plugins.App;
+          if(app&&typeof app.exitApp==="function")app.exitApp();
+        }
+      }catch(_){ }
       return true;
     }
     lastHomeSwipe=now;
@@ -11047,6 +11054,32 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-card{
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",installAndroidBack,{once:true});
   else installAndroidBack();
   setTimeout(installAndroidBack,500);
+
+  /* Menu Exit App button: use the same native exit path. */
+  function installSideExit(){
+    var btn=document.getElementById("sideExitApp");
+    if(!btn || btn.__nfExitBound)return;
+    btn.__nfExitBound=true;
+    btn.addEventListener("click",function(e){
+      e.preventDefault();
+      e.stopPropagation();
+      try{
+        if(typeof window.nfExitApp==="function"){
+          window.nfExitApp();
+        }else{
+          var cap=window.Capacitor, app=cap&&cap.Plugins&&cap.Plugins.App;
+          if(app&&typeof app.exitApp==="function")app.exitApp();
+        }
+      }catch(_){ }
+    });
+  }
+  if(document.readyState==="loading"){
+    document.addEventListener("DOMContentLoaded",installSideExit,{once:true});
+  }else{
+    installSideExit();
+  }
+  setTimeout(installSideExit,300);
+  setTimeout(installSideExit,1000);
 })();
 </script>
 </body>
