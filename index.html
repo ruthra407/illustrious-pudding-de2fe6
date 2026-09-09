@@ -10940,180 +10940,96 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-card{
   if(window.__nfNavigationGestureFixInstalled)return;
   window.__nfNavigationGestureFixInstalled=true;
 
-  var sx=0, sy=0, tracking=false, edge="";
-  var EDGE=34, MIN=60, LOCK=1.15;
-  var lastHomeSwipe=0, HOME_DOUBLE_MS=1800;
+  var sx=0,sy=0,active=false;
+  var MIN=55, LOCK=1.12;
+  var lastHomeSwipe=0, HOME_DOUBLE_MS=2500;
+  var lastTouchAt=0;
 
-  function currentView(){ return (history.state && history.state.view) || "dashboard"; }
-  function sidebarOpen(){
-    var d=document.getElementById("sidebar");
-    return !!(d && d.classList.contains("open"));
-  }
-  function closeDrawer(){
-    var d=document.getElementById("sidebar");
-    if(d && d.classList.contains("open")){
-      d.classList.remove("open");
-      document.body.classList.remove("drawer-open");
-      return true;
-    }
-    return false;
-  }
+  function currentView(){return (history.state&&history.state.view)||"dashboard";}
+  function sidebarOpen(){var d=document.getElementById("sidebar");return !!(d&&d.classList.contains("open"));}
+  function closeDrawer(){var d=document.getElementById("sidebar");if(d&&d.classList.contains("open")){d.classList.remove("open");document.body.classList.remove("drawer-open");return true;}return false;}
   function commonOverlayOpen(){
-    var modal=document.getElementById("modal");
-    if(modal && modal.classList.contains("open"))return true;
-    var photo=document.getElementById("nfPhotoPreviewOverlay");
-    if(photo && photo.classList.contains("open"))return true;
+    var m=document.getElementById("modal");
+    if(m&&m.classList.contains("open"))return true;
+    var p=document.getElementById("nfPhotoPreviewOverlay");
+    if(p&&p.classList.contains("open"))return true;
     return false;
   }
   function doBack(){
     if(commonOverlayOpen())return false;
     if(closeDrawer())return true;
-    if(currentView()!=="dashboard"){
-      history.back();
-      return true;
-    }
+    if(currentView()!=="dashboard"){history.back();return true;}
     return false;
   }
   function doHomeDoubleSwipe(){
     var now=Date.now();
-    if(now-lastHomeSwipe<=HOME_DOUBLE_MS){
+    if(lastHomeSwipe&&now-lastHomeSwipe<=HOME_DOUBLE_MS){
       lastHomeSwipe=0;
-      try{
-        if(typeof window.nfExitApp==="function"){
-          window.nfExitApp();
-        }else{
-          var cap=window.Capacitor, app=cap&&cap.Plugins&&cap.Plugins.App;
-          if(app&&typeof app.exitApp==="function")app.exitApp();
-        }
-      }catch(_){ }
-      return true;
+      try{if(typeof window.nfExitApp==="function")window.nfExitApp();
+      else{var c=window.Capacitor,a=c&&c.Plugins&&c.Plugins.App;if(a&&typeof a.exitApp==="function")a.exitApp();}}
+      catch(err){console.error("Home double-swipe exit failed",err);}
+      return;
     }
     lastHomeSwipe=now;
     if(typeof toast==="function")toast("வெளியேற மீண்டும் swipe செய்யவும்.");
-    return true;
+  }
+  function finish(x,y){
+    if(!active)return;
+    active=false;
+    var dx=x-sx,dy=y-sy;
+    if(Math.abs(dx)<MIN||Math.abs(dx)<=Math.abs(dy)*LOCK)return;
+    if(currentView()==="dashboard"&&dx<0){doHomeDoubleSwipe();return;}
+    if(currentView()!=="dashboard"&&dx<0&&sx>34){doBack();return;}
+    if(currentView()!=="dashboard"&&dx>0&&sx<=34){doBack();return;}
   }
 
   window.addEventListener("touchstart",function(e){
-    if(window.innerWidth>900 || !e.touches || e.touches.length!==1)return;
-    if(commonOverlayOpen())return;
-    var t=e.touches[0], x=t.clientX;
-    sx=x; sy=t.clientY; tracking=false; edge="";
-    if(currentView()==="dashboard"){
-      /* Home: right-to-left exit swipe may start anywhere.
-         Left-to-right still uses the edge for the drawer. */
-      if(x<=EDGE)edge="left";
-      else edge="home-right";
-    }else{
-      if(x<=EDGE)edge="left";
-      else if(x>=window.innerWidth-EDGE)edge="right";
-    }
+    if(!e.touches||e.touches.length!==1||commonOverlayOpen())return;
+    sx=e.touches[0].clientX;sy=e.touches[0].clientY;active=true;lastTouchAt=Date.now();
   },{passive:true,capture:true});
-
-  window.addEventListener("touchmove",function(e){
-    if(!edge || !e.touches || e.touches.length!==1)return;
-    var t=e.touches[0],dx=t.clientX-sx,dy=t.clientY-sy;
-    if(Math.abs(dx)>=10 && Math.abs(dx)>Math.abs(dy)*LOCK){
-      if(edge==="left" && dx<=0){edge="";return;}
-      if(edge==="right" && dx>=0){edge="";return;}
-      if(edge==="home-right" && dx>=0){edge="";return;}
-      tracking=true;
-      if(e.cancelable)e.preventDefault();
-      e.stopImmediatePropagation();
-    }
-  },{passive:false,capture:true});
-
   window.addEventListener("touchend",function(e){
-    if(!edge)return;
-    var usedEdge=edge;
-    edge="";
+    if(!active)return;
     var t=e.changedTouches&&e.changedTouches[0];
-    if(!t)return;
-    var dx=t.clientX-sx,dy=t.clientY-sy;
-    /* Do not depend on touchmove firing. Some Android WebViews hand the
-       gesture directly to touchend; the final distance is enough. */
-    if(Math.abs(dx)<MIN || Math.abs(dx)<=Math.abs(dy)*LOCK)return;
-    if(e.cancelable)e.preventDefault();
-    e.stopImmediatePropagation();
-
-    if((usedEdge==="right" || usedEdge==="home-right") && dx<0){
-      if(currentView()==="dashboard")doHomeDoubleSwipe();
-      else doBack();
-      return;
-    }
-    if(usedEdge==="left" && dx>0 && currentView()!=="dashboard"){
-      doBack();
-    }
+    if(t)finish(t.clientX,t.clientY);else active=false;
   },{passive:false,capture:true});
+  window.addEventListener("touchcancel",function(){active=false;},{passive:true,capture:true});
 
-  /* Pointer fallback for Android WebView / hybrid builds where touchend can
-     be inconsistent. Home exit uses the same two-swipe state machine. */
-  var psx=0, psy=0, pEdge="";
+  /* Pointer fallback for hybrid/Android WebView builds. */
+  var psx=0,psy=0,pactive=false;
   window.addEventListener("pointerdown",function(e){
-    if(e.pointerType==="mouse" || window.innerWidth>900 || commonOverlayOpen())return;
-    psx=e.clientX; psy=e.clientY; pEdge="";
-    if(currentView()==="dashboard"){
-      pEdge=(psx<=EDGE)?"left":"home-right";
-    }else{
-      if(psx<=EDGE)pEdge="left";
-      else if(psx>=window.innerWidth-EDGE)pEdge="right";
-    }
+    if(e.pointerType==="mouse"||commonOverlayOpen())return;
+    psx=e.clientX;psy=e.clientY;pactive=true;
   },{passive:true,capture:true});
   window.addEventListener("pointerup",function(e){
-    if(!pEdge || e.pointerType==="mouse")return;
-    var used=pEdge; pEdge="";
+    if(!pactive||e.pointerType==="mouse")return;
+    /* A real touch also produces pointer events in many Android WebViews;
+       ignore the pointer-up so one physical swipe is counted only once. */
+    if(Date.now()-lastTouchAt<1000){pactive=false;return;}
+    pactive=false;
     var dx=e.clientX-psx,dy=e.clientY-psy;
-    if(Math.abs(dx)<MIN || Math.abs(dx)<=Math.abs(dy)*LOCK)return;
-    if((used==="right" || used==="home-right") && dx<0){
-      if(currentView()==="dashboard")doHomeDoubleSwipe();
-      else doBack();
-    }else if(used==="left" && dx>0 && currentView()!=="dashboard"){
-      doBack();
-    }
+    if(Math.abs(dx)<MIN||Math.abs(dx)<=Math.abs(dy)*LOCK)return;
+    if(currentView()==="dashboard"&&dx<0)doHomeDoubleSwipe();
+    else if(currentView()!=="dashboard"&&dx<0&&psx>34)doBack();
+    else if(currentView()!=="dashboard"&&dx>0&&psx<=34)doBack();
   },{passive:true,capture:true});
 
-  window.addEventListener("touchcancel",function(){tracking=false;edge="";},{passive:true,capture:true});
-
-  /* Wire the existing Android-back bridge to Capacitor's App back event. */
   function installAndroidBack(){
-    try{
-      var cap=window.Capacitor, app=cap&&cap.Plugins&&cap.Plugins.App;
-      if(!app || typeof app.addListener!=="function" || window.__nfAndroidBackListener)return;
+    try{var c=window.Capacitor,a=c&&c.Plugins&&c.Plugins.App;
+      if(!a||typeof a.addListener!=="function"||window.__nfAndroidBackListener)return;
       window.__nfAndroidBackListener=true;
-      app.addListener("backButton",function(){
-        if(typeof window.__nfAndroidBack==="function")window.__nfAndroidBack();
-        else doBack();
-      });
+      a.addListener("backButton",function(){if(typeof window.__nfAndroidBack==="function")window.__nfAndroidBack();else doBack();});
     }catch(_){ }
   }
-  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",installAndroidBack,{once:true});
-  else installAndroidBack();
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",installAndroidBack,{once:true});else installAndroidBack();
   setTimeout(installAndroidBack,500);
 
-  /* Menu Exit App button: use the same native exit path. */
   function installSideExit(){
-    var btn=document.getElementById("sideExitApp");
-    if(!btn || btn.__nfExitBound)return;
+    var btn=document.getElementById("sideExitApp");if(!btn||btn.__nfExitBound)return;
     btn.__nfExitBound=true;
-    btn.addEventListener("click",function(e){
-      e.preventDefault();
-      e.stopPropagation();
-      try{
-        if(typeof window.nfExitApp==="function"){
-          window.nfExitApp();
-        }else{
-          var cap=window.Capacitor, app=cap&&cap.Plugins&&cap.Plugins.App;
-          if(app&&typeof app.exitApp==="function")app.exitApp();
-        }
-      }catch(_){ }
-    });
+    btn.addEventListener("click",function(e){e.preventDefault();e.stopPropagation();try{if(typeof window.nfExitApp==="function")window.nfExitApp();else{var c=window.Capacitor,a=c&&c.Plugins&&c.Plugins.App;if(a&&typeof a.exitApp==="function")a.exitApp();}}catch(_){}});
   }
-  if(document.readyState==="loading"){
-    document.addEventListener("DOMContentLoaded",installSideExit,{once:true});
-  }else{
-    installSideExit();
-  }
-  setTimeout(installSideExit,300);
-  setTimeout(installSideExit,1000);
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",installSideExit,{once:true});else installSideExit();
+  setTimeout(installSideExit,300);setTimeout(installSideExit,1000);
 })();
 </script>
 </body>
