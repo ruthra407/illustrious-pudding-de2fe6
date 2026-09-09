@@ -10940,96 +10940,64 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-card{
   if(window.__nfNavigationGestureFixInstalled)return;
   window.__nfNavigationGestureFixInstalled=true;
 
-  var sx=0,sy=0,active=false;
-  var MIN=55, LOCK=1.12;
-  var lastHomeSwipe=0, HOME_DOUBLE_MS=2500;
-  var lastTouchAt=0;
+  /* Home-only double right-to-left side-swipe exit.
+     Deliberately does NOT preventDefault/stopPropagation, so the
+     existing drawer, photo, pull-refresh and other gestures remain intact. */
+  var startX=0,startY=0,tracking=false,lastHomeSwipe=0;
+  var EDGE=42,MIN=60,LOCK=1.20,HOME_DOUBLE_MS=2500;
 
-  function currentView(){return (history.state&&history.state.view)||"dashboard";}
-  function sidebarOpen(){var d=document.getElementById("sidebar");return !!(d&&d.classList.contains("open"));}
-  function closeDrawer(){var d=document.getElementById("sidebar");if(d&&d.classList.contains("open")){d.classList.remove("open");document.body.classList.remove("drawer-open");return true;}return false;}
-  function commonOverlayOpen(){
-    var m=document.getElementById("modal");
-    if(m&&m.classList.contains("open"))return true;
-    var p=document.getElementById("nfPhotoPreviewOverlay");
-    if(p&&p.classList.contains("open"))return true;
+  function isHome(){
+    return ((history.state&&history.state.view)||"dashboard")==="dashboard";
+  }
+  function blocked(){
+    var sidebar=document.getElementById("sidebar");
+    if(sidebar&&sidebar.classList.contains("open"))return true;
+    var modal=document.getElementById("modal");
+    if(modal&&modal.classList.contains("open"))return true;
+    var photo=document.getElementById("nfPhotoPreviewOverlay");
+    if(photo&&photo.classList.contains("open"))return true;
     return false;
   }
-  function doBack(){
-    if(commonOverlayOpen())return false;
-    if(closeDrawer())return true;
-    if(currentView()!=="dashboard"){history.back();return true;}
-    return false;
-  }
-  function doHomeDoubleSwipe(){
+  function exitAfterSecondSwipe(){
     var now=Date.now();
-    if(lastHomeSwipe&&now-lastHomeSwipe<=HOME_DOUBLE_MS){
+    if(lastHomeSwipe && now-lastHomeSwipe<=HOME_DOUBLE_MS){
       lastHomeSwipe=0;
-      try{if(typeof window.nfExitApp==="function")window.nfExitApp();
-      else{var c=window.Capacitor,a=c&&c.Plugins&&c.Plugins.App;if(a&&typeof a.exitApp==="function")a.exitApp();}}
-      catch(err){console.error("Home double-swipe exit failed",err);}
+      try{
+        if(typeof window.nfExitApp==="function") window.nfExitApp();
+        else{
+          var cap=window.Capacitor,app=cap&&cap.Plugins&&cap.Plugins.App;
+          if(app&&typeof app.exitApp==="function") app.exitApp();
+        }
+      }catch(err){ console.error("Home double-swipe exit failed",err); }
       return;
     }
     lastHomeSwipe=now;
-    if(typeof toast==="function")toast("வெளியேற மீண்டும் swipe செய்யவும்.");
-  }
-  function finish(x,y){
-    if(!active)return;
-    active=false;
-    var dx=x-sx,dy=y-sy;
-    if(Math.abs(dx)<MIN||Math.abs(dx)<=Math.abs(dy)*LOCK)return;
-    if(currentView()==="dashboard"&&dx<0){doHomeDoubleSwipe();return;}
-    if(currentView()!=="dashboard"&&dx<0&&sx>34){doBack();return;}
-    if(currentView()!=="dashboard"&&dx>0&&sx<=34){doBack();return;}
+    if(typeof toast==="function") toast("வெளியேற மீண்டும் swipe செய்யவும்.");
   }
 
   window.addEventListener("touchstart",function(e){
-    if(!e.touches||e.touches.length!==1||commonOverlayOpen())return;
-    sx=e.touches[0].clientX;sy=e.touches[0].clientY;active=true;lastTouchAt=Date.now();
+    if(window.innerWidth>900 || !e.touches || e.touches.length!==1 || !isHome() || blocked()){
+      tracking=false;
+      return;
+    }
+    var t=e.touches[0];
+    /* Only a swipe that starts at the RIGHT screen edge counts as exit. */
+    tracking=t.clientX>=window.innerWidth-EDGE;
+    if(tracking){ startX=t.clientX; startY=t.clientY; }
   },{passive:true,capture:true});
+
   window.addEventListener("touchend",function(e){
-    if(!active)return;
+    if(!tracking){tracking=false;return;}
+    tracking=false;
+    if(!isHome() || blocked())return;
     var t=e.changedTouches&&e.changedTouches[0];
-    if(t)finish(t.clientX,t.clientY);else active=false;
-  },{passive:false,capture:true});
-  window.addEventListener("touchcancel",function(){active=false;},{passive:true,capture:true});
-
-  /* Pointer fallback for hybrid/Android WebView builds. */
-  var psx=0,psy=0,pactive=false;
-  window.addEventListener("pointerdown",function(e){
-    if(e.pointerType==="mouse"||commonOverlayOpen())return;
-    psx=e.clientX;psy=e.clientY;pactive=true;
-  },{passive:true,capture:true});
-  window.addEventListener("pointerup",function(e){
-    if(!pactive||e.pointerType==="mouse")return;
-    /* A real touch also produces pointer events in many Android WebViews;
-       ignore the pointer-up so one physical swipe is counted only once. */
-    if(Date.now()-lastTouchAt<1000){pactive=false;return;}
-    pactive=false;
-    var dx=e.clientX-psx,dy=e.clientY-psy;
-    if(Math.abs(dx)<MIN||Math.abs(dx)<=Math.abs(dy)*LOCK)return;
-    if(currentView()==="dashboard"&&dx<0)doHomeDoubleSwipe();
-    else if(currentView()!=="dashboard"&&dx<0&&psx>34)doBack();
-    else if(currentView()!=="dashboard"&&dx>0&&psx<=34)doBack();
+    if(!t)return;
+    var dx=t.clientX-startX,dy=t.clientY-startY;
+    if(dx>=-MIN || Math.abs(dx)<=Math.abs(dy)*LOCK)return;
+    exitAfterSecondSwipe();
   },{passive:true,capture:true});
 
-  function installAndroidBack(){
-    try{var c=window.Capacitor,a=c&&c.Plugins&&c.Plugins.App;
-      if(!a||typeof a.addListener!=="function"||window.__nfAndroidBackListener)return;
-      window.__nfAndroidBackListener=true;
-      a.addListener("backButton",function(){if(typeof window.__nfAndroidBack==="function")window.__nfAndroidBack();else doBack();});
-    }catch(_){ }
-  }
-  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",installAndroidBack,{once:true});else installAndroidBack();
-  setTimeout(installAndroidBack,500);
-
-  function installSideExit(){
-    var btn=document.getElementById("sideExitApp");if(!btn||btn.__nfExitBound)return;
-    btn.__nfExitBound=true;
-    btn.addEventListener("click",function(e){e.preventDefault();e.stopPropagation();try{if(typeof window.nfExitApp==="function")window.nfExitApp();else{var c=window.Capacitor,a=c&&c.Plugins&&c.Plugins.App;if(a&&typeof a.exitApp==="function")a.exitApp();}}catch(_){}});
-  }
-  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",installSideExit,{once:true});else installSideExit();
-  setTimeout(installSideExit,300);setTimeout(installSideExit,1000);
+  window.addEventListener("touchcancel",function(){tracking=false;},{passive:true,capture:true});
 })();
 </script>
 </body>
