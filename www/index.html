@@ -8007,57 +8007,58 @@ async function nfWacEnsureCloudPhotos(){
   return nfWacCloudPhotoHydrationPromise;
 }
 async function nfResolveSingleDeliveryCardPhotos(id){
-  var key=String(id||""), out=[], seen={};
-  try{if(typeof initCustomerClothPhotoStore==="function")await nfWacWithTimeout(initCustomerClothPhotoStore(),2500,"delivery-card-photo-store");}catch(e){}
-  try{if(typeof nfHydrateCloudClothPhotos==="function")await nfWacWithTimeout(nfHydrateCloudClothPhotos(),8000,"delivery-card-photo-cloud");}catch(e){}
-  var add=function(p,type,slot){
-    if(!p)return;
-    var cloud=String(p.cloudPath||"");
-    var src=cloud&&typeof nfR2PhotoUrl==="function"?nfR2PhotoUrl(cloud):String(p.src||"");
-    var k=cloud||src; if(!src||seen[k])return; seen[k]=1;
-    out.push({src:src,name:p.name||"Customer",photoType:type,slot:slot,cloudPath:cloud});
-  };
-  try{var cps=typeof customerClothPhotos==="function"?customerClothPhotos(key):[];(cps||[]).forEach(function(p,i){add(p,"GIVEN CLOTH",i);});}catch(e){}
-  try{var dps=typeof customerDeliveryPhotos==="function"?customerDeliveryPhotos(key):[];(dps||[]).forEach(function(p,i){add(p,"DELIVERY",i);});}catch(e){}
-  /* V156: If the UI already shows a delivery photo but the in-memory cache is
-     stale/empty, resolve the canonical R2 delivery paths directly.  This is
-     intentionally Single Customer only. It makes the Delivery Card use the
-     same persisted photo source as the customer screen instead of depending
-     on hydration timing. */
-  if(out.length===0){
-    try{
-      var st=typeof customerStats==='function'?customerStats(key):{};
-      var defs=[
-        ["normal","given",st.handedNormal], ["normal","pending",st.pendingNormal],
-        ["lining","given",st.handedLining], ["lining","pending",st.pendingLining],
-        ["design","given",st.handedDesign], ["design","pending",st.pendingDesign],
-        ["chudi","given",st.handedChudi], ["chudi","pending",st.pendingChudi]
-      ];
-      for(var di=0;di<defs.length;di++){
-        var def=defs[di],limit=Math.min(NF_DELIVERY_SLOT_CAP,Math.max(0,Number(def[2]||0)));
-        for(var ds=0;ds<limit && out.length<8;ds++){
-          var dpath=nfDeliveryPhotoPath(key,def[0],def[1],ds),dsrc=nfR2PhotoUrl(dpath);
-          try{
-            var rr=await fetch(dsrc,{method:"GET",cache:"no-store",mode:"cors"});
-            if(rr.ok)add({src:dsrc,cloudPath:dpath,name:"Delivery "+def[0]+" "+def[1]+" "+(ds+1)},"DELIVERY",ds);
-          }catch(_){ }
-        }
-      }
-    }catch(e){console.warn("Direct Single Delivery R2 photo resolve skipped:",e)}
+  var key=String(id||""), candidates=[], seen={};
+  function addCandidate(path,type,slot,name){
+    if(!path||typeof nfR2PhotoUrl!=="function")return;
+    var k=String(path);if(seen[k])return;seen[k]=1;
+    candidates.push({src:nfR2PhotoUrl(path),name:name||"Customer",photoType:type,slot:slot,cloudPath:path});
   }
-  // If a saved cloud path exists, convert it to a data URL so Canvas embedding is reliable even with CORS.
+  /* Single Customer only: resolve from the canonical persisted R2 paths first.
+     This avoids depending on cache/hydration timing and does not alter calculations. */
+  try{
+    for(var i=0;i<4;i++)addCandidate(nfCloudPhotoPath(key,i),"GIVEN CLOTH",i,"Customer cloth photo "+(i+1));
+  }catch(e){console.warn("Single Delivery cloth path resolve skipped:",e)}
+  try{
+    var st=typeof customerStats==='function'?customerStats(key):{};
+    var defs=[
+      ["normal","given",st.handedNormal],["normal","pending",st.pendingNormal],
+      ["lining","given",st.handedLining],["lining","pending",st.pendingLining],
+      ["design","given",st.handedDesign],["design","pending",st.pendingDesign],
+      ["chudi","given",st.handedChudi],["chudi","pending",st.pendingChudi]
+    ];
+    for(var di=0;di<defs.length;di++){
+      var d=defs[di],limit=Math.min(NF_DELIVERY_SLOT_CAP,Math.max(0,Number(d[2]||0)));
+      for(var ds=0;ds<limit;ds++)addCandidate(nfDeliveryPhotoPath(key,d[0],d[1],ds),"DELIVERY",ds,"Delivery "+d[0]+" "+d[1]+" "+(ds+1));
+    }
+  }catch(e){console.warn("Single Delivery delivery-path resolve skipped:",e)}
+
+  /* Preserve any existing non-canonical/local data URL immediately. */
+  try{
+    var localLists=[];
+    if(typeof customerClothPhotos==='function')localLists.push(customerClothPhotos(key));
+    if(typeof customerDeliveryPhotos==='function')localLists.push(customerDeliveryPhotos(key));
+    localLists.forEach(function(list){(Array.isArray(list)?list:[]).forEach(function(p,i){
+      if(!p||!p.src)return;
+      var src=String(p.src||""), cloud=String(p.cloudPath||"");
+      if(/^data:image\//i.test(src))addCandidate("__data__"+src,"PHOTO",i,p.name||"Customer"),candidates[candidates.length-1].src=src,candidates[candidates.length-1].cloudPath=cloud;
+    });});
+  }catch(e){}
+
   var safe=[];
-  for(var i=0;i<out.length && safe.length<8;i++){
-    var p=out[i];
+  async function resolveOne(p){
     try{
-      if(/^data:image\//i.test(p.src)){safe.push(p);continue;}
-      if(typeof nfWacFetchBlob==="function"){
-        var b=await nfWacFetchBlob(p.src,7000);
-        var du=await new Promise(function(resolve,reject){var fr=new FileReader();fr.onload=function(){resolve(String(fr.result||""));};fr.onerror=reject;fr.readAsDataURL(b);});
-        if(du)safe.push(Object.assign({},p,{src:du}));
-      }
-    }catch(e){console.warn("Single Delivery Card photo embed skipped:",e);}
+      if(/^data:image\//i.test(p.src))return p;
+      var b;
+      if(typeof nfWacFetchBlob==='function')b=await nfWacFetchBlob(p.src,15000);
+      else{var r=await fetch(p.src,{method:"GET",cache:"no-store",mode:"cors"});if(!r.ok)throw new Error("photo-http-"+r.status);b=await r.blob();}
+      if(!b)throw new Error("photo-empty-blob");
+      var du=await new Promise(function(resolve,reject){var fr=new FileReader();var t=setTimeout(function(){try{fr.abort()}catch(_){}reject(new Error("photo-filereader-timeout"));},10000);fr.onload=function(){clearTimeout(t);resolve(String(fr.result||""));};fr.onerror=function(e){clearTimeout(t);reject(e||new Error("photo-filereader-failed"));};try{fr.readAsDataURL(b);}catch(e){clearTimeout(t);reject(e);}});
+      return du?Object.assign({},p,{src:du}):null;
+    }catch(e){return null;}
   }
+  /* Probe in parallel so one slow R2 object cannot make every other photo time out. */
+  var resolved=await Promise.all(candidates.map(resolveOne));
+  resolved.forEach(function(p){if(p&&safe.length<8)safe.push(p);});
   return safe;
 }
 async function nfWacResolvePhotos(id){
@@ -10840,7 +10841,7 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
 
   async function makeDeliveryImageLegacy(mainId){
     var group=groupFor(mainId),sum=groupSummary(group);if(!group.length)throw new Error('customer-not-found');
-    /* V156: Single Customer Delivery Card must wait for the photo store/cloud
+    /* V157: Single Customer Delivery Card must wait for the photo store/cloud
        hydration before collecting photos. Without this, the card can be built
        while the cache is still empty and the CUSTOMER PHOTOS section disappears. */
     try{
@@ -10850,7 +10851,7 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
       console.warn('Single Delivery Card photo hydration skipped/timeout:',photoLoadErr);
     }
     var W=1400,S=2,pad=48,inner=W-pad*2,people=group.slice(0,8),rows=[],photos=[];
-    // V156: resolve the actual saved Single Customer photos before building the card.
+    // V157: resolve the actual saved Single Customer photos before building the card.
     // This keeps the existing calculation untouched and guarantees saved photos are embedded.
     try{photos=await nfResolveSingleDeliveryCardPhotos(mainId);}catch(e){console.warn("Single Delivery Card photo resolve failed:",e);photos=[];}
     function n(v){return Math.max(0,Number(v||0));}
