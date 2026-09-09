@@ -10786,6 +10786,15 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
 
   async function makeDeliveryImageLegacy(mainId){
     var group=groupFor(mainId),sum=groupSummary(group);if(!group.length)throw new Error('customer-not-found');
+    /* V154: Single Customer Delivery Card must wait for the photo store/cloud
+       hydration before collecting photos. Without this, the card can be built
+       while the cache is still empty and the CUSTOMER PHOTOS section disappears. */
+    try{
+      if(typeof initCustomerClothPhotoStore==='function')await nfWacWithTimeout(initCustomerClothPhotoStore(),2500,'delivery-photo-store-init');
+      if(typeof nfHydrateCloudClothPhotos==='function')await nfWacWithTimeout(nfHydrateCloudClothPhotos(),8000,'delivery-photo-cloud-hydrate');
+    }catch(photoLoadErr){
+      console.warn('Single Delivery Card photo hydration skipped/timeout:',photoLoadErr);
+    }
     var W=1400,S=2,pad=48,inner=W-pad*2,people=group.slice(0,8),rows=[],photos=[];
     function n(v){return Math.max(0,Number(v||0));}
     function addRow(c,o,label,total,given){
@@ -10828,19 +10837,8 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
     if(blouseCalc.normal.qty)rows.push({name:'',garment:'Normal blouse',totalQty:blouseCalc.normal.qty,given:blouseCalc.normal.given,remaining:Math.max(0,blouseCalc.normal.qty-blouseCalc.normal.given),amount:0,paid:0,status:'Pending'});
     if(blouseCalc.lining.qty)rows.push({name:'',garment:'Lining blouse',totalQty:blouseCalc.lining.qty,given:blouseCalc.lining.given,remaining:Math.max(0,blouseCalc.lining.qty-blouseCalc.lining.given),amount:0,paid:0,status:'Pending'});
     if(blouseCalc.design.qty)rows.push({name:'',garment:'Design blouse',totalQty:blouseCalc.design.qty,given:blouseCalc.design.given,remaining:Math.max(0,blouseCalc.design.qty-blouseCalc.design.given),amount:0,paid:0,status:'Pending'});
-    /* V154: Single Customer Delivery Card must show Delivery Photos first.
-       This keeps the actual delivery-photo evidence visible even when the customer
-       also has many given-cloth photos. Calculation rows above remain unchanged. */
-    photoPools.forEach(function(pool){
-      pool.items.filter(function(p){return p&&p.photoType==='DELIVERY';}).forEach(function(p){
-        if(photos.length<8)photos.push(p);
-      });
-    });
-    photoPools.forEach(function(pool){
-      pool.items.filter(function(p){return p&&p.photoType==='GIVEN CLOTH';}).forEach(function(p){
-        if(photos.length<8)photos.push(p);
-      });
-    });
+    photoPools.forEach(function(pool){if(pool.items[0]&&photos.length<8)photos.push(pool.items[0]);});
+    for(var pass=1;pass<40&&photos.length<8;pass++)photoPools.forEach(function(pool){var p=pool.items[pass];if(p&&photos.length<8)photos.push(p);});
     if(photos.length){var safePhotos=[];for(var spi=0;spi<photos.length;spi++){var sp=photos[spi];if(!sp||!sp.src)continue;try{var src=sp.cloudPath&&typeof nfR2PhotoUrl==='function'?nfR2PhotoUrl(sp.cloudPath):String(sp.src||'');if(/^data:image\//i.test(src)){safePhotos.push(Object.assign({},sp,{src:src}));continue;}if(typeof nfWacFetchBlob==='function'){var pb=await nfWacFetchBlob(src,7000);var purl=await new Promise(function(resolve,reject){var fr=new FileReader();fr.onload=function(){resolve(String(fr.result||''));};fr.onerror=reject;fr.readAsDataURL(pb);});if(purl)safePhotos.push(Object.assign({},sp,{src:purl}));}}catch(pe){console.warn('Delivery card photo embed skipped:',pe);}}photos=safePhotos;}
     var main=people[0]||{},mainOrders=ordersFor(main.id),clothDates=mainOrders.map(function(o){return o.cloth_received_date||o.order_date||'';}).filter(Boolean).sort(),deliveryDates=mainOrders.map(function(o){return o.delivery_date||'';}).filter(Boolean).sort();
     var clothDate=clothDates[0]||'',deliveryDate=deliveryDates[0]||'';
@@ -10939,7 +10937,7 @@ async function makeMultiCustomerDeliveryImage(mainId){
       var sg=ctx.createLinearGradient(pad,sy,W-pad,sy);sg.addColorStop(0,'#5b1d7f');sg.addColorStop(1,'#d52d73');ctx.fillStyle=sg;ctx.fillRect(pad,sy,inner,sectionHead);
       txt('👤 '+(si+1)+'. '+(c.name||'Customer'),pad+24,sy+32,29,950,'#fff');
       var cy=sy+sectionHead;
-      /* V154: explicit blouse calculation table header + grid separators so every number has a clear meaning. */
+      /* V153: explicit blouse calculation table header + grid separators so every number has a clear meaning. */
       var tableX=pad+12,tableW=inner-24,calcCol1=W-520,calcCol2=W-340,calcCol3=W-160;
       rr(tableX,cy,tableW,calcHead,0,'#f0ebff','#e1d6ee',1);
       txt('BLOUSE',pad+28,cy+calcHead/2,20,950,'#4d267c','left');
