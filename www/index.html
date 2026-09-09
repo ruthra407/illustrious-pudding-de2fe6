@@ -9134,12 +9134,16 @@ window.addEventListener("keydown",function(e){if(e.key==="Escape")window.closeCu
    * callers can still invoke loadAll(), but local state is rendered immediately.
    * Cloud refresh happens in the background and never blocks navigation/calculation.
    */
+  var nfLoadAllRefreshTimer=null;
   window.loadAll=async function(){
     if(!state || !state.user)return;
     render();
     localSave();
-    if(navigator.onLine){
-      setTimeout(function(){backgroundDeltaRefresh().catch(function(e){console.warn(e)})},50);
+    if(navigator.onLine && !nfLoadAllRefreshTimer){
+      nfLoadAllRefreshTimer=setTimeout(function(){
+        nfLoadAllRefreshTimer=null;
+        backgroundDeltaRefresh().catch(function(e){console.warn(e)});
+      },50);
     }
   };
 
@@ -11010,6 +11014,7 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-card{
     if(edge==="right" && dx>=0){edge="";return;}
     tracking=true;
     if(e.cancelable)e.preventDefault();
+    e.stopImmediatePropagation();
   },{passive:false,capture:true});
 
   window.addEventListener("touchend",function(e){
@@ -11021,6 +11026,7 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-card{
     var dx=t.clientX-sx,dy=t.clientY-sy;
     if(!tracking || Math.abs(dx)<MIN || Math.abs(dx)<=Math.abs(dy)*LOCK)return;
     if(e.cancelable)e.preventDefault();
+    e.stopImmediatePropagation();
 
     /* Right-edge -> left is the dedicated page-back gesture.
        Left-edge -> right remains the existing drawer gesture on Home,
@@ -11029,6 +11035,9 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-card{
       if(currentView()==="dashboard")doHomeDoubleSwipe();
       else doBack();
       return;
+    }
+    if(usedEdge==="left" && dx>0 && currentView()!=="dashboard"){
+      doBack();
     }
   },{passive:false,capture:true});
 
@@ -11866,6 +11875,87 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-card{
     if(document.getElementById("nfSidebarCustomerList")) sync();
   },3000);
 
+  document.addEventListener("touchstart",function(e){
+    if(window.innerWidth>900 || !e.touches || e.touches.length!==1) return;
+    var t=e.touches[0];
+    window.__v115Swipe={x:t.clientX,y:t.clientY,active:false,close:false};
+  },{passive:true});
+
+  document.addEventListener("touchmove",function(e){
+    var s=window.__v115Swipe;
+    if(!s || window.innerWidth>900 || !e.touches || e.touches.length!==1) return;
+
+    var t=e.touches[0],dx=t.clientX-s.x,dy=t.clientY-s.y;
+    var drawer=document.getElementById("sidebar");
+    var insideList=e.target && e.target.closest && e.target.closest("#nfSidebarCustomerList");
+
+    if(!s.active && Math.abs(dx)<10 && Math.abs(dy)<10) return;
+    if(!s.active){
+      if(Math.abs(dy)>Math.abs(dx)*1.2) return;
+      if(insideList && Math.abs(dy)>=Math.abs(dx)) return;
+
+      if(dx>12 && s.x<22 && drawer && !drawer.classList.contains("open")){
+        s.active=true;
+      }else if(dx< -12 && drawer && drawer.classList.contains("open")){
+        s.active=true;s.close=true;
+      }else{
+        s.active=false;
+      }
+    }
+
+    if(s.active && !insideList) e.preventDefault();
+  },{passive:false});
+
+  document.addEventListener("touchend",function(e){
+    var s=window.__v115Swipe;
+    window.__v115Swipe=null;
+    if(!s || !s.active) return;
+
+    var t=(e.changedTouches&&e.changedTouches[0]);
+    if(!t) return;
+
+    var dx=t.clientX-s.x;
+    var drawer=document.getElementById("sidebar");
+    if(!drawer) return;
+
+    if(!s.close && dx>55 && s.x<22){
+      drawer.classList.add("open");
+      sync();
+    }else if(s.close && dx<-55){
+      drawer.classList.remove("open");
+    }
+  },{passive:true});
+})();
+</script><script id="v116-drawer-swipe-polish">
+(function(){
+  "use strict";
+  var drawer=document.getElementById("sidebar");
+  if(!drawer)return;
+
+  var sx=0,sy=0,tracking=false,openAtStart=false;
+
+  document.addEventListener("touchstart",function(e){
+    if(window.innerWidth>900 || !e.touches || e.touches.length!==1)return;
+    var t=e.touches[0];
+    sx=t.clientX; sy=t.clientY;
+    openAtStart=drawer.classList.contains("open");
+    tracking=(!openAtStart && sx<=18) || openAtStart;
+  },{passive:true});
+
+  document.addEventListener("touchend",function(e){
+    if(!tracking)return;
+    var t=e.changedTouches&&e.changedTouches[0];
+    tracking=false;
+    if(!t)return;
+    var dx=t.clientX-sx,dy=t.clientY-sy;
+    if(Math.abs(dx)<50 || Math.abs(dx)<Math.abs(dy)*1.15)return;
+
+    if(!openAtStart && dx>0 && sx<=18){
+      drawer.classList.add("open");
+    }else if(openAtStart && dx<0){
+      drawer.classList.remove("open");
+    }
+  },{passive:true});
 })();
 </script><script id="nf-v10010-order-edit-category-enforcer">
 (function(){
