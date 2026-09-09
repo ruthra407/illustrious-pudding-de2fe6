@@ -8019,6 +8019,32 @@ async function nfResolveSingleDeliveryCardPhotos(id){
   };
   try{var cps=typeof customerClothPhotos==="function"?customerClothPhotos(key):[];(cps||[]).forEach(function(p,i){add(p,"GIVEN CLOTH",i);});}catch(e){}
   try{var dps=typeof customerDeliveryPhotos==="function"?customerDeliveryPhotos(key):[];(dps||[]).forEach(function(p,i){add(p,"DELIVERY",i);});}catch(e){}
+  /* V156: If the UI already shows a delivery photo but the in-memory cache is
+     stale/empty, resolve the canonical R2 delivery paths directly.  This is
+     intentionally Single Customer only. It makes the Delivery Card use the
+     same persisted photo source as the customer screen instead of depending
+     on hydration timing. */
+  if(out.length===0){
+    try{
+      var st=typeof customerStats==='function'?customerStats(key):{};
+      var defs=[
+        ["normal","given",st.handedNormal], ["normal","pending",st.pendingNormal],
+        ["lining","given",st.handedLining], ["lining","pending",st.pendingLining],
+        ["design","given",st.handedDesign], ["design","pending",st.pendingDesign],
+        ["chudi","given",st.handedChudi], ["chudi","pending",st.pendingChudi]
+      ];
+      for(var di=0;di<defs.length;di++){
+        var def=defs[di],limit=Math.min(NF_DELIVERY_SLOT_CAP,Math.max(0,Number(def[2]||0)));
+        for(var ds=0;ds<limit && out.length<8;ds++){
+          var dpath=nfDeliveryPhotoPath(key,def[0],def[1],ds),dsrc=nfR2PhotoUrl(dpath);
+          try{
+            var rr=await fetch(dsrc,{method:"GET",cache:"no-store",mode:"cors"});
+            if(rr.ok)add({src:dsrc,cloudPath:dpath,name:"Delivery "+def[0]+" "+def[1]+" "+(ds+1)},"DELIVERY",ds);
+          }catch(_){ }
+        }
+      }
+    }catch(e){console.warn("Direct Single Delivery R2 photo resolve skipped:",e)}
+  }
   // If a saved cloud path exists, convert it to a data URL so Canvas embedding is reliable even with CORS.
   var safe=[];
   for(var i=0;i<out.length && safe.length<8;i++){
@@ -10814,7 +10840,7 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
 
   async function makeDeliveryImageLegacy(mainId){
     var group=groupFor(mainId),sum=groupSummary(group);if(!group.length)throw new Error('customer-not-found');
-    /* V154: Single Customer Delivery Card must wait for the photo store/cloud
+    /* V156: Single Customer Delivery Card must wait for the photo store/cloud
        hydration before collecting photos. Without this, the card can be built
        while the cache is still empty and the CUSTOMER PHOTOS section disappears. */
     try{
@@ -10824,7 +10850,7 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
       console.warn('Single Delivery Card photo hydration skipped/timeout:',photoLoadErr);
     }
     var W=1400,S=2,pad=48,inner=W-pad*2,people=group.slice(0,8),rows=[],photos=[];
-    // V155: resolve the actual saved Single Customer photos before building the card.
+    // V156: resolve the actual saved Single Customer photos before building the card.
     // This keeps the existing calculation untouched and guarantees saved photos are embedded.
     try{photos=await nfResolveSingleDeliveryCardPhotos(mainId);}catch(e){console.warn("Single Delivery Card photo resolve failed:",e);photos=[];}
     function n(v){return Math.max(0,Number(v||0));}
