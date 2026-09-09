@@ -10833,7 +10833,10 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
     try{
       if(typeof window.__nfDeliveryPreparePreview!=='function')throw new Error('preview-unavailable');
       previewToken=window.__nfDeliveryPreparePreview(label,kind,cid);
-      var b=kind==='whatsapp'?await makeWhatsAppImage(cid):await makeDeliveryImage(cid);
+      var b=await Promise.race([
+        kind==='whatsapp'?makeWhatsAppImage(cid):makeDeliveryImage(cid),
+        new Promise(function(_,reject){setTimeout(function(){reject(new Error('card-build-timeout'));},35000);})
+      ]);
       if(kind==='whatsapp')deliveryBlobStore.whatsapp=b.blob;
       else deliveryBlobStore.delivery=b;
       if(typeof window.__nfDeliverySetPreviewBlob==='function')window.__nfDeliverySetPreviewBlob(previewToken,b.blob||b,label);
@@ -10915,7 +10918,166 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
     },80);
   });
 })();
-</script></body>
+</script>
+<style id="nf-v134-home-customer-card-compact">
+/* V134: Home customer cards must wrap to their content, never stretch vertically. */
+body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
+  align-content:start!important;
+  align-items:start!important;
+  grid-auto-rows:max-content!important;
+}
+body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-card{
+  height:max-content!important;
+  min-height:0!important;
+  align-self:start!important;
+}
+</style>
+
+<!-- NF navigation gesture/back fix: only restores side-swipe back + double-swipe exit. -->
+<script id="nf-navigation-gesture-back-exit-fix">
+(function(){
+  "use strict";
+  if(window.__nfNavigationGestureFixInstalled)return;
+  window.__nfNavigationGestureFixInstalled=true;
+
+  var sx=0, sy=0, tracking=false, edge="";
+  var EDGE=34, MIN=70, LOCK=1.15;
+  var lastHomeSwipe=0, HOME_DOUBLE_MS=2000;
+
+  function currentView(){ return (history.state && history.state.view) || "dashboard"; }
+  function sidebarOpen(){
+    var d=document.getElementById("sidebar");
+    return !!(d && d.classList.contains("open"));
+  }
+  function closeDrawer(){
+    var d=document.getElementById("sidebar");
+    if(d && d.classList.contains("open")){
+      d.classList.remove("open");
+      document.body.classList.remove("drawer-open");
+      return true;
+    }
+    return false;
+  }
+  function commonOverlayOpen(){
+    var modal=document.getElementById("modal");
+    if(modal && modal.classList.contains("open"))return true;
+    var photo=document.getElementById("nfPhotoPreviewOverlay");
+    if(photo && photo.classList.contains("open"))return true;
+    return false;
+  }
+  function doBack(){
+    if(commonOverlayOpen())return false;
+    if(closeDrawer())return true;
+    if(currentView()!=="dashboard"){
+      history.back();
+      return true;
+    }
+    return false;
+  }
+  function doHomeDoubleSwipe(){
+    var now=Date.now();
+    if(now-lastHomeSwipe<=HOME_DOUBLE_MS){
+      lastHomeSwipe=0;
+      try{
+        if(typeof window.nfExitApp==="function"){
+          window.nfExitApp();
+        }else{
+          var cap=window.Capacitor, app=cap&&cap.Plugins&&cap.Plugins.App;
+          if(app&&typeof app.exitApp==="function")app.exitApp();
+        }
+      }catch(_){ }
+      return true;
+    }
+    lastHomeSwipe=now;
+    if(typeof toast==="function")toast("வெளியேற மீண்டும் swipe செய்யவும்.");
+    return true;
+  }
+
+  window.addEventListener("touchstart",function(e){
+    if(window.innerWidth>900 || !e.touches || e.touches.length!==1)return;
+    if(commonOverlayOpen())return;
+    var t=e.touches[0], x=t.clientX;
+    sx=x; sy=t.clientY; tracking=false; edge="";
+    if(x<=EDGE)edge="left";
+    else if(x>=window.innerWidth-EDGE)edge="right";
+  },{passive:true,capture:true});
+
+  window.addEventListener("touchmove",function(e){
+    if(!edge || !e.touches || e.touches.length!==1)return;
+    var t=e.touches[0],dx=t.clientX-sx,dy=t.clientY-sy;
+    if(Math.abs(dx)<10 || Math.abs(dx)<=Math.abs(dy)*LOCK)return;
+    if(edge==="left" && dx<=0){edge="";return;}
+    if(edge==="right" && dx>=0){edge="";return;}
+    tracking=true;
+    if(e.cancelable)e.preventDefault();
+  },{passive:false,capture:true});
+
+  window.addEventListener("touchend",function(e){
+    if(!edge)return;
+    var usedEdge=edge;
+    edge="";
+    var t=e.changedTouches&&e.changedTouches[0];
+    if(!t)return;
+    var dx=t.clientX-sx,dy=t.clientY-sy;
+    if(!tracking || Math.abs(dx)<MIN || Math.abs(dx)<=Math.abs(dy)*LOCK)return;
+    if(e.cancelable)e.preventDefault();
+
+    /* Right-edge -> left is the dedicated page-back gesture.
+       Left-edge -> right remains the existing drawer gesture on Home,
+       but acts as Back on inner pages so the drawer behavior is preserved. */
+    if(usedEdge==="right" && dx<0){
+      if(currentView()==="dashboard")doHomeDoubleSwipe();
+      else doBack();
+      return;
+    }
+  },{passive:false,capture:true});
+
+  window.addEventListener("touchcancel",function(){tracking=false;edge="";},{passive:true,capture:true});
+
+  /* Wire the existing Android-back bridge to Capacitor's App back event. */
+  function installAndroidBack(){
+    try{
+      var cap=window.Capacitor, app=cap&&cap.Plugins&&cap.Plugins.App;
+      if(!app || typeof app.addListener!=="function" || window.__nfAndroidBackListener)return;
+      window.__nfAndroidBackListener=true;
+      app.addListener("backButton",function(){
+        if(typeof window.__nfAndroidBack==="function")window.__nfAndroidBack();
+        else doBack();
+      });
+    }catch(_){ }
+  }
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",installAndroidBack,{once:true});
+  else installAndroidBack();
+  setTimeout(installAndroidBack,500);
+
+  /* Menu Exit App button: use the same native exit path. */
+  function installSideExit(){
+    var btn=document.getElementById("sideExitApp");
+    if(!btn || btn.__nfExitBound)return;
+    btn.__nfExitBound=true;
+    btn.addEventListener("click",function(e){
+      e.preventDefault();
+      e.stopPropagation();
+      try{
+        if(typeof window.nfExitApp==="function"){
+          window.nfExitApp();
+        }else{
+          var cap=window.Capacitor, app=cap&&cap.Plugins&&cap.Plugins.App;
+          if(app&&typeof app.exitApp==="function")app.exitApp();
+        }
+      }catch(_){ }
+    });
+  }
+  if(document.readyState==="loading"){
+    document.addEventListener("DOMContentLoaded",installSideExit,{once:true});
+  }else{
+    installSideExit();
+  }
+  setTimeout(installSideExit,300);
+  setTimeout(installSideExit,1000);
+})();
+</script>
+</body>
 <script id="nf-v120-single-cash-dedupe-fix">
 /* V22: superseded by the single stable customer-group renderer. */
 </script>
@@ -10944,11 +11106,11 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
 @media(max-width:560px){.nf-v160-multi-calculation-title{padding:11px 12px}.nf-v160-multi-calculation-title h4{font-size:17px}.nf-v160-multi-calculation-body{padding:8px}.nf-v160-customer-calc-name{font-size:15px;padding:8px 10px}}
 </style>
 
-<script id="nf-v133-customer-hooks-js">
+<script id="nf-v134-customer-hooks-js">
 /* V22: superseded by the single stable customer-group renderer. */
 </script>
-<style id="nf-v133-customer-hooks-css">
-.nf-v133-person-hook{
+<style id="nf-v134-customer-hooks-css">
+.nf-v134-person-hook{
   width:100%;
   min-height:44px;
   padding:8px 10px;
@@ -10964,8 +11126,8 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
   font-weight:inherit;
   cursor:pointer;
 }
-.nf-v133-person-name-text{min-width:0;overflow-wrap:anywhere}
-.nf-v133-hook-icon{
+.nf-v134-person-name-text{min-width:0;overflow-wrap:anywhere}
+.nf-v134-hook-icon{
   flex:0 0 34px;
   width:34px;
   height:34px;
@@ -10980,11 +11142,11 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
   box-shadow:0 5px 13px rgba(108,61,245,.22);
 }
 .nf-v120-customer-name{padding:0!important}
-.nf-v130-blouse-person-name{padding:0!important}
-.nf-v133-collapsible-body{min-width:0}
+.nf-v134-blouse-person-name{padding:0!important}
+.nf-v134-collapsible-body{min-width:0}
 @media(max-width:560px){
-  .nf-v133-person-hook{min-height:42px;padding:7px 9px}
-  .nf-v133-hook-icon{width:32px;height:32px;flex-basis:32px;font-size:21px}
+  .nf-v134-person-hook{min-height:42px;padding:7px 9px}
+  .nf-v134-hook-icon{width:32px;height:32px;flex-basis:32px;font-size:21px}
 }
 </style>
 
@@ -11704,87 +11866,6 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
     if(document.getElementById("nfSidebarCustomerList")) sync();
   },3000);
 
-  document.addEventListener("touchstart",function(e){
-    if(window.innerWidth>900 || !e.touches || e.touches.length!==1) return;
-    var t=e.touches[0];
-    window.__v115Swipe={x:t.clientX,y:t.clientY,active:false,close:false};
-  },{passive:true});
-
-  document.addEventListener("touchmove",function(e){
-    var s=window.__v115Swipe;
-    if(!s || window.innerWidth>900 || !e.touches || e.touches.length!==1) return;
-
-    var t=e.touches[0],dx=t.clientX-s.x,dy=t.clientY-s.y;
-    var drawer=document.getElementById("sidebar");
-    var insideList=e.target && e.target.closest && e.target.closest("#nfSidebarCustomerList");
-
-    if(!s.active && Math.abs(dx)<10 && Math.abs(dy)<10) return;
-    if(!s.active){
-      if(Math.abs(dy)>Math.abs(dx)*1.2) return;
-      if(insideList && Math.abs(dy)>=Math.abs(dx)) return;
-
-      if(dx>12 && s.x<22 && drawer && !drawer.classList.contains("open")){
-        s.active=true;
-      }else if(dx< -12 && drawer && drawer.classList.contains("open")){
-        s.active=true;s.close=true;
-      }else{
-        s.active=false;
-      }
-    }
-
-    if(s.active && !insideList) e.preventDefault();
-  },{passive:false});
-
-  document.addEventListener("touchend",function(e){
-    var s=window.__v115Swipe;
-    window.__v115Swipe=null;
-    if(!s || !s.active) return;
-
-    var t=(e.changedTouches&&e.changedTouches[0]);
-    if(!t) return;
-
-    var dx=t.clientX-s.x;
-    var drawer=document.getElementById("sidebar");
-    if(!drawer) return;
-
-    if(!s.close && dx>55 && s.x<22){
-      drawer.classList.add("open");
-      sync();
-    }else if(s.close && dx<-55){
-      drawer.classList.remove("open");
-    }
-  },{passive:true});
-})();
-</script><script id="v116-drawer-swipe-polish">
-(function(){
-  "use strict";
-  var drawer=document.getElementById("sidebar");
-  if(!drawer)return;
-
-  var sx=0,sy=0,tracking=false,openAtStart=false;
-
-  document.addEventListener("touchstart",function(e){
-    if(window.innerWidth>900 || !e.touches || e.touches.length!==1)return;
-    var t=e.touches[0];
-    sx=t.clientX; sy=t.clientY;
-    openAtStart=drawer.classList.contains("open");
-    tracking=(!openAtStart && sx<=18) || openAtStart;
-  },{passive:true});
-
-  document.addEventListener("touchend",function(e){
-    if(!tracking)return;
-    var t=e.changedTouches&&e.changedTouches[0];
-    tracking=false;
-    if(!t)return;
-    var dx=t.clientX-sx,dy=t.clientY-sy;
-    if(Math.abs(dx)<50 || Math.abs(dx)<Math.abs(dy)*1.15)return;
-
-    if(!openAtStart && dx>0 && sx<=18){
-      drawer.classList.add("open");
-    }else if(openAtStart && dx<0){
-      drawer.classList.remove("open");
-    }
-  },{passive:true});
 })();
 </script><script id="nf-v10010-order-edit-category-enforcer">
 (function(){
@@ -13228,20 +13309,20 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
 </style>
 
 
-<script id="nf-v132-multi-blouse-sync-js">
+<script id="nf-v134-multi-blouse-sync-js">
 /* V22: superseded by the single stable customer-group renderer. */
 </script>
-<style id="nf-v132-multi-blouse-sync-css">
-.nf-v130-multi-blouse{padding:0!important;overflow:hidden!important;background:#fff!important;border:1px solid #cfc0f4!important}
-.nf-v130-multi-blouse>.nf-collection-title{margin:0!important;padding:12px 15px!important;border-radius:0!important;background:linear-gradient(135deg,#e3d8ff,#f0d7ff)!important;border-bottom:1px solid #d8caf4!important;color:#4d267c!important}
-.nf-v130-blouse-body{padding:10px 12px 12px;display:grid;gap:10px}
-.nf-v130-blouse-person{border:1px solid #ddd5ef;border-radius:16px;background:#fff;overflow:hidden;box-shadow:0 5px 15px rgba(52,31,86,.06)}
-.nf-v130-blouse-person-name{padding:9px 11px;background:linear-gradient(135deg,#f7f3ff,#fff4fa);border-bottom:1px solid #e3dceb;color:#4d267c;font-size:16px;font-weight:950}
-.nf-v130-person-blouse{margin:0!important;padding:0!important;border:0!important;border-radius:0!important;box-shadow:none!important;background:#fff!important}
-.nf-v130-person-blouse>.nfBlouseStatusGrid,.nf-v130-person-blouse>.nfBlouseHandoverGrid,.nf-v130-person-blouse>.nf-garment-subtitle,.nf-v130-person-blouse>.nfChudiTotalBox,.nf-v130-person-blouse>.nfChudiHandoverGrid{margin-left:12px;margin-right:12px}
-.nf-v130-person-blouse>.nfBlouseStatusGrid{margin-top:10px}
-.nf-v130-person-blouse>.nfChudiHandoverGrid{margin-bottom:10px}
-@media(max-width:560px){.nf-v130-blouse-body{padding:8px}.nf-v130-blouse-person{border-radius:14px}.nf-v130-blouse-person-name{font-size:15px;padding:8px 10px}.nf-v130-multi-blouse>.nf-collection-title{padding:11px 12px!important}}
+<style id="nf-v134-multi-blouse-sync-css">
+.nf-v134-multi-blouse{padding:0!important;overflow:hidden!important;background:#fff!important;border:1px solid #cfc0f4!important}
+.nf-v134-multi-blouse>.nf-collection-title{margin:0!important;padding:12px 15px!important;border-radius:0!important;background:linear-gradient(135deg,#e3d8ff,#f0d7ff)!important;border-bottom:1px solid #d8caf4!important;color:#4d267c!important}
+.nf-v134-blouse-body{padding:10px 12px 12px;display:grid;gap:10px}
+.nf-v134-blouse-person{border:1px solid #ddd5ef;border-radius:16px;background:#fff;overflow:hidden;box-shadow:0 5px 15px rgba(52,31,86,.06)}
+.nf-v134-blouse-person-name{padding:9px 11px;background:linear-gradient(135deg,#f7f3ff,#fff4fa);border-bottom:1px solid #e3dceb;color:#4d267c;font-size:16px;font-weight:950}
+.nf-v134-person-blouse{margin:0!important;padding:0!important;border:0!important;border-radius:0!important;box-shadow:none!important;background:#fff!important}
+.nf-v134-person-blouse>.nfBlouseStatusGrid,.nf-v134-person-blouse>.nfBlouseHandoverGrid,.nf-v134-person-blouse>.nf-garment-subtitle,.nf-v134-person-blouse>.nfChudiTotalBox,.nf-v134-person-blouse>.nfChudiHandoverGrid{margin-left:12px;margin-right:12px}
+.nf-v134-person-blouse>.nfBlouseStatusGrid{margin-top:10px}
+.nf-v134-person-blouse>.nfChudiHandoverGrid{margin-bottom:10px}
+@media(max-width:560px){.nf-v134-blouse-body{padding:8px}.nf-v134-blouse-person{border-radius:14px}.nf-v134-blouse-person-name{font-size:15px;padding:8px 10px}.nf-v134-multi-blouse>.nf-collection-title{padding:11px 12px!important}}
 </style><script id="nf-v170-calc-hooks-scroll-js">
 /* V22: superseded by the single stable customer-group renderer. */
 </script><style id="nf-v170-calc-hooks-scroll-css">
@@ -13316,7 +13397,7 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
     return person;
   }
   function stripOld(card){
-    [".nf-v210-four-hook-group",".nf-v220-four-hook-group",".nf-v230-four-hook-group",".nf-v240-four-hook-group",".nf-v120-multi-cash-wrap",".nf-v160-multi-calculation",".nf-v130-multi-blouse",".nfCustomerBreakdownMount",".nf-cash-collection",".nf-blouse-collection",".nf-customer-cloth-photo-manager",".nf-delivery-card"].forEach(function(sel){card.querySelectorAll(":scope > "+sel).forEach(function(x){x.remove();});});
+    [".nf-v210-four-hook-group",".nf-v220-four-hook-group",".nf-v230-four-hook-group",".nf-v240-four-hook-group",".nf-v120-multi-cash-wrap",".nf-v160-multi-calculation",".nf-v134-multi-blouse",".nfCustomerBreakdownMount",".nf-cash-collection",".nf-blouse-collection",".nf-customer-cloth-photo-manager",".nf-delivery-card"].forEach(function(sel){card.querySelectorAll(":scope > "+sel).forEach(function(x){x.remove();});});
   }
   function moveGroupBeforePhotos(card,group){
     /* V29: photo managers live inside each customer's 5th hook.
@@ -13547,7 +13628,32 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
   function setLoading(on){if(loading)loading.style.display=on?"block":"none";}
   function cleanup(){if(currentBlobUrl){try{URL.revokeObjectURL(currentBlobUrl)}catch(e){}currentBlobUrl="";}currentBlob=null;currentCustomerId="";setScale(1);stage.scrollTop=0;stage.scrollLeft=0;setLoading(false);}
   function finishClose(){requestSeq++;overlay.classList.remove("open");overlay.setAttribute("aria-hidden","true");document.body.style.overflow="";cleanup();closing=false;}
-  function close(useHistory){if(!overlay.classList.contains("open"))return;if(closing)return;closing=true;requestSeq++;overlay.classList.remove("open");overlay.setAttribute("aria-hidden","true");document.body.style.overflow="";cleanup();if(useHistory&&historyOpen){historyOpen=false;try{history.back();}catch(e){closing=false;}}else{historyOpen=false;closing=false;}}
+  function close(useHistory){
+  if(!overlay.classList.contains("open"))return;
+  if(closing)return;
+  closing=true;
+  requestSeq++;
+  overlay.classList.remove("open");
+  overlay.setAttribute("aria-hidden","true");
+  document.body.style.overflow="";
+  cleanup();
+
+  /*
+   * Do not call history.back() here.
+   * history.back() is asynchronous; if another card is opened immediately,
+   * the old popstate can arrive later and close the NEW card.
+   * Remove only our preview marker synchronously instead.
+   */
+  if(historyOpen){
+    try{
+      var st=Object.assign({},history.state||{});
+      delete st.__nfDeliveryPreview;
+      history.replaceState(st,"",location.href);
+    }catch(e){}
+  }
+  historyOpen=false;
+  closing=false;
+}
   function openBase(label,kind,customerId){
     requestSeq++;var token=requestSeq;currentBlob=null;currentKind=kind||"delivery";currentCustomerId=String(customerId||"");title.textContent=label||"Card Preview";img.removeAttribute("src");setScale(1);setLoading(true);overlay.classList.add("open");overlay.setAttribute("aria-hidden","false");document.body.style.overflow="hidden";
     if(!historyOpen){var base=history.state||{view:"delivery"};var next=Object.assign({},base,{__nfDeliveryPreview:true});try{history.pushState(next,"",location.href);historyOpen=true;}catch(e){historyOpen=false;}}
