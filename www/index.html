@@ -3493,90 +3493,94 @@ function getQuickBlouseHandover(id){return {normal:Math.min(Math.max(0,Number($(
 async function saveQuickOrder(id,customerId){
  customerId=customerId||id;
  const box=$("quick-order-"+id),editOrderId=box?.dataset.editOrderId||"";
- const existing=editOrderId?state.orders.find(x=>String(x.id)===String(editOrderId)):null;
+ const existing=editOrderId?state.orders.find(x=>x.id===editOrderId):null;
  const nfReturnCustomerId=String(customerId||existing?.customer_id||"");
  const nfReturnView=(document.getElementById("view-customers")?.classList.contains("active"))?"customers":"orders";
  const nfReturnScrollY=window.scrollY||window.pageYOffset||0;
- const garment=$("qo-garment-"+id)?.value||"Blouse";
- const cloth=$("qo-cloth-"+id)?.value||null,delivery=$("qo-delivery-"+id)?.value||null,r=getQuickBlouseRates(id);
- const s={normal:Math.max(0,Number($("qo-normal-"+id)?.value||0)),lining:Math.max(0,Number($("qo-lining-"+id)?.value||0)),design:Math.max(0,Number($("qo-design-"+id)?.value||0))};
+ const garment=$("qo-garment-"+id)?.value||"Blouse",cloth=$("qo-cloth-"+id)?.value||null,delivery=$("qo-delivery-"+id)?.value||null,r=getQuickBlouseRates(id);
+ const s={normal:Number($("qo-normal-"+id)?.value||0),lining:Number($("qo-lining-"+id)?.value||0),design:Number($("qo-design-"+id)?.value||0)};
  const handover=getQuickBlouseHandover(id);
  const designRates=getQuickDesignRates(id,s.design,r.design||0);
  if(s.design>0 && designRates.length!==s.design){toast("ஒவ்வொரு Design blouse-க்கும் rate கொடுக்க வேண்டும்.",true);return}
  const designTotal=designRates.reduce((sum,v)=>sum+Math.max(0,Number(v||0)),0);
- const cq=Math.max(0,Number($("qo-chudi-"+id)?.value||0));
- const cl=$("qo-chudi-lining-"+id)?.value==="yes"?"yes":"no";
- const clq=Math.max(0,Number($("qo-chudi-lining-qty-"+id)?.value||0));
- const cr=Math.max(0,Number($("qo-chudi-rate-"+id)?.value||r.chudi||0));
- const sq=Math.max(0,Number($("qo-saree-"+id)?.value||0));
- const sh=Math.min(sq,Math.max(0,Number($("qo-saree-handover-"+id)?.value||0)));
- const ch=Math.min(cq,Math.max(0,Number($("qo-chudi-handover-"+id)?.value||0)));
- const sr=Math.max(0,Number($("qo-saree-rate-"+id)?.value||r.saree||0));
+ const cq=Math.max(0,Number($("qo-chudi-"+id)?.value||0)),cl=$("qo-chudi-lining-"+id)?.value==="yes"?"yes":"no",clq=Math.max(0,Number($("qo-chudi-lining-qty-"+id)?.value||0)),cr=Math.max(0,Number($("qo-chudi-rate-"+id)?.value||r.chudi||0));
+ const sq=Math.max(0,Number($("qo-saree-"+id)?.value||0)),sh=Math.min(sq,Math.max(0,Number($("qo-saree-handover-"+id)?.value||0))),ch=Math.min(cq,Math.max(0,Number($("qo-chudi-handover-"+id)?.value||0))),sr=Math.max(0,Number($("qo-saree-rate-"+id)?.value||r.saree||0));
+ const qty=garment==="Chudi"?cq:(s.normal+s.lining+s.design+sq);
+ const garmentTotal=garment==="Chudi"?cq*cr:(s.normal*r.normal+s.lining*r.lining+designTotal+sq*sr);
  const ls=$("qo-lining-source-"+id)?.value||"",lq=Math.max(0,Number($("qo-lining-qty-"+id)?.value||0)),lr=Math.max(0,Number($("qo-lining-cost-rate-"+id)?.value||0));
- const advance=Math.max(0,Number($("qo-advance-"+id)?.value||0)),status=$("qo-status-"+id)?.value||"Pending";
- const orderDate=existing?.order_date||localDate();
- const advanceDate=$("qo-advance-date-"+id)?.value||orderDate;
- const alterationNotes=String($("qo-notes-"+id)?.value||"").trim();
- const isChudi=String(garment).toLowerCase()==="chudi";
- const isSaree=String(garment).toLowerCase()==="saree";
- const isCombined=["blouse+chudi","blousechudi","both"].includes(String(garment).toLowerCase().replace(/\s+/g,""));
- const blouseQty=s.normal+s.lining+s.design;
- const qty=isChudi?cq:isSaree?sq:(blouseQty+sq+(isCombined?cq:0));
- const garmentTotal=isChudi?cq*cr:isSaree?sq*sr:(s.normal*r.normal+s.lining*r.lining+designTotal+sq*sr+(isCombined?cq*cr:0));
  const liningTotal=ls==="shop"?lq*lr:0,total=garmentTotal+liningTotal;
+ const advance=Math.max(0,Number($("qo-advance-"+id)?.value||0)),status=$("qo-status-"+id)?.value||"Pending";
  if(!delivery){toast("Delivery Date தேர்வு செய்யுங்கள்.",true);return}
- if(qty<=0){toast(isChudi?"குறைந்தது 1 Chudi கொடுக்க வேண்டும்.":isSaree?"குறைந்தது 1 Saree கொடுக்க வேண்டும்.":"குறைந்தது 1 blouse கொடுக்க வேண்டும்.",true);return}
+ if(qty<=0){toast(garment==="Chudi"?"குறைந்தது 1 Chudi கொடுக்க வேண்டும்.":"குறைந்தது 1 blouse கொடுக்க வேண்டும்.",true);return}
  if(ls==="shop"&&lq>0&&lr<=0){toast("நாம் வாங்கிய Lining-க்கு விலை கொடுக்க வேண்டும்.",true);return}
  if(ls==="shop"&&lq<=0&&lr>0){toast("நாம் வாங்கிய Lining எத்தனை என்று கொடுக்க வேண்டும்.",true);return}
- let notes=alterationNotes;
- notes=String(notes||"").replace(/BLOUSE_HANDOVER:(\{[^}]+\})/g,"").replace(/GARMENT_HANDOVER:(\{[^}]+\})/g,"").replace(/GARMENT_SPLIT:(\{[^}]+\})/g,"").replace(/DESIGN_RATES:(\[[^\]]*\])/g,"").replace(/ADVANCE_DATE:[0-9]{4}-[0-9]{2}-[0-9]{2}/g,"").replace(/ORDER_DATE:[0-9]{4}-[0-9]{2}-[0-9]{2}/g,"").replace(/\s*\|\s*/g," | ").replace(/^\s*\|\s*|\s*\|\s*$/g,"").trim();
- const splitNote={normal:s.normal,lining:s.lining,design:s.design};
- if(!isChudi&&!isSaree)notes+=(notes?" | ":"")+"BLOUSE_SPLIT:"+JSON.stringify(splitNote)+" | BLOUSE_HANDOVER:"+JSON.stringify(handover);
- const garmentSplit={chudi:isChudi||isCombined?cq:0,chudiLining:isChudi||isCombined?cl:"no",chudiLiningQty:isChudi||isCombined?clq:0,saree:!isChudi?sq:0};
- const garmentHandover={chudi:isChudi||isCombined?ch:0,saree:!isChudi?sh:0};
- notes+=(notes?" | ":"")+"GARMENT_SPLIT:"+JSON.stringify(garmentSplit)+" | GARMENT_HANDOVER:"+JSON.stringify(garmentHandover);
- if((isChudi||isCombined)&&cq>0)notes+=" | CHUDI_RATE:"+cr;
- if(!isChudi&&sq>0)notes+=" | SAREE_RATE:"+sr;
- if(!isChudi&&!isSaree&&s.design>0)notes+=" | DESIGN_RATES:"+JSON.stringify(designRates);
- if(ls==="shop")notes+=" | LINING_COST:"+JSON.stringify({source:ls,qty:lq,rate:lr,total:liningTotal});
- notes+=(notes?" | ":"")+"ORDER_DATE:"+orderDate+" | ADVANCE_DATE:"+advanceDate;
- const payload={
-   customer_id:String(customerId),order_no:existing?.order_no||makeOrderNo(),garment_type:isCombined?"Blouse":garment,
-   order_date:orderDate,cloth_received_date:cloth,delivery_date:delivery,
-   normal_qty:isChudi||isSaree?0:s.normal,normal_handover:isChudi||isSaree?0:handover.normal,
-   lining_qty:isChudi||isSaree?0:s.lining,lining_handover:isChudi||isSaree?0:handover.lining,
-   design_qty:isChudi||isSaree?0:s.design,design_handover:isChudi||isSaree?0:handover.design,
-   chudi_qty:isChudi||isCombined?cq:0,chudi_handover:isChudi||isCombined?ch:0,chudi_lining:isChudi||isCombined?cl:"no",chudi_lining_qty:isChudi||isCombined?clq:0,
-   saree_qty:isChudi?0:sq,saree_handover:isChudi?0:sh,chudi_rate:isChudi||isCombined?cr:0,saree_rate:isChudi?0:sr,
-   quantity:qty,unit_price:qty?garmentTotal/qty:0,total_amount:total,advance_amount:advance,balance_amount:Math.max(0,total-advance),status,
-   rate_type:(s.normal>0?"normal":s.lining>0?"lining":s.design>0?"design":"normal"),lining_cloth_source:ls||null,lining_cloth_qty:lq,notes
- };
- if(status==="Delivered"){
-   payload.normal_handover=payload.normal_qty;payload.lining_handover=payload.lining_qty;payload.design_handover=payload.design_qty;payload.chudi_handover=payload.chudi_qty;payload.saree_handover=payload.saree_qty;
-   const bh={normal:payload.normal_handover,lining:payload.lining_handover,design:payload.design_handover},gh={chudi:payload.chudi_handover,saree:payload.saree_handover};
-   payload.notes=String(payload.notes).replace(/BLOUSE_HANDOVER:(\{[^}]+\})/g,"").replace(/GARMENT_HANDOVER:(\{[^}]+\})/g,"").trim()+" | BLOUSE_HANDOVER:"+JSON.stringify(bh)+" | GARMENT_HANDOVER:"+JSON.stringify(gh);
+ const alterationNotes=String($("qo-notes-"+id)?.value||"").trim();
+ let notes=garment==="Chudi"?("GARMENT_SPLIT:"+JSON.stringify({chudi:cq,chudiLining:cl,chudiLiningQty:clq,saree:0})+" | CHUDI_RATE:"+cr+(alterationNotes?" | "+alterationNotes:"")):makeBlouseSplitNote(s,r,alterationNotes);
+ if(garment==="Blouse")notes+=" | BLOUSE_HANDOVER:"+JSON.stringify(handover);
+ if(garment==="Blouse"){
+   const existingExtra={chudi:0,chudiLining:"no",chudiLiningQty:0,saree:sq};
+   notes=notes.replace(/\s*\|\s*GARMENT_SPLIT:\{[^}]+\}/g,"").replace(/\s*\|\s*SAREE_RATE:[0-9.]+/g,"").trim();
+   notes+=" | GARMENT_SPLIT:"+JSON.stringify(existingExtra)+" | SAREE_RATE:"+sr;
  }
+ if(garment==="Blouse"&&s.design>0)notes+=" | DESIGN_RATES:"+JSON.stringify(designRates);
+
+ if(ls==="shop")notes+=` | LINING_COST:${JSON.stringify({source:ls,qty:lq,rate:lr,total:liningTotal})}`;
+ const payload={customer_id:customerId,order_no:existing?.order_no||makeOrderNo(),garment_type:garment,order_date:existing?.order_date||localDate(),cloth_received_date:cloth,delivery_date:delivery,quantity:qty,unit_price:qty?garmentTotal/qty:0,total_amount:total,advance_amount:advance,balance_amount:Math.max(0,total-advance),status,rate_type:garment==="Chudi"?"normal":(s.normal>0?"normal":s.lining>0?"lining":s.design>0?"design":"normal"),lining_cloth_source:ls||null,lining_cloth_qty:lq,notes};
  try{
-   let result;
-   if(nfD1Enabled()){
-     nfD1AccessToken=await nfD1GetAccessToken();
-     if(!nfD1AccessToken)throw new Error("Login session token கிடைக்கவில்லை.");
-     result=existing?await nfD1Builder("orders").update(payload).eq("id",existing.id):await nfD1Builder("orders").insert(payload);
-   }else{
-     result=existing?await supabaseClient.from("orders").update(payload).eq("id",existing.id):await supabaseClient.from("orders").insert(payload);
-   }
-   if(result?.error)throw result.error;
-   const customerUpdate=nfD1Enabled()?await nfD1Builder("customers").update({notes:alterationNotes}).eq("id",customerId):await supabaseClient.from("customers").update({notes:alterationNotes}).eq("id",customerId);
-   if(customerUpdate?.error)throw customerUpdate.error;
-   if(typeof window.nfSyncLinkedPaymentDates==="function")try{await window.nfSyncLinkedPaymentDates(String(existing?.id||result?.data?.id||""),orderDate,advanceDate)}catch(e){console.warn("Payment date sync failed",e)}
+   const result=existing
+     ?await supabaseClient.from("orders").update(payload).eq("id",existing.id)
+     :await supabaseClient.from("orders").insert(payload);
+   if(result.error)throw result.error;
+   const customerNotePayload={notes:alterationNotes};
+   const customerUpdate=await supabaseClient.from("customers").update(customerNotePayload).eq("id",customerId);
+   if(customerUpdate.error)throw customerUpdate.error;
    box.dataset.editOrderId="";
-   const title=box.querySelector(".nf-quick-edit-title"),save=box.querySelector(".nf-quick-save-btn");if(title)title.textContent="🧾 New Order";if(save)save.textContent="💾 Save Order";
-   await loadAll(true);
-   if(typeof goView==="function")goView("customers",true);
-   requestAnimationFrame(function(){requestAnimationFrame(function(){const card=document.getElementById("customer-card-"+nfReturnCustomerId);if(card){if(nfReturnView==="customers")window.scrollTo(0,nfReturnScrollY);else card.scrollIntoView({behavior:"auto",block:"start"})}})});
-   toast(existing?"Order details updated & D1 sync complete.":"இந்த customer-க்கு New Order சேமிக்கப்பட்டது & D1 sync complete.");
+   const title=box.querySelector(".nf-quick-edit-title"),save=box.querySelector(".nf-quick-save-btn");
+   if(title)title.textContent="🧾 New Order";
+   if(save)save.textContent="💾 Save Order";
+
+   if(existing){
+     const returnedOrderId=String(existing.id);
+     const returnedOrder={...existing,...payload};
+     const orderIndex=(state.orders||[]).findIndex(o=>String(o.id)===returnedOrderId);
+     if(orderIndex>=0)state.orders[orderIndex]=returnedOrder;
+     else state.orders=[returnedOrder,...(state.orders||[])];
+
+     const localCustomer=(state.customers||[]).find(c=>String(c.id)===nfReturnCustomerId);
+     if(localCustomer)localCustomer.notes=userNotes;
+
+     if(typeof closeOrdersQuickAdd==="function")closeOrdersQuickAdd(false);
+     const screenTitle=document.getElementById("ordersNewOrderScreenTitle");
+     if(screenTitle)screenTitle.textContent="🧾 New Order";
+
+     if(typeof goView==="function")goView("customers",true);
+     requestAnimationFrame(function(){
+       requestAnimationFrame(function(){
+         const card=document.getElementById("customer-card-"+nfReturnCustomerId);
+         if(card){
+           if(nfReturnView==="customers")window.scrollTo(0,nfReturnScrollY);
+           else card.scrollIntoView({behavior:"auto",block:"start"});
+         }
+       });
+     });
+
+     loadAll(true).then(function(){
+       requestAnimationFrame(function(){
+         const card=document.getElementById("customer-card-"+nfReturnCustomerId);
+         if(!card)return;
+         if(nfReturnView==="customers")window.scrollTo(0,nfReturnScrollY);
+         else card.scrollIntoView({behavior:"auto",block:"start"});
+       });
+     }).catch(function(err){console.error("Background data refresh after order update:",err);});
+
+     toast("Order details updated.");
+   }else{
+     toast("இந்த customer-க்கு New Order சேமிக்கப்பட்டது.");
+     loadAll(true).catch(function(err){console.error("Background data refresh after new order:",err);});
+   }
  }catch(err){toast("Order save failed: "+err.message,true)}
 }
+
 function getQuickDesignRates(id,qty,fallback){
   const host=$("qo-design-rates-box-"+id);
   const box=host?.querySelector(".nf-design-3slot");
@@ -4436,14 +4440,7 @@ if(type==="payment" && payload.__orderUpdate){
   const ur=await supabaseClient.from("orders").update(ou).eq("id",String(payload.order_id));
   if(ur.error)throw ur.error;
 }
-let result;
-if(type==="order" && nfD1Enabled()){
-  nfD1AccessToken=await nfD1GetAccessToken();
-  if(!nfD1AccessToken)throw new Error("Login session token கிடைக்கவில்லை.");
-  result=id?await nfD1Builder("orders").update(payload).eq("id",id):await nfD1Builder("orders").insert(payload);
-}else{
-  result=id?await supabaseClient.from(def.table).update(payload).eq("id",id).select().single():await supabaseClient.from(def.table).insert(payload).select().single();
-}
+let result=id?await supabaseClient.from(def.table).update(payload).eq("id",id).select().single():await supabaseClient.from(def.table).insert(payload).select().single();
 if(result.error)throw result.error;
 if((type==="order" || type==="payment") && result.data){
   const syncOrderId=type==="order" ? String(result.data.id||"") : String(payload.order_id||"");
@@ -4519,30 +4516,11 @@ const labels={"In Progress":"Progress","Ready":"Ready","Delivered":"Delivered","
 if(!["In Progress","Ready","Delivered","Cancelled"].includes(status))return;
 const label=labels[status]||status;
 if(!confirm(`இந்த order-ஐ ${label} என்று மாற்றவா?`))return;
-const o=state.orders.find(x=>String(x.id)===String(id));
-let payload={status};
-if(status==="Delivered" && o){
-  const bs=blouseSplit(o||{}),gx=typeof nfGarmentExtra==="function"?nfGarmentExtra(o):{chudi:0,saree:0};
-  payload.normal_handover=Math.max(0,Number(bs.normal||0));
-  payload.lining_handover=Math.max(0,Number(bs.lining||0));
-  payload.design_handover=Math.max(0,Number(bs.design||0));
-  payload.chudi_handover=Math.max(0,Number(gx.chudi||0));
-  payload.saree_handover=Math.max(0,Number(gx.saree||0));
-  let notes=String(o.notes||'').replace(/BLOUSE_HANDOVER:(\{[^}]+\})/g,'').replace(/GARMENT_HANDOVER:(\{[^}]+\})/g,'').trim();
-  const bh={normal:payload.normal_handover,lining:payload.lining_handover,design:payload.design_handover};
-  const gh={chudi:payload.chudi_handover,saree:payload.saree_handover};
-  notes+=(notes?'\n':'')+'BLOUSE_HANDOVER:'+JSON.stringify(bh)+'\nGARMENT_HANDOVER:'+JSON.stringify(gh);
-  payload.notes=notes;
-}
-let result={error:null};
-try{
-  if(nfD1Enabled()) result=await nfD1Builder("orders").update(payload).eq("id",id);
-  else result=await supabaseClient.from("orders").update(payload).eq("id",id);
-}catch(e){result={error:{message:String(e?.message||e)}}}
-if(result?.error){toast("Status update failed: "+result.error.message,true);return;}
+const {error}=await supabaseClient.from("orders").update({status}).eq("id",id);
+if(error){toast("Status update failed: "+error.message,true);return;}
 await loadAll(true);
 openOrderFullDetails(id);
-toast(status==="Delivered"?`Order Delivered • கொடுத்தது முழு அளவாக update செய்யப்பட்டது`:`Order ${label} என்று சேமிக்கப்பட்டது`);
+toast(`Order ${label} என்று சேமிக்கப்பட்டது`);
 }
 async function markDelivered(id){
 await updateOrderStatus(id,"Delivered");
@@ -7365,29 +7343,13 @@ function nfFormatPaymentDate(v){return v?dateText(v):"—";}
       .trim();
     if(advanceDate) notes+=(notes?" | ":"")+`ADVANCE_DATE:${advanceDate}`;
     const storedGarment=isBlouse?"Blouse":"Chudi";
-    const payload={customer_id:customerId,order_no:existing?.order_no||makeOrderNo(),garment_type:storedGarment,order_date:orderDate,cloth_received_date:cloth,delivery_date:delivery,
-      normal_qty:isBlouse?s.normal:0,normal_handover:isBlouse?blouseHandover.normal:0,
-      lining_qty:isBlouse?s.lining:0,lining_handover:isBlouse?blouseHandover.lining:0,
-      design_qty:isBlouse?s.design:0,design_handover:isBlouse?blouseHandover.design:0,
-      chudi_qty:isChudi?cq:0,chudi_handover:isChudi?ch:0,chudi_lining:isChudi?cl:"no",chudi_lining_qty:isChudi?clq:0,
-      saree_qty:isBlouse?sq:0,saree_handover:isBlouse?sh:0,chudi_rate:isChudi?cr:0,saree_rate:isBlouse?sr:0,
-      quantity:qty,unit_price:qty?total/qty:0,total_amount:total,advance_amount:advance,balance_amount:Math.max(0,total-advance),status,
-      rate_type:isBlouse?(s.normal>0?"normal":s.lining>0?"lining":s.design>0?"design":"normal"):"normal",
-      lining_cloth_source:ls||null,lining_cloth_qty:lq,notes};
+    const payload={customer_id:customerId,order_no:existing?.order_no||makeOrderNo(),garment_type:storedGarment,order_date:orderDate,cloth_received_date:cloth,delivery_date:delivery,quantity:qty,unit_price:qty?total/qty:0,total_amount:total,advance_amount:advance,balance_amount:Math.max(0,total-advance),status,rate_type:isBlouse?(s.normal>0?"normal":s.lining>0?"lining":s.design>0?"design":"normal"):"normal",lining_cloth_source:ls||null,lining_cloth_qty:lq,notes};
     try{
-      let result;
-      if(nfD1Enabled()){
-        nfD1AccessToken=await nfD1GetAccessToken();
-        if(!nfD1AccessToken)throw new Error("Login session token கிடைக்கவில்லை.");
-        result=existing
-          ?await nfD1Builder("orders").update(payload).eq("id",existing.id)
-          :await nfD1Builder("orders").insert(payload);
-      }else{
-        result=existing
-          ?await supabaseClient.from("orders").update(payload).eq("id",existing.id).select("*").maybeSingle()
-          :await supabaseClient.from("orders").insert(payload).select("*").single();
-      }
-      if(result?.error)throw result.error;
+      const result=existing
+        ?await supabaseClient.from("orders").update(payload).eq("id",existing.id).select("*").maybeSingle()
+        :await supabaseClient.from("orders").insert(payload).select("*").single();
+      if(result.error)throw result.error;
+      if(existing&&!result.data)throw new Error("Order update செய்யப்படவில்லை. Database UPDATE permission / RLS policy-ஐ சரிபார்க்க வேண்டும்.");
       // Keep the linked Payment records in sync with the Edit Order values.
       try{
         await window.nfSyncLinkedPaymentDates?.(
@@ -7398,10 +7360,8 @@ function nfFormatPaymentDate(v){return v?dateText(v):"—";}
       }catch(syncErr){ console.error("Payment date sync failed",syncErr); }
       const syncCustomerId=String(customerId||payload.customer_id||"");
       if(syncCustomerId){
-        const cr=nfD1Enabled()
-          ?await nfD1Builder("customers").update({notes:userNotes}).eq("id",syncCustomerId)
-          :await supabaseClient.from("customers").update({notes:userNotes}).eq("id",syncCustomerId);
-        if(cr?.error)throw cr.error;
+        const cr=await supabaseClient.from("customers").update({notes:userNotes}).eq("id",syncCustomerId);
+        if(cr.error)throw cr.error;
       }
       box.dataset.editOrderId="";
       const title=box.querySelector(".nf-quick-edit-title"),save=box.querySelector(".nf-quick-save-btn");if(title)title.textContent="🧾 New Order";if(save)save.textContent="💾 Save Order";
@@ -10794,7 +10754,7 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
     var bw=(inner-24)/3;[['TOTAL AMOUNT',sum.total,'#5e3be0'],['PAID AMOUNT',sum.paid,'#0e9367'],['BALANCE',sum.balance,'#db3f6b']].forEach(function(a,i){var x=pad+i*(bw+12);roundRect(ctx,x,y,bw,payH,18,a[2]);drawText(ctx,a[0],x+18,y+36,21,900,'#fff');drawText(ctx,moneyText(a[1]),x+18,y+83,38,950,'#fff');});y+=payH;
     if(photos.length){
       y+=16;var pg=ctx.createLinearGradient(pad,y,W-pad,y);pg.addColorStop(0,'#7112c4');pg.addColorStop(1,'#d30a61');ctx.fillStyle=pg;ctx.fillRect(pad,y,inner,photoTitleH);drawText(ctx,'📸 CUSTOMER PHOTOS',pad+24,y+33,30,950,'#fff');y+=photoTitleH+10;
-      for(var i=0;i<photos.length;i++){var p=photos[i],col=i%2,row=Math.floor(i/2),x=pad+col*((inner-18)/2),yy=y+row*(photoCellH+gap),cw=(inner-18)/2;roundRect(ctx,x,yy,cw,photoCellH,16,'#fff','#d36b9c',2);drawText(ctx,p.customerName||'Customer',x+18,yy+27,22,950,'#6e1e56');if(p.src)try{var im=await new Promise(function(resolve,reject){var z=new Image();z.crossOrigin='anonymous';z.onload=function(){resolve(z)};z.onerror=reject;z.src=p.src;});var sc=Math.min((cw-36)/im.width,220/im.height),dw=im.width*sc,dh=im.height*sc;ctx.drawImage(im,x+cw/2-dw/2,yy+140-dh/2,dw,dh);}catch(e){} }
+      for(var i=0;i<photos.length;i++){var p=photos[i],col=i%2,row=Math.floor(i/2),x=pad+col*((inner-18)/2),yy=y+row*(photoCellH+gap),cw=(inner-18)/2;roundRect(ctx,x,yy,cw,photoCellH,16,'#fff','#d36b9c',2);drawText(ctx,p.customerName||'Customer',x+18,yy+27,22,950,'#6e1e56');if(p.src)try{var im=await new Promise(function(resolve,reject){var z=new Image();z.onload=function(){resolve(z)};z.onerror=reject;z.src=p.src;});var sc=Math.min((cw-36)/im.width,220/im.height),dw=im.width*sc,dh=im.height*sc;ctx.drawImage(im,x+cw/2-dw/2,yy+140-dh/2,dw,dh);}catch(e){} }
       y+=photoRows*(photoCellH+gap)-gap;
     }
     y+=22;var fg=ctx.createLinearGradient(pad,y,W-pad,y);fg.addColorStop(0,'#24105d');fg.addColorStop(1,'#b80c61');roundRect(ctx,pad,y,inner,128,20,fg);drawText(ctx,'Thank you for choosing us!',W/2,y+38,34,950,'#ffd84c','center');drawText(ctx,'NEW FASHION TAILORING',W/2,y+78,27,950,'#fff','center');drawText(ctx,'☎ PHONE: 8524931003',W/2,y+108,34,950,'#fff','center');
@@ -10808,13 +10768,6 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
   }
 
   async function makeDeliveryImage(mainId){
-    /* Always refresh cloud-backed customer/delivery photos before building the card. */
-    try{
-      if(typeof nfHydrateCloudClothPhotos==='function'){
-        window.__nfPhotoHydratedAt=0;
-        await nfHydrateCloudClothPhotos();
-      }
-    }catch(e){console.warn('Delivery card photo hydration skipped:',e);}
     var group=groupFor(mainId),sum=groupSummary(group);if(!group.length)throw new Error('customer-not-found');
     var W=1400,S=2,pad=48,inner=W-pad*2,people=group.slice(0,8),rows=[],photos=[];
     function n(v){return Math.max(0,Number(v||0));}
@@ -10824,120 +10777,29 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
       rows.push({name:c.name||'Customer',garment:label,totalQty:total,given:given,remaining:Math.max(0,total-given),amount:typeof orderTotal==='function'?Number(orderTotal(o)||0):n(o.total_amount||o.total),paid:pay?Number(pay.totalPaid||0):n(o.paid),status:o.status||'Pending'});
     }
     var photoPools=[];
-    var givenPhotos=[],pendingPhotos=[];
-    group.forEach(function(c){
-      ordersFor(c.id).forEach(function(o){
-        var x=typeof nfGarmentExtra==='function'?nfGarmentExtra(o):{chudi:0,saree:0};
-        var bh=blouseHandover(o),bs=blouseSplit(o),gh=garmentHandover(o);
-        /* D1 columns are authoritative; legacy orders fall back to their split metadata. */
-        var bN=n(o.normal_qty)||n(bs.normal), bL=n(o.lining_qty)||n(bs.lining), bD=n(o.design_qty)||n(bs.design);
-        var hn=Math.min(bN,Math.max(0,n(o.normal_handover)||n(bh.normal)));
-        var hl=Math.min(bL,Math.max(0,n(o.lining_handover)||n(bh.lining)));
-        var hd=Math.min(bD,Math.max(0,n(o.design_handover)||n(bh.design)));
-        var cQ=n(o.chudi_qty)||n(x.chudi), sQ=n(o.saree_qty)||n(x.saree);
-        var hc=Math.min(cQ,Math.max(0,n(o.chudi_handover)||n(gh.chudi))), hs=Math.min(sQ,Math.max(0,n(o.saree_handover)||n(gh.saree)));
-        if(bN)addRow(c,o,'Normal Blouse / சாதாரண பிளவுஸ்',bN,hn);
-        if(bL)addRow(c,o,'Lining Blouse',bL,hl);
-        if(bD)addRow(c,o,'Design Blouse',bD,hd);
-        if(cQ)addRow(c,o,'Chudidhar / சுடிதார்',cQ,hc);
-        if(sQ)addRow(c,o,'Saree / சேலை',sQ,hs);
-        if(!bN&&!bL&&!bD&&!cQ&&!sQ){
-          var fallbackQty=n(o.quantity||o.qty||1),fallbackGiven=Math.min(fallbackQty,n(o.handover||o.quantity_handover||0));
-          addRow(c,o,String(o.garment||o.garment_type||o.item_name||'Work'),fallbackQty,fallbackGiven);
-        }
-      });
-      function addPhoto(target,x,i,label){
-        if(!x)return;
-        target.push({src:String(x.src||''),name:c.name||'Customer',photoType:label,slot:i,cloudPath:String(x.cloudPath||'')});
-      }
-      try{(customerClothPhotos(c.id)||[]).forEach(function(x,i){if(x)addPhoto(givenPhotos,x,i,'கொடுத்த துணி');});}catch(e){}
-      try{
-        var cp=customerDeliveryPhotos(c.id)||[];
-        cp.forEach(function(x,i){if(!x)return;
-          var block=Math.floor(i/NF_DELIVERY_SLOT_CAP),status=(block%2===0)?'given':'pending';
-          addPhoto(status==='given'?givenPhotos:pendingPhotos,x,i,status==='given'?'கொடுத்த':'மீதமுள்ள');
-        });
-      }catch(e){}
+    group.forEach(function(c){ordersFor(c.id).forEach(function(o){
+      var added=false;
+      if(n(o.normal_qty)){addRow(c,o,'Normal Blouse',o.normal_qty,o.normal_handover);added=true;}
+      if(n(o.lining_qty)){addRow(c,o,'Lining Blouse',o.lining_qty,o.lining_handover);added=true;}
+      if(n(o.design_qty)){addRow(c,o,'Design Blouse',o.design_qty,o.design_handover);added=true;}
+      if(n(o.chudi_qty)){addRow(c,o,'Chudidhar / சுடிதார்',o.chudi_qty,o.chudi_handover);added=true;}
+      if(n(o.saree_qty)){addRow(c,o,'Saree / சேலை',o.saree_qty,o.saree_handover);added=true;}
+      if(!added)addRow(c,o,String(o.garment||o.garment_type||o.item_name||'Work'),o.quantity||o.qty||1,o.handover||o.quantity_handover||0);
     });
-    /* Resolve saved photos directly from R2. Do not depend on the local photo-count/cache mapping. */
-    async function blobToDataPhoto(pb,meta){
-      if(!pb)return null;
-      try{
-        var purl=await new Promise(function(resolve,reject){var fr=new FileReader();fr.onload=function(){resolve(String(fr.result||''));};fr.onerror=reject;fr.readAsDataURL(pb);});
-        return /^data:image\//i.test(purl)?Object.assign({},meta,{src:purl}):null;
-      }catch(_){return null;}
-    }
-    async function resolvePhoto(p){
-      if(!p)return null;
-      var src=String(p.src||'');
-      if(/^data:image\//i.test(src))return Object.assign({},p,{src:src});
-      /* Mobile WebView: do NOT fetch R2 with fetch()/blob here. The normal
-         <img> pipeline can load the same R2 URL reliably; canvas drawing below
-         uses anonymous CORS so the image remains exportable. */
-      if(p.cloudPath&&typeof nfR2PhotoUrl==='function'){
-        return Object.assign({},p,{src:nfR2PhotoUrl(p.cloudPath)});
-      }
-      if(src)return Object.assign({},p,{src:src});
-      return null;
-    }
-    async function discoverR2DeliveryPhotos(customerId){
-      var foundGiven=[],foundPending=[];
-      var dst=typeof customerStats==='function'?customerStats(customerId):{};
-      var defs=[
-        ['normal','given',dst.handedNormal],['normal','pending',dst.pendingNormal],
-        ['lining','given',dst.handedLining],['lining','pending',dst.pendingLining],
-        ['design','given',dst.handedDesign],['design','pending',dst.pendingDesign],
-        ['chudi','given',dst.handedChudi],['chudi','pending',dst.pendingChudi]
-      ];
-      var jobs=[];
-      defs.forEach(function(d){
-        var limit=Math.min(NF_DELIVERY_SLOT_CAP,8,Math.max(0,Number(d[2]||0)));
-        for(var slot=0;slot<limit;slot++){
-          var path=nfDeliveryPhotoPath(customerId,d[0],d[1],slot);
-          jobs.push({type:d[1],path:path,slot:slot});
-        }
-      });
-      var results=await Promise.all(jobs.map(async function(j){
-        try{
-          var url=nfR2PhotoUrl(j.path),pb=await nfWacFetchBlob(url,9000);
-          return await blobToDataPhoto(pb,{src:'',cloudPath:j.path,name:'Delivery '+j.type+' '+(j.slot+1),photoType:j.type,slot:j.slot});
-        }catch(_){return null;}
-      }));
-      results.forEach(function(x){
-        if(!x)return;
-        if(x.photoType==='given'){if(foundGiven.length<8)foundGiven.push(x)}
-        else if(x.photoType==='pending'){if(foundPending.length<8)foundPending.push(x)}
-      });
-      return {given:foundGiven,pending:foundPending};
-    }
-    var cloudPhotoMap=Object.create(null);
-    for(var ci2=0;ci2<people.length;ci2++){
-      try{cloudPhotoMap[String(people[ci2].id)]=await discoverR2DeliveryPhotos(String(people[ci2].id));}catch(_){cloudPhotoMap[String(people[ci2].id)]={given:[],pending:[]};}
-    }
-    /* Merge locally known photos with direct R2 discovery, de-duplicating by cloud path. */
-    function mergePhotos(localArr,cloudArr){
-      var out=[],seen=new Set();
-      (localArr||[]).concat(cloudArr||[]).forEach(function(x){var k=String(x?.cloudPath||x?.src||'');if(!x||seen.has(k))return;seen.add(k);out.push(x);});
-      return out;
-    }
-    var mergedGiven=[],mergedPending=[];
-    group.forEach(function(c){var m=cloudPhotoMap[String(c.id)]||{given:[],pending:[]};mergedGiven=mergedGiven.concat(m.given||[]);mergedPending=mergedPending.concat(m.pending||[]);});
-    givenPhotos=mergePhotos(givenPhotos,mergedGiven);
-    pendingPhotos=mergePhotos(pendingPhotos,mergedPending);
-    var allPhotoSets=[['given',givenPhotos],['pending',pendingPhotos]],resolvedGiven=[],resolvedPending=[];
-    for(var psi=0;psi<allPhotoSets.length;psi++){
-      var arrp=allPhotoSets[psi][1],outp=allPhotoSets[psi][0]==='given'?resolvedGiven:resolvedPending;
-      for(var pxi=0;pxi<arrp.length&&outp.length<8;pxi++){var rp=await resolvePhoto(arrp[pxi]);if(rp)outp.push(rp);}
-    }
-    var photos=resolvedGiven.concat(resolvedPending).slice(0,12);
-    var photoSections=[{title:'📸 கொடுத்த போட்டோஸ்',items:resolvedGiven},{title:'📸 மீதமுள்ள போட்டோஸ்',items:resolvedPending}].filter(function(x){return x.items.length;});
+      var pool={name:c.name||'Customer',items:[]},seen={};
+      try{var cps=typeof customerClothPhotos==='function'?customerClothPhotos(c.id):[];(cps||[]).forEach(function(x,i){if(x&&x.src){var k=String(x.cloudPath||x.src);if(!seen[k]){seen[k]=1;pool.items.push({src:x.src,name:c.name||'Customer',photoType:'GIVEN CLOTH',slot:i,cloudPath:x.cloudPath||''});}}});}catch(e){}
+      try{var cp=typeof customerDeliveryPhotos==='function'?customerDeliveryPhotos(c.id):[];cp.forEach(function(x,i){if(x&&x.src){var k=String(x.cloudPath||x.src);if(!seen[k]){seen[k]=1;pool.items.push({src:x.src,name:c.name||'Customer',photoType:'DELIVERY',slot:i,cloudPath:x.cloudPath||''});}}});}catch(e){}
+      photoPools.push(pool);
+    });
+    photoPools.forEach(function(pool){if(pool.items[0]&&photos.length<8)photos.push(pool.items[0]);});
+    for(var pass=1;pass<40&&photos.length<8;pass++)photoPools.forEach(function(pool){var p=pool.items[pass];if(p&&photos.length<8)photos.push(p);});
+    if(photos.length){var safePhotos=[];for(var spi=0;spi<photos.length;spi++){var sp=photos[spi];if(!sp||!sp.src)continue;try{var src=sp.cloudPath&&typeof nfR2PhotoUrl==='function'?nfR2PhotoUrl(sp.cloudPath):String(sp.src||'');if(/^data:image\//i.test(src)){safePhotos.push(Object.assign({},sp,{src:src}));continue;}if(typeof nfWacFetchBlob==='function'){var pb=await nfWacFetchBlob(src,7000);var purl=await new Promise(function(resolve,reject){var fr=new FileReader();fr.onload=function(){resolve(String(fr.result||''));};fr.onerror=reject;fr.readAsDataURL(pb);});if(purl)safePhotos.push(Object.assign({},sp,{src:purl}));}}catch(pe){console.warn('Delivery card photo embed skipped:',pe);}}photos=safePhotos;}
     var main=people[0]||{},mainOrders=ordersFor(main.id),clothDates=mainOrders.map(function(o){return o.cloth_received_date||o.order_date||'';}).filter(Boolean).sort(),deliveryDates=mainOrders.map(function(o){return o.delivery_date||'';}).filter(Boolean).sort();
     var clothDate=clothDates[0]||'',deliveryDate=deliveryDates[0]||'';
     var givenTotal=rows.reduce(function(a,r){return a+r.given;},0),remainingTotal=rows.reduce(function(a,r){return a+r.remaining;},0),totalAmount=sum.total,paidAmount=sum.paid,balanceAmount=sum.balance;
     var headH=210,metaH=140,peopleH=70+people.length*72,tableHead=86,rowH=88,amountH=138,settleH=120;
-    var photoCellH=300,photoH=0;
-    photoSections.forEach(function(sec){var rrn=Math.ceil(sec.items.length/2);photoH+=76+rrn*photoCellH+Math.max(0,rrn-1)*18+18;});
-    var H=pad+headH+18+metaH+18+peopleH+18+tableHead+Math.max(1,rows.length)*rowH+18+amountH+18+settleH+(photoH?18+photoH:0)+18+140+pad;
+    var photoRows=photos.length?Math.ceil(photos.length/2):0,photoCellH=300,photoH=photos.length?76+photoRows*photoCellH+(photoRows-1)*18:0;
+    var H=pad+headH+18+metaH+18+peopleH+18+tableHead+Math.max(1,rows.length)*rowH+18+amountH+18+settleH+(photos.length?18+photoH:0)+18+140+pad;
     var canvas=document.createElement('canvas');canvas.width=W*S;canvas.height=H*S;var ctx=canvas.getContext('2d');if(!ctx)throw new Error('canvas-unavailable');ctx.scale(S,S);
     function rr(x,y,w,h,r,fill,stroke,lw){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();if(fill){ctx.fillStyle=fill;ctx.fill()}if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=lw||2;ctx.stroke()}}
     function txt(v,x,y,size,weight,fill,align){ctx.font=(weight||700)+' '+size+'px Noto Sans Tamil,Arial,sans-serif';ctx.fillStyle=fill||'#171923';ctx.textAlign=align||'left';ctx.textBaseline='middle';ctx.fillText(String(v==null?'':v),x,y);}
@@ -10950,7 +10812,7 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
     rows.forEach(function(r,i){var yy=y+i*rowH;rr(pad+12,yy+7,inner-24,rowH-14,12,i%2?'#fff':'#faf7ff','#e7dfef',1);txt((r.name||'Customer')+'  •  '+r.garment,pad+28,yy+rowH/2,30,950,'#111318');txt(String(r.totalQty),W-420,yy+rowH/2,34,950,'#17131b','center');txt(String(r.given),W-250,yy+rowH/2,34,950,'#0a5d3f','center');txt(String(r.remaining),W-82,yy+rowH/2,34,950,r.remaining?'#9e2525':'#0a5d3f','right');});y+=Math.max(1,rows.length)*rowH+18;
     var bw=(inner-24)/3;[['TOTAL AMOUNT',totalAmount,'#5f3ee1'],['CUSTOMER PAID',paidAmount,'#0e9367'],['BALANCE',balanceAmount,'#d83e68']].forEach(function(a,i){var x=pad+i*(bw+12);rr(x,y,bw,amountH,18,a[2]);txt(a[0],x+18,y+39,21,900,'#fff');txt(moneyText(a[1]),x+18,y+88,40,950,'#fff');});y+=amountH+18;
     var settled=balanceAmount<=0.005,workDone=remainingTotal<=0;rr(pad,y,inner,settleH,20,settled?'#e8fff4':'#fff4df',settled?'#1caa73':'#e1ad35',3);txt(settled?'✅ FULL SETTLEMENT':'💰 PAYMENT PENDING',pad+28,y+34,32,950,settled?'#087c50':'#996700');txt(settled?'Customer payment fully settled • Balance ₹0':'Customer இன்னும் கொடுக்க வேண்டியது: '+moneyText(balanceAmount),pad+28,y+79,24,850,settled?'#087c50':'#996700');txt(workDone?'✅ ALL CLOTHES GIVEN':'📦 CLOTHES REMAINING: '+remainingTotal,W-pad-28,y+57,24,950,workDone?'#087c50':'#b64c3e','right');y+=settleH+18;
-    if(photoSections.length){var cw=(inner-18)/2;for(var si2=0;si2<photoSections.length;si2++){var sec=photoSections[si2];var pg=ctx.createLinearGradient(pad,y,W-pad,y);pg.addColorStop(0,'#6b20ca');pg.addColorStop(1,'#d30a61');ctx.fillStyle=pg;ctx.fillRect(pad,y,inner,66);txt(sec.title,pad+24,y+33,30,950,'#fff');y+=76;var pr=Math.ceil(sec.items.length/2);for(var pi=0;pi<sec.items.length;pi++){var p=sec.items[pi],col=pi%2,row=Math.floor(pi/2),x=pad+col*(cw+18),yy=y+row*(photoCellH+18);rr(x,yy,cw,photoCellH,16,'#fff','#d9cce9',2);txt((p.name||'Customer')+'  •  '+(p.photoType||'PHOTO'),x+18,yy+28,21,950,'#4d304f');try{var im=await new Promise(function(resolve,reject){var z=new Image();z.crossOrigin='anonymous';z.onload=function(){resolve(z)};z.onerror=reject;z.src=p.src;});var sc=Math.min((cw-36)/im.width,230/im.height),dw=im.width*sc,dh=im.height*sc;ctx.drawImage(im,x+cw/2-dw/2,yy+148-dh/2,dw,dh);}catch(e){txt('Photo unavailable',x+cw/2,yy+148,18,700,'#777','center');}}y+=pr*photoCellH+Math.max(0,pr-1)*18+18;}}
+    if(photos.length){var pg=ctx.createLinearGradient(pad,y,W-pad,y);pg.addColorStop(0,'#6b20ca');pg.addColorStop(1,'#d30a61');ctx.fillStyle=pg;ctx.fillRect(pad,y,inner,66);txt('📸 CUSTOMER PHOTOS',pad+24,y+33,30,950,'#fff');y+=76;var cw=(inner-18)/2;for(var pi=0;pi<photos.length;pi++){var p=photos[pi],col=pi%2,row=Math.floor(pi/2),x=pad+col*(cw+18),yy=y+row*(photoCellH+18);rr(x,yy,cw,photoCellH,16,'#fff','#d9cce9',2);txt((p.name||'Customer')+'  •  '+(p.photoType||'PHOTO'),x+18,yy+28,21,950,'#4d304f');try{var im=await new Promise(function(resolve,reject){var z=new Image();z.onload=function(){resolve(z)};z.onerror=reject;z.src=p.src;});var sc=Math.min((cw-36)/im.width,230/im.height),dw=im.width*sc,dh=im.height*sc;ctx.drawImage(im,x+cw/2-dw/2,yy+148-dh/2,dw,dh);}catch(e){txt('Photo unavailable',x+cw/2,yy+148,18,700,'#777','center');}}y+=photoRows*photoCellH+(photoRows-1)*18;}
     var fg=ctx.createLinearGradient(pad,y,W-pad,y);fg.addColorStop(0,'#24105d');fg.addColorStop(1,'#b80c61');rr(pad,y,inner,140,22,fg);txt(settled?'FULL SETTLEMENT':'PAYMENT PENDING',W/2,y+38,36,950,settled?'#7dffcc':'#ffe06b','center');txt(workDone?'ALL CLOTHES DELIVERED':'CLOTHES STILL PENDING: '+remainingTotal,W/2,y+78,25,900,'#fff','center');txt('☎ PHONE: 8524931003',W/2,y+120,32,950,'#ffeaf4','center');
     return canvasBlob(canvas);
   }
