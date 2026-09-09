@@ -9113,16 +9113,31 @@ window.addEventListener("keydown",function(e){if(e.key==="Escape")window.closeCu
     DELTA_BUSY=true;
     try{
       var meta=readMeta();
-      for(var i=0;i<TABLES.length && navigator.onLine;i++){
-        var table=TABLES[i];
-        var r=await refreshTableDelta(table,meta[table]||"");
+      var results=await Promise.all(TABLES.map(function(table){
+        if(!navigator.onLine)return Promise.resolve({table:table,ok:false});
+        return refreshTableDelta(table,meta[table]||"").then(function(r){
+          return {table:table,result:r};
+        }).catch(function(e){
+          console.warn("Delta refresh failed for "+table+":",e);
+          return {table:table,result:{ok:false}};
+        });
+      }));
+
+      var changed=false;
+      results.forEach(function(item){
+        var r=item.result||{};
         if(r.ok){
-          if(r.newest)meta[table]=r.newest;
-          writeMeta(meta);
-          render();
-          localSave();
+          changed=true;
+          if(r.newest)meta[item.table]=r.newest;
         }
-        await new Promise(function(resolve){setTimeout(resolve,120)});
+      });
+
+      if(changed){
+        writeMeta(meta);
+        /* Commit the complete refresh as one UI update.
+           This prevents table-by-table render flicker during refresh. */
+        render();
+        localSave();
       }
     }finally{
       DELTA_BUSY=false;
