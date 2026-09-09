@@ -8006,6 +8006,34 @@ async function nfWacEnsureCloudPhotos(){
   });
   return nfWacCloudPhotoHydrationPromise;
 }
+async function nfResolveSingleDeliveryCardPhotos(id){
+  var key=String(id||""), out=[], seen={};
+  try{if(typeof initCustomerClothPhotoStore==="function")await nfWacWithTimeout(initCustomerClothPhotoStore(),2500,"delivery-card-photo-store");}catch(e){}
+  try{if(typeof nfHydrateCloudClothPhotos==="function")await nfWacWithTimeout(nfHydrateCloudClothPhotos(),8000,"delivery-card-photo-cloud");}catch(e){}
+  var add=function(p,type,slot){
+    if(!p)return;
+    var cloud=String(p.cloudPath||"");
+    var src=cloud&&typeof nfR2PhotoUrl==="function"?nfR2PhotoUrl(cloud):String(p.src||"");
+    var k=cloud||src; if(!src||seen[k])return; seen[k]=1;
+    out.push({src:src,name:p.name||"Customer",photoType:type,slot:slot,cloudPath:cloud});
+  };
+  try{var cps=typeof customerClothPhotos==="function"?customerClothPhotos(key):[];(cps||[]).forEach(function(p,i){add(p,"GIVEN CLOTH",i);});}catch(e){}
+  try{var dps=typeof customerDeliveryPhotos==="function"?customerDeliveryPhotos(key):[];(dps||[]).forEach(function(p,i){add(p,"DELIVERY",i);});}catch(e){}
+  // If a saved cloud path exists, convert it to a data URL so Canvas embedding is reliable even with CORS.
+  var safe=[];
+  for(var i=0;i<out.length && safe.length<8;i++){
+    var p=out[i];
+    try{
+      if(/^data:image\//i.test(p.src)){safe.push(p);continue;}
+      if(typeof nfWacFetchBlob==="function"){
+        var b=await nfWacFetchBlob(p.src,7000);
+        var du=await new Promise(function(resolve,reject){var fr=new FileReader();fr.onload=function(){resolve(String(fr.result||""));};fr.onerror=reject;fr.readAsDataURL(b);});
+        if(du)safe.push(Object.assign({},p,{src:du}));
+      }
+    }catch(e){console.warn("Single Delivery Card photo embed skipped:",e);}
+  }
+  return safe;
+}
 async function nfWacResolvePhotos(id){
   var key=String(id||"");
   var photos=typeof customerClothPhotos==="function"?customerClothPhotos(key):[];
@@ -10796,6 +10824,9 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
       console.warn('Single Delivery Card photo hydration skipped/timeout:',photoLoadErr);
     }
     var W=1400,S=2,pad=48,inner=W-pad*2,people=group.slice(0,8),rows=[],photos=[];
+    // V155: resolve the actual saved Single Customer photos before building the card.
+    // This keeps the existing calculation untouched and guarantees saved photos are embedded.
+    try{photos=await nfResolveSingleDeliveryCardPhotos(mainId);}catch(e){console.warn("Single Delivery Card photo resolve failed:",e);photos=[];}
     function n(v){return Math.max(0,Number(v||0));}
     function addRow(c,o,label,total,given){
       total=n(total);given=Math.min(total,n(given));
@@ -10837,9 +10868,6 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
     if(blouseCalc.normal.qty)rows.push({name:'',garment:'Normal blouse',totalQty:blouseCalc.normal.qty,given:blouseCalc.normal.given,remaining:Math.max(0,blouseCalc.normal.qty-blouseCalc.normal.given),amount:0,paid:0,status:'Pending'});
     if(blouseCalc.lining.qty)rows.push({name:'',garment:'Lining blouse',totalQty:blouseCalc.lining.qty,given:blouseCalc.lining.given,remaining:Math.max(0,blouseCalc.lining.qty-blouseCalc.lining.given),amount:0,paid:0,status:'Pending'});
     if(blouseCalc.design.qty)rows.push({name:'',garment:'Design blouse',totalQty:blouseCalc.design.qty,given:blouseCalc.design.given,remaining:Math.max(0,blouseCalc.design.qty-blouseCalc.design.given),amount:0,paid:0,status:'Pending'});
-    photoPools.forEach(function(pool){if(pool.items[0]&&photos.length<8)photos.push(pool.items[0]);});
-    for(var pass=1;pass<40&&photos.length<8;pass++)photoPools.forEach(function(pool){var p=pool.items[pass];if(p&&photos.length<8)photos.push(p);});
-    if(photos.length){var safePhotos=[];for(var spi=0;spi<photos.length;spi++){var sp=photos[spi];if(!sp||!sp.src)continue;try{var src=sp.cloudPath&&typeof nfR2PhotoUrl==='function'?nfR2PhotoUrl(sp.cloudPath):String(sp.src||'');if(/^data:image\//i.test(src)){safePhotos.push(Object.assign({},sp,{src:src}));continue;}if(typeof nfWacFetchBlob==='function'){var pb=await nfWacFetchBlob(src,7000);var purl=await new Promise(function(resolve,reject){var fr=new FileReader();fr.onload=function(){resolve(String(fr.result||''));};fr.onerror=reject;fr.readAsDataURL(pb);});if(purl)safePhotos.push(Object.assign({},sp,{src:purl}));}}catch(pe){console.warn('Delivery card photo embed skipped:',pe);}}photos=safePhotos;}
     var main=people[0]||{},mainOrders=ordersFor(main.id),clothDates=mainOrders.map(function(o){return o.cloth_received_date||o.order_date||'';}).filter(Boolean).sort(),deliveryDates=mainOrders.map(function(o){return o.delivery_date||'';}).filter(Boolean).sort();
     var clothDate=clothDates[0]||'',deliveryDate=deliveryDates[0]||'';
     var givenTotal=rows.reduce(function(a,r){return a+r.given;},0),remainingTotal=rows.reduce(function(a,r){return a+r.remaining;},0),totalAmount=sum.total,paidAmount=sum.paid,balanceAmount=sum.balance;
