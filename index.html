@@ -11238,105 +11238,170 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-card{
 })();
 </script>
 
-<style id="nf-final-home-multi-garment-row">
-/* Final Home Multi-Customer presentation: compact horizontal rows. */
-.nf-final-multi-group{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;width:max-content;max-width:100%;margin:6px 0 0;padding:6px 8px;border:1.5px solid #c99be8;border-radius:12px;background:linear-gradient(135deg,#faf7ff,#fff8fb);box-sizing:border-box}
-.nf-final-multi-person{display:inline-flex;align-items:center;gap:5px;min-width:0;padding:5px 8px;border:1px solid rgba(108,69,232,.14);border-radius:999px;background:#fff;box-shadow:0 2px 7px rgba(80,55,110,.06);font-size:12px;line-height:1.15;white-space:nowrap}
-.nf-final-multi-name{font-weight:900;color:#30263d;overflow:hidden;text-overflow:ellipsis;max-width:150px}
-.nf-final-multi-garments{display:inline-flex;align-items:center;gap:4px;font-weight:850;color:#51436b}
-.nf-final-multi-garments span{white-space:nowrap}
-@media(max-width:560px){.nf-final-multi-group{gap:5px 6px;margin-top:5px;padding:5px 6px;border-radius:11px}.nf-final-multi-person{gap:4px;padding:5px 7px;font-size:11px}.nf-final-multi-name{max-width:105px}.nf-final-multi-garments{gap:3px}}
+<style id="nf-final-multi-customer-garment-row">
+/* FINAL: Home Multi Customer — actual customerStats, compact horizontal rows */
+.nf-final-mc-row{
+  display:flex!important;
+  flex-wrap:wrap!important;
+  align-items:center!important;
+  gap:4px 7px!important;
+  width:max-content!important;
+  max-width:100%!important;
+  margin-top:7px!important;
+  padding:5px 7px!important;
+  border:1px solid rgba(108,77,246,.16)!important;
+  border-radius:11px!important;
+  background:linear-gradient(135deg,#faf8ff,#fff8fb)!important;
+  box-shadow:0 3px 10px rgba(89,56,145,.06)!important;
+}
+.nf-final-mc-person{
+  display:inline-flex!important;
+  flex:0 0 auto!important;
+  align-items:center!important;
+  gap:4px!important;
+  white-space:nowrap!important;
+  min-width:0!important;
+  font-size:11px!important;
+  line-height:1.25!important;
+}
+.nf-final-mc-name{font-weight:900!important;color:#30263d!important}
+.nf-final-mc-colon{font-weight:800!important;color:#777080!important}
+.nf-final-mc-count{font-weight:900!important;color:#45346f!important}
+@media(max-width:560px){
+  .nf-final-mc-row{gap:3px 5px!important;padding:4px 6px!important;margin-top:6px!important}
+  .nf-final-mc-person{font-size:10.5px!important}
+}
 </style>
-<script id="nf-final-home-multi-garment-row-js">
+<script id="nf-final-multi-customer-garment-row-js">
 (function(){
   "use strict";
-  if(window.__nfFinalHomeMultiGarmentRowInstalled)return;
-  window.__nfFinalHomeMultiGarmentRowInstalled=true;
 
-  function escF(v){
-    return typeof window.esc==="function" ? window.esc(v==null?"":String(v)) : String(v==null?"":v).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c];});
+  var PARENT_RE=/(?:^|\|\s*)(?:NF_MULTI_PARENT|NF_PARENT_CUSTOMER):\s*([^|\s]+)/i;
+
+  function allCustomers(){
+    return (typeof state!=="undefined" && Array.isArray(state.customers)) ? state.customers : [];
   }
-  function num(v){var n=Number(v||0);return Number.isFinite(n)?Math.max(0,n):0;}
-  function kidsF(id){
-    var all=Array.isArray(window.state&&state.customers)?state.customers:[];
-    return all.filter(function(c){
-      var m=String(c&&c.notes||"").match(/(?:^|\|\s*)NF_MULTI_PARENT:\s*([^|\s]+)/i);
-      return m&&String(m[1])===String(id);
+  function parentId(c){
+    var m=String(c&&c.notes||"").match(PARENT_RE);
+    return m ? String(m[1]) : "";
+  }
+  function isChild(c){ return !!parentId(c); }
+  function kids(id){
+    var sid=String(id||""), seen={};
+    return allCustomers().filter(function(c){
+      if(parentId(c)!==sid)return false;
+      var cid=String(c&&c.id||"");
+      if(!cid||seen[cid])return false;
+      seen[cid]=1;
+      return true;
     });
   }
-  function ordersF(id){
-    try{if(typeof window.customerOrders==="function")return window.customerOrders(id)||[];}catch(_){ }
-    return (Array.isArray(window.state&&state.orders)?state.orders:[]).filter(function(o){return String(o&&o.customer_id)===String(id);});
+  function esc(v){
+    if(typeof window.esc==="function")return window.esc(v==null?"":String(v));
+    return String(v==null?"":v).replace(/[&<>"']/g,function(ch){
+      return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[ch];
+    });
   }
-  function extraF(o){
-    try{if(typeof window.nfGarmentExtra==="function")return window.nfGarmentExtra(o)||{};}catch(_){ }
-    var m=String(o&&o.notes||"").match(/GARMENT_SPLIT:(\{[^}]+\})/i);
-    if(m){try{return JSON.parse(m[1])||{};}catch(_){}}
-    return {};
+  function num(v){
+    var n=Number(v);
+    return Number.isFinite(n) ? n : 0;
   }
-  function blouseF(o){
+
+  function statsFor(c){
     try{
-      if(typeof window.blouseSplit==="function"){
-        var b=window.blouseSplit(o)||{};
-        var q=num(b.normal)+num(b.lining)+num(b.design);
-        if(q>0)return q;
-      }
-    }catch(_){ }
-    return 0;
-  }
-  function garmentCountsF(c){
-    var out={blouse:0,chudi:0,saree:0};
-    ordersF(c.id).forEach(function(o){
-      var g=String(o&&o.garment_type||"").trim().toLowerCase();
-      var ex=extraF(o);
-      var b=blouseF(o);
-      var ch=num(ex.chudi),s=num(ex.saree);
-      if(g==="blouse"||!g){
-        out.blouse+=b||num(o&&o.quantity);
-      }else if(g==="chudi"){
-        out.chudi+=ch||num(o&&o.quantity);
-      }else if(g==="saree"){
-        out.saree+=s||num(o&&o.quantity);
-      }else{
-        /* Combined/legacy orders can carry extra garment quantities in notes. */
-        if(b>0)out.blouse+=b;
-        if(ch>0)out.chudi+=ch;
-        if(s>0)out.saree+=s;
-        if(b===0&&ch===0&&s===0)out.blouse+=num(o&&o.quantity);
-      }
-    });
-    return out;
-  }
-  function garmentHTMLF(c){
-    var x=garmentCountsF(c),a=[];
-    if(x.blouse>0)a.push('<span>👗 '+x.blouse+' Blouse</span>');
-    if(x.chudi>0)a.push('<span>👚 '+x.chudi+' Chudi</span>');
-    if(x.saree>0)a.push('<span>🥻 '+x.saree+' Saree</span>');
-    return a.join(' · ');
+      if(typeof window.customerStats==="function")return window.customerStats(c.id);
+    }catch(e){ console.warn("Final multi-customer stats:",e); }
+    return null;
   }
 
-  var baseCard=window.dashboardCustomerCard;
-  if(typeof baseCard!=="function")return;
-  window.dashboardCustomerCard=function(c,index,category){
-    var html=baseCard.apply(this,arguments);
-    if(!c)return html;
-    var kids=kidsF(c.id);
-    if(!kids.length)return html;
-    /* Remove any older Home Multi-Customer presentation from this card. */
-    html=html.replace(/<section\s+class=["']nf150-home-group[\s\S]*?<\/section>/gi,"");
-    var rows=kids.map(function(k){
-      var g=garmentHTMLF(k);
-      return '<div class="nf-final-multi-person">'+
-        '<span class="nf-final-multi-name">'+escF(k.name||"Customer")+'</span>'+
-        (g?'<span class="nf-final-multi-garments">'+g+'</span>':'')+
-      '</div>';
-    }).join("");
-    var group='<section class="nf-final-multi-group" onclick="event.stopPropagation()">'+rows+'</section>';
-    return html.replace('</article>',group+'</article>');
-  };
-  window.dashboardCustomerCard.__nfFinalHomeMultiGarmentRow=true;
+  function personRow(c){
+    var st=statsFor(c)||{};
+    var blouse=num(st.givenBlouse);
+    if(!blouse) blouse=num(st.normal)+num(st.lining)+num(st.design);
+    var chudi=num(st.chudi);
+    var saree=num(st.saree);
+
+    var counts="";
+    if(blouse>0)counts+='<span class="nf-final-mc-count">👗'+blouse+'</span>';
+    if(chudi>0)counts+='<span class="nf-final-mc-count">👚'+chudi+'</span>';
+    if(saree>0)counts+='<span class="nf-final-mc-count">🥻'+saree+'</span>';
+
+    return '<span class="nf-final-mc-person">'+
+      '<span class="nf-final-mc-name">'+esc(c.name||"Customer")+'</span>'+
+      '<span class="nf-final-mc-colon">:</span>'+
+      counts+
+      '</span>';
+  }
+
+  function buildGroup(main){
+    if(!main || isChild(main))return null;
+    var people=[main].concat(kids(main.id));
+    if(people.length<2)return null;
+
+    var sec=document.createElement("div");
+    sec.className="nf-final-mc-row";
+    sec.setAttribute("data-nf-final-mc","1");
+    sec.innerHTML=people.map(personRow).join("");
+    return sec;
+  }
+
+  function cleanAndAdd(html,c){
+    try{
+      var host=document.createElement("div");
+      host.innerHTML=html;
+
+      host.querySelectorAll(
+        ".nf-final-mc-row,.nf150-home-group,.nf116-home-group,.nf-v155-home-group,"+
+        ".nf-v156-home-group,.nf190-home-group,.nf110-home-group,.nf113-home-group"
+      ).forEach(function(x){x.remove();});
+
+      var card=host.querySelector(".nf-dch-card")||host.querySelector("article");
+      if(!card || !c || isChild(c))return html;
+
+      var group=buildGroup(c);
+      if(!group)return card.outerHTML;
+
+      var identity=card.querySelector(".nf-dch-identity");
+      if(identity)identity.appendChild(group);
+      else card.appendChild(group);
+
+      return card.outerHTML;
+    }catch(e){
+      console.warn("Final multi-customer home row failed:",e);
+      return html;
+    }
+  }
+
+  function wrap(){
+    var base=window.dashboardCustomerCard;
+    if(typeof base!=="function")return;
+    if(base.__nfFinalMultiCustomerRow)return;
+
+    var wrapped=function(c,index,category){
+      if(c && isChild(c))return "";
+      var html=base.apply(this,arguments);
+      return cleanAndAdd(html,c);
+    };
+    wrapped.__nfFinalMultiCustomerRow=true;
+    window.dashboardCustomerCard=wrapped;
+  }
+
+  wrap();
+
+  function refresh(){
+    try{
+      if(typeof window.renderDashboardCustomers==="function")window.renderDashboardCustomers();
+    }catch(e){ console.warn("Final multi-customer dashboard refresh:",e); }
+  }
+
+  if(document.readyState==="loading"){
+    document.addEventListener("DOMContentLoaded",function(){setTimeout(refresh,50);setTimeout(refresh,250);},{once:true});
+  }else{
+    setTimeout(refresh,50);
+  }
 })();
 </script>
+
 </body>
 <script id="nf-v120-single-cash-dedupe-fix">
 /* V22: superseded by the single stable customer-group renderer. */
