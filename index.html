@@ -5697,6 +5697,29 @@ supabaseClient.auth.onAuthStateChange((_event,session)=>{
 (function(){
   "use strict";
 
+  var lastHomeNativeBack=0;
+  var HOME_DOUBLE_BACK_MS=2000;
+
+  function nativeHomeDoubleBack(){
+    var now=Date.now();
+    if(now-lastHomeNativeBack<=HOME_DOUBLE_BACK_MS){
+      lastHomeNativeBack=0;
+      try{
+        if(typeof window.nfExitApp==="function"){
+          window.nfExitApp();
+        }else{
+          var cap=window.Capacitor, app=cap&&cap.Plugins&&cap.Plugins.App;
+          if(app&&typeof app.exitApp==="function")app.exitApp();
+        }
+      }catch(_){ }
+      return true;
+    }
+
+    lastHomeNativeBack=now;
+    if(typeof toast==="function")toast("வெளியேற மீண்டும் Android Back Gesture செய்யவும்.");
+    return true;
+  }
+
   window.__nfAndroidBack = function(){
     try{
       var modal = document.getElementById("modal");
@@ -5717,16 +5740,8 @@ supabaseClient.auth.onAuthStateChange((_event,session)=>{
         return true;
       }
 
-      var st = history.state || {};
-      if(!st.__nfGuard){
-        history.pushState(
-          {view:"dashboard",__nfGuard:true},
-          "",
-          "#dashboard"
-        );
-      }
-
-      return true;
+      // Home only: Android native Back/Navigation Gesture is the double-exit source.
+      return nativeHomeDoubleBack();
     }catch(e){
       return true;
     }
@@ -11088,7 +11103,7 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-card{
 }
 </style>
 
-<!-- NF navigation gesture/back fix: only restores side-swipe back + double-swipe exit. -->
+<!-- NF navigation gesture/back fix: preserves inner-page side-swipe back; Home exit uses native Android back. -->
 <script id="nf-navigation-gesture-back-exit-fix">
 (function(){
   "use strict";
@@ -11096,8 +11111,7 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-card{
   window.__nfNavigationGestureFixInstalled=true;
 
   var sx=0, sy=0, tracking=false, edge="";
-  var EDGE=34, MIN=70, LOCK=2.4;
-  var lastHomeSwipe=0, HOME_DOUBLE_MS=2000;
+  var EDGE=34, MIN=70, LOCK=1.15;
 
   function currentView(){ return (history.state && history.state.view) || "dashboard"; }
   function sidebarOpen(){
@@ -11129,32 +11143,13 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-card{
     }
     return false;
   }
-  function doHomeDoubleSwipe(){
-    var now=Date.now();
-    if(now-lastHomeSwipe<=HOME_DOUBLE_MS){
-      lastHomeSwipe=0;
-      try{
-        if(typeof window.nfExitApp==="function"){
-          window.nfExitApp();
-        }else{
-          var cap=window.Capacitor, app=cap&&cap.Plugins&&cap.Plugins.App;
-          if(app&&typeof app.exitApp==="function")app.exitApp();
-        }
-      }catch(_){ }
-      return true;
-    }
-    lastHomeSwipe=now;
-    if(typeof toast==="function")toast("வெளியேற மீண்டும் swipe செய்யவும்.");
-    return true;
-  }
-
   window.addEventListener("touchstart",function(e){
     if(window.innerWidth>900 || !e.touches || e.touches.length!==1)return;
     if(commonOverlayOpen())return;
     var t=e.touches[0], x=t.clientX;
     sx=x; sy=t.clientY; tracking=false; edge="";
     if(x<=EDGE)edge="left";
-    else if(x>=window.innerWidth-EDGE)edge="right";
+    else if(x>=window.innerWidth-EDGE && currentView()!=="dashboard")edge="right";
   },{passive:true,capture:true});
 
   window.addEventListener("touchmove",function(e){
@@ -11183,8 +11178,7 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-card{
        Left-edge -> right remains the existing drawer gesture on Home,
        but acts as Back on inner pages so the drawer behavior is preserved. */
     if(usedEdge==="right" && dx<0){
-      if(currentView()==="dashboard")doHomeDoubleSwipe();
-      else doBack();
+      if(currentView()!=="dashboard")doBack();
       return;
     }
     if(usedEdge==="left" && dx>0 && currentView()!=="dashboard"){
