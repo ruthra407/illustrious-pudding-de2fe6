@@ -1421,15 +1421,13 @@ body.nf-photo-preview-scroll-locked{overscroll-behavior:none!important}
 .nf-delivery-status-title.pending{background:linear-gradient(135deg,#f9a825,#ffb74d)!important;color:#4b3000!important;border-color:#e89a00!important}
 .nf-delivery-status-title b{font-size:15px!important}
 .nf-delivery-grid{margin-top:6px!important}
-.nf150-home-group{margin:10px 0 0;padding:10px 12px;border:2px solid #d9c9f3;border-radius:15px;background:linear-gradient(135deg,#faf7ff,#fff8fb)}
-.nf150-home-group-title{font-weight:950;color:#4d2e8e;font-size:13px;margin-bottom:6px}
-.nf150-home-person{display:flex;align-items:center;gap:7px;padding:7px 0;border-top:1px solid #e8def4}
-.nf150-home-person:first-of-type{border-top:0}
-.nf150-home-person-name{min-width:0;flex:1;font-weight:850;color:#30263d;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.nf150-home-person-phone{font-size:11px;color:#706879;white-space:nowrap}
-.nf150-home-person-actions{display:flex;gap:5px;flex:0 0 auto}
-.nf150-home-person-actions button{border:0;border-radius:9px;padding:6px 8px;font-weight:900;cursor:pointer}
-.nf150-home-edit{background:#eee8ff;color:#5131a0}.nf150-home-order{background:#e8f6ff;color:#12679a}
+.nf150-home-group{margin:8px 0 0;padding:7px 10px;border:2px solid #d9c9f3;border-radius:13px;background:linear-gradient(135deg,#faf7ff,#fff8fb)}
+.nf150-home-group-title{display:none}
+.nf150-home-person{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;margin:2px 4px 2px 0;border:1px solid #e5dcef;border-radius:999px;background:#fff;vertical-align:middle;max-width:100%}
+.nf150-home-person:first-of-type{border-top:1px solid #e5dcef}
+.nf150-home-person-name{min-width:0;flex:0 1 auto;font-weight:850;color:#30263d;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nf150-home-person-name:before{content:'ADDITIONAL';display:inline-flex;align-items:center;margin-right:4px;padding:2px 5px;border-radius:999px;background:#f0eaff;color:#6542b0;font-size:9px;font-weight:950;letter-spacing:.1px}
+.nf150-home-person-phone,.nf150-home-person-actions{display:none!important}
 .nf160-child-hidden{display:none!important}
 .nf-pull-refresh-indicator{
     position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 12px);
@@ -8006,61 +8004,6 @@ async function nfWacEnsureCloudPhotos(){
   });
   return nfWacCloudPhotoHydrationPromise;
 }
-async function nfResolveSingleDeliveryCardPhotos(id){
-  var key=String(id||""), candidates=[], seen={};
-  function addCandidate(path,type,slot,name){
-    if(!path||typeof nfR2PhotoUrl!=="function")return;
-    var k=String(path);if(seen[k])return;seen[k]=1;
-    candidates.push({src:nfR2PhotoUrl(path),name:name||"Customer",photoType:type,slot:slot,cloudPath:path});
-  }
-  /* Single Customer only: resolve from the canonical persisted R2 paths first.
-     This avoids depending on cache/hydration timing and does not alter calculations. */
-  try{
-    for(var i=0;i<4;i++)addCandidate(nfCloudPhotoPath(key,i),"GIVEN CLOTH",i,"Customer cloth photo "+(i+1));
-  }catch(e){console.warn("Single Delivery cloth path resolve skipped:",e)}
-  try{
-    var st=typeof customerStats==='function'?customerStats(key):{};
-    var defs=[
-      ["normal","given",st.handedNormal],["normal","pending",st.pendingNormal],
-      ["lining","given",st.handedLining],["lining","pending",st.pendingLining],
-      ["design","given",st.handedDesign],["design","pending",st.pendingDesign],
-      ["chudi","given",st.handedChudi],["chudi","pending",st.pendingChudi]
-    ];
-    for(var di=0;di<defs.length;di++){
-      var d=defs[di],limit=Math.min(NF_DELIVERY_SLOT_CAP,Math.max(0,Number(d[2]||0)));
-      for(var ds=0;ds<limit;ds++)addCandidate(nfDeliveryPhotoPath(key,d[0],d[1],ds),"DELIVERY",ds,"Delivery "+d[0]+" "+d[1]+" "+(ds+1));
-    }
-  }catch(e){console.warn("Single Delivery delivery-path resolve skipped:",e)}
-
-  /* Preserve any existing non-canonical/local data URL immediately. */
-  try{
-    var localLists=[];
-    if(typeof customerClothPhotos==='function')localLists.push(customerClothPhotos(key));
-    if(typeof customerDeliveryPhotos==='function')localLists.push(customerDeliveryPhotos(key));
-    localLists.forEach(function(list){(Array.isArray(list)?list:[]).forEach(function(p,i){
-      if(!p||!p.src)return;
-      var src=String(p.src||""), cloud=String(p.cloudPath||"");
-      if(/^data:image\//i.test(src))addCandidate("__data__"+src,"PHOTO",i,p.name||"Customer"),candidates[candidates.length-1].src=src,candidates[candidates.length-1].cloudPath=cloud;
-    });});
-  }catch(e){}
-
-  var safe=[];
-  async function resolveOne(p){
-    try{
-      if(/^data:image\//i.test(p.src))return p;
-      var b;
-      if(typeof nfWacFetchBlob==='function')b=await nfWacFetchBlob(p.src,15000);
-      else{var r=await fetch(p.src,{method:"GET",cache:"no-store",mode:"cors"});if(!r.ok)throw new Error("photo-http-"+r.status);b=await r.blob();}
-      if(!b)throw new Error("photo-empty-blob");
-      var du=await new Promise(function(resolve,reject){var fr=new FileReader();var t=setTimeout(function(){try{fr.abort()}catch(_){}reject(new Error("photo-filereader-timeout"));},10000);fr.onload=function(){clearTimeout(t);resolve(String(fr.result||""));};fr.onerror=function(e){clearTimeout(t);reject(e||new Error("photo-filereader-failed"));};try{fr.readAsDataURL(b);}catch(e){clearTimeout(t);reject(e);}});
-      return du?Object.assign({},p,{src:du}):null;
-    }catch(e){return null;}
-  }
-  /* Probe in parallel so one slow R2 object cannot make every other photo time out. */
-  var resolved=await Promise.all(candidates.map(resolveOne));
-  resolved.forEach(function(p){if(p&&safe.length<8)safe.push(p);});
-  return safe;
-}
 async function nfWacResolvePhotos(id){
   var key=String(id||"");
   var photos=typeof customerClothPhotos==="function"?customerClothPhotos(key):[];
@@ -10381,7 +10324,7 @@ setTimeout(decorateAll,100);
             '<button type="button" class="nf150-home-order" onclick="event.stopPropagation();openOrdersNewOrderForCustomer(\''+id+'\')">🧾</button>'+ 
           '</div></div>';
       }).join("");
-      var group='<section class="nf150-home-group" onclick="event.stopPropagation()"><div class="nf150-home-group-title">👥 Multiple Customer · '+kids.length+' பேர்</div>'+rows+'</section>';
+      var group='<section class="nf150-home-group" onclick="event.stopPropagation()"><div class="nf150-home-group-title"></div>'+rows+'</section>';
       return html.replace('</article>',group+'</article>');
     };
     window.dashboardCustomerCard.__nfV160=true;
@@ -10841,19 +10784,7 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
 
   async function makeDeliveryImageLegacy(mainId){
     var group=groupFor(mainId),sum=groupSummary(group);if(!group.length)throw new Error('customer-not-found');
-    /* V157: Single Customer Delivery Card must wait for the photo store/cloud
-       hydration before collecting photos. Without this, the card can be built
-       while the cache is still empty and the CUSTOMER PHOTOS section disappears. */
-    try{
-      if(typeof initCustomerClothPhotoStore==='function')await nfWacWithTimeout(initCustomerClothPhotoStore(),2500,'delivery-photo-store-init');
-      if(typeof nfHydrateCloudClothPhotos==='function')await nfWacWithTimeout(nfHydrateCloudClothPhotos(),8000,'delivery-photo-cloud-hydrate');
-    }catch(photoLoadErr){
-      console.warn('Single Delivery Card photo hydration skipped/timeout:',photoLoadErr);
-    }
     var W=1400,S=2,pad=48,inner=W-pad*2,people=group.slice(0,8),rows=[],photos=[];
-    // V157: resolve the actual saved Single Customer photos before building the card.
-    // This keeps the existing calculation untouched and guarantees saved photos are embedded.
-    try{photos=await nfResolveSingleDeliveryCardPhotos(mainId);}catch(e){console.warn("Single Delivery Card photo resolve failed:",e);photos=[];}
     function n(v){return Math.max(0,Number(v||0));}
     function addRow(c,o,label,total,given){
       total=n(total);given=Math.min(total,n(given));
@@ -10895,6 +10826,9 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
     if(blouseCalc.normal.qty)rows.push({name:'',garment:'Normal blouse',totalQty:blouseCalc.normal.qty,given:blouseCalc.normal.given,remaining:Math.max(0,blouseCalc.normal.qty-blouseCalc.normal.given),amount:0,paid:0,status:'Pending'});
     if(blouseCalc.lining.qty)rows.push({name:'',garment:'Lining blouse',totalQty:blouseCalc.lining.qty,given:blouseCalc.lining.given,remaining:Math.max(0,blouseCalc.lining.qty-blouseCalc.lining.given),amount:0,paid:0,status:'Pending'});
     if(blouseCalc.design.qty)rows.push({name:'',garment:'Design blouse',totalQty:blouseCalc.design.qty,given:blouseCalc.design.given,remaining:Math.max(0,blouseCalc.design.qty-blouseCalc.design.given),amount:0,paid:0,status:'Pending'});
+    photoPools.forEach(function(pool){if(pool.items[0]&&photos.length<8)photos.push(pool.items[0]);});
+    for(var pass=1;pass<40&&photos.length<8;pass++)photoPools.forEach(function(pool){var p=pool.items[pass];if(p&&photos.length<8)photos.push(p);});
+    if(photos.length){var safePhotos=[];for(var spi=0;spi<photos.length;spi++){var sp=photos[spi];if(!sp||!sp.src)continue;try{var src=sp.cloudPath&&typeof nfR2PhotoUrl==='function'?nfR2PhotoUrl(sp.cloudPath):String(sp.src||'');if(/^data:image\//i.test(src)){safePhotos.push(Object.assign({},sp,{src:src}));continue;}if(typeof nfWacFetchBlob==='function'){var pb=await nfWacFetchBlob(src,7000);var purl=await new Promise(function(resolve,reject){var fr=new FileReader();fr.onload=function(){resolve(String(fr.result||''));};fr.onerror=reject;fr.readAsDataURL(pb);});if(purl)safePhotos.push(Object.assign({},sp,{src:purl}));}}catch(pe){console.warn('Delivery card photo embed skipped:',pe);}}photos=safePhotos;}
     var main=people[0]||{},mainOrders=ordersFor(main.id),clothDates=mainOrders.map(function(o){return o.cloth_received_date||o.order_date||'';}).filter(Boolean).sort(),deliveryDates=mainOrders.map(function(o){return o.delivery_date||'';}).filter(Boolean).sort();
     var clothDate=clothDates[0]||'',deliveryDate=deliveryDates[0]||'';
     var givenTotal=rows.reduce(function(a,r){return a+r.given;},0),remainingTotal=rows.reduce(function(a,r){return a+r.remaining;},0),totalAmount=sum.total,paidAmount=sum.paid,balanceAmount=sum.balance;
@@ -10992,7 +10926,7 @@ async function makeMultiCustomerDeliveryImage(mainId){
       var sg=ctx.createLinearGradient(pad,sy,W-pad,sy);sg.addColorStop(0,'#5b1d7f');sg.addColorStop(1,'#d52d73');ctx.fillStyle=sg;ctx.fillRect(pad,sy,inner,sectionHead);
       txt('👤 '+(si+1)+'. '+(c.name||'Customer'),pad+24,sy+32,29,950,'#fff');
       var cy=sy+sectionHead;
-      /* V153: explicit blouse calculation table header + grid separators so every number has a clear meaning. */
+      /* V154: explicit blouse calculation table header + grid separators so every number has a clear meaning. */
       var tableX=pad+12,tableW=inner-24,calcCol1=W-520,calcCol2=W-340,calcCol3=W-160;
       rr(tableX,cy,tableW,calcHead,0,'#f0ebff','#e1d6ee',1);
       txt('BLOUSE',pad+28,cy+calcHead/2,20,950,'#4d267c','left');
