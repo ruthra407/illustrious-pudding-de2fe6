@@ -11498,6 +11498,51 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-card{
 .nf-v220-hook-box{margin:8px;border:1px solid #ddd5ef;border-radius:14px;overflow:hidden;background:#fff}.nf-v220-hook{width:100%;min-height:52px;padding:9px 11px;border:0;background:linear-gradient(135deg,#f7f3ff,#fff4fa);color:#4d267c;display:flex;align-items:center;justify-content:space-between;gap:10px;text-align:left;font:inherit;font-weight:900;cursor:pointer}.nf-v220-hook-label{min-width:0;overflow-wrap:anywhere}.nf-v220-hook-plus{width:34px;height:34px;min-width:34px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(135deg,#6c3df5,#ef4f9a);color:#fff;font-size:23px;font-weight:500;line-height:1}.nf-v220-hook-body{padding:0;background:#fff}.nf-v220-hook-body>.nf-cash-collection,.nf-v220-hook-body>.nf-blouse-collection{margin:0!important;border:0!important;border-radius:0!important;box-shadow:none!important}.nf-v220-hook-body>.nfCustomerBreakdownMount{margin:0!important}.nf-v220-hook-body>.customerWorkSummary{margin:0!important}.nf-v220-hook-calc .customerWorkSection{margin:0!important;border-radius:0!important}
 @media(max-width:560px){.nf-v220-four-hook-group{border-radius:17px}.nf-v220-person{margin:8px}.nf-v220-person-name{font-size:16px;padding:8px 10px}.nf-v220-hook-box{margin:7px}.nf-v220-hook{min-height:48px;padding:8px 10px}.nf-v220-hook-plus{width:32px;height:32px;min-width:32px;font-size:21px}}
 </style>
+
+<style id="nf-v155-final-hide-additional-labels">
+/* V155 FINAL: show Main + Additional customer names only in one compact row */
+.nf116-customer-group,
+.nf116-home-group,
+.nf150-home-group,
+.nf-v155-home-group,
+.nf-v156-home-group,
+.nf190-home-group,
+.nf110-home-group,
+.nf113-home-group,
+.nf113-customer-group,
+.nf114-customer-group,
+.nf114-home-group{display:none!important}
+.nf-v155-family-row{
+  display:flex!important;flex-wrap:wrap!important;align-items:center!important;
+  gap:4px 9px!important;margin-top:6px!important;padding:4px 7px!important;
+  width:max-content!important;max-width:100%!important;
+  border:1px solid rgba(108,77,246,.14)!important;border-radius:10px!important;
+  background:#fff!important;box-sizing:border-box!important;
+}
+.nf-v155-family-person{display:inline-flex!important;align-items:center!important;gap:3px!important;white-space:nowrap!important;font-size:11px!important;line-height:1.2!important}
+.nf-v155-family-name{font-weight:900!important;color:#30263d!important}
+.nf-v155-family-count{font-weight:900!important;color:#45346f!important}
+@media(max-width:560px){.nf-v155-family-row{gap:3px 6px!important;padding:4px 6px!important}.nf-v155-family-person{font-size:10.5px!important}}
+</style>
+<script id="nf-v155-final-family-row-js">
+(function(){
+  "use strict";
+  var RE=/(?:^|\|\s*)(?:NF_MULTI_PARENT|NF_PARENT_CUSTOMER):\s*([^|\s]+)/i;
+  function customers(){return typeof state!=="undefined"&&Array.isArray(state.customers)?state.customers:[];}
+  function parent(c){var m=String(c&&c.notes||"").match(RE);return m?String(m[1]):"";}
+  function child(c){return !!parent(c);}
+  function kids(id){var sid=String(id||"");return customers().filter(function(c){return parent(c)===sid;});}
+  function esc(v){if(typeof window.esc==="function")return window.esc(v==null?"":String(v));return String(v==null?"":v).replace(/[&<>"']/g,function(x){return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[x]});}
+  function n(v){var x=Number(v);return Number.isFinite(x)?x:0;}
+  function stats(c){try{return typeof window.customerStats==="function"?window.customerStats(c.id):{};}catch(e){return {};}}
+  function person(c){var st=stats(c),b=n(st.givenBlouse);if(!b)b=n(st.normal)+n(st.lining)+n(st.design);var ch=n(st.chudi),sa=n(st.saree);var q="";if(b>0)q+=' <span class="nf-v155-family-count">👗'+b+'</span>';if(ch>0)q+=' <span class="nf-v155-family-count">👚'+ch+'</span>';if(sa>0)q+=' <span class="nf-v155-family-count">🥻'+sa+'</span>';return '<span class="nf-v155-family-person"><span class="nf-v155-family-name">'+esc(c.name||"Customer")+'</span><span>:</span>'+q+'</span>';}
+  function make(c){if(!c||child(c))return null;var list=[c].concat(kids(c.id));if(list.length<2)return null;var d=document.createElement("div");d.className="nf-v155-family-row";d.innerHTML=list.map(person).join("");return d;}
+  function clean(html,c){try{var h=document.createElement("div");h.innerHTML=html;h.querySelectorAll('.nf116-customer-group,.nf116-home-group,.nf150-home-group,.nf-v155-home-group,.nf-v156-home-group,.nf190-home-group,.nf110-home-group,.nf113-home-group,.nf113-customer-group,.nf114-customer-group,.nf114-home-group,.nf-final-mc-row').forEach(function(x){x.remove();});var card=h.querySelector('.nf-dch-card')||h.querySelector('article');if(!card||!c||child(c))return html;var row=make(c);if(!row)return card.outerHTML;var identity=card.querySelector('.nf-dch-identity');if(identity)identity.appendChild(row);else card.appendChild(row);return card.outerHTML;}catch(e){return html;}}
+  function install(){var base=window.dashboardCustomerCard;if(typeof base!=="function"||base.__nfV155Family)return;var w=function(c,i,cat){if(c&&child(c))return "";return clean(base.apply(this,arguments),c);};w.__nfV155Family=true;window.dashboardCustomerCard=w;}
+  function refresh(){try{install();if(typeof window.renderDashboardCustomers==="function")window.renderDashboardCustomers();}catch(e){}}
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",function(){setTimeout(refresh,80);setTimeout(refresh,300);},{once:true});else{setTimeout(refresh,80);setTimeout(refresh,300);}
+})();
+</script>
 </html><script id="nf-v52-dashboard-scroll-fix-js">
 (function(){
   "use strict";
