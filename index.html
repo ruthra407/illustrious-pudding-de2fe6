@@ -11089,34 +11089,21 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-card{
 </style>
 
 <!-- NF navigation gesture/back fix: only restores side-swipe back + double-swipe exit. -->
-<style id="nf-home-swipe-exit-marker-css">
-#nfHomeSwipeExitMarker{
-  position:fixed;top:50%;right:0;z-index:2147483000;
-  transform:translate(110%,-50%);
-  opacity:0;pointer-events:none;
-  display:flex;align-items:center;gap:7px;
-  padding:9px 12px 9px 9px;
-  border-radius:14px 0 0 14px;
-  background:rgba(48,38,61,.94);color:#fff;
-  box-shadow:0 8px 24px rgba(0,0,0,.22);
-  font:800 11px/1.1 system-ui,sans-serif;
-  transition:transform .18s ease,opacity .18s ease;
-}
-#nfHomeSwipeExitMarker.show{transform:translate(0,-50%);opacity:1}
-#nfHomeSwipeExitMarker .nfHomeSwipeExitMarkerIcon{font-size:22px;line-height:1;font-weight:900}
-#nfHomeSwipeExitMarker .nfHomeSwipeExitMarkerText{white-space:nowrap}
-</style>
 <script id="nf-navigation-gesture-back-exit-fix">
 (function(){
   "use strict";
   if(window.__nfNavigationGestureFixInstalled)return;
   window.__nfNavigationGestureFixInstalled=true;
 
-  var sx=0, sy=0, tracking=false, edge="", markerShown=false;
-  var EDGE=34, MIN=70, LOCK=1.15;
+  var sx=0, sy=0, tracking=false, edge="";
+  var EDGE=34, MIN=70, LOCK=2.4;
   var lastHomeSwipe=0, HOME_DOUBLE_MS=2000;
 
   function currentView(){ return (history.state && history.state.view) || "dashboard"; }
+  function sidebarOpen(){
+    var d=document.getElementById("sidebar");
+    return !!(d && d.classList.contains("open"));
+  }
   function closeDrawer(){
     var d=document.getElementById("sidebar");
     if(d && d.classList.contains("open")){
@@ -11142,36 +11129,10 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-card{
     }
     return false;
   }
-  function getSwipeMarker(){
-    var el=document.getElementById("nfHomeSwipeExitMarker");
-    if(el)return el;
-    el=document.createElement("div");
-    el.id="nfHomeSwipeExitMarker";
-    el.setAttribute("aria-hidden","true");
-    el.innerHTML='<span class="nfHomeSwipeExitMarkerIcon">‹</span><span class="nfHomeSwipeExitMarkerText">Swipe again to exit</span>';
-    document.body.appendChild(el);
-    return el;
-  }
-  function showSwipeMarker(){
-    var el=getSwipeMarker();
-    el.classList.remove("show");
-    void el.offsetWidth;
-    el.classList.add("show");
-    markerShown=true;
-    clearTimeout(el.__nfHideTimer);
-    el.__nfHideTimer=setTimeout(function(){el.classList.remove("show");},900);
-  }
-  function hideSwipeMarker(){
-    var el=document.getElementById("nfHomeSwipeExitMarker");
-    if(el)el.classList.remove("show");
-  }
   function doHomeDoubleSwipe(){
-    /* Exit is allowed only after this gesture visibly produced the marker. */
-    if(!markerShown)return false;
     var now=Date.now();
     if(now-lastHomeSwipe<=HOME_DOUBLE_MS){
       lastHomeSwipe=0;
-      markerShown=false;
       try{
         if(typeof window.nfExitApp==="function"){
           window.nfExitApp();
@@ -11191,7 +11152,7 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-card{
     if(window.innerWidth>900 || !e.touches || e.touches.length!==1)return;
     if(commonOverlayOpen())return;
     var t=e.touches[0], x=t.clientX;
-    sx=x; sy=t.clientY; tracking=false; edge=""; markerShown=false;
+    sx=x; sy=t.clientY; tracking=false; edge="";
     if(x<=EDGE)edge="left";
     else if(x>=window.innerWidth-EDGE)edge="right";
   },{passive:true,capture:true});
@@ -11200,13 +11161,9 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-card{
     if(!edge || !e.touches || e.touches.length!==1)return;
     var t=e.touches[0],dx=t.clientX-sx,dy=t.clientY-sy;
     if(Math.abs(dx)<10 || Math.abs(dx)<=Math.abs(dy)*LOCK)return;
-    if(edge==="left" && dx<=0){edge="";markerShown=false;return;}
-    if(edge==="right" && dx>=0){edge="";markerShown=false;return;}
+    if(edge==="left" && dx<=0){edge="";return;}
+    if(edge==="right" && dx>=0){edge="";return;}
     tracking=true;
-    /* The marker is the explicit acceptance signal for Home exit swipes. */
-    if(edge==="right" && dx<0 && currentView()==="dashboard" && Math.abs(dx)>=MIN){
-      showSwipeMarker();
-    }
     if(e.cancelable)e.preventDefault();
     e.stopImmediatePropagation();
   },{passive:false,capture:true});
@@ -11215,27 +11172,69 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-card{
     if(!edge)return;
     var usedEdge=edge;
     edge="";
-    var acceptedMarker=markerShown;
     var t=e.changedTouches&&e.changedTouches[0];
-    if(!t){markerShown=false;return;}
+    if(!t)return;
     var dx=t.clientX-sx,dy=t.clientY-sy;
-    if(!tracking || Math.abs(dx)<MIN || Math.abs(dx)<=Math.abs(dy)*LOCK){markerShown=false;hideSwipeMarker();return;}
+    if(!tracking || Math.abs(dx)<MIN || Math.abs(dx)<=Math.abs(dy)*LOCK)return;
     if(e.cancelable)e.preventDefault();
     e.stopImmediatePropagation();
 
+    /* Right-edge -> left is the dedicated page-back gesture.
+       Left-edge -> right remains the existing drawer gesture on Home,
+       but acts as Back on inner pages so the drawer behavior is preserved. */
     if(usedEdge==="right" && dx<0){
-      if(currentView()==="dashboard"){
-        /* No marker = no exit. A qualifying swipe must show the marker first. */
-        if(acceptedMarker)doHomeDoubleSwipe();
-      }else doBack();
-      markerShown=false;
+      if(currentView()==="dashboard")doHomeDoubleSwipe();
+      else doBack();
       return;
     }
     if(usedEdge==="left" && dx>0 && currentView()!=="dashboard"){
-      markerShown=false;
       doBack();
-    }else markerShown=false;
+    }
   },{passive:false,capture:true});
+
+  window.addEventListener("touchcancel",function(){tracking=false;edge="";},{passive:true,capture:true});
+
+  /* Wire the existing Android-back bridge to Capacitor's App back event. */
+  function installAndroidBack(){
+    try{
+      var cap=window.Capacitor, app=cap&&cap.Plugins&&cap.Plugins.App;
+      if(!app || typeof app.addListener!=="function" || window.__nfAndroidBackListener)return;
+      window.__nfAndroidBackListener=true;
+      app.addListener("backButton",function(){
+        if(typeof window.__nfAndroidBack==="function")window.__nfAndroidBack();
+        else doBack();
+      });
+    }catch(_){ }
+  }
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",installAndroidBack,{once:true});
+  else installAndroidBack();
+  setTimeout(installAndroidBack,500);
+
+  /* Menu Exit App button: use the same native exit path. */
+  function installSideExit(){
+    var btn=document.getElementById("sideExitApp");
+    if(!btn || btn.__nfExitBound)return;
+    btn.__nfExitBound=true;
+    btn.addEventListener("click",function(e){
+      e.preventDefault();
+      e.stopPropagation();
+      try{
+        if(typeof window.nfExitApp==="function"){
+          window.nfExitApp();
+        }else{
+          var cap=window.Capacitor, app=cap&&cap.Plugins&&cap.Plugins.App;
+          if(app&&typeof app.exitApp==="function")app.exitApp();
+        }
+      }catch(_){ }
+    });
+  }
+  if(document.readyState==="loading"){
+    document.addEventListener("DOMContentLoaded",installSideExit,{once:true});
+  }else{
+    installSideExit();
+  }
+  setTimeout(installSideExit,300);
+  setTimeout(installSideExit,1000);
 })();
 </script>
 
