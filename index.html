@@ -11473,6 +11473,74 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-card{
 })();
 </script>
 
+
+<script id="nf-v205-delivery-photo-safe-fix">
+(function(){
+"use strict";
+/* V205: Delivery card must never fail because a stitched-cloth photo is slow,
+   missing, or cannot be converted. Reuse the saved delivery-photo slots and
+   materialize each image independently with a hard timeout. */
+function nfV205Timeout(promise,ms){
+  return Promise.race([promise,new Promise(function(resolve){setTimeout(function(){resolve(null);},ms);})]);
+}
+async function nfV205PhotoData(p){
+  if(!p||!p.src)return null;
+  var src=p.cloudPath&&typeof nfR2PhotoUrl==='function'?nfR2PhotoUrl(p.cloudPath):String(p.src||'');
+  if(!src)return null;
+  if(/^data:image\//i.test(src))return Object.assign({},p,{src:src});
+  try{
+    if(typeof nfWacFetchBlob==='function'){
+      var b=await nfV205Timeout(nfWacFetchBlob(src,2500),3000);
+      if(!b)return null;
+      var data=await nfV205Timeout(new Promise(function(resolve){
+        var fr=new FileReader();
+        fr.onload=function(){resolve(String(fr.result||''));};
+        fr.onerror=function(){resolve('');};
+        fr.onabort=function(){resolve('');};
+        try{fr.readAsDataURL(b);}catch(e){resolve('');}
+      }),3000);
+      return data?Object.assign({},p,{src:data}):null;
+    }
+  }catch(e){console.warn('V205 delivery photo materialize skipped',e);}
+  return null;
+}
+window.nfV205ResolveDeliveryPhotos=async function(id){
+  var key=String(id||''),arr=[];
+  try{
+    if(typeof initCustomerClothPhotoStore==='function')
+      await nfV205Timeout(initCustomerClothPhotoStore(),2000);
+  }catch(e){}
+  try{arr=typeof customerDeliveryPhotos==='function'?customerDeliveryPhotos(key):[];}catch(e){arr=[];}
+  var saved=[];
+  for(var i=0;i<arr.length;i++){
+    var p=arr[i];
+    if(p&&p.src)saved.push(p);
+  }
+  return saved;
+};
+window.nfV204ResolveDeliveryPhotos=window.nfV205ResolveDeliveryPhotos;
+window.nfV204PrepareDeliveryPhotos=async function(group){
+  var pools=[];
+  for(var gi=0;gi<(group||[]).length;gi++){
+    var c=group[gi],list=[];
+    try{list=await nfV205ResolveDeliveryPhotos(c.id);}catch(e){list=[];}
+    var items=[];
+    for(var i=0;i<list.length&&i<20;i++){
+      var x=await nfV205PhotoData(list[i]);
+      if(x)items.push(Object.assign({},x,{name:c.name||'Customer',customerName:c.name||'Customer',photoType:'DELIVERY'}));
+    }
+    pools.push({id:String(c.id),name:c.name||'Customer',items:items});
+  }
+  var photos=[];
+  /* One photo per customer first, then remaining photos round-robin. */
+  pools.forEach(function(pool){if(pool.items[0]&&photos.length<8)photos.push(pool.items[0]);});
+  for(var pass=1;pass<20&&photos.length<8;pass++){
+    pools.forEach(function(pool){var p=pool.items[pass];if(p&&photos.length<8)photos.push(p);});
+  }
+  return photos;
+};
+})();
+</script>
 </body>
 <script id="nf-v120-single-cash-dedupe-fix">
 /* V22: superseded by the single stable customer-group renderer. */
