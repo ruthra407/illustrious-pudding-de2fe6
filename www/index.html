@@ -11237,6 +11237,79 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-card{
   setTimeout(installSideExit,1000);
 })();
 </script>
+\n<style id="nf-v155-multi-customer-row-css">
+/* V155: compact Multi Customer rows on Home */
+.nf-v155-home-group{margin-top:7px;padding:6px 7px;border:1.5px solid transparent;border-radius:12px;background:linear-gradient(135deg,#f5f0ff,#fff1f7) padding-box,linear-gradient(135deg,#7655e9,#e64f91) border-box;box-shadow:0 4px 12px rgba(89,56,145,.07)}
+.nf-v155-home-list{display:flex;flex-direction:row;flex-wrap:wrap;align-items:center;gap:5px}
+.nf-v155-home-person{display:inline-flex;align-items:center;gap:5px;min-width:0;padding:5px 8px;border:1px solid rgba(108,69,232,.14);border-radius:10px;background:#fff;color:#30263d;line-height:1.15;white-space:nowrap}
+.nf-v155-home-name{font-size:12px;font-weight:900;max-width:150px;overflow:hidden;text-overflow:ellipsis}
+.nf-v155-home-counts{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:850;color:#5f4b78}
+.nf-v155-home-count{display:inline-flex;align-items:center;gap:1px}
+@media(max-width:560px){
+  .nf-v155-home-group{margin-top:6px;padding:5px 6px;border-radius:11px}
+  .nf-v155-home-list{gap:4px}
+  .nf-v155-home-person{padding:4px 7px;gap:4px;border-radius:9px}
+  .nf-v155-home-name{font-size:11px;max-width:115px}
+  .nf-v155-home-counts{font-size:10px;gap:3px}
+}
+</style>
+\n<script id="nf-v155-multi-customer-row-js">
+(function(){
+  "use strict";
+  if(window.__nfV155HomeMultiRow)return;
+  window.__nfV155HomeMultiRow=true;
+  function esc155(v){return typeof esc==="function"?esc(v==null?"":String(v)):String(v==null?"":v).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]});}
+  function parent155(c){var m=String(c&&c.notes||"").match(/(?:^|\|\s*)NF_MULTI_PARENT:([^|\s]+)/);return m?String(m[1]):"";}
+  function child155(c){return !!parent155(c);}
+  function kids155(id){return (Array.isArray(state.customers)?state.customers:[]).filter(function(c){return parent155(c)===String(id);});}
+  function safe155(id){return String(id||"").replace(/\\/g,"\\\\").replace(/'/g,"\\'");}
+  function counts155(id){
+    try{
+      var st=typeof customerStats==="function"?customerStats(id):null;
+      if(!st)return {blouse:0,chudi:0,saree:0};
+      return {blouse:Number(st.normal||0)+Number(st.lining||0)+Number(st.design||0),chudi:Number(st.chudi||0),saree:Number(st.saree||0)};
+    }catch(e){return {blouse:0,chudi:0,saree:0};}
+  }
+  function makeGroup155(c){
+    var kids=kids155(c.id);if(!kids.length)return null;
+    var sec=document.createElement("section");sec.className="nf-v155-home-group";sec.setAttribute("onclick","event.stopPropagation()");
+    var list=document.createElement("div");list.className="nf-v155-home-list";
+    kids.forEach(function(k){
+      var row=document.createElement("div");row.className="nf-v155-home-person";
+      var n=document.createElement("span");n.className="nf-v155-home-name";n.textContent=k.name||"Customer";row.appendChild(n);
+      var q=counts155(k.id), counts=[];
+      if(q.blouse>0)counts.push('<span class="nf-v155-home-count">👗'+q.blouse+'</span>');
+      if(q.chudi>0)counts.push('<span class="nf-v155-home-count">👚'+q.chudi+'</span>');
+      if(q.saree>0)counts.push('<span class="nf-v155-home-count">🥻'+q.saree+'</span>');
+      if(counts.length){var cbox=document.createElement("span");cbox.className="nf-v155-home-counts";cbox.innerHTML=counts.join("");row.appendChild(cbox);}
+      row.onclick=function(e){e.stopPropagation();if(typeof openOrdersNewOrderForCustomer==="function")openOrdersNewOrderForCustomer(safe155(k.id));};
+      list.appendChild(row);
+    });
+    sec.appendChild(list);return sec;
+  }
+  var base=window.dashboardCustomerCard;
+  if(typeof base!=="function")return;
+  window.dashboardCustomerCard=function(c,index,category){
+    var html=base.apply(this,arguments);
+    if(!c||child155(c))return html;
+    try{
+      var h=document.createElement("div");h.innerHTML=html;
+      h.querySelectorAll(".nf150-home-group,.nf116-home-group,.nf-v155-home-group").forEach(function(x){x.remove();});
+      var card=h.querySelector(".nf-dch-card")||h.querySelector("article");
+      var g=makeGroup155(c);
+      if(card&&g)card.appendChild(g);
+      return h.innerHTML;
+    }catch(e){return html;}
+  };
+  window.dashboardCustomerCard.__nfV155=true;
+  if(typeof window.renderDashboardCustomers==="function"){
+    var rd=window.renderDashboardCustomers;
+    window.renderDashboardCustomers=function(){var r=rd.apply(this,arguments);return r;};
+    try{if(document.getElementById("view-dashboard")?.classList.contains("active"))window.renderDashboardCustomers();}catch(e){}
+  }
+})();
+</script>
+
 </body>
 <script id="nf-v120-single-cash-dedupe-fix">
 /* V22: superseded by the single stable customer-group renderer. */
