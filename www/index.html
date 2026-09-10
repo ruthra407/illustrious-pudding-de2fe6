@@ -11237,79 +11237,106 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-card{
   setTimeout(installSideExit,1000);
 })();
 </script>
-\n<style id="nf-v155-multi-customer-row-css">
-/* V155: compact Multi Customer rows on Home */
-.nf-v155-home-group{margin-top:7px;padding:6px 7px;border:1.5px solid transparent;border-radius:12px;background:linear-gradient(135deg,#f5f0ff,#fff1f7) padding-box,linear-gradient(135deg,#7655e9,#e64f91) border-box;box-shadow:0 4px 12px rgba(89,56,145,.07)}
-.nf-v155-home-list{display:flex;flex-direction:row;flex-wrap:wrap;align-items:center;gap:5px}
-.nf-v155-home-person{display:inline-flex;align-items:center;gap:5px;min-width:0;padding:5px 8px;border:1px solid rgba(108,69,232,.14);border-radius:10px;background:#fff;color:#30263d;line-height:1.15;white-space:nowrap}
-.nf-v155-home-name{font-size:12px;font-weight:900;max-width:150px;overflow:hidden;text-overflow:ellipsis}
-.nf-v155-home-counts{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:850;color:#5f4b78}
-.nf-v155-home-count{display:inline-flex;align-items:center;gap:1px}
-@media(max-width:560px){
-  .nf-v155-home-group{margin-top:6px;padding:5px 6px;border-radius:11px}
-  .nf-v155-home-list{gap:4px}
-  .nf-v155-home-person{padding:4px 7px;gap:4px;border-radius:9px}
-  .nf-v155-home-name{font-size:11px;max-width:115px}
-  .nf-v155-home-counts{font-size:10px;gap:3px}
-}
+
+<style id="nf-final-home-multi-garment-row">
+/* Final Home Multi-Customer presentation: compact horizontal rows. */
+.nf-final-multi-group{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;width:max-content;max-width:100%;margin:6px 0 0;padding:6px 8px;border:1.5px solid #c99be8;border-radius:12px;background:linear-gradient(135deg,#faf7ff,#fff8fb);box-sizing:border-box}
+.nf-final-multi-person{display:inline-flex;align-items:center;gap:5px;min-width:0;padding:5px 8px;border:1px solid rgba(108,69,232,.14);border-radius:999px;background:#fff;box-shadow:0 2px 7px rgba(80,55,110,.06);font-size:12px;line-height:1.15;white-space:nowrap}
+.nf-final-multi-name{font-weight:900;color:#30263d;overflow:hidden;text-overflow:ellipsis;max-width:150px}
+.nf-final-multi-garments{display:inline-flex;align-items:center;gap:4px;font-weight:850;color:#51436b}
+.nf-final-multi-garments span{white-space:nowrap}
+@media(max-width:560px){.nf-final-multi-group{gap:5px 6px;margin-top:5px;padding:5px 6px;border-radius:11px}.nf-final-multi-person{gap:4px;padding:5px 7px;font-size:11px}.nf-final-multi-name{max-width:105px}.nf-final-multi-garments{gap:3px}}
 </style>
-\n<script id="nf-v155-multi-customer-row-js">
+<script id="nf-final-home-multi-garment-row-js">
 (function(){
   "use strict";
-  if(window.__nfV155HomeMultiRow)return;
-  window.__nfV155HomeMultiRow=true;
-  function esc155(v){return typeof esc==="function"?esc(v==null?"":String(v)):String(v==null?"":v).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]});}
-  function parent155(c){var m=String(c&&c.notes||"").match(/(?:^|\|\s*)NF_MULTI_PARENT:([^|\s]+)/);return m?String(m[1]):"";}
-  function child155(c){return !!parent155(c);}
-  function kids155(id){return (Array.isArray(state.customers)?state.customers:[]).filter(function(c){return parent155(c)===String(id);});}
-  function safe155(id){return String(id||"").replace(/\\/g,"\\\\").replace(/'/g,"\\'");}
-  function counts155(id){
-    try{
-      var st=typeof customerStats==="function"?customerStats(id):null;
-      if(!st)return {blouse:0,chudi:0,saree:0};
-      return {blouse:Number(st.normal||0)+Number(st.lining||0)+Number(st.design||0),chudi:Number(st.chudi||0),saree:Number(st.saree||0)};
-    }catch(e){return {blouse:0,chudi:0,saree:0};}
+  if(window.__nfFinalHomeMultiGarmentRowInstalled)return;
+  window.__nfFinalHomeMultiGarmentRowInstalled=true;
+
+  function escF(v){
+    return typeof window.esc==="function" ? window.esc(v==null?"":String(v)) : String(v==null?"":v).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c];});
   }
-  function makeGroup155(c){
-    var kids=kids155(c.id);if(!kids.length)return null;
-    var sec=document.createElement("section");sec.className="nf-v155-home-group";sec.setAttribute("onclick","event.stopPropagation()");
-    var list=document.createElement("div");list.className="nf-v155-home-list";
-    kids.forEach(function(k){
-      var row=document.createElement("div");row.className="nf-v155-home-person";
-      var n=document.createElement("span");n.className="nf-v155-home-name";n.textContent=k.name||"Customer";row.appendChild(n);
-      var q=counts155(k.id), counts=[];
-      if(q.blouse>0)counts.push('<span class="nf-v155-home-count">👗'+q.blouse+'</span>');
-      if(q.chudi>0)counts.push('<span class="nf-v155-home-count">👚'+q.chudi+'</span>');
-      if(q.saree>0)counts.push('<span class="nf-v155-home-count">🥻'+q.saree+'</span>');
-      if(counts.length){var cbox=document.createElement("span");cbox.className="nf-v155-home-counts";cbox.innerHTML=counts.join("");row.appendChild(cbox);}
-      row.onclick=function(e){e.stopPropagation();if(typeof openOrdersNewOrderForCustomer==="function")openOrdersNewOrderForCustomer(safe155(k.id));};
-      list.appendChild(row);
+  function num(v){var n=Number(v||0);return Number.isFinite(n)?Math.max(0,n):0;}
+  function kidsF(id){
+    var all=Array.isArray(window.state&&state.customers)?state.customers:[];
+    return all.filter(function(c){
+      var m=String(c&&c.notes||"").match(/(?:^|\|\s*)NF_MULTI_PARENT:\s*([^|\s]+)/i);
+      return m&&String(m[1])===String(id);
     });
-    sec.appendChild(list);return sec;
   }
-  var base=window.dashboardCustomerCard;
-  if(typeof base!=="function")return;
-  window.dashboardCustomerCard=function(c,index,category){
-    var html=base.apply(this,arguments);
-    if(!c||child155(c))return html;
+  function ordersF(id){
+    try{if(typeof window.customerOrders==="function")return window.customerOrders(id)||[];}catch(_){ }
+    return (Array.isArray(window.state&&state.orders)?state.orders:[]).filter(function(o){return String(o&&o.customer_id)===String(id);});
+  }
+  function extraF(o){
+    try{if(typeof window.nfGarmentExtra==="function")return window.nfGarmentExtra(o)||{};}catch(_){ }
+    var m=String(o&&o.notes||"").match(/GARMENT_SPLIT:(\{[^}]+\})/i);
+    if(m){try{return JSON.parse(m[1])||{};}catch(_){}}
+    return {};
+  }
+  function blouseF(o){
     try{
-      var h=document.createElement("div");h.innerHTML=html;
-      h.querySelectorAll(".nf150-home-group,.nf116-home-group,.nf-v155-home-group").forEach(function(x){x.remove();});
-      var card=h.querySelector(".nf-dch-card")||h.querySelector("article");
-      var g=makeGroup155(c);
-      if(card&&g)card.appendChild(g);
-      return h.innerHTML;
-    }catch(e){return html;}
-  };
-  window.dashboardCustomerCard.__nfV155=true;
-  if(typeof window.renderDashboardCustomers==="function"){
-    var rd=window.renderDashboardCustomers;
-    window.renderDashboardCustomers=function(){var r=rd.apply(this,arguments);return r;};
-    try{if(document.getElementById("view-dashboard")?.classList.contains("active"))window.renderDashboardCustomers();}catch(e){}
+      if(typeof window.blouseSplit==="function"){
+        var b=window.blouseSplit(o)||{};
+        var q=num(b.normal)+num(b.lining)+num(b.design);
+        if(q>0)return q;
+      }
+    }catch(_){ }
+    return 0;
   }
+  function garmentCountsF(c){
+    var out={blouse:0,chudi:0,saree:0};
+    ordersF(c.id).forEach(function(o){
+      var g=String(o&&o.garment_type||"").trim().toLowerCase();
+      var ex=extraF(o);
+      var b=blouseF(o);
+      var ch=num(ex.chudi),s=num(ex.saree);
+      if(g==="blouse"||!g){
+        out.blouse+=b||num(o&&o.quantity);
+      }else if(g==="chudi"){
+        out.chudi+=ch||num(o&&o.quantity);
+      }else if(g==="saree"){
+        out.saree+=s||num(o&&o.quantity);
+      }else{
+        /* Combined/legacy orders can carry extra garment quantities in notes. */
+        if(b>0)out.blouse+=b;
+        if(ch>0)out.chudi+=ch;
+        if(s>0)out.saree+=s;
+        if(b===0&&ch===0&&s===0)out.blouse+=num(o&&o.quantity);
+      }
+    });
+    return out;
+  }
+  function garmentHTMLF(c){
+    var x=garmentCountsF(c),a=[];
+    if(x.blouse>0)a.push('<span>👗 '+x.blouse+' Blouse</span>');
+    if(x.chudi>0)a.push('<span>👚 '+x.chudi+' Chudi</span>');
+    if(x.saree>0)a.push('<span>🥻 '+x.saree+' Saree</span>');
+    return a.join(' · ');
+  }
+
+  var baseCard=window.dashboardCustomerCard;
+  if(typeof baseCard!=="function")return;
+  window.dashboardCustomerCard=function(c,index,category){
+    var html=baseCard.apply(this,arguments);
+    if(!c)return html;
+    var kids=kidsF(c.id);
+    if(!kids.length)return html;
+    /* Remove any older Home Multi-Customer presentation from this card. */
+    html=html.replace(/<section\s+class=["']nf150-home-group[\s\S]*?<\/section>/gi,"");
+    var rows=kids.map(function(k){
+      var g=garmentHTMLF(k);
+      return '<div class="nf-final-multi-person">'+
+        '<span class="nf-final-multi-name">'+escF(k.name||"Customer")+'</span>'+
+        (g?'<span class="nf-final-multi-garments">'+g+'</span>':'')+
+      '</div>';
+    }).join("");
+    var group='<section class="nf-final-multi-group" onclick="event.stopPropagation()">'+rows+'</section>';
+    return html.replace('</article>',group+'</article>');
+  };
+  window.dashboardCustomerCard.__nfFinalHomeMultiGarmentRow=true;
 })();
 </script>
-
 </body>
 <script id="nf-v120-single-cash-dedupe-fix">
 /* V22: superseded by the single stable customer-group renderer. */
