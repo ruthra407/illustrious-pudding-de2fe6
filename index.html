@@ -14159,3 +14159,99 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
   try{var cap=window.Capacitor,app=cap&&cap.Plugins&&cap.Plugins.App;if(app&&typeof app.addListener==="function")app.addListener("backButton",function(){if(overlay.classList.contains("open"))close(true);});}catch(e){console.warn('Delivery preview back listener unavailable',e);}
 })();
 </script>
+
+<!-- V156 FINAL FIX: only Stone/Knot/Lays persistence/display; no other app logic changed. -->
+<script id="skl-v156-final-fix">
+(function(){
+  'use strict';
+  if(window.__sklV156FinalFix)return;
+  window.__sklV156FinalFix=true;
+
+  function stripMaterials(v){
+    return String(v||'')
+      .replace(/(?:^|\s*\|\s*)MATERIALS:[^|]*/gi,'')
+      .replace(/\s*\|\s*\|\s*/g,' | ')
+      .replace(/^\s*\|\s*|\s*\|\s*$/g,'')
+      .replace(/\s{2,}/g,' ')
+      .trim();
+  }
+
+  function latestMaterials(v){
+    var parts=String(v||'').split('|'), latest=null;
+    for(var i=0;i<parts.length;i++){
+      var p=parts[i].trim();
+      if(/^MATERIALS:/i.test(p)){
+        var raw=p.replace(/^MATERIALS:\s*/i,'').trim();
+        try{ latest=JSON.parse(raw); }catch(e){}
+      }
+    }
+    return latest;
+  }
+
+  function normalizedNotes(v){
+    var clean=stripMaterials(v), m=latestMaterials(v);
+    if(!m)return clean;
+    return clean ? clean+' | MATERIALS:'+JSON.stringify(m) : 'MATERIALS:'+JSON.stringify(m);
+  }
+
+  // Never expose the technical MATERIALS marker in Alteration Notes.
+  var oldClean=window.cleanOrderNotes;
+  if(typeof oldClean==='function' && !oldClean.__sklFinal){
+    var wrappedClean=function(v){
+      return stripMaterials(oldClean(v));
+    };
+    wrappedClean.__sklFinal=true;
+    window.cleanOrderNotes=wrappedClean;
+  }
+
+  // On edit, force the editor to read the LAST Stone/Knot/Lays update,
+  // not the first marker left by an earlier update.
+  var oldPopulate=window.populateQuickOrderEditor;
+  if(typeof oldPopulate==='function' && !oldPopulate.__sklFinal){
+    var wrappedPopulate=function(id,o){
+      var x=o;
+      if(o && o.notes){
+        x=Object.assign({},o,{notes:normalizedNotes(o.notes)});
+      }
+      return oldPopulate.apply(this,[id,x].concat(Array.prototype.slice.call(arguments,2)));
+    };
+    wrappedPopulate.__sklFinal=true;
+    window.populateQuickOrderEditor=wrappedPopulate;
+  }
+
+  // Before the existing save wrapper runs, remove all old MATERIALS markers.
+  // The existing wrapper then appends exactly one fresh marker for this update.
+  var oldSave=window.saveQuickOrder;
+  if(typeof oldSave==='function' && !oldSave.__sklFinal){
+    var wrappedSave=async function(id,customerId){
+      var ta=document.getElementById('qo-notes-'+id);
+      var original=ta ? ta.value : '';
+      if(ta) ta.value=stripMaterials(original);
+      try{
+        return await oldSave.apply(this,arguments);
+      }finally{
+        if(ta) ta.value=original;
+      }
+    };
+    wrappedSave.__sklFinal=true;
+    window.saveQuickOrder=wrappedSave;
+  }
+
+  // Clean already-saved in-memory order notes once, so old duplicate markers
+  // do not win over the latest marker during Customer Card rendering.
+  function normalizeStateOrders(){
+    try{
+      if(typeof state==='undefined' || !Array.isArray(state.orders))return;
+      state.orders.forEach(function(o){
+        if(!o || !o.notes)return;
+        var n=normalizedNotes(o.notes);
+        if(n!==o.notes)o.notes=n;
+      });
+    }catch(e){}
+  }
+  normalizeStateOrders();
+  setTimeout(normalizeStateOrders,250);
+  setTimeout(normalizeStateOrders,1000);
+  setTimeout(normalizeStateOrders,2500);
+})();
+</script>
