@@ -11464,6 +11464,139 @@ setTimeout(()=>document.querySelectorAll('[id^="quick-order-"]').forEach(e=>ensu
   window.__sklV156CleanVisible=cleanVisible;
 })();
 </script>
+
+<!-- V300 — Stone / Knot / Lays placement + total integration only -->
+<style id="nf-v300-stone-knot-lays-css">
+.nf-v300-materials-inline{margin:8px 0 4px;padding:9px;border:1px solid #ddd5ef;border-radius:12px;background:linear-gradient(135deg,#fbf9ff,#fff7fb)}
+.nf-v300-materials-title{font-weight:900;font-size:13px;margin-bottom:6px;color:#5b35a8}
+.nf-v300-material-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px 9px;margin-top:5px;border:1px solid #e8e1f1;border-radius:9px;background:#fff;font-size:12px}
+.nf-v300-material-row .name{font-weight:850;min-width:0}
+.nf-v300-material-row .math{white-space:nowrap;font-weight:750}
+.nf-v300-material-row .math b{font-weight:950}
+.nf-v300-material-total{display:flex;justify-content:space-between;gap:8px;margin-top:7px;padding:8px 9px;border-radius:10px;background:linear-gradient(135deg,#eee8ff,#ffe8f2);font-weight:950}
+@media(max-width:560px){.nf-v300-material-row{font-size:11px}.nf-v300-material-row .math{font-size:11px}}
+</style>
+<script id="nf-v300-stone-knot-lays-script">
+(function(){
+  'use strict';
+  if(window.__nfV300SKL)return;
+  window.__nfV300SKL=true;
+
+  var N=function(v){var n=Number(v);return Number.isFinite(n)?Math.max(0,n):0};
+  var K=['stone','knot','lays'];
+  var L={stone:'Stone',knot:'Knot',lays:'Lays'};
+  var moneyFn=function(v){try{return typeof money==='function'?money(N(v)):'₹'+N(v).toFixed(2)}catch(e){return '₹'+N(v).toFixed(2)}};
+  var blank=function(){return {stone:{qty:0,price:0},knot:{qty:0,price:0},lays:{qty:0,price:0}}};
+
+  function latestMaterials(notes){
+    var parts=String(notes||'').split('|'),latest=null;
+    for(var i=0;i<parts.length;i++){
+      var p=parts[i].trim();
+      if(!/^MATERIALS:/i.test(p))continue;
+      try{latest=JSON.parse(p.replace(/^MATERIALS:\s*/i,''));}catch(e){}
+    }
+    return latest||{lining:blank(),design:[]};
+  }
+  function total(x){return K.reduce(function(a,k){return a+N(x&&x[k]&&x[k].qty)*N(x&&x[k]&&x[k].price)},0)}
+  function rows(x){
+    x=x||blank();
+    return K.filter(function(k){return N(x[k]&&x[k].qty)>0 || N(x[k]&&x[k].price)>0}).map(function(k){
+      var q=N(x[k]&&x[k].qty),p=N(x[k]&&x[k].price),t=q*p;
+      return '<div class="nf-v300-material-row"><span class="name">'+L[k]+' '+q+'</span><span class="math">'+q+' × '+moneyFn(p)+' = <b>'+moneyFn(t)+'</b></span></div>';
+    }).join('');
+  }
+  function block(x,title){
+    var t=total(x);if(!t)return '';
+    return '<div class="nf-v300-materials-inline"><div class="nf-v300-materials-title">✨ Stone / Knot / Lays</div>'+rows(x)+'<div class="nf-v300-material-total"><span>'+title+' materials Total</span><span>'+moneyFn(t)+'</span></div></div>';
+  }
+  function orderMaterials(o){return latestMaterials(o&&o.notes)}
+  function allMaterials(orders){
+    var lining=blank(),design=[],grand=0;
+    (orders||[]).forEach(function(o){
+      var m=orderMaterials(o);
+      K.forEach(function(k){
+        var q=N(m.lining&&m.lining[k]&&m.lining[k].qty),p=N(m.lining&&m.lining[k]&&m.lining[k].price);
+        lining[k].qty+=q;if(p>0)lining[k].price=p;
+      });
+      (Array.isArray(m.design)?m.design:[]).forEach(function(d,i){
+        if(!design[i])design[i]=blank();
+        K.forEach(function(k){
+          var q=N(d&&d[k]&&d[k].qty),p=N(d&&d[k]&&d[k].price);
+          design[i][k].qty+=q;if(p>0)design[i][k].price=p;
+        });
+      });
+    });
+    grand=total(lining)+design.reduce(function(a,x){return a+total(x)},0);
+    return {lining:lining,design:design,total:grand};
+  }
+
+  /* Quick-order editor: keep the material amount inside the blouse calculation total. */
+  var baseCalc=window.updateQuickOrderCalc;
+  window.updateQuickOrderCalc=function(id){
+    if(typeof baseCalc==='function')baseCalc.apply(this,arguments);
+    try{
+      if(typeof window.sklV156Collect!=='function')return;
+      var m=window.sklV156Collect(id),extra=total(m.lining)+((m.design||[]).reduce(function(a,x){return a+total(x)},0));
+      var t=document.getElementById('qo-total-'+id);
+      if(t){
+        var base=Number(String(t.textContent||'').replace(/[^0-9.-]/g,''))||0;
+        /* V314 calculates the blouse/chudi/lining-cloth total. V300 adds only Stone/Knot/Lays once. */
+        t.textContent=moneyFn(base+extra);
+      }
+    }catch(e){console.warn('V300 calc sync',e)}
+  };
+
+  /* Customer Card: move Stone/Knot/Lays directly below the related blouse calculation. */
+  var baseSummary=window.nfCustomerWorkSummaryHTML;
+  function decorateCustomerSummary(st){
+    var html=typeof baseSummary==='function'?baseSummary(st):'';
+    try{
+      var mats=allMaterials(st&&st.os||[]);
+      if(!mats.total)return html;
+      var holder=document.createElement('div');holder.innerHTML=html;
+      var summary=holder.querySelector('.customerWorkSummary');if(!summary)return html;
+
+      var rateRows=summary.querySelectorAll('.customerRateList');
+      var liningRow=null;
+      rateRows.forEach(function(list){
+        if(liningRow)return;
+        list.querySelectorAll('.customerRateRow').forEach(function(r){
+          var txt=(r.querySelector('.rateLabel')||{}).textContent||'';
+          if(/^Lining blouse\b/i.test(txt.trim()))liningRow=r;
+        });
+      });
+      if(liningRow){
+        var wrap=document.createElement('div');wrap.innerHTML=block(mats.lining,'Lining');
+        if(wrap.firstElementChild)liningRow.insertAdjacentElement('afterend',wrap.firstElementChild);
+      }
+
+      var designRows=summary.querySelectorAll('.nf-customer-design-rate-row');
+      designRows.forEach(function(r,i){
+        var d=mats.design[i];
+        if(!d||!total(d))return;
+        var wrap=document.createElement('div');wrap.innerHTML=block(d,'Design '+(i+1));
+        if(wrap.firstElementChild)r.insertAdjacentElement('afterend',wrap.firstElementChild);
+      });
+
+      /* Add material cost exactly once to the displayed Blouse Section Total and grand total. */
+      var totals=summary.querySelectorAll('.customerRateTotal');
+      totals.forEach(function(el){
+        var label=(el.querySelector('span')||{}).textContent||'';
+        if(/Blouse Section Total/i.test(label)||/மொத்த Rate/i.test(label)){
+          var valueEl=el.querySelectorAll('span')[1]||el.querySelector('b');
+          if(!valueEl)return;
+          var current=Number(String(valueEl.textContent||'').replace(/[^0-9.-]/g,''))||0;
+          valueEl.textContent=moneyFn(current+mats.total);
+        }
+      });
+      return holder.innerHTML;
+    }catch(e){console.warn('V300 customer placement',e);return html}
+  }
+  window.nfCustomerWorkSummaryHTML=function(st){return decorateCustomerSummary(st)};
+
+  /* If the customer view re-renders later, the function above is used again automatically. */
+})();
+</script>
 </body>
 <script id="nf-v120-single-cash-dedupe-fix">
 /* V22: superseded by the single stable customer-group renderer. */
