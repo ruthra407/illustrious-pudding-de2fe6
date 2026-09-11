@@ -6478,8 +6478,9 @@ function slotMarkup(items){
       <label>இந்த Design-க்கு ஒன்றின் விலை</label>
       <input class="input nf-di-rate" type="number" min="0" step="0.01" value="${N(x.rate)}">
 
-      <label>🧵 இந்த Design-க்கு Lining cloth எத்தனை</label>
+      <label>🧵 இந்த Design-க்கு Lining cloth — எத்தனை / ஒன்றுக்கு விலை</label>
       <input class="input nf-di-lining-qty" type="text" inputmode="decimal" placeholder="எ.கா. 2 / ₹60" value="${E(x.liningClothSpec||((N(x.liningClothQty)||0)?nfFormatLiningSpec(x.liningClothQty,x.liningClothRate):""))}">
+      <div class="nf-di-lining-total">Lining cloth Total: <b class="nf-di-lining-total-value">${M(N(x.liningClothQty)*N(x.liningClothRate))}</b></div>
 
       <label>📅 வாங்கிச் சென்ற தேதி</label>
       <input class="input nf-di-handover-date" type="date" value="${E(x.handoverDate||"")}">
@@ -6514,10 +6515,11 @@ function recalcBox(box){
   const items=readBox(box);
   let qty=0,total=0,handover=0;
   [...box.querySelectorAll(".nf-design-slot-card")].forEach((c,i)=>{
-    const x=items[i],sub=x.qty*x.rate;qty+=x.qty;total+=sub;handover+=x.handover;
+    const x=items[i],sub=x.qty*x.rate,liningSpec=nfParseLiningSpec(c.querySelector(".nf-di-lining-qty")?.value),liningTotal=liningSpec.qty*liningSpec.rate;qty+=x.qty;total+=sub;handover+=x.handover;
     const ho=c.querySelector(".nf-di-handover");if(ho)ho.value=x.handover;
     const rem=c.querySelector(".nf-di-rem");if(rem)rem.textContent=String(Math.max(0,x.qty-x.handover));
     const el=c.querySelector(".nf-di-sub");if(el)el.textContent=M(sub);
+    const lineEl=c.querySelector(".nf-di-lining-total-value");if(lineEl)lineEl.textContent=M(liningTotal);
   });
   const t=box.querySelector(".nf-di-total");if(t)t.textContent=M(total);
   return {items,qty,total,handover};
@@ -7037,66 +7039,50 @@ function nfFormatPaymentDate(v){return v?dateText(v):"—";}
   window.renderOrders.__nfFinalOrderSync=true;
 
   window.openOrdersEditOrder=function(orderId){
-    var oid=String(orderId||"");
-    var o=(state.orders||[]).find(function(x){return String(x.id)===oid;});
-    if(!o){toast("Edit செய்ய Order கிடைக்கவில்லை.",true);return false;}
-    var modal=document.getElementById("ordersNewOrderScreen"),panel=document.getElementById("ordersNewOrderContent");
-    if(!modal||!panel){toast("Edit Order screen கிடைக்கவில்லை.",true);return false;}
+    var o=(state.orders||[]).find(function(x){return String(x.id)===String(orderId);});
+    if(!o){toast("Edit செய்ய Order கிடைக்கவில்லை.",true);return;}
+    var modal=$("ordersNewOrderScreen"),panel=$("ordersNewOrderContent");
+    if(!modal||!panel){toast("Edit Order screen கிடைக்கவில்லை.",true);return;}
 
-    /* Build the editor from the same Quick Order template used by Customer Card.
-       Do not depend on CSS.escape(), which breaks Edit Order in some mobile browsers. */
     var holder=document.createElement("div");
     holder.innerHTML=customerCard(o.customer_id);
-    var source=holder.querySelector('[id="quick-order-'+String(o.customer_id).replace(/"/g,'\\"')+'"]');
-    if(!source){toast("Edit Order form உருவாக்க முடியவில்லை.",true);return false;}
+    var source=holder.querySelector("#quick-order-"+CSS.escape(String(o.customer_id)));
+    if(!source){toast("Customer Card-ல் இருக்கும் Edit Order section கிடைக்கவில்லை.",true);return;}
 
-    var key="orders_edit_"+oid.replace(/[^a-zA-Z0-9_-]/g,"_");
-    var markup=source.outerHTML;
-    /* Replace only the generated quick-order/customer key, preserving order data. */
-    var cid=String(o.customer_id);
-    markup=markup.split("quick-order-"+cid).join("quick-order-"+key);
-    markup=markup.split("qo-").join("qo-");
-    markup=markup.replace("saveQuickOrder('"+key+"')","saveQuickOrder('"+key+"','"+cid.replace(/'/g,"\\'")+"')");
-
+    var key="orders_edit_"+String(o.id).replace(/[^a-zA-Z0-9_-]/g,"_");
+    var markup=source.outerHTML.split(String(o.customer_id)).join(key);
+    markup=markup.replace("saveQuickOrder('"+key+"')","saveQuickOrder('"+key+"','"+String(o.customer_id).replace(/'/g,"\\'")+"')");
     panel.innerHTML='<div class="field" style="margin-bottom:12px"><label>Customer</label><select id="ordersQuickEditCustomer" class="input" disabled><option selected>'+escSafe(customerName(o.customer_id))+'</option></select></div>'+markup;
-    var box=document.getElementById("quick-order-"+key);
-    if(!box){toast("Edit Order form உருவாக்க முடியவில்லை.",true);return false;}
-
+    var box=$("quick-order-"+key);
+    if(!box){toast("Edit Order form உருவாக்க முடியவில்லை.",true);return;}
     box.classList.remove("hidden");
     box.classList.add("nf-edit-mode");
-    box.dataset.editOrderId=oid;
+    box.dataset.editOrderId=o.id;
     updateQuickOrderEditLabels(key);
     var title=box.querySelector(".nf-quick-edit-title");
     if(title)title.textContent="✏️ Edit Order — "+(o.order_no||"Order");
     var save=box.querySelector(".nf-quick-save-btn");
-    if(save){
-      save.textContent="💾 Update Order";
-      save.setAttribute("onclick","saveQuickOrder('"+key+"','"+cid.replace(/'/g,"\\'")+"')");
-    }
-
+    if(save)save.textContent="💾 Update Order";
     populateQuickOrderEditor(key,o);
     updateQuickGarment(key);
     updateChudiLiningLabel(key);
-    if(typeof nfSyncLiningClothUI==="function")nfSyncLiningClothUI(key);
-
-    var screenTitle=document.getElementById("ordersNewOrderScreenTitle");
+    var screenTitle=$("ordersNewOrderScreenTitle");
     if(screenTitle)screenTitle.textContent="✏️ Edit Order";
     modal.classList.add("open");
     modal.setAttribute("aria-hidden","false");
-
     var base=history.state||{view:"orders"};
-    if(!base.__nfOrdersNewOrder){
-      history.pushState({...base,__nfOrdersNewOrder:true,__nfOrdersEditOrder:true},"",location.hash||"#orders-edit-order");
-    }
-
-    /* Important: patch the actual generated key (orders_edit_ID), not orders_ID. */
-    setTimeout(function(){if(typeof patchQuick==="function")patchQuick(key);},120);
+    if(!base.__nfOrdersNewOrder){history.pushState({...base,__nfOrdersNewOrder:true,__nfOrdersEditOrder:true},"",location.hash||"#orders-edit-order");}
+    setTimeout(function(){box.scrollIntoView({behavior:"smooth",block:"start"});},80);
+    /* Keep Edit Order UI patches on the single canonical opener; do not wrap/override the opener. */
     setTimeout(function(){
-      if(typeof patchQuick==="function")patchQuick(key);
+      var editKey="orders_"+String(orderId||"").replace(/[^a-zA-Z0-9_-]/g,"_");
+      if(typeof patchQuick==="function")patchQuick(editKey);
+    },120);
+    setTimeout(function(){
+      var editKey="orders_"+String(orderId||"").replace(/[^a-zA-Z0-9_-]/g,"_");
+      if(typeof patchQuick==="function")patchQuick(editKey);
       if(typeof ensureOrderEditSections==="function")ensureOrderEditSections();
     },450);
-    setTimeout(function(){box.scrollIntoView({behavior:"smooth",block:"start"});},80);
-    return true;
   };
 
   window.nfCustomerWorkSummaryHTML=function(st){
@@ -7369,7 +7355,7 @@ function nfFormatPaymentDate(v){return v?dateText(v):"—";}
         const bd=nfLiningBreakdownFromOrder(o||{});
         const lb=document.getElementById("qo-lining-blouse-cloth-qty-"+id); if(lb)lb.value=bd.liningBlouseSpec||((bd.liningBlouseQty||0)?nfFormatLiningSpec(bd.liningBlouseQty,bd.liningBlouseRate):"");
         const host=document.getElementById("qo-design-rates-box-"+id),cards=host?.querySelectorAll(".nf-design-slot-card")||[];
-        (bd.design||[]).forEach((q,i)=>{const el=cards[i]?.querySelector(".nf-di-lining-qty");if(el)el.value=String(q||0);});
+        (bd.design||[]).forEach((q,i)=>{const el=cards[i]?.querySelector(".nf-di-lining-qty");if(el){const rate=N(bd.designRates?.[i]);el.value=q?nfFormatLiningSpec(q,rate):"";}});
         nfSyncLiningClothUI(id); updateQuickOrderCalcV314(id);
       }catch(e){console.error("Lining breakdown populate",e)}
     };
