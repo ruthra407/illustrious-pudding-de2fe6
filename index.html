@@ -7037,50 +7037,66 @@ function nfFormatPaymentDate(v){return v?dateText(v):"—";}
   window.renderOrders.__nfFinalOrderSync=true;
 
   window.openOrdersEditOrder=function(orderId){
-    var o=(state.orders||[]).find(function(x){return String(x.id)===String(orderId);});
-    if(!o){toast("Edit செய்ய Order கிடைக்கவில்லை.",true);return;}
-    var modal=$("ordersNewOrderScreen"),panel=$("ordersNewOrderContent");
-    if(!modal||!panel){toast("Edit Order screen கிடைக்கவில்லை.",true);return;}
+    var oid=String(orderId||"");
+    var o=(state.orders||[]).find(function(x){return String(x.id)===oid;});
+    if(!o){toast("Edit செய்ய Order கிடைக்கவில்லை.",true);return false;}
+    var modal=document.getElementById("ordersNewOrderScreen"),panel=document.getElementById("ordersNewOrderContent");
+    if(!modal||!panel){toast("Edit Order screen கிடைக்கவில்லை.",true);return false;}
 
+    /* Build the editor from the same Quick Order template used by Customer Card.
+       Do not depend on CSS.escape(), which breaks Edit Order in some mobile browsers. */
     var holder=document.createElement("div");
     holder.innerHTML=customerCard(o.customer_id);
-    var source=holder.querySelector("#quick-order-"+CSS.escape(String(o.customer_id)));
-    if(!source){toast("Customer Card-ல் இருக்கும் Edit Order section கிடைக்கவில்லை.",true);return;}
+    var source=holder.querySelector('[id="quick-order-'+String(o.customer_id).replace(/"/g,'\\"')+'"]');
+    if(!source){toast("Edit Order form உருவாக்க முடியவில்லை.",true);return false;}
 
-    var key="orders_edit_"+String(o.id).replace(/[^a-zA-Z0-9_-]/g,"_");
-    var markup=source.outerHTML.split(String(o.customer_id)).join(key);
-    markup=markup.replace("saveQuickOrder('"+key+"')","saveQuickOrder('"+key+"','"+String(o.customer_id).replace(/'/g,"\\'")+"')");
+    var key="orders_edit_"+oid.replace(/[^a-zA-Z0-9_-]/g,"_");
+    var markup=source.outerHTML;
+    /* Replace only the generated quick-order/customer key, preserving order data. */
+    var cid=String(o.customer_id);
+    markup=markup.split("quick-order-"+cid).join("quick-order-"+key);
+    markup=markup.split("qo-").join("qo-");
+    markup=markup.replace("saveQuickOrder('"+key+"')","saveQuickOrder('"+key+"','"+cid.replace(/'/g,"\\'")+"')");
+
     panel.innerHTML='<div class="field" style="margin-bottom:12px"><label>Customer</label><select id="ordersQuickEditCustomer" class="input" disabled><option selected>'+escSafe(customerName(o.customer_id))+'</option></select></div>'+markup;
-    var box=$("quick-order-"+key);
-    if(!box){toast("Edit Order form உருவாக்க முடியவில்லை.",true);return;}
+    var box=document.getElementById("quick-order-"+key);
+    if(!box){toast("Edit Order form உருவாக்க முடியவில்லை.",true);return false;}
+
     box.classList.remove("hidden");
     box.classList.add("nf-edit-mode");
-    box.dataset.editOrderId=o.id;
+    box.dataset.editOrderId=oid;
     updateQuickOrderEditLabels(key);
     var title=box.querySelector(".nf-quick-edit-title");
     if(title)title.textContent="✏️ Edit Order — "+(o.order_no||"Order");
     var save=box.querySelector(".nf-quick-save-btn");
-    if(save)save.textContent="💾 Update Order";
+    if(save){
+      save.textContent="💾 Update Order";
+      save.setAttribute("onclick","saveQuickOrder('"+key+"','"+cid.replace(/'/g,"\\'")+"')");
+    }
+
     populateQuickOrderEditor(key,o);
     updateQuickGarment(key);
     updateChudiLiningLabel(key);
-    var screenTitle=$("ordersNewOrderScreenTitle");
+    if(typeof nfSyncLiningClothUI==="function")nfSyncLiningClothUI(key);
+
+    var screenTitle=document.getElementById("ordersNewOrderScreenTitle");
     if(screenTitle)screenTitle.textContent="✏️ Edit Order";
     modal.classList.add("open");
     modal.setAttribute("aria-hidden","false");
+
     var base=history.state||{view:"orders"};
-    if(!base.__nfOrdersNewOrder){history.pushState({...base,__nfOrdersNewOrder:true,__nfOrdersEditOrder:true},"",location.hash||"#orders-edit-order");}
-    setTimeout(function(){box.scrollIntoView({behavior:"smooth",block:"start"});},80);
-    /* Keep Edit Order UI patches on the single canonical opener; do not wrap/override the opener. */
+    if(!base.__nfOrdersNewOrder){
+      history.pushState({...base,__nfOrdersNewOrder:true,__nfOrdersEditOrder:true},"",location.hash||"#orders-edit-order");
+    }
+
+    /* Important: patch the actual generated key (orders_edit_ID), not orders_ID. */
+    setTimeout(function(){if(typeof patchQuick==="function")patchQuick(key);},120);
     setTimeout(function(){
-      var editKey="orders_"+String(orderId||"").replace(/[^a-zA-Z0-9_-]/g,"_");
-      if(typeof patchQuick==="function")patchQuick(editKey);
-    },120);
-    setTimeout(function(){
-      var editKey="orders_"+String(orderId||"").replace(/[^a-zA-Z0-9_-]/g,"_");
-      if(typeof patchQuick==="function")patchQuick(editKey);
+      if(typeof patchQuick==="function")patchQuick(key);
       if(typeof ensureOrderEditSections==="function")ensureOrderEditSections();
     },450);
+    setTimeout(function(){box.scrollIntoView({behavior:"smooth",block:"start"});},80);
+    return true;
   };
 
   window.nfCustomerWorkSummaryHTML=function(st){
