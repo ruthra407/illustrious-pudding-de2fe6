@@ -14843,3 +14843,277 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
   try{obs.observe(document.body,{subtree:true,childList:true});}catch(e){}
 })();
 </script>
+
+<!-- V402: Section-wise Stone/Knot/Lace integration in Customer Card -->
+<style id="nf-v402-section-materials-css">
+  .nf-v402-material-row{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:45px;padding:10px 11px;margin-top:7px;border:2px solid #ded5ed;border-radius:13px;background:linear-gradient(145deg,#fff,#faf8ff);box-shadow:0 3px 10px rgba(55,40,90,.04);font-weight:900}
+  .nf-v402-material-row .rateLabel{min-width:0}
+  .nf-v402-material-row .rateMath{white-space:nowrap;text-align:right}
+  .nf-v402-design-materials{margin-top:7px}
+  .nf-v402-section-total{margin:8px 11px 11px;padding:11px 13px;border-radius:13px;background:linear-gradient(135deg,#6137dc,#a63fc8,#e94f8c);color:#fff;display:flex;justify-content:space-between;gap:8px;font-weight:950;box-shadow:0 6px 14px rgba(100,53,205,.16)}
+  @media(max-width:560px){.nf-v402-material-row{font-size:12px}.nf-v402-material-row .rateMath{font-size:11px}.nf-v402-section-total{margin-left:9px;margin-right:9px}}
+</style>
+<script id="nf-v402-section-materials-js">
+(function(){
+  'use strict';
+  if(window.__nfV402SectionMaterials)return;
+  window.__nfV402SectionMaterials=true;
+
+  const N=v=>{const n=Number(v);return Number.isFinite(n)?Math.max(0,n):0};
+  const K=['stone','knot','lays'];
+  const LABEL={stone:'Stone',knot:'Knot',lays:'Lace'};
+  const M=v=>{try{return typeof money==='function'?money(N(v)):'₹'+N(v).toFixed(2)}catch(e){return '₹'+N(v).toFixed(2)}};
+  const blank=()=>({stone:{qty:0,price:0},knot:{qty:0,price:0},lays:{qty:0,price:0}});
+  const matTotal=x=>K.reduce((a,k)=>a+N(x&&x[k]&&x[k].qty)*N(x&&x[k]&&x[k].price),0);
+
+  function latestMaterials(notes){
+    let latest=null;
+    String(notes||'').split('|').forEach(part=>{
+      const p=part.trim();
+      if(!/^MATERIALS:/i.test(p))return;
+      try{
+        const x=JSON.parse(p.replace(/^MATERIALS:\s*/i,'').trim());
+        if(x&&typeof x==='object')latest=x;
+      }catch(e){}
+    });
+    return latest||{lining:blank(),design:[]};
+  }
+
+  function add(dst,src){
+    K.forEach(k=>{
+      const q=N(src&&src[k]&&src[k].qty),p=N(src&&src[k]&&src[k].price);
+      dst[k].qty+=q;
+      if(p>0)dst[k].price=p;
+    });
+  }
+
+  function collect(os){
+    const lining=blank(),design=[];
+    (os||[]).forEach(o=>{
+      const m=latestMaterials(o&&o.notes);
+      add(lining,m.lining||blank());
+      (Array.isArray(m.design)?m.design:[]).forEach((d,i)=>{
+        if(!design[i])design[i]=blank();
+        add(design[i],d||blank());
+      });
+    });
+    return {lining,design};
+  }
+
+  function materialRows(x){
+    return K.filter(k=>N(x&&x[k]&&x[k].qty)>0 || N(x&&x[k]&&x[k].price)>0).map(k=>{
+      const q=N(x[k].qty),p=N(x[k].price),t=q*p;
+      return '<div class="customerRateRow nf-v402-material-row"><span class="rateLabel">'+LABEL[k]+' '+q+'</span><span class="rateMath">'+q+' × '+M(p)+' = <b>'+M(t)+'</b></span></div>';
+    }).join('');
+  }
+
+  function num(el){return N(String(el&&el.textContent||'').replace(/[^0-9.-]/g,''));}
+
+  // V300 captured the real pre-material Customer Card renderer. Use that as
+  // the base so this patch does not inherit the old standalone material block.
+  const base=window.__nfV300FinalBaseSummary;
+  if(typeof base!=='function')return;
+
+  window.nfCustomerWorkSummaryHTML=function(st){
+    let html='';
+    try{html=base(st||{});}catch(e){return '';}
+    if(!html)return html;
+
+    const holder=document.createElement('div');
+    holder.innerHTML=html;
+    const summary=holder.querySelector('.customerWorkSummary');
+    if(!summary)return html;
+
+    // Remove every legacy standalone Stone/Knot/Lays output.
+    summary.querySelectorAll('.nf-v300-final-materials,.nf-v300-materials-inline,.skl-material-summary,.nf-combined-calc,.nf-combined-grand').forEach(el=>el.remove());
+
+    const mats=collect(st&&st.os||[]);
+    const blouse=[...summary.querySelectorAll('.customerWorkSection')].find(sec=>/Blouse Section/i.test(String(sec.querySelector('h4')?.textContent||'')));
+    if(!blouse)return holder.innerHTML;
+    const list=blouse.querySelector('.customerRateList');
+    if(!list)return holder.innerHTML;
+
+    // ---------------- Lining blouse ----------------
+    const liningRow=[...list.querySelectorAll(':scope > .customerRateRow')].find(row=>/^Lining blouse\b/i.test(String(row.querySelector('.rateLabel')?.textContent||'').trim()));
+    if(liningRow){
+      // Move Lining cloth directly below Lining blouse. It belongs to this section.
+      const clothRow=[...list.querySelectorAll(':scope > .customerRateRow')].find(row=>/^Lining cloth\b/i.test(String(row.querySelector('.rateLabel')?.textContent||'').trim()));
+      if(clothRow)liningRow.insertAdjacentElement('afterend',clothRow);
+
+      // Insert Lining Stone/Knot/Lace immediately after Lining cloth.
+      const rowsHtml=materialRows(mats.lining);
+      let last=clothRow||liningRow;
+      if(rowsHtml){
+        const wrap=document.createElement('div');
+        wrap.innerHTML=rowsHtml;
+        [...wrap.children].forEach(el=>{last.insertAdjacentElement('afterend',el);last=el;});
+      }
+
+      const blouseRate=num(liningRow.querySelector('.rateMath b'));
+      const clothRate=clothRow?num(clothRow.querySelector('.rateMath b')):0;
+      const materialRate=matTotal(mats.lining);
+      const total=blouseRate+clothRate+materialRate;
+
+      list.querySelectorAll('.nf-v402-lining-total').forEach(el=>el.remove());
+      const totalEl=document.createElement('div');
+      totalEl.className='customerRateTotal nf-v402-lining-total';
+      totalEl.innerHTML='<span>Lining blouse Total</span><span>'+M(total)+'</span>';
+      last.insertAdjacentElement('afterend',totalEl);
+    }
+
+    // ---------------- Design blouse ----------------
+    const designSlot=blouse.querySelector('.nf-design-calc-slot');
+    let designCompleteTotal=0;
+    if(designSlot){
+      const designRows=[...designSlot.querySelectorAll(':scope > .customerRateList .nf-customer-design-rate-row')];
+      designRows.forEach((row,i)=>{
+        const material=mats.design[i]||blank();
+        const baseRate=num(row.querySelector('.rateMath b'));
+        const extra=matTotal(material);
+        designCompleteTotal+=baseRate+extra;
+        row.querySelectorAll('.nf-v402-design-materials').forEach(el=>el.remove());
+        if(extra>0){
+          const wrap=document.createElement('div');
+          wrap.className='nf-v402-design-materials';
+          wrap.innerHTML=materialRows(material);
+          row.insertAdjacentElement('afterend',wrap);
+        }
+      });
+
+      const slotTotal=designSlot.querySelector('.nf-design-calc-slot-total');
+      if(slotTotal){
+        const b=slotTotal.querySelector('b');
+        if(b)b.textContent=M(designCompleteTotal);
+      }
+      const slotHead=designSlot.querySelector('.nf-design-calc-slot-head b');
+      if(slotHead)slotHead.textContent=M(designCompleteTotal);
+    }
+
+    // ---------------- Blouse section total ----------------
+    const sectionTotal=[...blouse.querySelectorAll(':scope > .customerRateTotal')].find(el=>/Blouse Section Total|Blouse \/ Lining Total/i.test(String(el.querySelector('span')?.textContent||'')));
+    if(sectionTotal){
+      const normalRow=[...list.querySelectorAll(':scope > .customerRateRow')].find(row=>/^Normal blouse\b/i.test(String(row.querySelector('.rateLabel')?.textContent||'')));
+      const sareeRow=[...list.querySelectorAll(':scope > .customerRateRow')].find(row=>/^Saree\b/i.test(String(row.querySelector('.rateLabel')?.textContent||'')));
+      const liningTotalEl=list.querySelector('.nf-v402-lining-total');
+      const normalTotal=num(normalRow?.querySelector('.rateMath b'));
+      const sareeTotal=num(sareeRow?.querySelector('.rateMath b'));
+      const liningComplete=liningTotalEl?num(liningTotalEl.querySelector('span:last-child')):num(liningRow?.querySelector('.rateMath b'));
+      const complete=normalTotal+liningComplete+designCompleteTotal+sareeTotal;
+      const spans=sectionTotal.querySelectorAll('span');
+      if(spans[1])spans[1].textContent=M(complete);
+    }
+
+    return holder.innerHTML;
+  };
+
+  // V401's MutationObserver removes only legacy standalone blocks; V402 does
+  // not create one, so no extra cleanup is needed here.
+})();
+</script>
+
+<!-- V403: Compact Lining Stone/Knot/Lace row — final Customer Card placement -->
+<style id="nf-v403-compact-materials-css">
+.nf-v403-material-line{display:flex;align-items:center;justify-content:flex-start;gap:10px;flex-wrap:wrap;margin:4px 0;padding:6px 9px;border:1px solid #e7dff2;border-radius:9px;background:#fbf9ff;font-size:12px;font-weight:800;color:#4b3a66}
+.nf-v403-material-line .nf-v403-title{font-weight:900;color:#6542d9}
+.nf-v403-material-item{white-space:nowrap}
+.nf-v403-material-total{margin-left:auto;white-space:nowrap;color:#8b3d76}
+@media(max-width:560px){.nf-v403-material-line{gap:6px;padding:5px 7px;font-size:11px}.nf-v403-material-total{margin-left:0;width:100%;text-align:right}}
+</style>
+<script id="nf-v403-compact-materials-js">
+(function(){
+  'use strict';
+  if(window.__nfV403CompactMaterials)return;
+  window.__nfV403CompactMaterials=true;
+  const N=v=>{const n=Number(v);return Number.isFinite(n)?Math.max(0,n):0};
+  const K=['stone','knot','lays'];
+  const LABEL={stone:'Stone',knot:'Knot',lays:'Lace'};
+  const blank=()=>({stone:{qty:0,price:0},knot:{qty:0,price:0},lays:{qty:0,price:0}});
+  const total=x=>K.reduce((a,k)=>a+N(x&&x[k]&&x[k].qty)*N(x&&x[k]&&x[k].price),0);
+  const M=v=>{try{return money(N(v))}catch(e){return '₹'+N(v).toFixed(2)}};
+
+  // Robustly read the last MATERIALS JSON object even when older records
+  // contain nested objects/arrays that defeat simple regular expressions.
+  function readLastMaterials(notes){
+    const s=String(notes||'');
+    let at=-1,found=null;
+    for(let i=0;i<s.length;i++){
+      if(s.slice(i,i+10).toUpperCase()==='MATERIALS:')at=i;
+    }
+    if(at<0)return null;
+    const start=s.indexOf('{',at+10);
+    if(start<0)return null;
+    let depth=0,inStr=false,esc=false,end=-1;
+    for(let i=start;i<s.length;i++){
+      const ch=s[i];
+      if(inStr){if(esc)esc=false;else if(ch==='\\')esc=true;else if(ch==='"')inStr=false;continue;}
+      if(ch==='"'){inStr=true;continue;}
+      if(ch==='{')depth++;
+      else if(ch==='}'){
+        depth--;
+        if(depth===0){end=i;break;}
+      }
+    }
+    if(end<0)return null;
+    try{found=JSON.parse(s.slice(start,end+1));}catch(e){found=null;}
+    return found&&typeof found==='object'?found:null;
+  }
+
+  function add(dst,src){
+    K.forEach(k=>{dst[k].qty+=N(src&&src[k]&&src[k].qty);if(N(src&&src[k]&&src[k].price)>0)dst[k].price=N(src[k].price)});
+  }
+
+  function collect(os){
+    const lining=blank();
+    (Array.isArray(os)?os:[]).forEach(o=>{
+      const m=readLastMaterials(o&&o.notes);
+      if(!m)return;
+      let split={};try{split=typeof blouseSplit==='function'?blouseSplit(o):{lining:0}}catch(e){}
+      if(N(split.lining)>0 || m.lining) add(lining,m.lining||blank());
+    });
+    return lining;
+  }
+
+  function line(x){
+    const parts=K.filter(k=>N(x&&x[k]&&x[k].qty)>0 || N(x&&x[k]&&x[k].price)>0).map(k=>{
+      const q=N(x[k].qty),p=N(x[k].price),t=q*p;
+      return '<span class="nf-v403-material-item">'+LABEL[k]+' '+q+' × '+M(p)+' = <b>'+M(t)+'</b></span>';
+    });
+    if(!parts.length)return '';
+    return '<div class="nf-v403-material-line"><span class="nf-v403-title">✨ Stone / Knot / Lace</span>'+parts.join('')+'<span class="nf-v403-material-total">Total '+M(total(x))+'</span></div>';
+  }
+
+  const base=window.nfCustomerWorkSummaryHTML;
+  if(typeof base!=='function')return;
+
+  window.nfCustomerWorkSummaryHTML=function(st){
+    let html='';try{html=base(st||{});}catch(e){return html;}
+    if(!html)return html;
+    const holder=document.createElement('div');holder.innerHTML=html;
+    const summary=holder.querySelector('.customerWorkSummary');if(!summary)return html;
+    // Remove any old/large material displays first.
+    summary.querySelectorAll('.nf-v402-material-row,.nf-v402-design-materials,.nf-v300-final-materials,.nf-v300-materials-inline,.skl-material-summary,.nf-combined-calc').forEach(e=>e.remove());
+    summary.querySelectorAll('.customerWorkSection').forEach(sec=>{
+      const h=sec.querySelector(':scope > h4');
+      if(/Stone\s*\/\s*Knot\s*\/\s*Lays/i.test(String(h&&h.textContent||'')))sec.remove();
+    });
+
+    const blouse=[...summary.querySelectorAll('.customerWorkSection')].find(sec=>/Blouse Section/i.test(String(sec.querySelector(':scope > h4')?.textContent||'')));
+    if(!blouse)return holder.innerHTML;
+    const list=blouse.querySelector(':scope > .customerRateList');if(!list)return holder.innerHTML;
+    const lining=[...list.querySelectorAll(':scope > .customerRateRow')].find(r=>/^Lining blouse\b/i.test(String(r.querySelector('.rateLabel')?.textContent||'').trim()));
+    if(!lining)return holder.innerHTML;
+
+    const mats=collect(st&&st.os||[]);
+    const htmlLine=line(mats);
+    if(!htmlLine)return holder.innerHTML;
+
+    // Exactly where requested: immediately below Lining blouse, before Lining cloth.
+    const old=list.querySelector('.nf-v403-material-line');if(old)old.remove();
+    lining.insertAdjacentHTML('afterend',htmlLine);
+
+    // Keep the existing Lining blouse Total amount unchanged here; the material
+    // amount is already reflected by the saved order total in this build.
+    return holder.innerHTML;
+  };
+})();
+</script>
