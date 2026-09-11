@@ -14409,3 +14409,313 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
   setTimeout(normalizeStateOrders,2500);
 })();
 </script>
+
+<!-- V300 FINAL PATCH: customer-card placement, totals, notes cleanup, and latest material edit sync -->
+<style id="nf-v300-final-customer-materials-css">
+  /* Legacy material blocks must never appear after the grand total / photos. */
+  .nfCustomerBreakdownMount .skl-material-summary,
+  .nfCustomerBreakdownMount .nf-combined-calc,
+  .nfCustomerBreakdownMount .nf-v300-materials-inline {
+    display:none !important;
+  }
+  .nf-v300-final-materials {
+    margin:8px 0 6px;
+    padding:9px;
+    border:1px solid #ddd5ef;
+    border-radius:12px;
+    background:linear-gradient(135deg,#fbf9ff,#fff7fb);
+  }
+  .nf-v300-final-materials-title {
+    font-weight:900;
+    font-size:13px;
+    margin-bottom:6px;
+    color:#5b35a8;
+  }
+  .nf-v300-final-material-row {
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:8px;
+    padding:7px 9px;
+    margin-top:5px;
+    border:1px solid #e8e1f1;
+    border-radius:9px;
+    background:#fff;
+    font-size:12px;
+  }
+  .nf-v300-final-material-row .name{font-weight:850;min-width:0}
+  .nf-v300-final-material-row .math{white-space:nowrap;font-weight:750}
+  .nf-v300-final-material-row .math b{font-weight:950}
+  .nf-v300-final-material-total {
+    display:flex;
+    justify-content:space-between;
+    gap:8px;
+    margin-top:7px;
+    padding:8px 9px;
+    border-radius:10px;
+    background:linear-gradient(135deg,#eee8ff,#ffe8f2);
+    font-weight:950;
+  }
+  .nf-v300-final-blouse-total {
+    margin-top:7px;
+    padding:8px 10px;
+    border-radius:10px;
+    background:linear-gradient(135deg,#f1ebff,#ffeaf3);
+    display:flex;
+    justify-content:space-between;
+    gap:8px;
+    font-weight:950;
+  }
+  @media(max-width:560px){
+    .nf-v300-final-material-row{font-size:11px}
+    .nf-v300-final-material-row .math{font-size:11px}
+  }
+</style>
+
+<script id="nf-v300-final-customer-materials-js">
+(function(){
+  'use strict';
+  if(window.__nfV300FinalCustomerMaterials)return;
+  window.__nfV300FinalCustomerMaterials=true;
+
+  const N=v=>{
+    const n=Number(v);
+    return Number.isFinite(n)?Math.max(0,n):0;
+  };
+  const K=['stone','knot','lays'];
+  const L={stone:'Stone',knot:'Knot',lays:'Lays'};
+  const M=v=>{
+    try{return money(N(v));}
+    catch(e){return '₹'+N(v).toFixed(2);}
+  };
+  const blank=()=>({
+    stone:{qty:0,price:0},
+    knot:{qty:0,price:0},
+    lays:{qty:0,price:0}
+  });
+  const total=x=>K.reduce((a,k)=>a+N(x&&x[k]&&x[k].qty)*N(x&&x[k]&&x[k].price),0);
+
+  /* Read the LAST MATERIALS marker. JSON is parsed from the whole pipe-separated
+     segment, so nested { } objects do not break the parser. */
+  function latestMaterials(notes){
+    let latest=null;
+    String(notes||'').split('|').forEach(part=>{
+      const p=part.trim();
+      if(!/^MATERIALS:/i.test(p))return;
+      try{
+        const x=JSON.parse(p.replace(/^MATERIALS:\s*/i,'').trim());
+        if(x && typeof x==='object')latest=x;
+      }catch(e){}
+    });
+    return latest || {lining:blank(),design:[]};
+  }
+
+  function addInto(dst,src){
+    K.forEach(k=>{
+      const q=N(src&&src[k]&&src[k].qty);
+      const p=N(src&&src[k]&&src[k].price);
+      dst[k].qty+=q;
+      if(p>0)dst[k].price=p;
+    });
+  }
+
+  function collectMaterials(os){
+    const lining=blank(), design=[];
+    (os||[]).forEach(o=>{
+      const m=latestMaterials(o&&o.notes);
+      addInto(lining,m.lining||blank());
+      (Array.isArray(m.design)?m.design:[]).forEach((d,i)=>{
+        if(!design[i])design[i]=blank();
+        addInto(design[i],d||blank());
+      });
+    });
+    return {
+      lining,
+      design,
+      liningTotal:total(lining),
+      designTotal:design.reduce((a,d)=>a+total(d),0)
+    };
+  }
+
+  function materialBlock(x,title){
+    const t=total(x);
+    if(t<=0)return '';
+    const rows=K.filter(k=>N(x&&x[k]&&x[k].qty)>0 || N(x&&x[k]&&x[k].price)>0)
+      .map(k=>{
+        const q=N(x[k].qty),p=N(x[k].price),v=q*p;
+        return '<div class="nf-v300-final-material-row">'+
+          '<span class="name">'+L[k]+' '+q+'</span>'+
+          '<span class="math">'+q+' × '+M(p)+' = <b>'+M(v)+'</b></span>'+
+        '</div>';
+      }).join('');
+    return '<div class="nf-v300-final-materials">'+
+      '<div class="nf-v300-final-materials-title">✨ Stone / Knot / Lays</div>'+
+      rows+
+      '<div class="nf-v300-final-material-total"><span>'+title+' materials Total</span><span>'+M(t)+'</span></div>'+
+    '</div>';
+  }
+
+  function numericText(el){
+    return N(String(el&&el.textContent||'').replace(/[^0-9.-]/g,''));
+  }
+
+  function finalSummary(st){
+    const baseFn=window.__nfV300FinalBaseSummary;
+    const html=typeof baseFn==='function'?baseFn(st):'';
+    if(!html)return html;
+
+    const holder=document.createElement('div');
+    holder.innerHTML=html;
+    const summary=holder.querySelector('.customerWorkSummary');
+    if(!summary)return html;
+
+    /* Remove every legacy Stone/Knot/Lays display before inserting the final
+       placement. This also removes blocks that were appended by older V300 code. */
+    summary.querySelectorAll(
+      '.nf-v300-materials-inline,.skl-material-summary,.nf-combined-calc,.nf-combined-grand'
+    ).forEach(el=>el.remove());
+
+    const mats=collectMaterials(st&&st.os||[]);
+    const materialGrand=mats.liningTotal+mats.designTotal;
+
+    /* Lining: immediately below the Lining blouse calculation. */
+    const liningRow=[...summary.querySelectorAll('.customerRateRow')]
+      .find(r=>/^Lining blouse\b/i.test(
+        String(r.querySelector('.rateLabel')?.textContent||'').trim()
+      ));
+    if(liningRow && mats.liningTotal>0){
+      const wrap=document.createElement('div');
+      wrap.innerHTML=materialBlock(mats.lining,'Lining');
+      const block=wrap.firstElementChild;
+      if(block)liningRow.insertAdjacentElement('afterend',block);
+
+      const labor=numericText(liningRow.querySelector('.rateMath b'));
+      const t=document.createElement('div');
+      t.className='nf-v300-final-blouse-total';
+      t.innerHTML='<span>Lining blouse Total</span><span>'+M(labor+mats.liningTotal)+'</span>';
+      if(block)block.insertAdjacentElement('afterend',t);
+    }
+
+    /* Design: immediately below the Design blouse calculation. Material slot
+       index follows the existing Design 1/2/3 calculation order. */
+    const designSlots=[...summary.querySelectorAll('.nf-design-calc-slot')];
+    designSlots.forEach((slot,i)=>{
+      const d=mats.design[i];
+      const mt=total(d);
+      if(mt<=0)return;
+
+      const wrap=document.createElement('div');
+      wrap.innerHTML=materialBlock(d,'Design '+(i+1));
+      const block=wrap.firstElementChild;
+      if(!block)return;
+
+      const slotTotal=slot.querySelector('.nf-design-calc-slot-total');
+      const labor=numericText(slotTotal?.querySelector('b')) || numericText(slot.querySelector('.nf-design-calc-slot-head b'));
+      if(slotTotal){
+        const b=slotTotal.querySelector('b');
+        if(b)b.textContent=M(labor+mt);
+      }
+      if(slotTotal)slotTotal.insertAdjacentElement('beforebegin',block);
+      else slot.appendChild(block);
+    });
+
+    /* Grand total: use the saved order total when it already contains materials.
+       For older records whose saved total predates Stone/Knot/Lays, add the
+       missing material amount exactly once. */
+    const breakdownText=[...summary.querySelectorAll('.customerRateTotal')];
+    const grandEl=breakdownText.find(el=>/மொத்த Rate/i.test(
+      String(el.querySelector('span')?.textContent||'')
+    ));
+    if(grandEl && materialGrand>0){
+      const value=grandEl.querySelectorAll('span')[1];
+      if(value){
+        const saved=numericText(value);
+        const baseBreakdown=(()=>{
+          let n=0;
+          summary.querySelectorAll('.customerRateTotal').forEach(el=>{
+            const label=String(el.querySelector('span')?.textContent||'');
+            if(!/மொத்த Rate/i.test(label))n+=numericText(el.querySelectorAll('span')[1]||el.querySelector('b'));
+          });
+          return n;
+        })();
+        const expected=baseBreakdown+materialGrand;
+        /* If the saved total is short of the expected total, repair it.
+           Otherwise keep the saved total to avoid double counting. */
+        if(saved+0.009<expected){
+          value.textContent=M(expected);
+        }
+      }
+    }
+
+    /* Remove any legacy Stone/Knot/Lays section that may have survived outside
+       the summary's direct child list. */
+    summary.querySelectorAll('.customerWorkSection').forEach(sec=>{
+      if(sec.querySelector('.nf-v300-final-materials'))return;
+      const txt=String(sec.textContent||'');
+      if(/Stone\s*\/\s*Knot\s*\/\s*Lays/i.test(txt) && !/Alteration/i.test(txt)){
+        sec.remove();
+      }
+    });
+
+    return holder.innerHTML;
+  }
+
+  /* Capture the current renderer once, then make this the final renderer. */
+  window.__nfV300FinalBaseSummary=window.nfCustomerWorkSummaryHTML;
+  window.nfCustomerWorkSummaryHTML=finalSummary;
+
+  /* Latest-value restore for Edit Order. Older parsers used a regex that could
+     stop at the first nested } in MATERIALS JSON; this reads the LAST marker. */
+  const oldPopulate=window.populateQuickOrderEditor;
+  if(typeof oldPopulate==='function' && !oldPopulate.__nfV300LatestMaterials){
+    const wrappedPopulate=function(id,o){
+      const ret=oldPopulate.apply(this,arguments);
+      setTimeout(()=>{
+        try{
+          const x=latestMaterials(o&&o.notes);
+          const root=document.getElementById('quick-order-'+id);
+          if(!root)return;
+          const lb=root.querySelector('.nf-edit-lining-blouse [data-skl-materials]');
+          if(lb){
+            K.forEach(k=>{
+              const q=lb.querySelector('[data-skl-q="'+k+'"]');
+              const p=lb.querySelector('[data-skl-p="'+k+'"]');
+              if(q)q.value=N(x.lining&&x.lining[k]&&x.lining[k].qty);
+              if(p)p.value=N(x.lining&&x.lining[k]&&x.lining[k].price);
+            });
+          }
+          root.querySelectorAll('#qo-design-rates-box-'+CSS.escape(String(id))+' .nf-design-slot-card')
+            .forEach((card,i)=>{
+              const d=(Array.isArray(x.design)?x.design[i]:null)||blank();
+              K.forEach(k=>{
+                const q=card.querySelector('[data-skl-q="'+k+'"]');
+                const p=card.querySelector('[data-skl-p="'+k+'"]');
+                if(q)q.value=N(d[k]&&d[k].qty);
+                if(p)p.value=N(d[k]&&d[k].price);
+              });
+            });
+          if(typeof window.updateQuickOrderCalc==='function')window.updateQuickOrderCalc(id);
+        }catch(e){console.warn('V300 latest material restore',e);}
+      },160);
+      return ret;
+    };
+    wrappedPopulate.__nfV300LatestMaterials=true;
+    window.populateQuickOrderEditor=wrappedPopulate;
+  }
+
+  /* Remove technical MATERIALS JSON from every visible Alteration Notes field
+     without touching the saved technical marker. */
+  function cleanVisibleNotes(){
+    document.querySelectorAll('[id^="qo-notes-"]').forEach(ta=>{
+      const v=String(ta.value||'');
+      if(/MATERIALS:/i.test(v)){
+        const clean=v.split('|').filter(p=>!/^\\s*MATERIALS:/i.test(p)).join(' | ')
+          .replace(/^\\s*\\|\\s*|\\s*\\|\\s*$/g,'').trim();
+        if(clean!==v)ta.value=clean;
+      }
+    });
+  }
+  setTimeout(cleanVisibleNotes,80);
+  setTimeout(cleanVisibleNotes,400);
+})();
+</script>
