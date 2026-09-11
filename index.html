@@ -11397,164 +11397,143 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-card{
 </script>
 
 
-<script id="nf-v156-lining-design-materials-js">
-(function(){
-  "use strict";
-  const N=v=>Math.max(0,Number(v||0));
-  const $=id=>document.getElementById(id);
-  const moneySafe=v=>{try{return money(N(v));}catch(e){return "₹"+N(v).toFixed(2);}};
-  const keys=["stone","knot","lace"];
-  const title={stone:"Stone",knot:"Knot",lace:"Lace"};
-
-  function boxHTML(id,type){
-    const cap=type==='lining'?'Lining blouse':'Design blouse';
-    const prefix=`qo-${type}-materials-${id}`;
-    return `<div class="nf-material-box nf-material-${type}" id="${prefix}">
-      <div class="nf-material-head"><span>✨</span><div><strong>Stone / Knot / Lace</strong><small>${cap}-க்கு தனித்தனி Material கணக்கு</small></div></div>
-      <div class="nf-material-grid">
-        ${keys.map(k=>`<div class="nf-material-row">
-          <div class="nf-material-name"><b>${title[k]}</b><small>Quantity · Price / ஒன்று</small></div>
-          <input class="input nf-material-qty" id="qo-${type}-${k}-qty-${id}" type="number" min="0" step="1" value="0" placeholder="Qty" aria-label="${cap} ${title[k]} quantity" oninput="nfV156Refresh('${id}')">
-          <input class="input nf-material-rate" id="qo-${type}-${k}-rate-${id}" type="number" min="0" step="0.01" value="0" placeholder="₹ Price" aria-label="${cap} ${title[k]} price" oninput="nfV156Refresh('${id}')">
-        </div>`).join('')}
-      </div>
-      <div class="nf-material-total"><span>Materials Total</span><b id="qo-${type}-materials-total-${id}">₹0.00</b></div>
-    </div>`;
-  }
-
-  function clothHTML(id,type){
-    const cap=type==='lining'?'Lining blouse':'Design blouse';
-    return `<div class="nf-section-subbox nf-${type}-cloth-box" id="qo-${type}-cloth-box-${id}">
-      <div class="nf-section-subhead"><span>🧵</span><div><strong>${cap} — Lining cloth</strong><small>யார் வாங்கியது · எத்தனை</small></div></div>
-      <div class="nf-section-subgrid">
-        <div class="nf-section-subfield"><label>யார் வாங்கியது?</label><select class="input" id="qo-${type}-cloth-source-${id}" onchange="nfV156Refresh('${id}')"><option value="">தேர்வு செய்யவும்</option><option value="customer">Customer கொடுத்தது</option><option value="shop">நாம் வாங்கியது</option></select></div>
-        <div class="nf-section-subfield"><label>Lining cloth — எத்தனை</label><input class="input" id="qo-${type}-cloth-qty-${id}" type="number" min="0" step="1" value="0" oninput="nfV156Refresh('${id}')"></div>
-      </div>
-    </div>`;
-  }
-
-  function materialTotal(id,type){
-    return keys.reduce((sum,k)=>sum+N($( `qo-${type}-${k}-qty-${id}`)?.value)*N($( `qo-${type}-${k}-rate-${id}`)?.value),0);
-  }
-  function materialData(id,type){
-    const out={};
-    keys.forEach(k=>out[k]={qty:N($( `qo-${type}-${k}-qty-${id}`)?.value),rate:N($( `qo-${type}-${k}-rate-${id}`)?.value)});
-    out.total=materialTotal(id,type);
-    out.cloth={source:$( `qo-${type}-cloth-source-${id}`)?.value||"",qty:N($( `qo-${type}-cloth-qty-${id}`)?.value)};
-    return out;
-  }
-  function setMaterialData(id,type,d){
-    d=d||{};
-    keys.forEach(k=>{const x=d[k]||{};const q=$( `qo-${type}-${k}-qty-${id}`),r=$( `qo-${type}-${k}-rate-${id}`);if(q)q.value=N(x.qty);if(r)r.value=N(x.rate);});
-    const c=d.cloth||{};const src=$( `qo-${type}-cloth-source-${id}`),qty=$( `qo-${type}-cloth-qty-${id}`);if(src)src.value=c.source||"";if(qty)qty.value=N(c.qty);
-  }
-  function parseMaterials(o){
-    const m=String(o?.notes||"").match(/BLOUSE_MATERIALS:(\{.*?\})(?=\s*\||$)/);
-    if(!m)return {};
-    try{return JSON.parse(m[1])||{};}catch(e){return {};}
-  }
-  function stripMaterials(notes){return String(notes||"").replace(/\s*\|\s*BLOUSE_MATERIALS:\{.*?\}(?=\s*\||$)/g,"").replace(/^\s*\|\s*|\s*\|\s*$/g,"").trim();}
-
-  function ensure(id){
-    const root=$("quick-order-"+id); if(!root)return false;
-    const lining=root.querySelector('.nf-edit-lining-blouse');
-    const design=root.querySelector('.nf-edit-design-blouse');
-    if(lining&&!root.querySelector('#qo-lining-materials-'+id)){
-      const holder=lining.querySelector('.nf-edit-category-grid');
-      if(holder){holder.insertAdjacentHTML('afterend',clothHTML(id,'lining')+boxHTML(id,'lining'));}
-    }
-    if(design&&!root.querySelector('#qo-design-materials-'+id)){
-      const holder=design.querySelector('.nf-design-rate-box');
-      if(holder){holder.insertAdjacentHTML('beforebegin',clothHTML(id,'design')+boxHTML(id,'design'));}
-    }
-    return !!root.querySelector('#qo-lining-materials-'+id) && !!root.querySelector('#qo-design-materials-'+id);
-  }
-
-  function syncCommonCloth(id){
-    const l={source:$("qo-lining-cloth-source-"+id)?.value||"",qty:N($("qo-lining-cloth-qty-"+id)?.value)};
-    const d={source:$("qo-design-cloth-source-"+id)?.value||"",qty:N($("qo-design-cloth-qty-"+id)?.value)};
-    const shopQty=(l.source==='shop'?l.qty:0)+(d.source==='shop'?d.qty:0);
-    const customerQty=(l.source==='customer'?l.qty:0)+(d.source==='customer'?d.qty:0);
-    const totalQty=l.qty+d.qty;
-    const commonQty=$("qo-lining-qty-"+id),commonSource=$("qo-lining-source-"+id),commonRate=$("qo-lining-cost-rate-"+id);
-    if(commonQty)commonQty.value=totalQty;
-    if(commonSource){
-      commonSource.value=shopQty>0?'shop':customerQty>0?'customer':'';
-      commonSource.dataset.nfAuto='1';
-    }
-    const lr=N($("qo-lining-stone-rate-"+id)?.value),kr=N($("qo-lining-knot-rate-"+id)?.value),ar=N($("qo-lining-lace-rate-"+id)?.value);
-    const dr=N($("qo-design-stone-rate-"+id)?.value),dk=N($("qo-design-knot-rate-"+id)?.value),da=N($("qo-design-lace-rate-"+id)?.value);
-    const lcCost=(l.source==='shop'?l.qty:0)*0 + (d.source==='shop'?d.qty:0)*0;
-    // Common lining cost is kept compatible with the existing order schema. The actual
-    // per-section material details are stored in BLOUSE_MATERIALS; this field remains the
-    // common cloth quantity used by the existing Lining Cloth section.
-    if(commonRate && commonRate.dataset.nfManual!=='1' && totalQty>0) commonRate.value=commonRate.value||0;
-    const commonTotal=$("qo-lining-total-"+id);
-    if(commonTotal){
-      const rate=N(commonRate?.value);commonTotal.textContent=moneySafe(commonSource?.value==='shop'?totalQty*rate:0);
-    }
-  }
-
-  function refresh(id){
-    if(!ensure(id))return;
-    const lt=materialTotal(id,'lining'),dt=materialTotal(id,'design');
-    const a=$("qo-lining-materials-total-"+id),b=$("qo-design-materials-total-"+id);if(a)a.textContent=moneySafe(lt);if(b)b.textContent=moneySafe(dt);
-    syncCommonCloth(id);
-    if(typeof window.nfV156OriginalCalc==='function') window.nfV156OriginalCalc(id);
-    else if(typeof window.updateQuickOrderCalcV314==='function') window.updateQuickOrderCalcV314(id);
-    // Add material costs after the base calculator's garment/lining total.
-    const baseTotal=(function(){const g=$("qo-garment-"+id)?.value||"Blouse";const n=N($("qo-normal-"+id)?.value),l=N($("qo-lining-"+id)?.value),d=N($("qo-design-"+id)?.value),sq=N($("qo-saree-"+id)?.value),cr=N($("qo-saree-rate-"+id)?.value);let x=0;if(g==='Chudi')x=N($("qo-chudi-"+id)?.value)*N($("qo-chudi-rate-"+id)?.value);else{const br=typeof getQuickBlouseRates==='function'?getQuickBlouseRates(id):{normal:0,lining:0,design:0};const dr=typeof getQuickDesignRates==='function'?getQuickDesignRates(id,d,br.design||0):Array.from({length:d},()=>N(br.design));x=n*N(br.normal)+l*N(br.lining)+dr.reduce((s,v)=>s+N(v),0)+sq*cr;}const ls=$("qo-lining-source-"+id)?.value||"",q=N($("qo-lining-qty-"+id)?.value),r=N($("qo-lining-cost-rate-"+id)?.value);return x+(ls==='shop'?q*r:0);})();
-    const grand=baseTotal+lt+dt;
-    const total=$("qo-total-"+id);if(total)total.textContent=moneySafe(grand);
-    const qty=N($("qo-qty-"+id)?.value);const unit=$("qo-unit-price-"+id);if(unit)unit.value=(qty?grand/qty:0).toFixed(2);
-    const summary=$("nf-v156-material-summary-"+id);
-    if(summary)summary.innerHTML=`<span>🧵 Lining materials: <b>${moneySafe(lt)}</b></span><span>🎨 Design materials: <b>${moneySafe(dt)}</b></span><span>Materials Grand Total: <b>${moneySafe(lt+dt)}</b></span>`;
-  }
-
-  function installAll(){document.querySelectorAll('[id^="quick-order-"]').forEach(el=>{const id=el.id.slice('quick-order-'.length);ensure(id);});}
-
-  const oldRefresh=window.updateQuickOrderCalc;
-  window.nfV156OriginalCalc=oldRefresh;
-  window.nfV156Refresh=refresh;
-  window.updateQuickOrderCalc=function(id){refresh(id);};
-
-  const oldPopulate=window.populateQuickOrderEditor;
-  if(typeof oldPopulate==='function'){
-    window.populateQuickOrderEditor=function(id,o){
-      oldPopulate.apply(this,arguments);ensure(id);
-      const m=parseMaterials(o);setMaterialData(id,'lining',m.lining);setMaterialData(id,'design',m.design);refresh(id);
-    };
-  }
-
-  const oldSave=window.saveQuickOrder;
-  if(typeof oldSave==='function'){
-    window.saveQuickOrder=async function(id,customerId){
-      ensure(id);
-      const box=$("quick-order-"+id),notes=$("qo-notes-"+id);
-      const originalNotes=notes?.value||"";
-      const data={version:1,lining:materialData(id,'lining'),design:materialData(id,'design')};
-      const clean=stripMaterials(originalNotes);
-      if(notes)notes.value=clean+(clean?' | ':'')+'BLOUSE_MATERIALS:'+JSON.stringify(data);
-      try{return await oldSave.apply(this,arguments);}finally{if(notes)notes.value=originalNotes;}
-    };
-  }
-
-  // Clear section-specific values for a fresh order; edit mode is populated from saved JSON above.
-  const oldToggle=window.toggleQuickOrder;
-  if(typeof oldToggle==='function'){
-    window.toggleQuickOrder=function(id){
-      const before=$("quick-order-"+id)?.classList.contains('hidden');
-      const r=oldToggle.apply(this,arguments);ensure(id);
-      if(before){
-        const box=$("quick-order-"+id);if(box&&!box.dataset.editOrderId){setMaterialData(id,'lining',{});setMaterialData(id,'design',{});refresh(id);}
-      }
-      return r;
-    };
-  }
-
-  const mo=new MutationObserver(()=>installAll());
-  mo.observe(document.body,{childList:true,subtree:true});
-  document.addEventListener('DOMContentLoaded',()=>{installAll();setTimeout(installAll,300);setTimeout(installAll,900);});
+<style id="nf-v200-lining-extra-css">
+.nf-v200-wrap{margin:10px 0;padding:10px;border:1px solid #ddd5ef;border-radius:16px;background:#fff}
+.nf-v200-title{margin-bottom:9px}.nf-v200-title b{display:block;font-size:15px}.nf-v200-title small{display:block;margin-top:2px;color:#6b6470;font-size:11px}
+.nf-v200-type{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:9px}.nf-v200-type label{display:flex;align-items:center;gap:7px;padding:9px 11px;border:1px solid #d8cdef;border-radius:11px;background:#faf8ff;font-weight:850;font-size:12px}
+.nf-v200-card,.nf-v200-extra-box{padding:10px;margin-top:8px;border:1px solid #e4ddec;border-radius:13px;background:#fcfbff}.nf-v200-card h4,.nf-v200-extra-box h5{margin:0 0 8px;color:#4d267c}.nf-v200-extra-box h5{font-size:13px}
+.nf-v200-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}.nf-v200-grid label{display:grid;gap:4px;font-size:11px;font-weight:800;color:#5d5665}.nf-v200-grid input,.nf-v200-count input{width:100%;box-sizing:border-box;padding:8px;border:1px solid #d8d1df;border-radius:9px;background:#fff;font-weight:800}
+.nf-v200-count{display:grid;grid-template-columns:1fr 100px;align-items:center;gap:8px;font-size:12px;font-weight:850}.nf-v200-count input{margin:0}.nf-v200-summary{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px;padding:8px;border-radius:11px;background:#f5f1ff;font-size:11px;font-weight:750}.nf-v200-summary span,.nf-v200-summary strong{padding:4px 6px}.nf-v200-summary strong{color:#4d267c}.nf-v200-box-total{margin-top:7px;font-size:11px;color:#6a6270}.nf-v200-old-lining{display:none!important}.nf-v200-old-lining-cloth{display:none!important}.nf-v200-customer-extra{margin-top:8px}
+@media(max-width:560px){.nf-v200-grid{grid-template-columns:1fr}.nf-v200-count{grid-template-columns:1fr 90px}.nf-v200-type label{flex:1 1 140px;justify-content:center}}
+</style>
+<script id="nf-v200-lining-extra-js">(function(){
+'use strict';
+/* V200 — Lining + Extra Fitting blouse, single clean data block. */
+const MARK='LINING_EXTRA_FITTING:';
+function q(id){return document.getElementById(id)}
+function num(v){return Math.max(0,Number(v||0));}
+function escv(v){return typeof esc==='function'?esc(v):String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function readExtra(o){
+  const m=String(o?.notes||'').match(/LINING_EXTRA_FITTING:(.*?)(?=\s*\|\s*|$)/);
+  if(!m)return {mode:'lining',lining:{qty:0,clothQty:0,clothRate:0,handover:0,handoverDate:''},extra:{count:0,boxes:[]}};
+  try{const x=JSON.parse(m[1]);return Object.assign({mode:'lining'},x,{lining:Object.assign({qty:0,clothQty:0,clothRate:0,handover:0,handoverDate:''},x.lining||{}),extra:Object.assign({count:0,boxes:[]},x.extra||{})});}catch{return {mode:'lining',lining:{qty:0,clothQty:0,clothRate:0,handover:0,handoverDate:''},extra:{count:0,boxes:[]}}}
+}
+function cleanNotes(notes){return String(notes||'').replace(/\s*\|?\s*LINING_EXTRA_FITTING:.*?(?=\s*\|\s*|$)/,'').replace(/^\s*\|\s*|\s*\|\s*$/g,'').trim()}
+function uiData(id){
+ const root=q('quick-order-'+id),mode=root?.querySelector('[data-v200-type]')?.value||'lining';
+ const l={qty:num(q('v200-lining-qty-'+id)?.value),clothQty:num(q('v200-lining-clothqty-'+id)?.value),clothRate:num(q('v200-lining-clothrate-'+id)?.value),handover:num(q('v200-lining-ho-'+id)?.value),handoverDate:q('v200-lining-hodate-'+id)?.value||''};
+ l.handover=Math.min(l.qty,l.handover);
+ const extra={count:num(q('v200-extra-count-'+id)?.value),boxes:[]};
+ for(let i=0;i<extra.count;i++){
+   const g=(k)=>q('v200-extra-'+id+'-'+i+'-'+k);
+   const b={clothQty:num(g('cloth')?.value),knotQty:num(g('knotq')?.value),knotRate:num(g('knotr')?.value),stoneQty:num(g('stoneq')?.value),stoneRate:num(g('stoner')?.value),laceQty:num(g('laceq')?.value),laceRate:num(g('lacer')?.value),handover:num(g('ho')?.value),handoverDate:g('hod')?.value||''};
+   b.handover=Math.min(1,b.handover); extra.boxes.push(b);
+ }
+ return {mode,lining:l,extra};
+}
+function extraMaterialTotal(x){return num(x.knotQty)*num(x.knotRate)+num(x.stoneQty)*num(x.stoneRate)+num(x.laceQty)*num(x.laceRate)}
+function totalData(d,liningRate){
+ const lBase=d.mode==='extra'?0:num(d.lining.qty)*num(liningRate);
+ const eBase=(d.mode==='extra'||d.mode==='both')?num(d.extra.count)*num(liningRate):0;
+ const mat=(d.mode==='extra'||d.mode==='both')?d.extra.boxes.reduce((s,b)=>s+extraMaterialTotal(b),0):0;
+ const cloth=num(d.lining.clothQty)*num(d.lining.clothRate)+((d.mode==='extra'||d.mode==='both')?d.extra.boxes.reduce((s,b)=>s+num(b.clothQty)*num(d.lining.clothRate),0):0);
+ return {base:lBase+eBase,materials:mat,cloth,total:lBase+eBase+mat+cloth,extraBase:eBase};
+}
+function build(id,existing){
+ const root=q('quick-order-'+id); if(!root||root.querySelector('.nf-v200-wrap'))return;
+ const oldL=root.querySelector('.nf-edit-lining-blouse');
+ if(oldL)oldL.classList.add('nf-v200-old-lining');
+ const oldLC=root.querySelector('.nf-edit-lining-cloth');
+ if(oldLC)oldLC.classList.add('nf-v200-old-lining-cloth');
+ const anchor=q('qo-delivery-'+id)?.closest('.field'); if(!anchor)return;
+ const d=readExtra(existing||{});
+ const wrap=document.createElement('section');wrap.className='nf-v200-wrap';wrap.innerHTML=`
+ <div class="nf-v200-title"><b>🧵 Lining blouse / Extra fitting blouse</b><small>தேவையான வகை மட்டும் தேர்வு செய்யுங்கள்</small></div>
+ <div class="nf-v200-type"><label><input type="checkbox" data-v200-lining> Lining blouse</label><label><input type="checkbox" data-v200-extra> Extra fitting blouse</label></div>
+ <div class="nf-v200-lining"></div><div class="nf-v200-extra"></div><div class="nf-v200-summary"></div>`;
+ anchor.after(wrap);
+ const type=wrap.querySelector('[data-v200-type]');
+ // Use a hidden mode select for deterministic state while showing only two checkboxes.
+ const hidden=document.createElement('select');hidden.dataset.v200Type='';hidden.style.display='none';hidden.innerHTML='<option value="lining">lining</option><option value="extra">extra</option><option value="both">both</option>';wrap.appendChild(hidden);
+ const cbL=wrap.querySelector('[data-v200-lining]'),cbE=wrap.querySelector('[data-v200-extra]');
+ const mode=d.mode==='both'||(d.extra.count>0&&d.lining.qty>0)?'both':(d.extra.count>0?'extra':'lining');
+ cbL.checked=mode!=='extra';cbE.checked=mode!=='lining';hidden.value=mode;
+ const l=wrap.querySelector('.nf-v200-lining'),e=wrap.querySelector('.nf-v200-extra');
+ l.innerHTML=`<div class="nf-v200-card"><h4>🧵 Lining blouse</h4><div class="nf-v200-grid"><label>எத்தனை<input id="v200-lining-qty-${id}" type="number" min="0" step="1" value="${num(d.lining.qty)}"></label><label>Lining cloth — நாம் வாங்கியது<input id="v200-lining-clothqty-${id}" type="number" min="0" step="1" value="${num(d.lining.clothQty)}"></label><label>ஒரு cloth விலை<input id="v200-lining-clothrate-${id}" type="number" min="0" step="0.01" value="${num(d.lining.clothRate)}"></label><label>வாங்கிச் சென்றது எத்தனை<input id="v200-lining-ho-${id}" type="number" min="0" step="1" value="${num(d.lining.handover)}"></label><label>வாங்கிச் சென்ற தேதி<input id="v200-lining-hodate-${id}" type="date" value="${escv(d.lining.handoverDate)}"></label></div></div>`;
+ e.innerHTML=`<div class="nf-v200-card"><h4>✨ Extra fitting blouse</h4><label class="nf-v200-count">Count<input id="v200-extra-count-${id}" type="number" min="0" step="1" value="${num(d.extra.count)}"></label><div id="v200-extra-list-${id}"></div></div>`;
+ function syncMode(){const m=cbL.checked&&cbE.checked?'both':cbE.checked?'extra':'lining';hidden.value=m;l.style.display=cbL.checked?'':'none';e.style.display=cbE.checked?'':'none';renderBoxes();syncCommon();}
+ cbL.addEventListener('change',()=>{if(!cbL.checked&&!cbE.checked)cbL.checked=true;syncMode()});cbE.addEventListener('change',()=>{if(!cbL.checked&&!cbE.checked)cbE.checked=true;syncMode()});
+ function renderBoxes(){
+   const list=q('v200-extra-list-'+id);if(!list)return; const count=num(q('v200-extra-count-'+id)?.value),old=uiData(id).extra.boxes; list.innerHTML='';
+   for(let i=0;i<count;i++){const b=old[i]||d.extra.boxes[i]||{};const card=document.createElement('div');card.className='nf-v200-extra-box';card.innerHTML=`<h5>Extra fitting ${i+1}</h5><div class="nf-v200-grid"><label>Lining cloth — Count<input id="v200-extra-${id}-${i}-cloth" type="number" min="0" step="1" value="${num(b.clothQty)}"></label><label>Knot — Count<input id="v200-extra-${id}-${i}-knotq" type="number" min="0" step="1" value="${num(b.knotQty)}"></label><label>Knot — Rate<input id="v200-extra-${id}-${i}-knotr" type="number" min="0" step="0.01" value="${num(b.knotRate)}"></label><label>Stone — Count<input id="v200-extra-${id}-${i}-stoneq" type="number" min="0" step="1" value="${num(b.stoneQty)}"></label><label>Stone — Rate<input id="v200-extra-${id}-${i}-stoner" type="number" min="0" step="0.01" value="${num(b.stoneRate)}"></label><label>Lace — Count<input id="v200-extra-${id}-${i}-laceq" type="number" min="0" step="1" value="${num(b.laceQty)}"></label><label>Lace — Rate<input id="v200-extra-${id}-${i}-lacer" type="number" min="0" step="0.01" value="${num(b.laceRate)}"></label><label>வாங்கிச் சென்றது<input id="v200-extra-${id}-${i}-ho" type="number" min="0" max="1" step="1" value="${num(b.handover)}"></label><label>வாங்கிச் சென்ற தேதி<input id="v200-extra-${id}-${i}-hod" type="date" value="${escv(b.handoverDate||'')}"></label></div><div class="nf-v200-box-total">Extra materials: <b id="v200-extra-${id}-${i}-total">₹0.00</b></div>`;list.appendChild(card);}
+   list.querySelectorAll('input').forEach(x=>x.addEventListener('input',()=>{calc();syncCommon()}));calc();
+ }
+ q('v200-extra-count-'+id).addEventListener('input',()=>{renderBoxes();syncCommon()});
+ wrap.querySelectorAll('input').forEach(x=>{if(!x.closest('#v200-extra-list-'+id))x.addEventListener('input',()=>{calc();syncCommon()})});
+ function syncCommon(){
+   const dat=uiData(id), lr=num(q('qo-lining-rate-'+id)?.value||getRates().lining); let clothQty=0,clothTotal=0;
+   if(dat.mode==='lining'||dat.mode==='both'){clothQty+=dat.lining.clothQty;clothTotal+=dat.lining.clothQty*dat.lining.clothRate;}
+   if(dat.mode==='extra'||dat.mode==='both'){dat.extra.boxes.forEach(b=>{clothQty+=b.clothQty;clothTotal+=b.clothQty*dat.lining.clothRate;});}
+   const src=q('qo-lining-source-'+id),qty=q('qo-lining-qty-'+id),rate=q('qo-lining-cost-rate-'+id);
+   if(src){src.value=clothQty>0?'shop':'';src.disabled=true;}
+   if(qty){qty.value=clothQty;qty.readOnly=true;}
+   if(rate){rate.value=clothQty>0?(clothTotal/clothQty).toFixed(2):'0';rate.readOnly=true;}
+   const total=q('qo-lining-total-'+id);if(total)total.textContent=money(clothTotal);
+ }
+ function calc(){const dat=uiData(id),lr=num(q('qo-lining-rate-'+id)?.value||getRates().lining),t=totalData(dat,lr);dat.extra.boxes.forEach((b,i)=>{const x=q('v200-extra-'+id+'-'+i+'-total');if(x)x.textContent=money(extraMaterialTotal(b));});const out=wrap.querySelector('.nf-v200-summary');if(out)out.innerHTML=`<span>Blouse work: <b>${money(t.base)}</b></span><span>Stone / Knot / Lace: <b>${money(t.materials)}</b></span><span>Lining cloth: <b>${money(t.cloth)}</b></span><strong>Total: ${money(t.total)}</strong>`;const tt=q('qo-total-'+id);if(tt)tt.textContent=money(t.total+num(q('qo-normal-'+id)?.value)*num(q('qo-normal-rate-'+id)?.value)+num(q('qo-design-'+id)?.value)*num(q('qo-design-rate-'+id)?.value));}
+ syncMode();
+}
+function ensure(id,o){if(!q('quick-order-'+id))return;build(id,o);const w=q('quick-order-'+id)?.querySelector('.nf-v200-wrap');if(w){const d=readExtra(o||{});const l=w.querySelector('[data-v200-lining]'),e=w.querySelector('[data-v200-extra]');if(l&&e){l.checked=d.mode!=='extra';e.checked=d.mode!=='lining';l.dispatchEvent(new Event('change'));}}}
+const oldUpdate=window.updateQuickOrderCalc;
+window.updateQuickOrderCalc=function(id){if(typeof oldUpdate==='function')oldUpdate(id);const w=q('quick-order-'+id)?.querySelector('.nf-v200-wrap');if(!w)return;const dat=uiData(id),lr=num(q('qo-lining-rate-'+id)?.value||getRates().lining),t=totalData(dat,lr);const n=num(q('qo-normal-'+id)?.value)*num(q('qo-normal-rate-'+id)?.value),des=num(q('qo-design-'+id)?.value)*num(q('qo-design-rate-'+id)?.value);const tt=q('qo-total-'+id);if(tt)tt.textContent=money(n+des+t.total);};
+const oldPopulate=window.populateQuickOrderEditor;
+window.populateQuickOrderEditor=function(id,o){if(typeof oldPopulate==='function')oldPopulate.apply(this,arguments);setTimeout(()=>{ensure(id,o);updateQuickOrderCalc(id)},0)};
+const oldClear=window.clearQuickOrderEditor;
+if(typeof oldClear==='function')window.clearQuickOrderEditor=function(id){oldClear.apply(this,arguments);setTimeout(()=>{ensure(id,{});updateQuickOrderCalc(id)},0)};
+const oldSave=window.saveQuickOrder;
+window.saveQuickOrder=async function(id,customerId){
+ const root=q('quick-order-'+id),w=root?.querySelector('.nf-v200-wrap');
+ if(!w)return oldSave.apply(this,arguments);
+ const editId=String(root.dataset.editOrderId||'');const existing=editId?(state.orders||[]).find(o=>String(o.id)===editId):null;const dat=uiData(id),lr=num(q('qo-lining-rate-'+id)?.value||getRates().lining),calc=totalData(dat,lr);
+ if((dat.mode==='extra'||dat.mode==='both')&&dat.extra.count>0 && dat.extra.boxes.length!==dat.extra.count){toast('Extra fitting details சரியாக இல்லை.',true);return}
+ const oldL=q('qo-lining-'+id),oldLR=q('qo-lining-rate-'+id),oldLH=q('qo-lining-handover-'+id);
+ const actualL=num(dat.lining.qty);const fallbackQty=dat.extra.count>0?dat.extra.count:actualL;
+ if(oldL){oldL.value=actualL||fallbackQty;oldL.dispatchEvent(new Event('input',{bubbles:true}))} if(oldLR)oldLR.value=lr;if(oldLH)oldLH.value=dat.lining.handover;
+ // For the base saver, the common lining fields are already synced by syncCommon().
+ const result=await oldSave.apply(this,arguments);
+ try{
+   let order=editId?(state.orders||[]).find(o=>String(o.id)===editId):null;
+   if(!order)order=(state.orders||[]).filter(o=>String(o.customer_id)===String(customerId||id)).slice().sort((a,b)=>String(b.created_at||b.order_date||'').localeCompare(String(a.created_at||a.order_date||'')))[0];
+   if(!order)throw new Error('saved order not found');
+   let notes=cleanNotes(order.notes);
+   const bs=typeof blouseSplit==='function'?blouseSplit(order):{normal:0,lining:0,design:0};
+   notes=notes.replace(/\s*\|?\s*BLOUSE_SPLIT:\{[^}]+\}/,'').trim();
+   notes+=(notes?' | ':'')+'BLOUSE_SPLIT:'+JSON.stringify({normal:num(q('qo-normal-'+id)?.value),lining:actualL,design:num(q('qo-design-'+id)?.value)});
+   notes+=' | '+MARK+JSON.stringify(dat);
+   const savedTotal=num(order.total_amount||order.total);
+   const extraMaterial=calc.materials;
+   const extraBase=(dat.mode==='extra'||dat.mode==='both')?calc.extraBase:0;
+   const extraBaseAlreadyInOldSave=(dat.mode==='extra' && actualL===0 && dat.extra.count>0);
+   const finalTotal=savedTotal+extraMaterial+(extraBaseAlreadyInOldSave?0:extraBase);
+   const advance=num(q('qo-advance-'+id)?.value);
+   const upd={total_amount:finalTotal,unit_price:(num(order.quantity)||1)?finalTotal/(num(order.quantity)||1):0,balance_amount:Math.max(0,finalTotal-advance),notes,lining_cloth_source:calc.cloth>0?'shop':null,lining_cloth_qty:dat.lining.clothQty+dat.extra.boxes.reduce((s,b)=>s+num(b.clothQty),0)};
+   const r=await supabaseClient.from('orders').update(upd).eq('id',order.id);if(r.error)throw r.error;
+   const ix=(state.orders||[]).findIndex(o=>String(o.id)===String(order.id));if(ix>=0)state.orders[ix]=Object.assign({},state.orders[ix],upd);
+   if(typeof loadAll==='function')await loadAll(true);
+ }catch(err){console.error('V200 extra fitting sync failed',err);toast('Stone / Knot / Lace sync failed: '+err.message,true);}
+ return result;
+};
+// Customer Card breakdown: show Extra fitting materials from the same saved order data.
+const oldSummary=window.nfCustomerWorkSummaryHTML;
+window.nfCustomerWorkSummaryHTML=function(st){
+ let html=typeof oldSummary==='function'?oldSummary.apply(this,arguments):'';const rows=[];for(const o of (st?.os||[])){const x=readExtra(o);if(x.extra?.count>0){x.extra.boxes.forEach((b,i)=>{const m=extraMaterialTotal(b);if(m>0)rows.push(`<div class="customerRateRow"><span class="rateLabel">✨ Extra fitting ${i+1} · Knot / Stone / Lace</span><span class="rateMath"><b>${money(m)}</b></span></div>`)});}}
+ if(rows.length)html+=`<div class="customerWorkSection nf-v200-customer-extra"><h4>✨ Extra fitting blouse</h4><div class="customerRateList">${rows.join('')}</div></div>`;
+ return html;
+};
+// Rebuild every mounted editor after DOM ready and after customer rendering.
+function scan(){(state?.customers||[]).forEach(c=>{if(q('quick-order-'+c.id))ensure(c.id,latestCustomerOrder(c.id)||{});});}
+const oldRender=window.renderCustomers;if(typeof oldRender==='function'&&!oldRender.__v200){window.renderCustomers=function(){const r=oldRender.apply(this,arguments);setTimeout(scan,0);return r};window.renderCustomers.__v200=true}
+document.addEventListener('DOMContentLoaded',()=>setTimeout(scan,120));
 })();
 </script>
 </body>
