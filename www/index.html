@@ -11474,71 +11474,92 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-card{
 </script>
 
 
-<script id="nf-v205-delivery-photo-safe-fix">
+<script id="nf-v206-delivery-photo-parallel-fix">
 (function(){
 "use strict";
-/* V205: Delivery card must never fail because a stitched-cloth photo is slow,
-   missing, or cannot be converted. Reuse the saved delivery-photo slots and
-   materialize each image independently with a hard timeout. */
-function nfV205Timeout(promise,ms){
-  return Promise.race([promise,new Promise(function(resolve){setTimeout(function(){resolve(null);},ms);})]);
+/* V206 ROOT-CAUSE FIX:
+   V205 materialized delivery photos one-by-one. With multiple stitched-photo
+   slots, each photo could wait up to ~6s, so the 35s card-build watchdog fired.
+   V206 selects the first 8 real slots first, then materializes them IN PARALLEL.
+   A bad/slow photo is skipped; it can never block the whole Delivery Card. */
+function nfV206Race(promise,ms){
+  return Promise.race([
+    promise,
+    new Promise(function(resolve){setTimeout(function(){resolve(null);},ms);})
+  ]);
 }
-async function nfV205PhotoData(p){
+async function nfV206Materialize(p){
   if(!p||!p.src)return null;
-  var src=p.cloudPath&&typeof nfR2PhotoUrl==='function'?nfR2PhotoUrl(p.cloudPath):String(p.src||'');
+  var src=p.cloudPath&&typeof nfR2PhotoUrl==='function'
+    ?nfR2PhotoUrl(p.cloudPath):String(p.src||'');
   if(!src)return null;
   if(/^data:image\//i.test(src))return Object.assign({},p,{src:src});
   try{
-    if(typeof nfWacFetchBlob==='function'){
-      var b=await nfV205Timeout(nfWacFetchBlob(src,2500),3000);
-      if(!b)return null;
-      var data=await nfV205Timeout(new Promise(function(resolve){
-        var fr=new FileReader();
-        fr.onload=function(){resolve(String(fr.result||''));};
-        fr.onerror=function(){resolve('');};
-        fr.onabort=function(){resolve('');};
-        try{fr.readAsDataURL(b);}catch(e){resolve('');}
-      }),3000);
-      return data?Object.assign({},p,{src:data}):null;
-    }
-  }catch(e){console.warn('V205 delivery photo materialize skipped',e);}
-  return null;
+    if(typeof nfWacFetchBlob!=='function')return null;
+    var blob=await nfV206Race(nfWacFetchBlob(src,5000),5500);
+    if(!blob)return null;
+    var data=await nfV206Race(new Promise(function(resolve){
+      var fr=new FileReader(),done=false;
+      var t=setTimeout(function(){if(done)return;done=true;try{fr.abort();}catch(_){}resolve('');},5000);
+      fr.onload=function(){if(done)return;done=true;clearTimeout(t);resolve(String(fr.result||''));};
+      fr.onerror=function(){if(done)return;done=true;clearTimeout(t);resolve('');};
+      fr.onabort=function(){if(done)return;done=true;clearTimeout(t);resolve('');};
+      try{fr.readAsDataURL(blob);}catch(e){if(done)return;done=true;clearTimeout(t);resolve('');}
+    }),5500);
+    return data?Object.assign({},p,{src:data}):null;
+  }catch(e){
+    console.warn('V206 delivery photo skipped:',e);
+    return null;
+  }
 }
-window.nfV205ResolveDeliveryPhotos=async function(id){
+async function nfV206ResolveDeliveryPhotos(id){
   var key=String(id||''),arr=[];
   try{
     if(typeof initCustomerClothPhotoStore==='function')
-      await nfV205Timeout(initCustomerClothPhotoStore(),2000);
+      await nfV206Race(initCustomerClothPhotoStore(),2000);
   }catch(e){}
-  try{arr=typeof customerDeliveryPhotos==='function'?customerDeliveryPhotos(key):[];}catch(e){arr=[];}
-  var saved=[];
-  for(var i=0;i<arr.length;i++){
+  try{
+    arr=typeof customerDeliveryPhotos==='function'?customerDeliveryPhotos(key):[];
+  }catch(e){arr=[];}
+  var out=[];
+  for(var i=0;i<arr.length && out.length<8;i++){
     var p=arr[i];
-    if(p&&p.src)saved.push(p);
+    if(p&&p.src)out.push(p);
   }
-  return saved;
-};
-window.nfV204ResolveDeliveryPhotos=window.nfV205ResolveDeliveryPhotos;
-window.nfV204PrepareDeliveryPhotos=async function(group){
-  var pools=[];
-  for(var gi=0;gi<(group||[]).length;gi++){
-    var c=group[gi],list=[];
-    try{list=await nfV205ResolveDeliveryPhotos(c.id);}catch(e){list=[];}
-    var items=[];
-    for(var i=0;i<list.length&&i<20;i++){
-      var x=await nfV205PhotoData(list[i]);
-      if(x)items.push(Object.assign({},x,{name:c.name||'Customer',customerName:c.name||'Customer',photoType:'DELIVERY'}));
-    }
-    pools.push({id:String(c.id),name:c.name||'Customer',items:items});
-  }
+  return out;
+}
+async function nfV206PrepareDeliveryPhotos(group){
+  var people=Array.isArray(group)?group:[];
+  var pools=await Promise.all(people.map(async function(c){
+    var list=[];
+    try{list=await nfV206ResolveDeliveryPhotos(c.id);}catch(e){list=[];}
+    return {
+      id:String(c.id),
+      name:c.name||'Customer',
+      items:list.map(function(p){
+        return Object.assign({},p,{name:c.name||'Customer',customerName:c.name||'Customer',photoType:'DELIVERY'});
+      })
+    };
+  }));
   var photos=[];
-  /* One photo per customer first, then remaining photos round-robin. */
-  pools.forEach(function(pool){if(pool.items[0]&&photos.length<8)photos.push(pool.items[0]);});
-  for(var pass=1;pass<20&&photos.length<8;pass++){
-    pools.forEach(function(pool){var p=pool.items[pass];if(p&&photos.length<8)photos.push(p);});
+  /* Preserve customer representation first, then round-robin remaining slots. */
+  pools.forEach(function(pool){
+    if(pool.items[0]&&photos.length<8)photos.push(pool.items[0]);
+  });
+  for(var pass=1;pass<8&&photos.length<8;pass++){
+    pools.forEach(function(pool){
+      var p=pool.items[pass];
+      if(p&&photos.length<8)photos.push(p);
+    });
   }
-  return photos;
-};
+  /* Critical: all selected photos materialize concurrently. Never serialize
+     8 x network/FileReader waits behind the card-build timeout. */
+  var materialized=await Promise.all(photos.map(function(p){return nfV206Materialize(p);}));
+  return materialized.filter(Boolean);
+}
+window.nfV204ResolveDeliveryPhotos=nfV206ResolveDeliveryPhotos;
+window.nfV204PrepareDeliveryPhotos=nfV206PrepareDeliveryPhotos;
+window.nfV205ResolveDeliveryPhotos=nfV206ResolveDeliveryPhotos;
 })();
 </script>
 </body>
