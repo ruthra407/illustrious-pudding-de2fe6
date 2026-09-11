@@ -2512,7 +2512,8 @@ function customerAlterationNotes(customerId,orderFallback=""){
 function makeBlouseSplitNote(s,rates,userNotes=""){
  const marker=`BLOUSE_SPLIT:${JSON.stringify({normal:Number(s.normal||0),lining:Number(s.lining||0),design:Number(s.design||0)})}`;
  const rateMarker=`BLOUSE_RATES:${JSON.stringify({normal:Number(rates.normal||0),lining:Number(rates.lining||0),design:Number(rates.design||0)})}`;
- return [marker,rateMarker,cleanOrderNotes(userNotes)].filter(Boolean).join(" | ");
+ const materialMarker=(window.__nfPendingMaterialsMarker||"");
+ return [marker,rateMarker,cleanOrderNotes(userNotes),materialMarker].filter(Boolean).join(" | ");
 }
 /* V600.3 — Cloud-safe customer village.
    Older builds kept village only in localStorage because the form submit
@@ -11396,6 +11397,42 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-card{
 })();
 </script>
 
+
+<style id="skl-v156-style">
+.skl-material-box{margin:10px 0;padding:10px;border:1px solid #d9d3e8;border-radius:12px;background:#fff}.skl-material-title{font-weight:900;margin-bottom:8px}.skl-material-row{display:grid;grid-template-columns:minmax(0,1fr) 96px 104px;gap:7px;align-items:center;margin:7px 0}.skl-material-row .skl-name{font-weight:800}.skl-material-row input{width:100%;box-sizing:border-box;min-height:38px;padding:7px;border:1px solid #cfc8da;border-radius:8px}.skl-material-total{margin-top:8px;text-align:right;font-weight:900}.skl-material-subtotal{font-size:12px;margin-top:3px;color:#57515f}@media(max-width:560px){.skl-material-row{grid-template-columns:minmax(0,1fr) 78px 88px}}
+.nf-design-photo-pair{display:none!important}
+</style>
+<script id="skl-v156-js">
+(function(){
+'use strict';
+const N=v=>{const n=Number(v);return Number.isFinite(n)?Math.max(0,n):0};
+const M=v=>{try{return money(N(v))}catch(e){return '₹'+N(v).toFixed(2)}};
+const K=['stone','knot','lays'], L={stone:'Stone',knot:'Knot',lays:'Lays'};
+function blank(){return {stone:{qty:0,price:0},knot:{qty:0,price:0},lays:{qty:0,price:0}}}
+function parse(o){let z={lining:blank(),design:[]},m=String(o?.notes||'').match(/MATERIALS:(\{.*?\})(?=\s*\||$)/);if(!m)return z;try{let x=JSON.parse(m[1]);if(x.lining)z.lining=x.lining;if(Array.isArray(x.design))z.design=x.design}catch(e){}return z}
+function total(x){return K.reduce((a,k)=>a+N(x?.[k]?.qty)*N(x?.[k]?.price),0)}
+function box(data){let h='<div class="skl-material-box" data-skl-materials="1"><div class="skl-material-title">✨ Stone / Knot / Lays</div>';K.forEach(k=>{let d=data?.[k]||{};h+=`<div class="skl-material-row"><span class="skl-name">${L[k]}</span><input data-skl-q="${k}" type="number" min="0" step="1" placeholder="எண்ணிக்கை" value="${N(d.qty)}"><input data-skl-p="${k}" type="number" min="0" step="0.01" placeholder="விலை" value="${N(d.price)}"></div>`});return h+`<div class="skl-material-total">Materials Total: <span data-skl-total>${M(total(data||blank()))}</span></div></div>`}
+function read(b){let x=blank();if(!b)return x;K.forEach(k=>{x[k].qty=N(b.querySelector(`[data-skl-q="${k}"]`)?.value);x[k].price=N(b.querySelector(`[data-skl-p="${k}"]`)?.value)});return x}
+function bind(b,id){if(!b||b.dataset.sklBound)return;b.dataset.sklBound='1';b.addEventListener('input',()=>{let x=read(b),t=b.querySelector('[data-skl-total]');if(t)t.textContent=M(total(x));window.updateQuickOrderCalc?.(id)})}
+function ensure(id){let root=document.getElementById('quick-order-'+id);if(!root)return;let store=window.__sklV156?.[id]||{lining:blank(),design:[]};let ls=root.querySelector('.nf-edit-lining-blouse');if(ls&&!ls.querySelector('[data-skl-materials]')){ls.insertAdjacentHTML('beforeend',box(store.lining));bind(ls.querySelector('[data-skl-materials]'),id)}let host=document.getElementById('qo-design-rates-box-'+id);host?.querySelectorAll('.nf-design-slot-card').forEach((c,i)=>{if(c.querySelector('[data-skl-materials]'))return;c.insertAdjacentHTML('beforeend',box(store.design[i]||blank()));bind(c.querySelector('[data-skl-materials]'),id)});root.querySelectorAll('.nf-design-photo-pair').forEach(x=>x.remove())}
+function collect(id){ensure(id);let root=document.getElementById('quick-order-'+id),lining=read(root?.querySelector('.nf-edit-lining-blouse [data-skl-materials]')),design=[...root?.querySelectorAll('#qo-design-rates-box-'+CSS.escape(id)+' .nf-design-slot-card')||[]].map(c=>read(c.querySelector('[data-skl-materials]')));return {lining,design}}
+window.__sklV156={};window.sklV156Collect=collect;window.sklV156Total=total;
+// Add material cost after the application's own blouse/lining/design calculation. This never changes Normal blouse rate.
+const baseCalc=window.updateQuickOrderCalc;
+window.updateQuickOrderCalc=function(id){if(typeof baseCalc==='function')baseCalc(id);ensure(id);let m=collect(id),extra=total(m.lining)+m.design.reduce((a,x)=>a+total(x),0),t=document.getElementById('qo-total-'+id);if(t){let old=Number(String(t.textContent||'').replace(/[^0-9.-]/g,''))||0;t.textContent=M(old+extra)}let root=document.getElementById('quick-order-'+id);if(root){let a=t?.closest('.field')||t?.parentElement,b=root.querySelector('.skl-material-summary');if(!b&&a){b=document.createElement('div');b.className='nf-combined-calc skl-material-summary';a.appendChild(b)}if(b)b.innerHTML=extra?`<div class="nf-combined-calc-row"><span class="label">✨ Stone / Knot / Lays</span><span class="math"><b>${M(extra)}</b></span></div><div class="nf-combined-grand"><span>Materials included</span><b>${M(extra)}</b></div>`:''}}
+// Restore material values after the existing editor renderer has built its Design cards.
+const bp=window.populateQuickOrderEditor;
+if(typeof bp==='function')window.populateQuickOrderEditor=function(id,o){bp.apply(this,arguments);let x=parse(o);window.__sklV156[id]=x;setTimeout(()=>{ensure(id);let root=document.getElementById('quick-order-'+id),lb=root?.querySelector('.nf-edit-lining-blouse [data-skl-materials]');if(lb)K.forEach(k=>{lb.querySelector(`[data-skl-q="${k}"]`).value=N(x.lining?.[k]?.qty);lb.querySelector(`[data-skl-p="${k}"]`).value=N(x.lining?.[k]?.price)});root?.querySelectorAll('#qo-design-rates-box-'+CSS.escape(id)+' .nf-design-slot-card').forEach((c,i)=>{let d=x.design[i]||blank();K.forEach(k=>{c.querySelector(`[data-skl-q="${k}"]`).value=N(d[k]?.qty);c.querySelector(`[data-skl-p="${k}"]`).value=N(d[k]?.price)})});window.updateQuickOrderCalc(id)},120)};
+// Persist in the existing orders.notes technical-marker field; the application already syncs that field to Customer Card calculations.
+const bs=window.saveQuickOrder;
+if(typeof bs==='function')window.saveQuickOrder=async function(id,customerId){let m=collect(id),root=document.getElementById('quick-order-'+id);window.__sklV156[id]=m;let ta=document.getElementById('qo-notes-'+id),orig=ta?.value||'';if(ta)ta.value=orig+' | MATERIALS:'+JSON.stringify(m);try{return await bs.apply(this,arguments)}finally{if(ta)ta.value=orig}};
+// Customer Card: append a clear Lining/Design material calculation. Normal blouse is deliberately excluded.
+const oldSummary=window.nfCustomerWorkSummaryHTML;
+window.nfCustomerWorkSummaryHTML=function(st){let h=typeof oldSummary==='function'?oldSummary(st):'',lm=blank(),dm=blank();(st.os||[]).forEach(o=>{let type=String(o.garment_type||'Blouse').toLowerCase(),s=typeof blouseSplit==='function'?blouseSplit(o):{};if(type!=='blouse'&&o.garment_type)return;let x=parse(o);if(N(s.lining)>0)K.forEach(k=>{lm[k].qty+=N(x.lining?.[k]?.qty);lm[k].price=N(x.lining?.[k]?.price)});if(N(s.design)>0)K.forEach(k=>{(x.design||[]).forEach(d=>{dm[k].qty+=N(d?.[k]?.qty);dm[k].price=N(d?.[k]?.price)})})});let rows=(x)=>K.filter(k=>N(x[k].qty)>0||N(x[k].price)>0).map(k=>`<div class="customerRateRow"><span class="rateLabel">${L[k]} ${N(x[k].qty)}</span><span class="rateMath">${N(x[k].qty)} × ${M(x[k].price)} = <b>${M(N(x[k].qty)*N(x[k].price))}</b></span></div>`).join(''),lt=total(lm),dt=total(dm);if(lt||dt)h+=`<div class="customerWorkSection"><h4>✨ Stone / Knot / Lays</h4>${lt?`<div class="customerRateList"><div class="skl-material-subtotal"><b>🧵 Lining blouse</b></div>${rows(lm)}<div class="customerRateTotal"><span>Lining materials Total</span><span>${M(lt)}</span></div></div>`:''}${dt?`<div class="customerRateList"><div class="skl-material-subtotal"><b>🎨 Design blouse</b></div>${rows(dm)}<div class="customerRateTotal"><span>Design materials Total</span><span>${M(dt)}</span></div></div>`:''}<div class="customerRateTotal"><span>Stone / Knot / Lays Total</span><span>${M(lt+dt)}</span></div></div>`;return h};
+new MutationObserver(()=>document.querySelectorAll('[id^="quick-order-"]').forEach(e=>ensure(e.id.replace('quick-order-','')))).observe(document.body,{subtree:true,childList:true});
+setTimeout(()=>document.querySelectorAll('[id^="quick-order-"]').forEach(e=>ensure(e.id.replace('quick-order-',''))),150);
+})();
+</script>
 </body>
 <script id="nf-v120-single-cash-dedupe-fix">
 /* V22: superseded by the single stable customer-group renderer. */
