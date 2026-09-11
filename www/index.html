@@ -3490,23 +3490,7 @@ function updateQuickOrderCalc(id){
  const qty=g==="Chudi"?cq:(n+l+d+sq);
  const garmentTotal=g==="Chudi"?cq*cr:(n*r.normal+l*r.lining+designTotal+sq*sr);
  const ls=$("qo-lining-source-"+id)?.value||"",lq=Math.max(0,Number($("qo-lining-qty-"+id)?.value||0)),lr=Math.max(0,Number($("qo-lining-cost-rate-"+id)?.value||0));
- const liningTotal=ls==="shop"?lq*lr:0;
- let total=garmentTotal+liningTotal;
- // Include Stone / Knot / Lays in the saved order total exactly once.
- try{
-   if(typeof window.sklV156Collect==="function"){
-     const mm=window.sklV156Collect(id)||{};
-     const matTotal=(x)=>{
-       const keys=["stone","knot","lays"];
-       return keys.reduce((a,k)=>a+
-         Math.max(0,Number(x?.[k]?.qty||0))*
-         Math.max(0,Number(x?.[k]?.price||0)),0);
-     };
-     const extra=matTotal(mm.lining||{})+
-       (Array.isArray(mm.design)?mm.design.reduce((a,d)=>a+matTotal(d||{}),0):0);
-     total+=extra;
-   }
- }catch(e){console.warn("Final material total sync:",e)}
+ const liningTotal=ls==="shop"?lq*lr:0,total=garmentTotal+liningTotal;
  if($("qo-qty-"+id))$("qo-qty-"+id).value=qty;
  if($("qo-lining-total-"+id))$("qo-lining-total-"+id).textContent=money(liningTotal);
  if($("qo-lining-total-display-"+id))$("qo-lining-total-display-"+id).textContent=money(liningTotal);
@@ -3537,7 +3521,9 @@ async function saveQuickOrder(id,customerId){
  const qty=garment==="Chudi"?cq:(s.normal+s.lining+s.design+sq);
  const garmentTotal=garment==="Chudi"?cq*cr:(s.normal*r.normal+s.lining*r.lining+designTotal+sq*sr);
  const ls=$("qo-lining-source-"+id)?.value||"",lq=Math.max(0,Number($("qo-lining-qty-"+id)?.value||0)),lr=Math.max(0,Number($("qo-lining-cost-rate-"+id)?.value||0));
- const liningTotal=ls==="shop"?lq*lr:0,total=garmentTotal+liningTotal;
+ const liningTotal=ls==="shop"?lq*lr:0;
+ const materialExtra=(()=>{try{const m=typeof window.sklV156Collect==="function"?window.sklV156Collect(id):null;return m?(typeof window.sklV156Total==="function"?window.sklV156Total(m.lining||{}):0)+((m.design||[]).reduce((a,x)=>a+(typeof window.sklV156Total==="function"?window.sklV156Total(x||{}):0),0)):0}catch(e){return 0}})();
+ const total=garmentTotal+liningTotal+materialExtra;
  const advance=Math.max(0,Number($("qo-advance-"+id)?.value||0)),status=$("qo-status-"+id)?.value||"Pending";
  if(!delivery){toast("Delivery Date தேர்வு செய்யுங்கள்.",true);return}
  if(qty<=0){toast(garment==="Chudi"?"குறைந்தது 1 Chudi கொடுக்க வேண்டும்.":"குறைந்தது 1 blouse கொடுக்க வேண்டும்.",true);return}
@@ -14736,327 +14722,226 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
 })();
 </script>
 
-
-<style id="nf-user-requested-final-fix-css">
-  .nf-requested-total-stack{
-    display:grid;
-    gap:9px;
-    margin:12px 0 2px;
+<!-- V301 FINAL USER REQUEST FIX: totals + cash collection + hide Stone/Knot/Lays display -->
+<style id="nf-v301-final-fix-css">
+  /* The material amount is part of the rate, but its detailed section is hidden. */
+  .nf-v301-category-totals{display:grid;gap:8px;margin:10px 0 8px}
+  .nf-v301-category-total{
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+    padding:11px 13px;border-radius:13px;
+    background:linear-gradient(100deg,#ffe7f1,#f8e9ff);
+    border:1px solid #efb7d0;color:#4c234f;font-weight:950;
+    box-shadow:0 5px 14px rgba(210,72,145,.10)
   }
-  .nf-requested-total-row{
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:12px;
-    padding:13px 15px;
-    border:1px solid rgba(233,70,120,.20);
-    border-radius:14px;
-    background:linear-gradient(135deg,#fff0f6,#ffe4ef 55%,#fff5fa);
-    box-shadow:0 6px 16px rgba(233,70,120,.10);
-    color:#6f2345;
-    font-weight:900;
+  .nf-v301-category-total b{color:#c52f78;font-size:17px;white-space:nowrap}
+  .nf-v301-grand-total{
+    margin-top:10px!important;padding:13px 14px!important;border-radius:14px!important;
+    background:linear-gradient(100deg,#ef4f8a,#b34be4)!important;
+    color:#fff!important;border:0!important;box-shadow:0 9px 22px rgba(180,65,155,.22)!important;
+    font-size:17px;font-weight:950
   }
-  .nf-requested-total-row .label{
-    min-width:0;
-    overflow-wrap:anywhere;
-  }
-  .nf-requested-total-row .value{
-    flex:0 0 auto;
-    color:#c52e68;
-    font-size:18px;
-    font-weight:950;
-    white-space:nowrap;
-  }
-  .nf-requested-total-row.grand{
-    background:linear-gradient(135deg,#e94678,#d93b91 52%,#f36b6b);
-    border-color:transparent;
-    color:#fff;
-    box-shadow:0 10px 24px rgba(217,59,145,.22);
-  }
-  .nf-requested-total-row.grand .value{color:#fff;font-size:21px}
-  @media(max-width:560px){
-    .nf-requested-total-row{padding:12px 13px;font-size:14px}
-    .nf-requested-total-row .value{font-size:17px}
-    .nf-requested-total-row.grand .value{font-size:20px}
-  }
-
-  /* The user asked for the Stone/Knot/Lays block above Photos to be removed. */
-  .nfCustomerBreakdownMount .nf-v300-final-materials,
-  .nfCustomerBreakdownMount .nf-v300-final-blouse-total,
-  .nfCustomerBreakdownMount .nf-v300-materials-inline,
-  .nfCustomerBreakdownMount .skl-material-summary,
-  .nfCustomerBreakdownMount .nf-combined-calc,
-  .nfCustomerBreakdownMount .nf-combined-grand{
-    display:none!important;
-  }
+  .nf-v301-grand-total span,.nf-v301-grand-total b{color:#fff!important}
+  /* No Stone/Knot/Lays calculation block is shown above Customer Photos. */
+  .nf-v301-hidden-material-display{display:none!important}
 </style>
-
-<script id="nf-user-requested-final-fix-js">
+<script id="nf-v301-final-fix-js">
 (function(){
-  "use strict";
-  if(window.__nfUserRequestedFinalFix)return;
-  window.__nfUserRequestedFinalFix=true;
+  'use strict';
+  if(window.__nfV301FinalFix)return;
+  window.__nfV301FinalFix=true;
 
-  function n(v){
-    var x=Number(v);
-    return Number.isFinite(x)?Math.max(0,x):0;
-  }
-  function moneySafe(v){
-    try{return typeof money==="function"?money(n(v)):"₹"+n(v).toFixed(2);}
-    catch(e){return "₹"+n(v).toFixed(2);}
-  }
-  function latestMaterials(o){
-    var latest=null;
-    String(o&&o.notes||"").split("|").forEach(function(part){
-      var p=part.trim();
+  const N=v=>{const n=Number(v);return Number.isFinite(n)?Math.max(0,n):0};
+  const K=['stone','knot','lays'];
+  const moneyV=v=>{try{return money(N(v))}catch(e){return '₹'+N(v).toFixed(2)}};
+
+  function latestMaterials(notes){
+    let latest=null;
+    String(notes||'').split('|').forEach(part=>{
+      const p=part.trim();
       if(!/^MATERIALS:/i.test(p))return;
-      try{
-        var x=JSON.parse(p.replace(/^MATERIALS:\s*/i,"").trim());
-        if(x&&typeof x==="object")latest=x;
-      }catch(e){}
+      try{const x=JSON.parse(p.replace(/^MATERIALS:\s*/i,''));if(x&&typeof x==='object')latest=x}catch(e){}
     });
     return latest||{lining:{},design:[]};
   }
-  function materialTotal(x){
-    x=x||{};
-    return ["stone","knot","lays"].reduce(function(a,k){
-      return a+n(x[k]&&x[k].qty)*n(x[k]&&x[k].price);
-    },0);
-  }
+  function matTotal(x){return K.reduce((a,k)=>a+N(x&&x[k]&&x[k].qty)*N(x&&x[k]&&x[k].price),0)}
   function orderMaterialTotal(o){
-    var m=latestMaterials(o);
-    return materialTotal(m.lining)+
-      (Array.isArray(m.design)?m.design.reduce(function(a,d){return a+materialTotal(d);},0):0);
+    const m=latestMaterials(o&&o.notes);
+    return N(matTotal(m.lining))+((Array.isArray(m.design)?m.design:[]).reduce((a,d)=>a+N(matTotal(d)),0));
   }
-  function orderBaseTotal(o){
+
+  /* Correct old orders too: if the saved total is still the pre-material total,
+     add the saved Stone/Knot/Lays amount exactly once. */
+  const oldOrderTotal=window.orderTotal;
+  window.orderTotal=function(o){
+    const saved=Number(o&&o.total_amount||0);
+    const fallback=Number(o&&o.quantity||0)*Number(o&&o.unit_price||0);
+    const base=saved||fallback;
+    const extra=orderMaterialTotal(o);
+    if(extra<=0)return base;
+
+    /* Reconstruct the non-material amount from the order's stored rate data. */
+    let core=0;
     try{
-      var g=String(o&&o.garment_type||"Blouse").toLowerCase();
-      var r=typeof nfOrderRates==="function"?nfOrderRates(o):{};
-      var s=typeof blouseSplit==="function"?blouseSplit(o):{normal:0,lining:0,design:0};
-      var ex=typeof nfGarmentExtra==="function"?nfGarmentExtra(o):{};
-      var liningCost=typeof nfLiningCost==="function"?nfLiningCost(o):{total:0};
-      var liningShop=(["shop","tailor"].includes(String(o&&o.lining_cloth_source||"").toLowerCase()))
-        ?n(liningCost&&liningCost.total):0;
-
-      if(g==="chudi"){
-        return n(ex.chudi||o&&o.quantity)*n(r.chudi)+liningShop;
-      }
-      if(g==="saree"){
-        return n(ex.saree||o&&o.quantity)*n(r.saree)+liningShop;
-      }
-
-      var design=0,items=[];
-      try{
-        if(typeof window.nfDesignItems==="function")items=window.nfDesignItems(o)||[];
-      }catch(e){}
-      if(items.length){
-        design=items.reduce(function(a,it){return a+n(it&&it.qty)*n(it&&it.rate);},0);
+      const g=String(o&&o.garment_type||'Blouse').toLowerCase();
+      const r=typeof nfOrderRates==='function'?nfOrderRates(o):{};
+      if(g==='chudi'){
+        const x=typeof nfGarmentExtra==='function'?nfGarmentExtra(o):{};
+        core=N(x.chudi||o.quantity)*N(r.chudi);
+      }else if(g==='saree'){
+        const x=typeof nfGarmentExtra==='function'?nfGarmentExtra(o):{};
+        core=N(x.saree||o.quantity)*N(r.saree);
       }else{
-        design=n(s.design)*n(r.design);
+        const s=typeof blouseSplit==='function'?blouseSplit(o):{normal:0,lining:0,design:0};
+        core=N(s.normal)*N(r.normal)+N(s.lining)*N(r.lining);
+        if(typeof designItemsFromOrder==='function'){
+          core+=(designItemsFromOrder(o)||[]).reduce((a,x)=>a+N(x.qty)*N(x.rate),0);
+        }else core+=N(s.design)*N(r.design);
+        const x=typeof nfGarmentExtra==='function'?nfGarmentExtra(o):{};
+        core+=N(x.saree)*N(r.saree);
       }
-      var saree=n(ex.saree)*n(r.saree);
-      return n(s.normal)*n(r.normal)+n(s.lining)*n(r.lining)+design+saree+liningShop;
-    }catch(e){
-      return n(o&&o.total_amount);
-    }
-  }
-  function correctedOrderTotal(o){
-    var saved=n(o&&o.total_amount);
-    if(saved<=0){
-      saved=n(o&&o.quantity)*n(o&&o.unit_price);
-    }
-    var mat=orderMaterialTotal(o);
-    if(mat<=0)return saved;
-    var expected=orderBaseTotal(o)+mat;
-    return saved+0.009<expected?expected:saved;
-  }
+      if(String(o&&o.lining_cloth_source||'').toLowerCase()==='shop' && typeof nfLiningCost==='function'){
+        core+=N(nfLiningCost(o).total);
+      }
+    }catch(e){}
 
-  // Patch customerStats so Cash Collection uses the corrected order total.
-  var oldStats=window.customerStats;
-  if(typeof oldStats==="function" && !oldStats.__nfUserRequestedFinalFix){
-    var wrappedStats=function(id){
-      var st=oldStats.apply(this,arguments)||{};
+    /* If stored total is already >= reconstructed core + materials, it is already fixed. */
+    if(core>0 && base+0.009 < core+extra)return core+extra;
+    if(core>0 && base+0.009 >= core+extra)return base;
+    /* For legacy records where core cannot be reconstructed, use the material marker
+       only when the saved amount is smaller than the order's quantity/rate fallback. */
+    if(fallback>0 && base+0.009 < fallback+extra)return fallback+extra;
+    return base;
+  };
+
+  /* Save new/edit orders with materials included in total_amount. */
+  const originalSave=window.saveQuickOrder;
+  if(typeof originalSave==='function' && !originalSave.__nfV301Save){
+    const wrappedSave=async function(id,customerId){
+      const root=document.getElementById('quick-order-'+id);
       try{
-        var orders=Array.isArray(st.os)?st.os:[];
-        var corrected=orders.reduce(function(a,o){return a+correctedOrderTotal(o);},0);
-        var paid=n(st.paid), advance=n(st.advance);
-        st.total=corrected;
-        st.balance=Math.max(0,orders.reduce(function(a,o){
-          var payments=typeof customerPayments==="function"?customerPayments(id):[];
-          return a;
-        },0));
-        // Use corrected total against the same payment totals already used by the app.
-        st.balance=Math.max(0,corrected-paid);
-        if(st.balance<0)st.balance=0;
-      }catch(e){console.warn("Customer cash total fix:",e)}
-      return st;
+        if(root && typeof window.sklV156Collect==='function'){
+          const m=window.sklV156Collect(id);
+          const extra=N(matTotal(m&&m.lining))+((m&&m.design)||[]).reduce((a,d)=>a+N(matTotal(d)),0);
+          root.dataset.nfV301MaterialExtra=String(extra);
+        }
+      }catch(e){}
+      return originalSave.apply(this,arguments);
     };
-    wrappedStats.__nfUserRequestedFinalFix=true;
-    window.customerStats=wrappedStats;
+    wrappedSave.__nfV301Save=true;
+    window.saveQuickOrder=wrappedSave;
   }
 
-  function requestedBreakdown(st){
-    var orders=Array.isArray(st&&st.os)?st.os:[];
-    var out={normal:0,lining:0,design:0,other:0};
-    orders.forEach(function(o){
-      var g=String(o&&o.garment_type||"Blouse").toLowerCase();
-      var r=typeof nfOrderRates==="function"?nfOrderRates(o):{};
-      var s=typeof blouseSplit==="function"?blouseSplit(o):{normal:0,lining:0,design:0};
-      var ex=typeof nfGarmentExtra==="function"?nfGarmentExtra(o):{};
-      var mats=latestMaterials(o);
-
-      if(g==="chudi"){
-        out.other+=n(ex.chudi||o&&o.quantity)*n(r.chudi);
-        if(["shop","tailor"].includes(String(o&&o.lining_cloth_source||"").toLowerCase())){
-          out.other+=n(typeof nfLiningCost==="function"?(nfLiningCost(o)||{}).total:0);
-        }
-        return;
-      }
-      if(g==="saree"){
-        out.other+=n(ex.saree||o&&o.quantity)*n(r.saree);
-        if(["shop","tailor"].includes(String(o&&o.lining_cloth_source||"").toLowerCase())){
-          out.other+=n(typeof nfLiningCost==="function"?(nfLiningCost(o)||{}).total:0);
-        }
-        return;
-      }
-
-      out.normal+=n(s.normal)*n(r.normal);
-      out.lining+=n(s.lining)*n(r.lining);
-      var designItems=[];
-      try{
-        if(typeof window.nfDesignItems==="function")designItems=window.nfDesignItems(o)||[];
-      }catch(e){}
-      if(designItems.length){
-        out.design+=designItems.reduce(function(a,it){return a+n(it&&it.qty)*n(it&&it.rate);},0);
-      }else{
-        out.design+=n(s.design)*n(r.design);
-      }
-
-      // Materials are deliberately absorbed into the related Lining/Design total.
-      out.lining+=materialTotal(mats.lining);
-      if(Array.isArray(mats.design)){
-        out.design+=mats.design.reduce(function(a,d){return a+materialTotal(d);},0);
-      }
-
-      var src=String(o&&o.lining_cloth_source||"").toLowerCase();
-      if(src==="shop"||src==="tailor"){
-        out.lining+=n(typeof nfLiningCost==="function"?(nfLiningCost(o)||{}).total:0);
-      }
-      out.other+=n(ex.saree)*n(r.saree);
-    });
-    return out;
-  }
-
-  function escSafe(v){
-    return typeof esc==="function"?esc(v):String(v==null?"":v).replace(/[&<>"']/g,function(c){
-      return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];
-    });
-  }
-
-  function patchCardHtml(id,html){
-    if(typeof html!=="string")return html;
+  /* Correct the quick-editor visible total after all earlier V300/V156 wrappers run. */
+  function syncQuickTotal(id){
+    const root=document.getElementById('quick-order-'+id); if(!root)return;
+    const q=k=>N(document.getElementById('qo-'+k+'-'+id)?.value);
+    const rate=k=>N(document.getElementById('qo-'+k+'-rate-'+id)?.value);
+    const designRates=typeof getQuickDesignRates==='function'?getQuickDesignRates(id,q('design'),rate('design')):Array.from({length:q('design')},()=>rate('design'));
+    const designTotal=designRates.reduce((a,v)=>a+N(v),0);
+    const garment=String(document.getElementById('qo-garment-'+id)?.value||'Blouse');
+    const sq=q('saree'),sr=rate('saree'),cq=q('chudi'),cr=rate('chudi');
+    const ls=String(document.getElementById('qo-lining-source-'+id)?.value||'');
+    const lq=q('lining-qty'),lr=q('lining-cost-rate');
+    const liningCost=ls==='shop'?lq*lr:0;
+    let core=garment==='Chudi'?cq*cr:(q('normal')*rate('normal')+q('lining')*rate('lining')+designTotal+sq*sr+liningCost);
+    let extra=0;
     try{
-      var holder=document.createElement("div");
-      holder.innerHTML=html;
-      var card=holder.querySelector(".customerCard");
-      if(!card)return html;
-
-      // Get corrected stats directly so this remains safe even if a renderer
-      // captured the old customerStats function.
-      var os=(window.state&&Array.isArray(state.orders)?state.orders:[])
-        .filter(function(o){return String(o&&o.customer_id)===String(id);});
-      var st=typeof window.customerStats==="function"
-        ?window.customerStats(id):{os:os,total:os.reduce(function(a,o){return a+correctedOrderTotal(o);},0),paid:0,balance:0};
-
-      var cash=card.querySelector(".nf-cash-collection");
-      if(cash){
-        var first=cash.querySelector(".customerMoneyGrid .moneyStat:first-child b");
-        if(first)first.textContent=moneySafe(st.total);
-        var bal=cash.querySelector(".customerMoneyGrid .moneyStat:nth-child(4) b");
-        if(bal)bal.textContent=moneySafe(st.balance);
-      }
-
-      var mount=card.querySelector(".nfCustomerBreakdownMount");
-      if(!mount)return holder.innerHTML;
-
-      // Remove all visible legacy Stone/Knot/Lays blocks.
-      mount.querySelectorAll(
-        ".nf-v300-final-materials,.nf-v300-final-blouse-total,"+
-        ".nf-v300-materials-inline,.skl-material-summary,.nf-combined-calc,.nf-combined-grand"
-      ).forEach(function(el){el.remove();});
-
-      mount.querySelectorAll(".customerWorkSection").forEach(function(sec){
-        var text=String(sec.textContent||"");
-        if(/Stone\s*\/\s*Knot\s*\/\s*Lays/i.test(text) && !/Alteration/i.test(text)){
-          sec.remove();
-        }
-      });
-
-      var old=mount.querySelector(".nf-requested-total-stack");
-      if(old)old.remove();
-
-      var b=requestedBreakdown(st);
-      var grand=b.normal+b.lining+b.design+b.other;
-      // Prefer the corrected Cash Collection total when there is any legacy
-      // rounding/old-data mismatch, while keeping the category boxes accurate.
-      if(Math.abs(st.total-grand)>0.009){
-        grand=st.total;
-        b.other=Math.max(0,grand-b.normal-b.lining-b.design);
-      }
-
-      var grandEl=mount.querySelector(".nfV2Grand");
-      if(!grandEl){
-        grandEl=document.createElement("div");
-        grandEl.className="nfV2Grand";
-        mount.firstElementChild?.appendChild(grandEl);
-      }
-      var spans=grandEl.querySelectorAll("span");
-      if(spans.length>=2){
-        spans[0].textContent="மொத்த Rate";
-        spans[1].textContent=moneySafe(grand);
-      }
-
-      var stack=document.createElement("div");
-      stack.className="nf-requested-total-stack";
-      stack.innerHTML=
-        '<div class="nf-requested-total-row"><span class="label">Normal blouse Total</span><span class="value">'+moneySafe(b.normal)+'</span></div>'+
-        '<div class="nf-requested-total-row"><span class="label">Lining blouse Total</span><span class="value">'+moneySafe(b.lining)+'</span></div>'+
-        '<div class="nf-requested-total-row"><span class="label">Design blouse Total</span><span class="value">'+moneySafe(b.design)+'</span></div>';
-
-      if(grandEl.parentNode){
-        grandEl.parentNode.insertBefore(stack,grandEl);
-      }
-      return holder.innerHTML;
-    }catch(e){
-      console.warn("Requested final customer-card patch:",e);
-      return html;
-    }
+      const m=typeof window.sklV156Collect==='function'?window.sklV156Collect(id):null;
+      if(m)extra=N(matTotal(m.lining))+((m.design||[]).reduce((a,d)=>a+N(matTotal(d)),0));
+    }catch(e){}
+    const t=document.getElementById('qo-total-'+id);
+    if(t)t.textContent=moneyV(core+extra);
   }
-
-  // Wrap the final customer-card renderer so the result is correct before
-  // innerHTML is assigned.
-  var oldCard=window.customerCard;
-  if(typeof oldCard==="function" && !oldCard.__nfUserRequestedFinalFix){
-    var wrappedCard=function(id){
-      return patchCardHtml(id,oldCard.apply(this,arguments));
+  const oldUpdate=window.updateQuickOrderCalc;
+  if(typeof oldUpdate==='function' && !oldUpdate.__nfV301Update){
+    const wrappedUpdate=function(id){
+      const r=oldUpdate.apply(this,arguments);
+      try{syncQuickTotal(id)}catch(e){}
+      return r;
     };
-    wrappedCard.__nfUserRequestedFinalFix=true;
-    window.customerCard=wrappedCard;
+    wrappedUpdate.__nfV301Update=true;
+    window.updateQuickOrderCalc=wrappedUpdate;
   }
 
-  // Safety pass for renderers that captured an older customerCard reference.
-  function refreshVisibleCards(){
-    document.querySelectorAll(".customerCard").forEach(function(card){
-      var id=String(card.id||"").replace(/^customer-card-/,"");
-      if(!id)return;
-      var holder=document.createElement("div");
-      holder.innerHTML=patchCardHtml(id,card.outerHTML);
-      var fixed=holder.firstElementChild;
-      if(fixed&&card.parentNode)card.parentNode.replaceChild(fixed,card);
+  /* Final customer calculation layout: category totals + one grand total only.
+     Material cost is included in Lining/Design totals but no material block is shown. */
+  const baseSummary=window.nfCustomerWorkSummaryHTML;
+  function finalCustomerSummary(st){
+    const html=typeof baseSummary==='function'?baseSummary(st):'';
+    if(!html)return html;
+    const holder=document.createElement('div');holder.innerHTML=html;
+    const summary=holder.querySelector('.customerWorkSummary');
+    if(!summary)return html;
+
+    /* Remove every legacy visible Stone/Knot/Lays block. */
+    summary.querySelectorAll(
+      '.nf-v300-final-materials,.nf-v300-materials-inline,.skl-material-summary,.nf-combined-calc,.nf-combined-grand'
+    ).forEach(x=>x.remove());
+    summary.querySelectorAll('.customerWorkSection').forEach(sec=>{
+      const txt=String(sec.textContent||'');
+      if(/Stone\s*\/\s*Knot\s*\/\s*Lays/i.test(txt))sec.remove();
     });
+
+    const mats=(st&&st.os||[]).reduce((acc,o)=>{
+      const m=latestMaterials(o&&o.notes);
+      acc.lining+=matTotal(m.lining);
+      acc.design+=(Array.isArray(m.design)?m.design:[]).reduce((a,d)=>a+matTotal(d),0);
+      return acc;
+    },{lining:0,design:0});
+
+    let normal=0,lining=0,design=0;
+    summary.querySelectorAll('.customerRateRow').forEach(row=>{
+      const label=String(row.querySelector('.rateLabel')?.textContent||'').trim();
+      const val=N(String(row.querySelector('.rateMath b')?.textContent||'').replace(/[^0-9.-]/g,''));
+      if(/^Normal blouse\b/i.test(label))normal+=val;
+      else if(/^Lining blouse\b/i.test(label))lining+=val;
+      else if(/^Design blouse\b/i.test(label))design+=val;
+    });
+    lining+=mats.lining;
+    design+=mats.design;
+
+    /* Remove old blouse/lining combined total and old grand total. */
+    summary.querySelectorAll('.customerRateTotal').forEach(el=>{
+      const label=String(el.querySelector('span')?.textContent||'').trim();
+      if(/Blouse\s*\/\s*Lining Total/i.test(label)||/மொத்த Rate/i.test(label))el.remove();
+    });
+
+    const totals=document.createElement('div');
+    totals.className='nf-v301-category-totals';
+    const add=(label,value)=>{
+      if(value<=0)return;
+      const row=document.createElement('div');row.className='nf-v301-category-total';
+      row.innerHTML='<span>'+label+'</span><b>'+moneyV(value)+'</b>';
+      totals.appendChild(row);
+    };
+    add('Normal blouse Total',normal);
+    add('Lining blouse Total',lining);
+    add('Design blouse Total',design);
+
+    const grand=(st&&st.os||[]).reduce((a,o)=>a+N(window.orderTotal(o)),0);
+    const grandEl=document.createElement('div');
+    grandEl.className='customerRateTotal nf-v301-grand-total';
+    grandEl.innerHTML='<span>மொத்த Rate</span><b>'+moneyV(grand)+'</b>';
+
+    const alteration=summary.querySelector('.nf-summary-alteration-section');
+    if(alteration){
+      alteration.insertAdjacentElement('beforebegin',totals);
+      alteration.insertAdjacentElement('beforebegin',grandEl);
+    }else{
+      summary.appendChild(totals);summary.appendChild(grandEl);
+    }
+    return holder.innerHTML;
   }
-  setTimeout(refreshVisibleCards,80);
-  setTimeout(refreshVisibleCards,350);
-  setTimeout(refreshVisibleCards,900);
+  if(typeof baseSummary==='function')window.nfCustomerWorkSummaryHTML=finalCustomerSummary;
+
+  /* Fix Cash Collection immediately and after any customer re-render. */
+  function refresh(){
+    try{
+      if(typeof window.renderCustomersStable==='function')window.renderCustomersStable();
+      else if(typeof window.renderCustomers==='function')window.renderCustomers();
+    }catch(e){}
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){setTimeout(refresh,80);setTimeout(refresh,500);},{once:true});
+  else{setTimeout(refresh,80);setTimeout(refresh,500)}
 })();
 </script>
