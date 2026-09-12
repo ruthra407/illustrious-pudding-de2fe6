@@ -11530,21 +11530,41 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
     if(photos.length){
       var count=Math.min(8,photos.length),photoRows=Math.ceil(count/2),ph=photoRows*300+76;rr(pad,y,inner,ph,20,'#fff','#ddd2e8',2);
       var pg=ctx.createLinearGradient(pad,y,W-pad,y);pg.addColorStop(0,'#6b20ca');pg.addColorStop(1,'#d30a61');ctx.fillStyle=pg;ctx.fillRect(pad,y,inner,60);txt(stitchedPhotos.length?'📸 தைக்கப்பட்ட துணிகள் போட்டோ':'📸 மிச்சமுள்ள துணி போட்டோ',pad+24,y+30,28,950,'#fff');y+=72;
-      var cw=(inner-18)/2;for(var i=0;i<count;i++){var p=photos[i],col=i%2,row=Math.floor(i/2),x=pad+col*(cw+18),yy=y+row*318;rr(x,yy,cw,300,16,'#fff','#d9cce9',2);
-        if(p.name)txt(p.name,x+18,yy+25,18,850,'#6e1e56');
+      /* V194: never let a slow/cross-origin photo block the whole Delivery Card.
+         Prepare all photo data in parallel with a short per-photo timeout, then
+         draw only the images that actually loaded. */
+      var photoData=await Promise.all(photos.slice(0,count).map(async function(p){
         try{
-          var src=typeof nfWacPhotoSrc==='function'?nfWacPhotoSrc(p):p.src;
-          var data=src;
-          if(/^https?:/i.test(src)&&typeof nfWacFetchBlob==='function'){
-            try{var pb=await nfWacFetchBlob(src,5000);data=await new Promise(function(res,rej){var fr=new FileReader();fr.onload=function(){res(fr.result)};fr.onerror=rej;fr.readAsDataURL(pb);});}catch(fetchErr){
-              /* Direct image fallback: useful when the browser can display the
-                 public R2 object but fetch/CORS is unavailable. */
-              data=src;
-            }
+          var src=typeof nfWacPhotoSrc==='function'?nfWacPhotoSrc(p):String(p.src||'');
+          if(!src)return null;
+          if(/^data:image\//i.test(src))return {p:p,data:src};
+          if(typeof nfWacFetchBlob==='function'){
+            try{
+              var pb=await nfWacFetchBlob(src,2600);
+              var data=await Promise.race([
+                new Promise(function(res,rej){var fr=new FileReader();fr.onload=function(){res(String(fr.result||''))};fr.onerror=rej;fr.readAsDataURL(pb);}),
+                new Promise(function(_,rej){setTimeout(function(){rej(new Error('photo-read-timeout'))},2200);})
+              ]);
+              if(data)return {p:p,data:data};
+            }catch(fetchErr){}
           }
-          var im=await new Promise(function(res,rej){var z=new Image();z.onload=function(){res(z)};z.onerror=rej;z.src=data;});
-          var sc=Math.min((cw-30)/im.width,220/im.height),dw=im.width*sc,dh=im.height*sc;ctx.drawImage(im,x+cw/2-dw/2,yy+165-dh/2,dw,dh);
-        }catch(e){txt('Photo unavailable',x+cw/2,yy+155,18,700,'#777','center');}
+          return {p:p,data:src};
+        }catch(e){return null;}
+      }));
+      var cw=(inner-18)/2;
+      for(var i=0;i<count;i++){
+        var p=photos[i],col=i%2,row=Math.floor(i/2),x=pad+col*(cw+18),yy=y+row*318;rr(x,yy,cw,300,16,'#fff','#d9cce9',2);
+        if(p.name)txt(p.name,x+18,yy+25,18,850,'#6e1e56');
+        var pd=photoData[i];
+        if(pd&&pd.data){
+          try{
+            var im=await Promise.race([
+              new Promise(function(res,rej){var z=new Image();z.onload=function(){res(z)};z.onerror=rej;z.src=pd.data;}),
+              new Promise(function(_,rej){setTimeout(function(){rej(new Error('photo-load-timeout'))},2200);})
+            ]);
+            var sc=Math.min((cw-30)/im.width,220/im.height),dw=im.width*sc,dh=im.height*sc;ctx.drawImage(im,x+cw/2-dw/2,yy+165-dh/2,dw,dh);
+          }catch(e){txt('Photo unavailable',x+cw/2,yy+155,18,700,'#777','center');}
+        }else{txt('Photo unavailable',x+cw/2,yy+155,18,700,'#777','center');}
       }
     }
     return canvasBlob(canvas);
