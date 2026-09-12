@@ -8557,6 +8557,8 @@ function nfWacRows(os){
         else rows.push({name:"Design blouse",qty:Number(s.design),rate:Number(r.design||0)});
       }
     }
+    var fancyItems=typeof window.nfParseFancyBlouses==="function"?(window.nfParseFancyBlouses(o)||[]):[];
+    fancyItems.forEach(function(f,i){var fq=Number(f&&f.count||0),fr=Number(f&&f.price||0),flq=Number(f&&f.liningCount||0),flr=Number(f&&f.liningPrice||0),fw=Number(f&&f.stone||0)+Number(f&&f.lace||0)+Number(f&&f.knot||0);if(fq>0||fr>0)rows.push({name:"✨ Fancy Blouse "+(i+1),qty:fq,rate:fr});if(flq>0||flr>0)rows.push({name:"🧵 Fancy Lining "+(i+1),qty:flq,rate:flr});if(fw>0)rows.push({name:"🎨 Fancy Work "+(i+1),qty:1,rate:fw});});
     var gx=typeof nfGarmentExtra==="function"?nfGarmentExtra(o):{},rr=typeof nfOrderRates==="function"?nfOrderRates(o):{};
     if(Number(gx.saree||0))rows.push({name:"Saree / சேலை",qty:Number(gx.saree),rate:Number(rr.saree||0)});
     if(Number(gx.chudi||0))rows.push({name:"Chudidhar / சுடிதார்",qty:Number(gx.chudi),rate:Number(rr.chudi||0)});
@@ -11248,11 +11250,13 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
   function garmentRows(group){
     var rows=[];
     group.forEach(function(c){ordersFor(c.id).forEach(function(o){
-      var g=String(o&&o.garment||o&&o.garment_type||o&&o.item_name||'Blouse');
+      var g=String(o&&o.garment||o&&o.garment_type||o&&o.item_name||"Blouse");
       var qty=Number(o&&o.quantity||o&&o.qty||o&&o.blouse_qty||o&&o.normal_qty||0)||1;
-      var pay=typeof nfOrderPaymentInfo==='function'?nfOrderPaymentInfo(o):null;
-      var total=typeof orderTotal==='function'?Number(orderTotal(o)||0):Number(o&&o.total_amount||o&&o.total||0);
-      rows.push({name:c.name||'Customer',garment:g,qty:qty,delivery:o.delivery_date||'',cloth:o.cloth_received_date||'',total:total,paid:pay?Number(pay.totalPaid||pay.customerPaid||0):Number(o&&o.paid||0),status:o.status||'Pending'});
+      var pay=typeof nfOrderPaymentInfo==="function"?nfOrderPaymentInfo(o):null;
+      var total=typeof orderTotal==="function"?Number(orderTotal(o)||0):Number(o&&o.total_amount||o&&o.total||0);
+      var fancyItems=typeof window.nfParseFancyBlouses==="function"?(window.nfParseFancyBlouses(o)||[]):[];
+      fancyItems.forEach(function(f,i){var fq=Number(f&&f.count||0),fr=Number(f&&f.price||0),flq=Number(f&&f.liningCount||0),flr=Number(f&&f.liningPrice||0),fw=Number(f&&f.stone||0)+Number(f&&f.lace||0)+Number(f&&f.knot||0);if(fq>0||fr>0)rows.push({name:c.name||"Customer",garment:"✨ Fancy Blouse "+(i+1),qty:fq,delivery:o.delivery_date||"",cloth:o.cloth_received_date||"",total:fq*fr,paid:0,status:o.status||"Pending"});if(flq>0||flr>0)rows.push({name:c.name||"Customer",garment:"🧵 Fancy Lining "+(i+1),qty:flq,delivery:o.delivery_date||"",cloth:o.cloth_received_date||"",total:flq*flr,paid:0,status:o.status||"Pending"});if(fw>0)rows.push({name:c.name||"Customer",garment:"🎨 Fancy Work "+(i+1),qty:1,delivery:o.delivery_date||"",cloth:o.cloth_received_date||"",total:fw,paid:0,status:o.status||"Pending"});});
+      rows.push({name:c.name||"Customer",garment:g,qty:qty,delivery:o.delivery_date||"",cloth:o.cloth_received_date||"",total:total,paid:pay?Number(pay.totalPaid||pay.customerPaid||0):Number(o&&o.paid||0),status:o.status||"Pending"});
     });});
     return rows;
   }
