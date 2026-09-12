@@ -4076,10 +4076,16 @@ const clothPhotoActionsHtml="";
     <div class="nf-fancy-total"><span>Fancy Blouse Total</span><b id="qo-fancy-total-${id}">₹0.00</b></div>
   </div>
 </section>
-<section class="nf-edit-category-box nf-edit-design-blouse"><div class="nf-edit-category-head"><span>🎨</span><div><strong>Design blouse</strong><small>எண்ணிக்கை · வாங்கிச் சென்றது · design-wise விலை</small></div></div><div class="nf-edit-category-grid"><div class="moneyStat"><span>Design blouse — எத்தனை</span><input id="qo-design-${id}" class="input" type="number" min="0" step="1" value="0" oninput="updateQuickOrderCalc('${id}');renderQuickDesignRates('${id}');updateQuickBlouseHandover('${id}')"></div><div class="moneyStat"><span>Design blouse — வாங்கிச் சென்றது</span><input id="qo-design-handover-${id}" class="input" type="number" min="0" step="1" value="0" oninput="updateQuickBlouseHandover('${id}')"></div></div><div class="nf-design-rate-box nf-quick-blouse" id="qo-design-rates-box-${id}" style="display:none"></div><div class="nf-simple-lining-cloth" id="qo-lining-inline-${id}">
+<section class="nf-edit-category-box nf-edit-design-blouse"><div class="nf-edit-category-head"><span>🎨</span><div><strong>Design blouse</strong><small>எண்ணிக்கை · வாங்கிச் சென்றது · design-wise விலை</small></div></div><div class="nf-edit-category-grid"><div class="moneyStat"><span>Design blouse — எத்தனை</span><input id="qo-design-${id}" class="input" type="number" min="0" step="1" value="0" oninput="updateQuickOrderCalc('${id}');renderQuickDesignRates('${id}');updateQuickBlouseHandover('${id}')"></div><div class="moneyStat"><span>Design blouse — வாங்கிச் சென்றது</span><input id="qo-design-handover-${id}" class="input" type="number" min="0" step="1" value="0" oninput="updateQuickBlouseHandover('${id}')"></div></div><div class="nf-design-rate-box nf-quick-blouse" id="qo-design-rates-box-${id}" style="display:none"></div><div class="nf-simple-lining-cloth nf-v157-lining-slot" data-lining-section="design" id="qo-lining-inline-${id}-design">
 <div class="nf-simple-lining-head"><strong>🧵 Lining cloth</strong><span>Count / Price = Total</span></div>
-<div id="qo-lining-items-${id}" class="nf-lining-items"></div>
-<div class="nf-simple-lining-total"><span>Lining cloth total</span><b id="qo-lining-total-${id}">₹0.00</b></div>
+<div id="qo-lining-items-${id}-design" class="nf-lining-items"><div class="nf-lining-item-row" data-lining-row="1" data-lining-section="design">
+<div class="nf-lining-item-no">#1</div>
+<div class="nf-lining-item-field"><label>Count</label><input class="input nf-li-qty" type="number" min="0" step="1" inputmode="numeric" value="0" oninput="nfLiningItemsCalc('${id}')"></div>
+<div class="nf-lining-item-field"><label>₹ Price</label><input class="input nf-li-rate" type="number" min="0" step="0.01" inputmode="decimal" value="0" oninput="nfLiningItemsCalc('${id}')"></div>
+<div class="nf-lining-item-result"><span>Total</span><b class="nf-li-total">₹0.00</b></div>
+<button type="button" class="nf-lining-remove" onclick="nfRemoveLiningItem('${id}',this)" aria-label="Remove lining row" title="Remove">×</button>
+</div></div>
+<div class="nf-simple-lining-total"><span>Lining cloth total</span><b id="qo-lining-total-${id}-design">₹0.00</b></div>
 <input id="qo-lining-source-${id}" type="hidden" value="shop">
 <input id="qo-lining-qty-${id}" type="hidden" value="0">
 <input id="qo-lining-cost-rate-${id}" type="hidden" value="0">
@@ -15353,4 +15359,11 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
     width:27px!important;height:32px!important;min-height:32px!important;
   }
 }
+</style>
+
+<style id="nf-v173-design-lining-visible">
+/* V173: Design blouse Lining cloth Count / Price must always remain visible. */
+#app [id^="quick-order-"] .nf-edit-design-blouse > .nf-v157-lining-slot .nf-lining-items{display:grid!important;visibility:visible!important;min-height:46px!important}
+#app [id^="quick-order-"] .nf-edit-design-blouse > .nf-v157-lining-slot .nf-lining-item-row{display:grid!important;visibility:visible!important}
+#app [id^="quick-order-"] .nf-edit-design-blouse > .nf-v157-lining-slot .nf-lining-item-field,#app [id^="quick-order-"] .nf-edit-design-blouse > .nf-v157-lining-slot .nf-lining-item-result,#app [id^="quick-order-"] .nf-edit-design-blouse > .nf-v157-lining-slot .nf-lining-remove{visibility:visible!important}
 </style>
