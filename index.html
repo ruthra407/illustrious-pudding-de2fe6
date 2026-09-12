@@ -7480,6 +7480,21 @@ function nfFormatPaymentDate(v){return v?dateText(v):"—";}
   };
   window.renderOrders.__nfFinalOrderSync=true;
 
+  window.nfEditOrderCustomerChange=function(customerId){
+    var cid=String(customerId||"");
+    if(!cid)return;
+    var list=(state.orders||[]).filter(function(x){return String(x&&x.customer_id||"")===cid;});
+    list.sort(function(a,b){return String(b&&b.created_at||b&&b.order_date||"").localeCompare(String(a&&a.created_at||a&&a.order_date||""));});
+    var latest=list[0]||null;
+    if(latest){
+      window.openOrdersEditOrder(String(latest.id));
+    }else if(typeof window.openOrdersNewOrderForCustomer==="function"){
+      window.openOrdersNewOrderForCustomer(cid);
+    }else if(typeof toast==="function"){
+      toast("இந்த customer-க்கு New Order screen கிடைக்கவில்லை.",true);
+    }
+  };
+
   window.openOrdersEditOrder=function(orderId){
     var o=(state.orders||[]).find(function(x){return String(x.id)===String(orderId);});
     if(!o){toast("Edit செய்ய Order கிடைக்கவில்லை.",true);return;}
@@ -7494,7 +7509,31 @@ function nfFormatPaymentDate(v){return v?dateText(v):"—";}
     var key="orders_edit_"+String(o.id).replace(/[^a-zA-Z0-9_-]/g,"_");
     var markup=source.outerHTML.split(String(o.customer_id)).join(key);
     markup=markup.replace("saveQuickOrder('"+key+"')","saveQuickOrder('"+key+"','"+String(o.customer_id).replace(/'/g,"\\'")+"')");
-    panel.innerHTML='<div class="field" style="margin-bottom:12px"><label>Customer</label><select id="ordersQuickEditCustomer" class="input" disabled><option selected>'+escSafe(customerName(o.customer_id))+'</option></select></div>'+markup;
+
+    /* Edit Order must show the complete Multiple Customer group.
+       Main Customer stays the first option; the currently edited Additional
+       Customer is selected.  Changing the name opens that person's latest
+       order, or New Order when that person has no saved order yet. */
+    var editCustomers=[];
+    var editAll=Array.isArray(state.customers)?state.customers:[];
+    var editCurrent=editAll.find(function(c){return String(c&&c.id||"")===String(o.customer_id);});
+    var editParentMatch=String(editCurrent&&editCurrent.notes||"").match(/(?:^|\|\s*)(?:NF_MULTI_PARENT|NF_PARENT_CUSTOMER):\s*([^|\s]+)/i);
+    var editMainId=editParentMatch?String(editParentMatch[1]):String(o.customer_id);
+    var editMain=editAll.find(function(c){return String(c&&c.id||"")===editMainId;});
+    if(editMain)editCustomers.push(editMain);
+    editAll.forEach(function(c){
+      if(String(c&&c.id||"")===editMainId)return;
+      var pm=String(c&&c.notes||"").match(/(?:^|\|\s*)(?:NF_MULTI_PARENT|NF_PARENT_CUSTOMER):\s*([^|\s]+)/i);
+      if(pm&&String(pm[1])===editMainId)editCustomers.push(c);
+    });
+    if(!editCustomers.some(function(c){return String(c&&c.id||"")===String(o.customer_id);}) && editCurrent)editCustomers.push(editCurrent);
+    var editOptions=editCustomers.map(function(c){
+      var cid=String(c&&c.id||"").replace(/\\/g,"\\\\").replace(/'/g,"\\'");
+      var selected=String(c&&c.id||"")===String(o.customer_id)?" selected":"";
+      var isAdditional=String(c&&c.id||"")!==editMainId;
+      return '<option value="'+escSafe(c&&c.id||"")+'"'+selected+'>'+escSafe(c&&c.name||"Customer")+(isAdditional?' (Additional)':' (Main)')+'</option>';
+    }).join("");
+    panel.innerHTML='<div class="field" style="margin-bottom:12px"><label>Customer</label><select id="ordersQuickEditCustomer" class="input" onchange="nfEditOrderCustomerChange(this.value)">'+editOptions+'</select></div>'+markup;
     var box=$("quick-order-"+key);
     if(!box){toast("Edit Order form உருவாக்க முடியவில்லை.",true);return;}
     box.classList.remove("hidden");
@@ -14360,7 +14399,7 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
     var parts=cleanCalc(calc);if(!parts)return null;
     var c=all().find(function(x){return String(x&&x.id||"")===String(id);});
     var person=document.createElement("section");person.className="nf-v240-person";person.dataset.customerId=String(id);
-    var head=document.createElement("div");head.className="nf-v240-person-name";head.innerHTML='<div class="nf-v240-person-name-text">👤 '+esc(c&&c.name||"Customer")+'</div>';var acts=document.createElement("div");acts.className="nf-v240-person-actions";var editBtn=document.createElement("button");editBtn.type="button";editBtn.className="nf-v240-person-edit";editBtn.textContent="✏️ Edit Order";editBtn.title="Edit Order";editBtn.onclick=function(e){e.stopPropagation();openLatestCustomerOrderEdit(String(id));};var newBtn=document.createElement("button");newBtn.type="button";newBtn.className="nf-v240-person-new";newBtn.textContent="＋ New Order";newBtn.title="New Order";newBtn.onclick=function(e){e.stopPropagation();openOrdersNewOrderForCustomer(String(id));};acts.appendChild(editBtn);acts.appendChild(newBtn);head.appendChild(acts);person.appendChild(head);
+    var head=document.createElement("div");head.className="nf-v240-person-name";head.innerHTML='<div class="nf-v240-person-name-text">👤 '+esc(c&&c.name||"Customer")+'</div>';var isAdditional=!!(c&&String(c.notes||"").match(/(?:^|\|\s*)(?:NF_MULTI_PARENT|NF_PARENT_CUSTOMER):\s*([^|\s]+)/i));if(isAdditional){var acts=document.createElement("div");acts.className="nf-v240-person-actions";var editBtn=document.createElement("button");editBtn.type="button";editBtn.className="nf-v240-person-edit";editBtn.textContent="✏️ Edit Order";editBtn.title="Edit Order";editBtn.onclick=function(e){e.stopPropagation();if(typeof window.nfV22AdditionalEditOrder==="function")window.nfV22AdditionalEditOrder(String(id));else if(typeof window.openLatestCustomerOrderEdit==="function")window.openLatestCustomerOrderEdit(String(id));};var newBtn=document.createElement("button");newBtn.type="button";newBtn.className="nf-v240-person-new";newBtn.textContent="＋ New Order";newBtn.title="New Order";newBtn.onclick=function(e){e.stopPropagation();if(typeof window.openOrdersNewOrderForCustomer==="function")window.openOrdersNewOrderForCustomer(String(id));};acts.appendChild(editBtn);acts.appendChild(newBtn);head.appendChild(acts);}person.appendChild(head);
     person.appendChild(hook("Cash Collection","💰",cash,"cash"));
     person.appendChild(hook("Blouse / Saree / Chudi Calculation","🧮",parts.calc,"calc"));
     person.appendChild(hook("Blouse Collection","👗",blouse,"blouse"));
