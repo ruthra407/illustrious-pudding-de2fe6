@@ -3681,7 +3681,7 @@ const clothPhotoActionsHtml="";
   return `<div class="customerOrderLine" id="customer-order-${esc(o.id)}"><b>${esc(o.order_no)}</b> · ${esc(g)} · ${detail} ${rem}<br><span class="mini">துணி: ${dateText(o.cloth_received_date)} · Delivery: ${dateText(o.delivery_date)} · Advance: ${money(nfOrderPaymentInfo(o).advance)} (${nfFormatPaymentDate(nfOrderPaymentInfo(o).advanceDate)}) · Customer Paid: ${money(nfOrderPaymentInfo(o).customerPaid)} · Balance: ${money(nfOrderBalance(o))}</span>${lining}${nfPriceBreakdownHTML(o)}${cleanOrderNotes(o.notes)?`<div class="nf-order-alteration-notes"><div class="nf-order-alteration-title">📝 Alteration Notes</div><div class="nf-order-alteration-content">${esc(cleanOrderNotes(o.notes))}</div></div>`:""}<div class="orderActions"><button class="btn success" onclick="markDelivered('${o.id}')">Delivered</button><button class="btn primary" onclick="openCustomerOrderEditor('${id}','${o.id}')">✏️ Edit Details</button></div></div>`;
  }).join("")||`<div class="mini">இன்னும் order இல்லை.</div>`;
  return `<article class="customerCard" id="customer-card-${id}"><div class="customerCardHead nf-customer-head"><div class="customerAvatar">👤</div><div class="customerIdentity"><div class="nf-customer-name-row"><h3>${esc(c.name||"Customer")}</h3><div class="nf-customer-compact-actions" aria-label="Order actions"><button type="button" class="nf-compact-action nf-edit-order" onclick="event.stopPropagation();openLatestCustomerOrderEdit('${id}')" title="Edit Order" aria-label="Edit Order">✏️</button><button type="button" class="nf-compact-action nf-order-full-details" onclick="event.stopPropagation();openLatestCustomerOrderFullDetails('${id}')" title="Order Full Details" aria-label="Order Full Details">📋</button></div></div><div class="nf-whatsapp-card-row"><button type="button" class="nf-whatsapp-card-btn" onclick="event.stopPropagation();openCustomerWhatsAppCard('${id}')" title="WhatsApp Card" aria-label="WhatsApp Card">🟢 <span>WhatsApp Card</span></button></div><div class="nf-customer-contact"><div class="nf-contact-item"><span>📞 Phone</span><b>${esc(c.phone||"Phone இல்லை")}</b></div><div class="nf-contact-item"><span>📍 ஊர்</span><b>${esc(village||"ஊர் இல்லை")}</b></div><div class="nf-contact-item nf-contact-address"><span>🏠 முகவரி</span><b>${esc(address)}</b></div></div>${nfStripVillageMarker(c.notes)?`<div class="nf-customer-alteration-notes"><div class="nf-alteration-notes-title"><span class="nf-alteration-notes-icon">📝</span><span>Alteration Notes</span></div><div class="nf-alteration-notes-content">${esc(nfStripVillageMarker(c.notes))}</div></div>`:""}</div></div><section class="nf-collection-panel nf-cash-collection"><div class="nf-collection-title"><span class="nf-collection-icon">💰</span><div><h4>Cash Collection</h4><small>Order • Paid • Advance • Balance</small></div></div><div class="nf-cash-payment-action"><button type="button" class="nf-cash-payment-btn" onclick="openCustomerPayment('${id}')" aria-label="Payment" title="Payment">💰 <span>Payment</span></button></div><div class="nf-cash-columns-head" aria-hidden="true"><span>விவரம்</span><span>தேதி</span><span>தொகை</span></div><div class="customerMoneyGrid"><div class="moneyStat"><b>${money(st.total)}</b><span>மொத்த order</span></div><div class="moneyStat"><b>${money(st.paid)}</b><span>Customer paid</span></div><div class="moneyStat"><b>${money(st.advance)}</b><span>Advance வாங்கியது</span></div><div class="moneyStat clickable" onclick="goView('payments')"><b>${money(st.balance)}</b><span>இன்னும் கொடுக்க வேண்டும்</span></div></div></section>\n <section class="nf-collection-panel nf-blouse-collection"><div class="nf-collection-title"><span class="nf-collection-icon">👗</span><div><h4>Blouse Collection</h4><small>மொத்தம் • வாங்கிச் சென்றது • மீதமுள்ளது</small></div></div><div class="nfBlouseStatusGrid"><div class="moneyStat"><span>மொத்த blouse</span><b>${st.givenBlouse}</b></div><div class="moneyStat"><span>மொத்த சேலை</span><b>${st.saree}</b></div></div><div class="nfBlouseHandoverGrid"><div class="nfBlouseHandoverBox nfBlouseHandoverGiven"><div class="nfBlouseHandoverTitle">வாங்கிச் சென்றது</div><div class="nfBlouseHandoverRow"><span>Normal</span><b>${st.handedNormal}</b></div><div class="nfBlouseHandoverRow"><span>Lining</span><b>${st.handedLining}</b></div><div class="nfBlouseHandoverRow"><span>Design</span><b>${st.handedDesign}</b></div><div class="nfBlouseHandoverRow nfSareeRow"><span>🥻 Saree</span><b>${st.handedSaree}</b></div></div><div class="nfBlouseHandoverBox nfBlouseHandoverPending"><div class="nfBlouseHandoverTitle">மீதமுள்ளது</div><div class="nfBlouseHandoverRow"><span>Normal</span><b>${st.pendingNormal}</b></div><div class="nfBlouseHandoverRow"><span>Lining</span><b>${st.pendingLining}</b></div><div class="nfBlouseHandoverRow"><span>Design</span><b>${st.pendingDesign}</b></div><div class="nfBlouseHandoverRow nfSareeRow"><span>🥻 Saree</span><b>${st.pendingSaree}</b></div></div></div><div class="nf-garment-subtitle">👚 சுடிதார்</div><div class="nfChudiTotalBox"><span>மொத்த சுடிதார்</span><b>${st.chudi}</b></div><div class="nfChudiHandoverGrid"><div class="nfBlouseHandoverBox nfBlouseHandoverGiven"><div class="nfBlouseHandoverTitle">வாங்கிச் சென்றது</div><div class="nfBlouseHandoverRow"><span>சுடிதார்</span><b>${st.handedChudi}</b></div></div><div class="nfBlouseHandoverBox nfBlouseHandoverPending"><div class="nfBlouseHandoverTitle">மீதமுள்ளது</div><div class="nfBlouseHandoverRow"><span>சுடிதார்</span><b>${st.pendingChudi}</b></div></div></div></section><div class="nfCustomerBreakdownMount">${typeof window.nfCustomerWorkSummaryHTML==="function"?window.nfCustomerWorkSummaryHTML(st):""}</div><div id="quick-order-${id}" class="hidden" style="margin-top:10px;background:#faf8f6;border:1px solid var(--line);border-radius:13px;padding:12px"><h4 class="nf-quick-edit-title" style="margin:0 0 10px">🧾 New Order</h4><div class="formgrid"><div class="field"><label>Garment / Blouse / Chudi</label><select id="qo-garment-${id}" class="input" onchange="updateQuickGarment('${id}')"><option value="Blouse">Blouse</option><option value="Chudi">Chudi</option><option value="Blouse+Chudi">Blouse + Chudi / பிளவுஸ் + சுடிதார்</option></select></div><div class="field"><label>Order Date</label><input id="qo-order-date-${id}" class="input" type="date" value="${localDate()}"></div><div class="field"><label>துணி கொடுத்த தேதி</label><input id="qo-cloth-${id}" class="input" type="date" value="${localDate()}"></div><div class="field"><label>Delivery Date</label><input id="qo-delivery-${id}" class="input" type="date"></div><div class="field full nf-quick-blouse"><label>👗 Customer கொடுத்த blouse — வகை வாரியாக எண்ணிக்கை + வாங்கிச் சென்றது + ஒன்றுக்கு விலை</label><div id="qo-blouse-handover-summary-${id}" class="nf-quick-handover-summary"></div><div class="nf-edit-category-stack"><section class="nf-edit-category-box nf-edit-normal"><div class="nf-edit-category-head"><span>👗</span><div><strong>Normal blouse</strong><small>எண்ணிக்கை · வாங்கிச் சென்றது · ஒன்றுக்கு விலை</small></div></div><div class="nf-edit-category-grid"><div class="moneyStat"><span>Normal blouse — எத்தனை</span><input id="qo-normal-${id}" class="input" type="number" min="0" step="1" value="0" oninput="updateQuickOrderCalc('${id}');updateQuickBlouseHandover('${id}')"></div><div class="moneyStat"><span>Normal blouse — வாங்கிச் சென்றது</span><input id="qo-normal-handover-${id}" class="input" type="number" min="0" step="1" value="0" oninput="updateQuickBlouseHandover('${id}')"></div><div class="moneyStat nf-handover-date-field"><span>📅 வாங்கிச் சென்ற தேதி</span><input id="qo-normal-handover-date-${id}" class="input" type="date"></div><div class="moneyStat"><span>Normal blouse — ஒன்றுக்கு விலை</span><input id="qo-normal-rate-${id}" class="input" type="number" min="0" step="0.01" value="${getRates().normal}" oninput="updateQuickOrderCalc('${id}')"></div></div></section><section class="nf-edit-category-box nf-edit-lining-blouse"><div class="nf-edit-category-head"><span>🧵</span><div><strong>Lining blouse</strong><small>எண்ணிக்கை · வாங்கிச் சென்றது · ஒன்றுக்கு விலை</small></div></div><div class="nf-edit-category-grid"><div class="moneyStat"><span>Lining blouse — எத்தனை</span><input id="qo-lining-${id}" class="input" type="number" min="0" step="1" value="0" oninput="updateQuickOrderCalc('${id}');updateQuickBlouseHandover('${id}')"></div><div class="moneyStat"><span>Lining blouse — வாங்கிச் சென்றது</span><input id="qo-lining-handover-${id}" class="input" type="number" min="0" step="1" value="0" oninput="updateQuickBlouseHandover('${id}')"></div><div class="moneyStat nf-handover-date-field"><span>📅 வாங்கிச் சென்ற தேதி</span><input id="qo-lining-handover-date-${id}" class="input" type="date"></div><div class="moneyStat"><span>Lining blouse — ஒன்றுக்கு விலை</span><input id="qo-lining-rate-${id}" class="input" type="number" min="0" step="0.01" value="${getRates().lining}" oninput="updateQuickOrderCalc('${id}')"></div></div></section><section class="nf-edit-category-box nf-edit-design-blouse"><div class="nf-edit-category-head"><span>🎨</span><div><strong>Design blouse</strong><small>எண்ணிக்கை · வாங்கிச் சென்றது · design-wise விலை</small></div></div><div class="nf-edit-category-grid"><div class="moneyStat"><span>Design blouse — எத்தனை</span><input id="qo-design-${id}" class="input" type="number" min="0" step="1" value="0" oninput="updateQuickOrderCalc('${id}');renderQuickDesignRates('${id}');updateQuickBlouseHandover('${id}')"></div><div class="moneyStat"><span>Design blouse — வாங்கிச் சென்றது</span><input id="qo-design-handover-${id}" class="input" type="number" min="0" step="1" value="0" oninput="updateQuickBlouseHandover('${id}')"></div></div><div class="nf-design-rate-box nf-quick-blouse" id="qo-design-rates-box-${id}" style="display:none"></div><div class="nf-simple-lining-cloth" id="qo-lining-inline-${id}">
-<div class="nf-simple-lining-head"><strong>🧵 Lining cloth</strong><span>Count / Price = Total</span><button type="button" class="btn nf-lining-add" onclick="nfAddLiningItem('${id}')">＋ Add</button></div>
+<div class="nf-simple-lining-head"><strong>🧵 Lining cloth</strong><span>Count / Price = Total</span></div>
 <div id="qo-lining-items-${id}" class="nf-lining-items"></div>
 <div class="nf-simple-lining-total"><span>Lining cloth total</span><b id="qo-lining-total-${id}">₹0.00</b></div>
 <input id="qo-lining-source-${id}" type="hidden" value="shop">
@@ -11407,6 +11407,200 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-card{
 })();
 </script>
 
+
+<script id="nf-v159-fancy-lining-inside-box">
+(function(){
+"use strict";
+if(window.__nfV159FancyLiningInstalled)return;
+window.__nfV159FancyLiningInstalled=true;
+
+function N(v){var n=Number(v);return Number.isFinite(n)?Math.max(0,n):0}
+function moneyF(v){try{return typeof money==="function"?money(v):"₹"+N(v).toFixed(2)}catch(e){return "₹"+N(v).toFixed(2)}}
+function root(id){return document.getElementById("quick-order-"+id)}
+function esc(v){return String(v==null?"":v).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/"/g,"&quot;")}
+
+function rowHtml(id,i,x){
+ x=x||{};
+ var type=["Stone","Lace","Knot"].indexOf(x.work)>=0?x.work:"Stone";
+ return '<div class="nf-fancy-lining-row" data-fancy-row="1">'
+ +' <div class="nf-fancy-no">#'+(i+1)+'</div>'
+ +' <div class="nf-fancy-field"><label>வேலை</label><select class="input nf-fl-work" onchange="nfFancyLiningCalc(\''+esc(id)+'\')"><option'+(type==="Stone"?" selected":"")+'>Stone</option><option'+(type==="Lace"?" selected":"")+'>Lace</option><option'+(type==="Knot"?" selected":"")+'>Knot</option></select></div>'
+ +' <div class="nf-fancy-field"><label>Lining Qty</label><input class="input nf-fl-lq" type="number" min="0" step="0.01" value="'+N(x.liningQty)+'" oninput="nfFancyLiningCalc(\''+esc(id)+'\')"></div>'
+ +' <div class="nf-fancy-field"><label>Lining Rate</label><input class="input nf-fl-lr" type="number" min="0" step="0.01" value="'+N(x.liningRate)+'" oninput="nfFancyLiningCalc(\''+esc(id)+'\')"></div>'
+ +' <div class="nf-fancy-field"><label>Blouse Rate</label><input class="input nf-fl-br" type="number" min="0" step="0.01" value="'+N(x.blouseRate)+'" oninput="nfFancyLiningCalc(\''+esc(id)+'\')"></div>'
+ +' <div class="nf-fancy-field"><label>'+type+' Charge</label><input class="input nf-fl-wr" type="number" min="0" step="0.01" value="'+N(x.workRate)+'" oninput="nfFancyLiningCalc(\''+esc(id)+'\')"></div>'
+ +' <div class="nf-fancy-total"><span>Total</span><b class="nf-fl-total">'+moneyF(N(x.liningQty)*N(x.liningRate)+N(x.blouseRate)+N(x.workRate))+'</b></div>'
+ +' <button type="button" class="nf-fancy-remove" onclick="nfFancyLiningRemove(\''+esc(id)+'\',this)" title="Remove">×</button>'
+ +'</div>';
+}
+function boxHtml(id){
+ return '<div class="nf-fancy-lining-wrap">'
+  +'<div class="nf-fancy-head"><strong>✨ Fancy Lining Blouse</strong><span>ஒவ்வொரு blouse-க்கும் தனி Row</span></div>'
+  +'<div class="nf-fancy-count"><label>Fancy Lining Blouse — எத்தனை</label><input id="qo-fancy-lining-'+id+'" class="input" type="number" min="0" step="1" value="0" oninput="nfFancyLiningCount(\''+esc(id)+'\')"></div>'
+  +'<div id="qo-fancy-lining-rows-'+id+'" class="nf-fancy-rows"></div>'
+  +'<div class="nf-fancy-grand"><span>Fancy Lining Total</span><b id="qo-fancy-lining-total-'+id+'">₹0.00</b></div>'
+  +'</div>';
+}
+function find(id){var r=root(id);return r&&r.querySelector(".nf-edit-lining-blouse")}
+function ensure(id){
+ var sec=find(id);if(!sec)return null;
+ var box=sec.querySelector(".nf-fancy-lining-wrap");
+ if(!box){sec.insertAdjacentHTML("beforeend",boxHtml(id));box=sec.querySelector(".nf-fancy-lining-wrap")}
+ return box;
+}
+function rows(id){var r=root(id);return r?Array.from(r.querySelectorAll(".nf-fancy-lining-row")):[]}
+function read(id){
+ return rows(id).map(function(row){
+  return {work:row.querySelector(".nf-fl-work")?.value||"Stone",
+   liningQty:N(row.querySelector(".nf-fl-lq")?.value),
+   liningRate:N(row.querySelector(".nf-fl-lr")?.value),
+   blouseRate:N(row.querySelector(".nf-fl-br")?.value),
+   workRate:N(row.querySelector(".nf-fl-wr")?.value)};
+ });
+}
+function render(id,arr){
+ var b=ensure(id);if(!b)return;
+ var host=b.querySelector(".nf-fancy-rows");
+ arr=Array.isArray(arr)?arr:[];
+ var count=arr.length;
+ var countEl=document.getElementById("qo-fancy-lining-"+id);
+ if(countEl)countEl.value=count;
+ host.innerHTML=arr.map(function(x,i){return rowHtml(id,i,x)}).join("");
+ calc(id,false);
+}
+function calc(id,callMain){
+ var b=ensure(id);if(!b)return;
+ var rs=rows(id),total=0;
+ rs.forEach(function(row,i){
+  var lq=N(row.querySelector(".nf-fl-lq")?.value),lr=N(row.querySelector(".nf-fl-lr")?.value),br=N(row.querySelector(".nf-fl-br")?.value),wr=N(row.querySelector(".nf-fl-wr")?.value);
+  var t=lq*lr+br+wr;total+=t;
+  var no=row.querySelector(".nf-fancy-no");if(no)no.textContent="#"+(i+1);
+  var work=row.querySelector(".nf-fl-work")?.value||"Stone";
+  var label=row.querySelector(".nf-fl-wr")?.closest(".nf-fancy-field")?.querySelector("label");if(label)label.textContent=work+" Charge";
+  var out=row.querySelector(".nf-fl-total");if(out)out.textContent=moneyF(t);
+ });
+ var tot=document.getElementById("qo-fancy-lining-total-"+id);if(tot)tot.textContent=moneyF(total);
+ var count=document.getElementById("qo-fancy-lining-"+id);if(count && Number(count.value||0)!==rs.length)count.value=rs.length;
+ if(callMain!==false && typeof window.updateQuickOrderCalcV314==="function")window.updateQuickOrderCalcV314(id);
+ else if(callMain!==false && typeof window.updateQuickOrderCalc==="function")window.updateQuickOrderCalc(id);
+}
+function countChange(id){
+ var el=document.getElementById("qo-fancy-lining-"+id);if(!el)return;
+ var n=Math.max(0,Math.floor(N(el.value)));
+ var rs=read(id);
+ while(rs.length<n)rs.push({work:"Stone",liningQty:0,liningRate:0,blouseRate:0,workRate:0});
+ if(rs.length>n)rs=rs.slice(0,n);
+ render(id,rs);
+}
+window.nfFancyLiningCalc=calc;
+window.nfFancyLiningCount=countChange;
+window.nfFancyLiningRemove=function(id,btn){
+ var row=btn&&btn.closest(".nf-fancy-lining-row");if(row)row.remove();
+ var n=rows(id).length,el=document.getElementById("qo-fancy-lining-"+id);if(el)el.value=n;
+ calc(id,true);
+};
+function stored(order){
+ var notes=String(order&&order.notes||"");
+ var m=notes.match(/FANCY_LINING_ITEMS:(\[[^\]]*\])/);
+ if(!m)return [];
+ try{var a=JSON.parse(m[1]);return Array.isArray(a)?a:[]}catch(e){return []}
+}
+function sync(id,order){
+ ensure(id);
+ var a=stored(order||{});
+ render(id,a);
+}
+function patch(id){
+ var r=root(id);if(!r)return;
+ ensure(id);
+ var oid=String(r.dataset.editOrderId||"");
+ var bound=String(r.dataset.v159FancyBound||"");
+ var o=null;
+ try{if(oid&&typeof state!=="undefined"&&Array.isArray(state.orders))o=state.orders.find(function(x){return String(x.id)===oid})||null}catch(e){}
+ if(o && bound!==oid){sync(id,o);r.dataset.v159FancyBound=oid}
+ else if(!bound){calc(id,false);r.dataset.v159FancyBound=oid||"__new__"}
+}
+function scan(){document.querySelectorAll('[id^="quick-order-"]').forEach(function(r){patch(r.id.slice(12))})}
+
+var oldPopulate=window.populateQuickOrderEditor;
+if(typeof oldPopulate==="function"&&!oldPopulate.__nfV159Fancy){
+ window.populateQuickOrderEditor=function(id,o){
+  var z=oldPopulate.apply(this,arguments);
+  setTimeout(function(){ensure(id);sync(id,o||{});},0);
+  return z;
+ };
+ window.populateQuickOrderEditor.__nfV159Fancy=true;
+}
+
+var oldCalc=window.updateQuickOrderCalc;
+if(typeof oldCalc==="function"&&!oldCalc.__nfV159Fancy){
+ window.updateQuickOrderCalc=function(id){
+  var z=oldCalc.apply(this,arguments);
+  var total=read(id).reduce(function(a,x){return a+x.liningQty*x.liningRate+x.blouseRate+x.workRate},0);
+  var el=document.getElementById("qo-total-"+id);
+  if(el){
+   var base=Number(String(el.textContent||"").replace(/[^\d.-]/g,""))||0;
+   /* Base calc already includes the legacy lining total; add Fancy rows only. */
+   el.textContent=moneyF(base+total);
+  }
+  var gt=document.getElementById("qo-garment-total-"+id);
+  if(gt){
+   var gbase=Number(String(gt.textContent||"").replace(/[^\d.-]/g,""))||0;
+   el && (el.textContent=moneyF(gbase+total+(Number(document.getElementById("qo-lining-total-"+id)?.textContent?.replace(/[^\d.-]/g,"")||0))));
+  }
+  return z;
+ };
+ window.updateQuickOrderCalc.__nfV159Fancy=true;
+}
+
+var oldSave=window.saveQuickOrder;
+if(typeof oldSave==="function"&&!oldSave.__nfV159Fancy){
+ window.saveQuickOrder=async function(id,customerId){
+  var fancy=read(id);
+  var box=root(id);
+  var originalNotes=document.getElementById("qo-notes-"+id)?.value||"";
+  var clean=String(originalNotes).replace(/\s*\|\s*FANCY_LINING_ITEMS:\[[^\]]*\]/,"").trim();
+  var valid=fancy.length;
+  if(valid) document.getElementById("qo-notes-"+id).value=clean+" | FANCY_LINING_ITEMS:"+JSON.stringify(fancy);
+  var result=await oldSave.apply(this,arguments);
+  if(document.getElementById("qo-notes-"+id))document.getElementById("qo-notes-"+id).value=originalNotes;
+  return result;
+ };
+ window.saveQuickOrder.__nfV159Fancy=true;
+}
+
+document.addEventListener("DOMContentLoaded",function(){
+ setTimeout(scan,250);setTimeout(scan,800);
+},{once:true});
+if(document.body)new MutationObserver(function(){clearTimeout(window.__nfV159FancyTimer);window.__nfV159FancyTimer=setTimeout(scan,180)}).observe(document.body,{childList:true,subtree:true});
+})();
+</script>
+<style id="nf-v159-fancy-lining-style">
+#app [id^="quick-order-"] .nf-fancy-lining-wrap{margin-top:10px;padding:9px;border:1px solid #e7b4c2;border-radius:14px;background:linear-gradient(135deg,#fff7f9,#fff)}
+#app [id^="quick-order-"] .nf-fancy-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+#app [id^="quick-order-"] .nf-fancy-head strong{font-size:14px;font-weight:950;color:#a52245}
+#app [id^="quick-order-"] .nf-fancy-head span{font-size:10px;color:#6f6570;font-weight:800}
+#app [id^="quick-order-"] .nf-fancy-count{display:grid;grid-template-columns:1fr 110px;gap:8px;align-items:center;margin-bottom:8px;padding:8px;border-radius:11px;background:#fff;border:1px solid #eadde2}
+#app [id^="quick-order-"] .nf-fancy-count label{font-size:11px;font-weight:900;color:#29242e}
+#app [id^="quick-order-"] .nf-fancy-count input{text-align:right}
+#app [id^="quick-order-"] .nf-fancy-rows{display:grid;gap:6px}
+#app [id^="quick-order-"] .nf-fancy-lining-row{display:grid;grid-template-columns:28px minmax(100px,1.15fr) repeat(4,minmax(78px,1fr)) 82px 30px;gap:6px;align-items:end;padding:7px;border:1px solid #eadde2;border-radius:11px;background:#fff}
+#app [id^="quick-order-"] .nf-fancy-no{font-size:12px;font-weight:950;color:#a52245;text-align:center;padding-bottom:11px}
+#app [id^="quick-order-"] .nf-fancy-field label{display:block;font-size:9px;font-weight:900;color:#6c626a;margin:0 0 3px}
+#app [id^="quick-order-"] .nf-fancy-field .input{min-height:38px;padding:7px 8px;font-size:12px}
+#app [id^="quick-order-"] .nf-fancy-total{min-height:38px;padding:7px 5px;border-radius:9px;background:#fff6df;border:1px solid #efd79a;text-align:right}
+#app [id^="quick-order-"] .nf-fancy-total span{display:block;font-size:9px;color:#766b59;font-weight:850}
+#app [id^="quick-order-"] .nf-fancy-total b{font-size:13px;color:#8b5c00}
+#app [id^="quick-order-"] .nf-fancy-remove{height:38px;width:30px;border:1px solid #efb5b5;border-radius:9px;background:#fff0f0;color:#b42318;font-size:20px;line-height:1}
+#app [id^="quick-order-"] .nf-fancy-grand{display:flex;justify-content:space-between;align-items:center;margin-top:7px;padding:8px 10px;border-radius:10px;background:#fff0f5;border:1px solid #e7b4c2}
+#app [id^="quick-order-"] .nf-fancy-grand span{font-size:11px;font-weight:900;color:#7b3a4c}
+#app [id^="quick-order-"] .nf-fancy-grand b{font-size:16px;color:#a52245}
+@media(max-width:700px){
+ #app [id^="quick-order-"] .nf-fancy-lining-row{grid-template-columns:24px minmax(88px,1fr) repeat(4,minmax(65px,1fr)) 70px 28px;overflow-x:auto}
+ #app [id^="quick-order-"] .nf-fancy-field .input{min-width:65px}
+}
+</style>
+
 </body>
 <script id="nf-v120-single-cash-dedupe-fix">
 /* V22: superseded by the single stable customer-group renderer. */
@@ -14415,7 +14609,7 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
     var sid=String(id), sec=String(section);
     return '<div class="nf-simple-lining-cloth nf-v157-lining-slot" data-lining-section="'+sec+'" id="qo-lining-inline-'+sid+'-'+sec+'">'
       +'<div class="nf-simple-lining-head"><strong>🧵 Lining cloth</strong><span>Count / Price = Total</span>'
-      +'<button type="button" class="btn nf-lining-add" onclick="nfAddLiningItem(\''+sid+'\',\''+sec+'\')">＋ Add</button></div>'
+      +'</div>'
       +'<div id="qo-lining-items-'+sid+'-'+sec+'" class="nf-lining-items"></div>'
       +'<div class="nf-simple-lining-total"><span>Lining cloth total</span><b id="qo-lining-total-'+sid+'-'+sec+'">₹0.00</b></div>'
       +'</div>';
