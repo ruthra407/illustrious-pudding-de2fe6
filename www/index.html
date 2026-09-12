@@ -1670,190 +1670,321 @@ body.nf-photo-preview-scroll-locked{overscroll-behavior:none!important}
 </style><!-- V120: Cloudflare D1 bridge added; set NF_D1_API_URL after Worker deployment. -->
 
 
-<style id="nf-v166-fancy-clean-css">
-/* V166: remove old Fancy cascade and use one compact layout. Existing Lining Blouse is untouched. */
-#app [id^="quick-order-"] .nf-edit-fancy-blouse{position:relative!important;display:block!important;width:100%!important;box-sizing:border-box!important;margin:7px 0!important;padding:0!important;border:1px solid #d8cdef!important;border-radius:10px!important;background:#fff!important;overflow:visible!important}
-#app [id^="quick-order-"] .nf-edit-fancy-blouse.nf-fancy-collapsed{min-height:34px!important;background:transparent!important}
-#app [id^="quick-order-"] .nf-fancy-hook{position:absolute!important;top:3px!important;right:4px!important;z-index:100!important;width:auto!important;height:27px!important;min-height:27px!important;padding:3px 7px!important;display:inline-flex!important;align-items:center!important;gap:3px!important;border:1px solid #cbbbe7!important;border-radius:6px!important;background:#f2ecff!important;color:#5c3db4!important;font-size:11px!important;font-weight:900!important;line-height:1!important;cursor:pointer!important;pointer-events:auto!important;touch-action:manipulation!important;box-shadow:none!important}
-#app [id^="quick-order-"] .nf-fancy-hook-text{display:inline!important;white-space:nowrap!important}
-#app [id^="quick-order-"] .nf-fancy-plus{display:grid!important;place-items:center!important;width:15px!important;height:15px!important;min-width:15px!important;border-radius:4px!important;background:#7047e7!important;color:#fff!important;font-size:12px!important;line-height:1!important}
-#app [id^="quick-order-"] .nf-edit-fancy-blouse.nf-fancy-collapsed .nf-fancy-panel{display:none!important}
-#app [id^="quick-order-"] .nf-edit-fancy-blouse:not(.nf-fancy-collapsed) .nf-fancy-panel{display:block!important}
-#app [id^="quick-order-"] .nf-fancy-panel{width:100%!important;box-sizing:border-box!important;margin:0!important;padding:35px 4px 5px!important}
-#app [id^="quick-order-"] .nf-fancy-head{display:flex!important;align-items:center!important;gap:4px!important;height:25px!important;min-height:25px!important;margin:0 0 3px!important;padding:3px 6px!important;box-sizing:border-box!important;border:1px solid #ded4f0!important;border-radius:6px!important;background:#f4efff!important;overflow:hidden!important;white-space:nowrap!important}
-#app [id^="quick-order-"] .nf-fancy-head>span{font-size:14px!important;line-height:1!important}
-#app [id^="quick-order-"] .nf-fancy-head strong{font-size:11px!important;line-height:1!important;font-weight:950!important;white-space:nowrap!important}
-#app [id^="quick-order-"] .nf-fancy-head small{font-size:7px!important;line-height:1!important;color:#756d80!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}
-#app [id^="quick-order-"] .nf-fancy-row{display:grid!important;align-items:center!important;width:100%!important;box-sizing:border-box!important;gap:3px!important;height:31px!important;min-height:31px!important;margin:0 0 3px!important;padding:2px 3px!important;border-radius:6px!important}
-#app [id^="quick-order-"] .nf-fancy-row-blouse{grid-template-columns:minmax(0,1fr) 48px minmax(0,1fr) 48px 10px 57px!important;background:#f0ebff!important;border:1px solid #d9cef5!important}
-#app [id^="quick-order-"] .nf-fancy-row-lining{grid-template-columns:minmax(0,1fr) 48px minmax(0,1fr) 48px 10px 57px!important;background:#ebfafb!important;border:1px solid #c5e5ea!important}
-#app [id^="quick-order-"] .nf-fancy-label{min-width:0!important;margin:0!important;padding:0!important;font-size:8px!important;font-weight:900!important;line-height:1!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
-#app [id^="quick-order-"] .nf-fancy-input{width:48px!important;height:25px!important;min-height:25px!important;box-sizing:border-box!important;margin:0!important;padding:2px 4px!important;border-radius:5px!important;font-size:10px!important;font-weight:900!important;text-align:right!important}
-#app [id^="quick-order-"] .nf-fancy-equals{font-size:9px!important;font-weight:950!important;text-align:center!important}
-#app [id^="quick-order-"] .nf-fancy-result{display:block!important;width:57px!important;min-width:57px!important;box-sizing:border-box!important;padding:5px 3px!important;border-radius:5px!important;background:#fff!important;border:1px solid #d9d1e4!important;font-size:9px!important;line-height:1!important;text-align:right!important;white-space:nowrap!important}
-#app [id^="quick-order-"] .nf-fancy-work-row{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr)) 57px!important;gap:3px!important;width:100%!important;box-sizing:border-box!important;height:30px!important;min-height:30px!important;margin:0 0 3px!important}
-#app [id^="quick-order-"] .nf-fancy-work-item{display:grid!important;grid-template-columns:minmax(0,1fr) 40px!important;align-items:center!important;gap:2px!important;height:30px!important;min-height:30px!important;min-width:0!important;box-sizing:border-box!important;padding:2px 3px!important;border-radius:6px!important}
-#app [id^="quick-order-"] .nf-fancy-work-item span{min-width:0!important;font-size:7px!important;font-weight:900!important;line-height:1!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
-#app [id^="quick-order-"] .nf-fancy-work-item.stone{background:#fff6da!important;border:1px solid #ecd79b!important}
-#app [id^="quick-order-"] .nf-fancy-work-item.lace{background:#e9f7ff!important;border:1px solid #c4e2ef!important}
-#app [id^="quick-order-"] .nf-fancy-work-item.knot{background:#ecf8ef!important;border:1px solid #c8e3d0!important}
-#app [id^="quick-order-"] .nf-fancy-work-input{width:40px!important;height:24px!important;min-height:24px!important;box-sizing:border-box!important;padding:2px 3px!important;border-radius:5px!important;font-size:9px!important;font-weight:900!important;text-align:right!important}
-#app [id^="quick-order-"] .nf-fancy-work-result{height:30px!important;min-height:30px!important;box-sizing:border-box!important;padding:3px!important;border-radius:6px!important;background:#fff2ca!important;border:1px solid #e3cb88!important;text-align:right!important}
-#app [id^="quick-order-"] .nf-fancy-work-result span{font-size:6px!important;line-height:1!important}
-#app [id^="quick-order-"] .nf-fancy-work-result b{display:block!important;margin-top:2px!important;font-size:9px!important;line-height:1!important;white-space:nowrap!important}
-#app [id^="quick-order-"] .nf-fancy-row-handover{grid-template-columns:minmax(0,1fr) 48px minmax(0,1fr) 92px!important;background:#f5efff!important;border:1px solid #ded2f0!important}
-#app [id^="quick-order-"] .nf-fancy-date{width:92px!important;height:25px!important;min-height:25px!important;box-sizing:border-box!important;padding:2px 3px!important;font-size:8px!important}
-#app [id^="quick-order-"] .nf-fancy-total{display:flex!important;align-items:center!important;justify-content:space-between!important;width:100%!important;height:30px!important;min-height:30px!important;box-sizing:border-box!important;margin:3px 0 0!important;padding:4px 7px!important;border-radius:6px!important;background:#fff2c9!important;border:1px solid #dfbf60!important}
-#app [id^="quick-order-"] .nf-fancy-total span{font-size:9px!important;font-weight:950!important;white-space:nowrap!important}
-#app [id^="quick-order-"] .nf-fancy-total b{font-size:12px!important;font-weight:950!important;white-space:nowrap!important}
-@media(max-width:560px){
- #app [id^="quick-order-"] .nf-fancy-panel{padding:35px 3px 4px!important}
- #app [id^="quick-order-"] .nf-fancy-row-blouse,#app [id^="quick-order-"] .nf-fancy-row-lining{grid-template-columns:minmax(0,1fr) 42px minmax(0,1fr) 42px 8px 50px!important;gap:2px!important}
- #app [id^="quick-order-"] .nf-fancy-label{font-size:7px!important}
- #app [id^="quick-order-"] .nf-fancy-input{width:42px!important;height:24px!important;min-height:24px!important;font-size:9px!important}
- #app [id^="quick-order-"] .nf-fancy-result{width:50px!important;min-width:50px!important;font-size:8px!important}
- #app [id^="quick-order-"] .nf-fancy-work-row{grid-template-columns:repeat(3,minmax(0,1fr)) 50px!important;gap:2px!important}
- #app [id^="quick-order-"] .nf-fancy-work-item{grid-template-columns:minmax(0,1fr) 33px!important;gap:2px!important;padding:2px!important}
- #app [id^="quick-order-"] .nf-fancy-work-input{width:33px!important;font-size:8px!important}
- #app [id^="quick-order-"] .nf-fancy-row-handover{grid-template-columns:minmax(0,1fr) 42px minmax(0,1fr) 80px!important;gap:2px!important}
- #app [id^="quick-order-"] .nf-fancy-date{width:80px!important;font-size:7px!important}
-}
-</style>
 
-<style id="nf-fancy-final-compact-v2">
-/* FINAL: Fancy Blouse compact colored rows — no overlap */
-#app [id^="quick-order-"] .nf-edit-fancy-blouse{
-  width:100%!important;max-width:100%!important;box-sizing:border-box!important;
-  overflow:hidden!important;border-radius:12px!important;
+
+<style id="nf-fancy-final-clean-css">
+/* FANCY BLOUSE — single authoritative compact layout */
+.nf-edit-fancy-blouse{
+  --fancy-gap:5px;
+  position:relative!important;
+  display:block!important;
+  width:100%!important;
+  min-width:0!important;
+  box-sizing:border-box!important;
+  margin:8px 0!important;
+  padding:0!important;
+  border:2px solid #cfc2ef!important;
+  border-radius:14px!important;
+  background:linear-gradient(135deg,#fff,#faf7ff)!important;
+  overflow:visible!important;
 }
-#app [id^="quick-order-"] .nf-fancy-panel{
-  width:100%!important;max-width:100%!important;box-sizing:border-box!important;
-  padding:34px 6px 7px!important;overflow:hidden!important;
-}
-#app [id^="quick-order-"] .nf-fancy-head{
-  width:100%!important;box-sizing:border-box!important;height:27px!important;
-  min-height:27px!important;margin:0 0 5px!important;padding:3px 7px!important;
-  border-radius:7px!important;background:linear-gradient(90deg,#f1ebff,#fff1f7)!important;
-  border:1px solid #d8c9f4!important;
-}
-#app [id^="quick-order-"] .nf-fancy-row{
-  display:grid!important;width:100%!important;max-width:100%!important;
-  box-sizing:border-box!important;align-items:center!important;
-  gap:4px!important;height:36px!important;min-height:36px!important;
-  margin:0 0 5px!important;padding:4px!important;border-radius:8px!important;
-  overflow:hidden!important;
-}
-#app [id^="quick-order-"] .nf-fancy-row-blouse,
-#app [id^="quick-order-"] .nf-fancy-row-lining{
-  grid-template-columns:minmax(0,1fr) 52px minmax(0,1fr) 52px 12px 64px!important;
-}
-#app [id^="quick-order-"] .nf-fancy-row-blouse{
-  background:#f0ebff!important;border:1px solid #cfc1f3!important;
-}
-#app [id^="quick-order-"] .nf-fancy-row-lining{
-  background:#eafafa!important;border:1px solid #bfe1e5!important;
-}
-#app [id^="quick-order-"] .nf-fancy-label{
-  display:block!important;min-width:0!important;width:auto!important;
-  margin:0!important;padding:0 2px!important;font-size:9px!important;
-  line-height:1!important;font-weight:900!important;white-space:nowrap!important;
-  overflow:hidden!important;text-overflow:ellipsis!important;
-}
-#app [id^="quick-order-"] .nf-fancy-input{
-  display:block!important;width:52px!important;height:28px!important;min-height:28px!important;
-  max-width:52px!important;box-sizing:border-box!important;margin:0!important;
-  padding:3px 5px!important;border-radius:6px!important;font-size:11px!important;
-  line-height:1!important;font-weight:900!important;text-align:right!important;
+.nf-edit-fancy-blouse.nf-fancy-collapsed{
+  min-height:38px!important;
   background:#fff!important;
 }
-#app [id^="quick-order-"] .nf-fancy-equals{
-  display:block!important;font-size:10px!important;font-weight:950!important;text-align:center!important;
+.nf-fancy-hook{
+  position:absolute!important;
+  top:4px!important;
+  right:5px!important;
+  z-index:20!important;
+  width:auto!important;
+  height:30px!important;
+  min-height:30px!important;
+  padding:3px 8px!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:4px!important;
+  border:1px solid #c8b9eb!important;
+  border-radius:8px!important;
+  background:#f0eaff!important;
+  color:#5835ad!important;
+  font-size:12px!important;
+  font-weight:900!important;
+  line-height:1!important;
+  box-shadow:none!important;
 }
-#app [id^="quick-order-"] .nf-fancy-result{
-  display:flex!important;align-items:center!important;justify-content:flex-end!important;
-  width:64px!important;min-width:64px!important;height:28px!important;min-height:28px!important;
-  box-sizing:border-box!important;padding:3px 5px!important;border-radius:6px!important;
-  background:#fff!important;border:1px solid #d8d0e2!important;font-size:10px!important;
-  line-height:1!important;text-align:right!important;white-space:nowrap!important;
+.nf-fancy-hook-text{display:inline!important;white-space:nowrap!important}
+.nf-fancy-plus{
+  display:grid!important;
+  place-items:center!important;
+  width:17px!important;
+  height:17px!important;
+  min-width:17px!important;
+  border-radius:5px!important;
+  background:#7047e7!important;
+  color:#fff!important;
+  font-size:13px!important;
+  line-height:1!important;
 }
-#app [id^="quick-order-"] .nf-fancy-work-row{
-  display:grid!important;width:100%!important;max-width:100%!important;
-  grid-template-columns:repeat(3,minmax(0,1fr)) 64px!important;gap:4px!important;
-  height:36px!important;min-height:36px!important;margin:0 0 5px!important;
-  box-sizing:border-box!important;overflow:hidden!important;
+.nf-edit-fancy-blouse.nf-fancy-collapsed .nf-fancy-panel{
+  display:none!important;
 }
-#app [id^="quick-order-"] .nf-fancy-work-item{
-  display:grid!important;grid-template-columns:minmax(0,1fr) 46px!important;
-  align-items:center!important;gap:3px!important;width:100%!important;min-width:0!important;
-  height:36px!important;min-height:36px!important;box-sizing:border-box!important;
-  padding:4px!important;border-radius:8px!important;overflow:hidden!important;
+.nf-edit-fancy-blouse:not(.nf-fancy-collapsed) .nf-fancy-panel{
+  display:block!important;
 }
-#app [id^="quick-order-"] .nf-fancy-work-item.stone{
-  background:#fff5cf!important;border:1px solid #e5ca68!important;
+.nf-fancy-panel{
+  display:block!important;
+  width:100%!important;
+  min-width:0!important;
+  box-sizing:border-box!important;
+  margin:0!important;
+  padding:39px 6px 7px!important;
 }
-#app [id^="quick-order-"] .nf-fancy-work-item.lace{
-  background:#e8f6ff!important;border:1px solid #b8dff1!important;
+.nf-fancy-head{
+  display:flex!important;
+  align-items:center!important;
+  gap:5px!important;
+  width:100%!important;
+  height:28px!important;
+  min-height:28px!important;
+  box-sizing:border-box!important;
+  margin:0 0 5px!important;
+  padding:4px 7px!important;
+  border:1px solid #ded4f0!important;
+  border-radius:8px!important;
+  background:#f4efff!important;
+  overflow:hidden!important;
+  white-space:nowrap!important;
 }
-#app [id^="quick-order-"] .nf-fancy-work-item.knot{
-  background:#eaf8ee!important;border:1px solid #b9dfc5!important;
+.nf-fancy-head>span{font-size:15px!important;line-height:1!important;flex:0 0 auto!important}
+.nf-fancy-head strong{font-size:12px!important;line-height:1!important;font-weight:950!important;white-space:nowrap!important;flex:0 0 auto!important}
+.nf-fancy-head small{
+  min-width:0!important;
+  font-size:8px!important;
+  line-height:1!important;
+  color:#756d80!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  white-space:nowrap!important;
 }
-#app [id^="quick-order-"] .nf-fancy-work-item span{
-  min-width:0!important;font-size:8px!important;font-weight:900!important;
-  line-height:1!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;
+.nf-fancy-row{
+  display:grid!important;
+  align-items:center!important;
+  width:100%!important;
+  min-width:0!important;
+  box-sizing:border-box!important;
+  gap:var(--fancy-gap)!important;
+  height:36px!important;
+  min-height:36px!important;
+  margin:0 0 5px!important;
+  padding:3px 5px!important;
+  border-radius:8px!important;
 }
-#app [id^="quick-order-"] .nf-fancy-work-input{
-  width:46px!important;max-width:46px!important;height:27px!important;min-height:27px!important;
-  box-sizing:border-box!important;padding:3px 4px!important;border-radius:6px!important;
-  font-size:10px!important;font-weight:900!important;text-align:right!important;background:#fff!important;
+.nf-fancy-row>*{min-width:0!important;box-sizing:border-box!important}
+.nf-fancy-row-blouse,
+.nf-fancy-row-lining{
+  grid-template-columns:minmax(0,1fr) 50px minmax(0,1fr) 50px 12px 62px!important;
 }
-#app [id^="quick-order-"] .nf-fancy-work-result{
-  display:flex!important;align-items:center!important;justify-content:flex-end!important;
-  width:64px!important;min-width:64px!important;height:36px!important;box-sizing:border-box!important;
-  padding:4px!important;border-radius:8px!important;background:#f3efff!important;
-  border:1px solid #d5c8ef!important;white-space:nowrap!important;
+.nf-fancy-row-blouse{
+  background:#f0ebff!important;
+  border:1px solid #d9cef5!important;
 }
-#app [id^="quick-order-"] .nf-fancy-work-result span{font-size:9px!important;font-weight:900!important}
-#app [id^="quick-order-"] .nf-fancy-work-result b{font-size:10px!important;font-weight:950!important}
-#app [id^="quick-order-"] .nf-fancy-row-handover{
-  grid-template-columns:minmax(0,1fr) 52px minmax(0,1fr) 112px!important;
-  background:#fff1f5!important;border:1px solid #efc5d2!important;
+.nf-fancy-row-lining{
+  background:#eafafa!important;
+  border:1px solid #c5e5ea!important;
 }
-#app [id^="quick-order-"] .nf-fancy-date{
-  width:112px!important;max-width:112px!important;height:28px!important;min-height:28px!important;
-  box-sizing:border-box!important;padding:3px 4px!important;border-radius:6px!important;
-  font-size:9px!important;background:#fff!important;
+.nf-fancy-label{
+  display:block!important;
+  min-width:0!important;
+  margin:0!important;
+  padding:0!important;
+  font-size:9px!important;
+  font-weight:900!important;
+  line-height:1!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
 }
-#app [id^="quick-order-"] .nf-fancy-total{
-  display:flex!important;align-items:center!important;justify-content:space-between!important;
-  width:100%!important;height:32px!important;min-height:32px!important;
-  box-sizing:border-box!important;margin:0!important;padding:4px 8px!important;
-  border-radius:8px!important;background:#fff1cf!important;border:1px solid #e6ca76!important;
+.nf-fancy-input{
+  display:block!important;
+  width:50px!important;
+  height:28px!important;
+  min-height:28px!important;
+  max-width:100%!important;
+  box-sizing:border-box!important;
+  margin:0!important;
+  padding:3px 5px!important;
+  border:1px solid #cfc9d8!important;
+  border-radius:6px!important;
+  background:#fff!important;
+  font-size:11px!important;
+  font-weight:900!important;
+  text-align:right!important;
 }
-#app [id^="quick-order-"] .nf-fancy-total span{font-size:9px!important;font-weight:950!important;white-space:nowrap!important}
-#app [id^="quick-order-"] .nf-fancy-total b{font-size:12px!important;font-weight:950!important;white-space:nowrap!important}
+.nf-fancy-equals{
+  display:block!important;
+  min-width:0!important;
+  font-size:10px!important;
+  font-weight:950!important;
+  text-align:center!important;
+}
+.nf-fancy-result{
+  display:block!important;
+  width:62px!important;
+  min-width:62px!important;
+  max-width:100%!important;
+  box-sizing:border-box!important;
+  padding:6px 4px!important;
+  border-radius:6px!important;
+  background:#fff!important;
+  border:1px solid #d9d1e4!important;
+  font-size:10px!important;
+  font-weight:900!important;
+  line-height:1!important;
+  text-align:right!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+}
+.nf-fancy-work-row{
+  display:grid!important;
+  grid-template-columns:repeat(3,minmax(0,1fr)) 62px!important;
+  align-items:stretch!important;
+  width:100%!important;
+  min-width:0!important;
+  box-sizing:border-box!important;
+  gap:var(--fancy-gap)!important;
+  height:36px!important;
+  min-height:36px!important;
+  margin:0 0 5px!important;
+}
+.nf-fancy-work-item{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) 42px!important;
+  align-items:center!important;
+  gap:3px!important;
+  min-width:0!important;
+  height:36px!important;
+  min-height:36px!important;
+  box-sizing:border-box!important;
+  padding:3px 5px!important;
+  border-radius:8px!important;
+}
+.nf-fancy-work-item span{
+  min-width:0!important;
+  font-size:8px!important;
+  font-weight:900!important;
+  line-height:1!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+}
+.nf-fancy-work-item.stone{background:#fff6da!important;border:1px solid #ecd79b!important}
+.nf-fancy-work-item.lace{background:#e9f7ff!important;border:1px solid #c4e2ef!important}
+.nf-fancy-work-item.knot{background:#ecf8ef!important;border:1px solid #c8e3d0!important}
+.nf-fancy-work-input{
+  display:block!important;
+  width:42px!important;
+  height:27px!important;
+  min-height:27px!important;
+  max-width:100%!important;
+  box-sizing:border-box!important;
+  padding:3px 4px!important;
+  border:1px solid #cfc9d8!important;
+  border-radius:6px!important;
+  background:#fff!important;
+  font-size:9px!important;
+  font-weight:900!important;
+  text-align:right!important;
+}
+.nf-fancy-work-result{
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:flex-end!important;
+  justify-content:center!important;
+  min-width:0!important;
+  height:36px!important;
+  min-height:36px!important;
+  box-sizing:border-box!important;
+  padding:3px 5px!important;
+  border-radius:8px!important;
+  background:#fff2ca!important;
+  border:1px solid #e3cb88!important;
+  text-align:right!important;
+  overflow:hidden!important;
+}
+.nf-fancy-work-result span{font-size:7px!important;line-height:1!important}
+.nf-fancy-work-result b{display:block!important;margin-top:2px!important;font-size:9px!important;line-height:1!important;white-space:nowrap!important}
+.nf-fancy-row-handover{
+  grid-template-columns:minmax(0,1fr) 50px minmax(0,1fr) 96px!important;
+  background:#f5efff!important;
+  border:1px solid #ded2f0!important;
+}
+.nf-fancy-date{
+  display:block!important;
+  width:96px!important;
+  height:28px!important;
+  min-height:28px!important;
+  max-width:100%!important;
+  box-sizing:border-box!important;
+  padding:3px 4px!important;
+  border:1px solid #cfc9d8!important;
+  border-radius:6px!important;
+  background:#fff!important;
+  font-size:8px!important;
+}
+.nf-fancy-total{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:8px!important;
+  width:100%!important;
+  height:34px!important;
+  min-height:34px!important;
+  box-sizing:border-box!important;
+  margin:1px 0 0!important;
+  padding:5px 8px!important;
+  border-radius:8px!important;
+  background:#fff2c9!important;
+  border:1px solid #dfbf60!important;
+}
+.nf-fancy-total span{font-size:10px!important;font-weight:950!important;white-space:nowrap!important}
+.nf-fancy-total b{font-size:13px!important;font-weight:950!important;white-space:nowrap!important}
 @media(max-width:560px){
-  #app [id^="quick-order-"] .nf-fancy-panel{padding:34px 4px 6px!important}
-  #app [id^="quick-order-"] .nf-fancy-row{gap:3px!important;height:34px!important;min-height:34px!important;margin-bottom:4px!important;padding:3px!important}
-  #app [id^="quick-order-"] .nf-fancy-row-blouse,
-  #app [id^="quick-order-"] .nf-fancy-row-lining{
+  .nf-fancy-panel{padding:39px 4px 6px!important}
+  .nf-fancy-row{gap:3px!important;padding:3px 4px!important}
+  .nf-fancy-row-blouse,
+  .nf-fancy-row-lining{
     grid-template-columns:minmax(0,1fr) 44px minmax(0,1fr) 44px 9px 54px!important;
   }
-  #app [id^="quick-order-"] .nf-fancy-label{font-size:7px!important}
-  #app [id^="quick-order-"] .nf-fancy-input{width:44px!important;max-width:44px!important;height:26px!important;min-height:26px!important;font-size:10px!important}
-  #app [id^="quick-order-"] .nf-fancy-result{width:54px!important;min-width:54px!important;height:26px!important;min-height:26px!important;font-size:9px!important}
-  #app [id^="quick-order-"] .nf-fancy-work-row{
-    grid-template-columns:repeat(3,minmax(0,1fr)) 54px!important;gap:3px!important;height:34px!important;min-height:34px!important;margin-bottom:4px!important;
+  .nf-fancy-label{font-size:8px!important}
+  .nf-fancy-input{width:44px!important;height:27px!important;min-height:27px!important;font-size:10px!important}
+  .nf-fancy-result{width:54px!important;min-width:54px!important;font-size:9px!important}
+  .nf-fancy-work-row{grid-template-columns:repeat(3,minmax(0,1fr)) 54px!important;gap:3px!important}
+  .nf-fancy-work-item{grid-template-columns:minmax(0,1fr) 35px!important;gap:2px!important;padding:3px!important}
+  .nf-fancy-work-item span{font-size:7px!important}
+  .nf-fancy-work-input{width:35px!important;height:27px!important;min-height:27px!important;font-size:8px!important}
+  .nf-fancy-work-result{height:36px!important;min-height:36px!important;padding:3px!important}
+  .nf-fancy-work-result b{font-size:8px!important}
+  .nf-fancy-row-handover{
+    grid-template-columns:minmax(0,1fr) 44px minmax(0,1fr) 82px!important;
   }
-  #app [id^="quick-order-"] .nf-fancy-work-item{grid-template-columns:minmax(0,1fr) 34px!important;height:34px!important;min-height:34px!important;padding:3px!important}
-  #app [id^="quick-order-"] .nf-fancy-work-item span{font-size:7px!important}
-  #app [id^="quick-order-"] .nf-fancy-work-input{width:34px!important;max-width:34px!important;height:25px!important;min-height:25px!important;font-size:9px!important}
-  #app [id^="quick-order-"] .nf-fancy-work-result{width:54px!important;min-width:54px!important;height:34px!important}
-  #app [id^="quick-order-"] .nf-fancy-work-result b{font-size:9px!important}
-  #app [id^="quick-order-"] .nf-fancy-row-handover{
-    grid-template-columns:minmax(0,1fr) 44px minmax(0,1fr) 92px!important;
+  .nf-fancy-date{width:82px!important;font-size:7px!important}
+  .nf-fancy-total{height:34px!important;min-height:34px!important}
+}
+@media(max-width:390px){
+  .nf-fancy-head small{display:none!important}
+  .nf-fancy-row-blouse,
+  .nf-fancy-row-lining{
+    grid-template-columns:minmax(0,1fr) 41px minmax(0,1fr) 41px 8px 50px!important;
   }
-  #app [id^="quick-order-"] .nf-fancy-date{width:92px!important;max-width:92px!important;height:26px!important;min-height:26px!important;font-size:8px!important}
-  #app [id^="quick-order-"] .nf-fancy-total{height:30px!important;min-height:30px!important;padding:3px 7px!important}
+  .nf-fancy-input{width:41px!important}
+  .nf-fancy-result{width:50px!important;min-width:50px!important}
+  .nf-fancy-work-row{grid-template-columns:repeat(3,minmax(0,1fr)) 50px!important}
+  .nf-fancy-work-item{grid-template-columns:minmax(0,1fr) 32px!important}
+  .nf-fancy-work-input{width:32px!important}
+  .nf-fancy-row-handover{grid-template-columns:minmax(0,1fr) 41px minmax(0,1fr) 76px!important}
+  .nf-fancy-date{width:76px!important}
 }
 </style>
 
@@ -3873,7 +4004,7 @@ const clothPhotoActionsHtml="";
   const detail=g==="Chudi"?`👚 Chudi ${Number(gx.chudi||o.quantity||0)} · Lining ${Number(gx.chudiLiningQty||0)} · விலை ${money(o.unit_price)}`:g==="Saree"?`🥻 Saree ${Number(gx.saree||o.quantity||0)} · விலை ${money(o.unit_price)}`:`👗 ${blouseSplitText(o)}${Number(gx.saree||0)>0?` · 🥻 Saree ${Number(gx.saree||0)}`:""} · Rate ${money(o.unit_price)}`;
   return `<div class="customerOrderLine" id="customer-order-${esc(o.id)}"><b>${esc(o.order_no)}</b> · ${esc(g)} · ${detail} ${rem}<br><span class="mini">துணி: ${dateText(o.cloth_received_date)} · Delivery: ${dateText(o.delivery_date)} · Advance: ${money(nfOrderPaymentInfo(o).advance)} (${nfFormatPaymentDate(nfOrderPaymentInfo(o).advanceDate)}) · Customer Paid: ${money(nfOrderPaymentInfo(o).customerPaid)} · Balance: ${money(nfOrderBalance(o))}</span>${lining}${nfPriceBreakdownHTML(o)}${cleanOrderNotes(o.notes)?`<div class="nf-order-alteration-notes"><div class="nf-order-alteration-title">📝 Alteration Notes</div><div class="nf-order-alteration-content">${esc(cleanOrderNotes(o.notes))}</div></div>`:""}<div class="orderActions"><button class="btn success" onclick="markDelivered('${o.id}')">Delivered</button><button class="btn primary" onclick="openCustomerOrderEditor('${id}','${o.id}')">✏️ Edit Details</button></div></div>`;
  }).join("")||`<div class="mini">இன்னும் order இல்லை.</div>`;
- return `<article class="customerCard" id="customer-card-${id}"><div class="customerCardHead nf-customer-head"><div class="customerAvatar">👤</div><div class="customerIdentity"><div class="nf-customer-name-row"><h3>${esc(c.name||"Customer")}</h3><div class="nf-customer-compact-actions" aria-label="Order actions"><button type="button" class="nf-compact-action nf-edit-order" onclick="event.stopPropagation();openLatestCustomerOrderEdit('${id}')" title="Edit Order" aria-label="Edit Order">✏️</button><button type="button" class="nf-compact-action nf-order-full-details" onclick="event.stopPropagation();openLatestCustomerOrderFullDetails('${id}')" title="Order Full Details" aria-label="Order Full Details">📋</button></div></div><div class="nf-whatsapp-card-row"><button type="button" class="nf-whatsapp-card-btn" onclick="event.stopPropagation();openCustomerWhatsAppCard('${id}')" title="WhatsApp Card" aria-label="WhatsApp Card">🟢 <span>WhatsApp Card</span></button></div><div class="nf-customer-contact"><div class="nf-contact-item"><span>📞 Phone</span><b>${esc(c.phone||"Phone இல்லை")}</b></div><div class="nf-contact-item"><span>📍 ஊர்</span><b>${esc(village||"ஊர் இல்லை")}</b></div><div class="nf-contact-item nf-contact-address"><span>🏠 முகவரி</span><b>${esc(address)}</b></div></div>${nfStripVillageMarker(c.notes)?`<div class="nf-customer-alteration-notes"><div class="nf-alteration-notes-title"><span class="nf-alteration-notes-icon">📝</span><span>Alteration Notes</span></div><div class="nf-alteration-notes-content">${esc(nfStripVillageMarker(c.notes))}</div></div>`:""}</div></div><section class="nf-collection-panel nf-cash-collection"><div class="nf-collection-title"><span class="nf-collection-icon">💰</span><div><h4>Cash Collection</h4><small>Order • Paid • Advance • Balance</small></div></div><div class="nf-cash-payment-action"><button type="button" class="nf-cash-payment-btn" onclick="openCustomerPayment('${id}')" aria-label="Payment" title="Payment">💰 <span>Payment</span></button></div><div class="nf-cash-columns-head" aria-hidden="true"><span>விவரம்</span><span>தேதி</span><span>தொகை</span></div><div class="customerMoneyGrid"><div class="moneyStat"><b>${money(st.total)}</b><span>மொத்த order</span></div><div class="moneyStat"><b>${money(st.paid)}</b><span>Customer paid</span></div><div class="moneyStat"><b>${money(st.advance)}</b><span>Advance வாங்கியது</span></div><div class="moneyStat clickable" onclick="goView('payments')"><b>${money(st.balance)}</b><span>இன்னும் கொடுக்க வேண்டும்</span></div></div></section>\n <section class="nf-collection-panel nf-blouse-collection"><div class="nf-collection-title"><span class="nf-collection-icon">👗</span><div><h4>Blouse Collection</h4><small>மொத்தம் • வாங்கிச் சென்றது • மீதமுள்ளது</small></div></div><div class="nfBlouseStatusGrid"><div class="moneyStat"><span>மொத்த blouse</span><b>${st.givenBlouse}</b></div><div class="moneyStat"><span>மொத்த சேலை</span><b>${st.saree}</b></div></div><div class="nfBlouseHandoverGrid"><div class="nfBlouseHandoverBox nfBlouseHandoverGiven"><div class="nfBlouseHandoverTitle">வாங்கிச் சென்றது</div><div class="nfBlouseHandoverRow"><span>Normal</span><b>${st.handedNormal}</b></div><div class="nfBlouseHandoverRow"><span>Lining</span><b>${st.handedLining}</b></div><div class="nfBlouseHandoverRow"><span>Design</span><b>${st.handedDesign}</b></div><div class="nfBlouseHandoverRow nfSareeRow"><span>🥻 Saree</span><b>${st.handedSaree}</b></div></div><div class="nfBlouseHandoverBox nfBlouseHandoverPending"><div class="nfBlouseHandoverTitle">மீதமுள்ளது</div><div class="nfBlouseHandoverRow"><span>Normal</span><b>${st.pendingNormal}</b></div><div class="nfBlouseHandoverRow"><span>Lining</span><b>${st.pendingLining}</b></div><div class="nfBlouseHandoverRow"><span>Design</span><b>${st.pendingDesign}</b></div><div class="nfBlouseHandoverRow nfSareeRow"><span>🥻 Saree</span><b>${st.pendingSaree}</b></div></div></div><div class="nf-garment-subtitle">👚 சுடிதார்</div><div class="nfChudiTotalBox"><span>மொத்த சுடிதார்</span><b>${st.chudi}</b></div><div class="nfChudiHandoverGrid"><div class="nfBlouseHandoverBox nfBlouseHandoverGiven"><div class="nfBlouseHandoverTitle">வாங்கிச் சென்றது</div><div class="nfBlouseHandoverRow"><span>சுடிதார்</span><b>${st.handedChudi}</b></div></div><div class="nfBlouseHandoverBox nfBlouseHandoverPending"><div class="nfBlouseHandoverTitle">மீதமுள்ளது</div><div class="nfBlouseHandoverRow"><span>சுடிதார்</span><b>${st.pendingChudi}</b></div></div></div></section><div class="nfCustomerBreakdownMount">${typeof window.nfCustomerWorkSummaryHTML==="function"?window.nfCustomerWorkSummaryHTML(st):""}</div><div id="quick-order-${id}" class="hidden" style="margin-top:10px;background:#faf8f6;border:1px solid var(--line);border-radius:13px;padding:12px"><h4 class="nf-quick-edit-title" style="margin:0 0 10px">🧾 New Order</h4><div class="formgrid"><div class="field"><label>Garment / Blouse / Chudi</label><select id="qo-garment-${id}" class="input" onchange="updateQuickGarment('${id}')"><option value="Blouse">Blouse</option><option value="Chudi">Chudi</option><option value="Blouse+Chudi">Blouse + Chudi / பிளவுஸ் + சுடிதார்</option></select></div><div class="field"><label>Order Date</label><input id="qo-order-date-${id}" class="input" type="date" value="${localDate()}"></div><div class="field"><label>துணி கொடுத்த தேதி</label><input id="qo-cloth-${id}" class="input" type="date" value="${localDate()}"></div><div class="field"><label>Delivery Date</label><input id="qo-delivery-${id}" class="input" type="date"></div><div class="field full nf-quick-blouse"><label>👗 Customer கொடுத்த blouse — வகை வாரியாக எண்ணிக்கை + வாங்கிச் சென்றது + ஒன்றுக்கு விலை</label><div id="qo-blouse-handover-summary-${id}" class="nf-quick-handover-summary"></div><div class="nf-edit-category-stack"><section class="nf-edit-category-box nf-edit-normal"><div class="nf-edit-category-head"><span>👗</span><div><strong>Normal blouse</strong><small>எண்ணிக்கை · வாங்கிச் சென்றது · ஒன்றுக்கு விலை</small></div></div><div class="nf-edit-category-grid"><div class="moneyStat"><span>Normal blouse — எத்தனை</span><input id="qo-normal-${id}" class="input" type="number" min="0" step="1" value="0" oninput="updateQuickOrderCalc('${id}');updateQuickBlouseHandover('${id}')"></div><div class="moneyStat"><span>Normal blouse — வாங்கிச் சென்றது</span><input id="qo-normal-handover-${id}" class="input" type="number" min="0" step="1" value="0" oninput="updateQuickBlouseHandover('${id}')"></div><div class="moneyStat nf-handover-date-field"><span>📅 வாங்கிச் சென்ற தேதி</span><input id="qo-normal-handover-date-${id}" class="input" type="date"></div><div class="moneyStat"><span>Normal blouse — ஒன்றுக்கு விலை</span><input id="qo-normal-rate-${id}" class="input" type="number" min="0" step="0.01" value="${getRates().normal}" oninput="updateQuickOrderCalc('${id}')"></div></div></section><section class="nf-edit-category-box nf-edit-lining-blouse"><div class="nf-edit-category-head"><span>🧵</span><div><strong>Lining blouse</strong><small>எண்ணிக்கை · வாங்கிச் சென்றது · ஒன்றுக்கு விலை</small></div></div><div class="nf-edit-category-grid"><div class="moneyStat"><span>Lining blouse — எத்தனை</span><input id="qo-lining-${id}" class="input" type="number" min="0" step="1" value="0" oninput="updateQuickOrderCalc('${id}');updateQuickBlouseHandover('${id}')"></div><div class="moneyStat"><span>Lining blouse — வாங்கிச் சென்றது</span><input id="qo-lining-handover-${id}" class="input" type="number" min="0" step="1" value="0" oninput="updateQuickBlouseHandover('${id}')"></div><div class="moneyStat nf-handover-date-field"><span>📅 வாங்கிச் சென்ற தேதி</span><input id="qo-lining-handover-date-${id}" class="input" type="date"></div><div class="moneyStat"><span>Lining blouse — ஒன்றுக்கு விலை</span><input id="qo-lining-rate-${id}" class="input" type="number" min="0" step="0.01" value="${getRates().lining}" oninput="updateQuickOrderCalc('${id}')"></div></div><div class="nf-simple-lining-cloth nf-v157-lining-slot" data-lining-section="lining" id="qo-lining-inline-${id}-lining"><div class="nf-simple-lining-head"><strong>🧵 Lining cloth</strong><span>Count / Price = Total</span><button type="button" class="nf-lining-add" onclick="nfAddLiningItem('${id}','lining')">＋ Add</button></div><div id="qo-lining-items-${id}-lining" class="nf-lining-items"><div class="nf-lining-item-row" data-lining-row="1" data-lining-section="lining"><div class="nf-lining-item-no">#1</div><div class="nf-lining-item-field"><label>Count</label><input class="input nf-li-qty" type="number" min="0" step="1" inputmode="numeric" value="0" oninput="nfLiningItemsCalc('${id}')"></div><div class="nf-lining-item-field"><label>₹ Price</label><input class="input nf-li-rate" type="number" min="0" step="0.01" inputmode="decimal" value="0" oninput="nfLiningItemsCalc('${id}')"></div><div class="nf-lining-item-result"><span>Total</span><b class="nf-li-total">₹0.00</b></div><button type="button" class="nf-lining-remove" onclick="nfRemoveLiningItem('${id}',this)" aria-label="Remove lining row" title="Remove">×</button></div></div><div class="nf-simple-lining-total"><span>Lining cloth total</span><b id="qo-lining-total-${id}-lining">₹0.00</b></div><input id="qo-lining-source-${id}" type="hidden" value="shop"><input id="qo-lining-qty-${id}" type="hidden" value="0"><input id="qo-lining-cost-rate-${id}" type="hidden" value="0"></div></section>
+ return `<article class="customerCard" id="customer-card-${id}"><div class="customerCardHead nf-customer-head"><div class="customerAvatar">👤</div><div class="customerIdentity"><div class="nf-customer-name-row"><h3>${esc(c.name||"Customer")}</h3><div class="nf-customer-compact-actions" aria-label="Order actions"><button type="button" class="nf-compact-action nf-edit-order" onclick="event.stopPropagation();openLatestCustomerOrderEdit('${id}')" title="Edit Order" aria-label="Edit Order">✏️</button><button type="button" class="nf-compact-action nf-order-full-details" onclick="event.stopPropagation();openLatestCustomerOrderFullDetails('${id}')" title="Order Full Details" aria-label="Order Full Details">📋</button></div></div><div class="nf-whatsapp-card-row"><button type="button" class="nf-whatsapp-card-btn" onclick="event.stopPropagation();openCustomerWhatsAppCard('${id}')" title="WhatsApp Card" aria-label="WhatsApp Card">🟢 <span>WhatsApp Card</span></button></div><div class="nf-customer-contact"><div class="nf-contact-item"><span>📞 Phone</span><b>${esc(c.phone||"Phone இல்லை")}</b></div><div class="nf-contact-item"><span>📍 ஊர்</span><b>${esc(village||"ஊர் இல்லை")}</b></div><div class="nf-contact-item nf-contact-address"><span>🏠 முகவரி</span><b>${esc(address)}</b></div></div>${nfStripVillageMarker(c.notes)?`<div class="nf-customer-alteration-notes"><div class="nf-alteration-notes-title"><span class="nf-alteration-notes-icon">📝</span><span>Alteration Notes</span></div><div class="nf-alteration-notes-content">${esc(nfStripVillageMarker(c.notes))}</div></div>`:""}</div></div><section class="nf-collection-panel nf-cash-collection"><div class="nf-collection-title"><span class="nf-collection-icon">💰</span><div><h4>Cash Collection</h4><small>Order • Paid • Advance • Balance</small></div></div><div class="nf-cash-payment-action"><button type="button" class="nf-cash-payment-btn" onclick="openCustomerPayment('${id}')" aria-label="Payment" title="Payment">💰 <span>Payment</span></button></div><div class="nf-cash-columns-head" aria-hidden="true"><span>விவரம்</span><span>தேதி</span><span>தொகை</span></div><div class="customerMoneyGrid"><div class="moneyStat"><b>${money(st.total)}</b><span>மொத்த order</span></div><div class="moneyStat"><b>${money(st.paid)}</b><span>Customer paid</span></div><div class="moneyStat"><b>${money(st.advance)}</b><span>Advance வாங்கியது</span></div><div class="moneyStat clickable" onclick="goView('payments')"><b>${money(st.balance)}</b><span>இன்னும் கொடுக்க வேண்டும்</span></div></div></section>\n <section class="nf-collection-panel nf-blouse-collection"><div class="nf-collection-title"><span class="nf-collection-icon">👗</span><div><h4>Blouse Collection</h4><small>மொத்தம் • வாங்கிச் சென்றது • மீதமுள்ளது</small></div></div><div class="nfBlouseStatusGrid"><div class="moneyStat"><span>மொத்த blouse</span><b>${st.givenBlouse}</b></div><div class="moneyStat"><span>மொத்த சேலை</span><b>${st.saree}</b></div></div><div class="nfBlouseHandoverGrid"><div class="nfBlouseHandoverBox nfBlouseHandoverGiven"><div class="nfBlouseHandoverTitle">வாங்கிச் சென்றது</div><div class="nfBlouseHandoverRow"><span>Normal</span><b>${st.handedNormal}</b></div><div class="nfBlouseHandoverRow"><span>Lining</span><b>${st.handedLining}</b></div><div class="nfBlouseHandoverRow"><span>Design</span><b>${st.handedDesign}</b></div><div class="nfBlouseHandoverRow nfSareeRow"><span>🥻 Saree</span><b>${st.handedSaree}</b></div></div><div class="nfBlouseHandoverBox nfBlouseHandoverPending"><div class="nfBlouseHandoverTitle">மீதமுள்ளது</div><div class="nfBlouseHandoverRow"><span>Normal</span><b>${st.pendingNormal}</b></div><div class="nfBlouseHandoverRow"><span>Lining</span><b>${st.pendingLining}</b></div><div class="nfBlouseHandoverRow"><span>Design</span><b>${st.pendingDesign}</b></div><div class="nfBlouseHandoverRow nfSareeRow"><span>🥻 Saree</span><b>${st.pendingSaree}</b></div></div></div><div class="nf-garment-subtitle">👚 சுடிதார்</div><div class="nfChudiTotalBox"><span>மொத்த சுடிதார்</span><b>${st.chudi}</b></div><div class="nfChudiHandoverGrid"><div class="nfBlouseHandoverBox nfBlouseHandoverGiven"><div class="nfBlouseHandoverTitle">வாங்கிச் சென்றது</div><div class="nfBlouseHandoverRow"><span>சுடிதார்</span><b>${st.handedChudi}</b></div></div><div class="nfBlouseHandoverBox nfBlouseHandoverPending"><div class="nfBlouseHandoverTitle">மீதமுள்ளது</div><div class="nfBlouseHandoverRow"><span>சுடிதார்</span><b>${st.pendingChudi}</b></div></div></div></section><div class="nfCustomerBreakdownMount">${typeof window.nfCustomerWorkSummaryHTML==="function"?window.nfCustomerWorkSummaryHTML(st):""}</div><div id="quick-order-${id}" class="hidden" style="margin-top:10px;background:#faf8f6;border:1px solid var(--line);border-radius:13px;padding:12px"><h4 class="nf-quick-edit-title" style="margin:0 0 10px">🧾 New Order</h4><div class="formgrid"><div class="field"><label>Garment / Blouse / Chudi</label><select id="qo-garment-${id}" class="input" onchange="updateQuickGarment('${id}')"><option value="Blouse">Blouse</option><option value="Chudi">Chudi</option><option value="Blouse+Chudi">Blouse + Chudi / பிளவுஸ் + சுடிதார்</option></select></div><div class="field"><label>Order Date</label><input id="qo-order-date-${id}" class="input" type="date" value="${localDate()}"></div><div class="field"><label>துணி கொடுத்த தேதி</label><input id="qo-cloth-${id}" class="input" type="date" value="${localDate()}"></div><div class="field"><label>Delivery Date</label><input id="qo-delivery-${id}" class="input" type="date"></div><div class="field full nf-quick-blouse"><label>👗 Customer கொடுத்த blouse — வகை வாரியாக எண்ணிக்கை + வாங்கிச் சென்றது + ஒன்றுக்கு விலை</label><div id="qo-blouse-handover-summary-${id}" class="nf-quick-handover-summary"></div><div class="nf-edit-category-stack"><section class="nf-edit-category-box nf-edit-normal"><div class="nf-edit-category-head"><span>👗</span><div><strong>Normal blouse</strong><small>எண்ணிக்கை · வாங்கிச் சென்றது · ஒன்றுக்கு விலை</small></div></div><div class="nf-edit-category-grid"><div class="moneyStat"><span>Normal blouse — எத்தனை</span><input id="qo-normal-${id}" class="input" type="number" min="0" step="1" value="0" oninput="updateQuickOrderCalc('${id}');updateQuickBlouseHandover('${id}')"></div><div class="moneyStat"><span>Normal blouse — வாங்கிச் சென்றது</span><input id="qo-normal-handover-${id}" class="input" type="number" min="0" step="1" value="0" oninput="updateQuickBlouseHandover('${id}')"></div><div class="moneyStat nf-handover-date-field"><span>📅 வாங்கிச் சென்ற தேதி</span><input id="qo-normal-handover-date-${id}" class="input" type="date"></div><div class="moneyStat"><span>Normal blouse — ஒன்றுக்கு விலை</span><input id="qo-normal-rate-${id}" class="input" type="number" min="0" step="0.01" value="${getRates().normal}" oninput="updateQuickOrderCalc('${id}')"></div></div></section><section class="nf-edit-category-box nf-edit-lining-blouse"><div class="nf-edit-category-head"><span>🧵</span><div><strong>Lining blouse</strong><small>எண்ணிக்கை · வாங்கிச் சென்றது · ஒன்றுக்கு விலை</small></div></div><div class="nf-edit-category-grid"><div class="moneyStat"><span>Lining blouse — எத்தனை</span><input id="qo-lining-${id}" class="input" type="number" min="0" step="1" value="0" oninput="updateQuickOrderCalc('${id}');updateQuickBlouseHandover('${id}')"></div><div class="moneyStat"><span>Lining blouse — வாங்கிச் சென்றது</span><input id="qo-lining-handover-${id}" class="input" type="number" min="0" step="1" value="0" oninput="updateQuickBlouseHandover('${id}')"></div><div class="moneyStat nf-handover-date-field"><span>📅 வாங்கிச் சென்ற தேதி</span><input id="qo-lining-handover-date-${id}" class="input" type="date"></div><div class="moneyStat"><span>Lining blouse — ஒன்றுக்கு விலை</span><input id="qo-lining-rate-${id}" class="input" type="number" min="0" step="0.01" value="${getRates().lining}" oninput="updateQuickOrderCalc('${id}')"></div></div></section>
 <section class="nf-edit-category-box nf-edit-fancy-blouse nf-fancy-collapsed" data-fancy-section="${id}">
   <button type="button" class="nf-fancy-hook" onclick="event.preventDefault();event.stopPropagation();return nfToggleFancyBlouse('${id}');" aria-expanded="false" title="Fancy Blouse">
     <span class="nf-fancy-hook-text">Fancy</span><b class="nf-fancy-plus">+</b>
@@ -11635,37 +11766,7 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-card{
 
 
 
-<script id="nf-v166-fancy-single-toggle">
-(function(){
-  "use strict";
-  window.nfToggleFancyBlouse=function(id){
-    try{
-      var panel=document.getElementById("qo-fancy-panel-"+id);
-      if(!panel) return false;
-      var sec=panel.closest(".nf-edit-fancy-blouse");
-      if(!sec) return false;
-      var hook=sec.querySelector(".nf-fancy-hook");
-      var plus=sec.querySelector(".nf-fancy-plus");
-      var isClosed=sec.classList.contains("nf-fancy-collapsed");
-      if(isClosed){
-        sec.classList.remove("nf-fancy-collapsed");
-        panel.hidden=false;
-        panel.style.display="block";
-        if(hook) hook.setAttribute("aria-expanded","true");
-        if(plus) plus.textContent="−";
-        if(typeof window.nfFancyCalc==="function") window.nfFancyCalc(id);
-      }else{
-        sec.classList.add("nf-fancy-collapsed");
-        panel.hidden=true;
-        panel.style.display="none";
-        if(hook) hook.setAttribute("aria-expanded","false");
-        if(plus) plus.textContent="+";
-      }
-    }catch(e){}
-    return false;
-  };
-})();
-</script>
+
 </body>
 <script id="nf-v120-single-cash-dedupe-fix">
 /* V22: superseded by the single stable customer-group renderer. */
@@ -14651,7 +14752,7 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
 function N(v){var n=Number(v);return Number.isFinite(n)?Math.max(0,n):0}
 function M(v){try{return typeof money==="function"?money(v):"₹"+N(v).toFixed(2)}catch(e){return "₹"+N(v).toFixed(2)}}
 function E(id,k){return document.getElementById("qo-fancy-"+k+"-"+id)}
-window.nfToggleFancyBlouse=function(id){try{var panel=document.getElementById("qo-fancy-panel-"+id);var sec=panel?panel.closest(".nf-edit-fancy-blouse"):null;if(!sec)return false;var closed=sec.classList.contains("nf-fancy-collapsed");var b=sec.querySelector(".nf-fancy-hook"),p=sec.querySelector(".nf-fancy-plus");if(closed){sec.classList.remove("nf-fancy-collapsed");if(panel)panel.style.display="block";if(b)b.setAttribute("aria-expanded","true");if(p)p.textContent="−";}else{sec.classList.add("nf-fancy-collapsed");if(panel)panel.style.display="none";if(b)b.setAttribute("aria-expanded","false");if(p)p.textContent="+";}return false;}catch(e){return false}};
+window.nfToggleFancyBlouse=function(id){try{var panel=document.getElementById("qo-fancy-panel-"+id);var sec=panel?panel.closest(".nf-edit-fancy-blouse"):null;if(!sec)return false;var closed=sec.classList.contains("nf-fancy-collapsed");var b=sec.querySelector(".nf-fancy-hook"),p=sec.querySelector(".nf-fancy-plus");if(closed){sec.classList.remove("nf-fancy-collapsed");if(panel){panel.hidden=false;panel.style.removeProperty("display");}if(b)b.setAttribute("aria-expanded","true");if(p)p.textContent="−";if(typeof window.nfFancyCalc==="function")window.nfFancyCalc(id);}else{sec.classList.add("nf-fancy-collapsed");if(panel){panel.hidden=true;panel.style.display="none";}if(b)b.setAttribute("aria-expanded","false");if(p)p.textContent="+";}return false;}catch(e){return false}};
 window.nfFancyHandover=function(id){var q=N(E(id,"count")?.value),h=E(id,"handover");if(!h)return;h.max=String(q);var v=Math.min(q,N(h.value));if(Number(h.value||0)!==v)h.value=String(v)};
 window.nfGetFancyBlouse=function(id){var x={count:N(E(id,"count")?.value),price:N(E(id,"price")?.value),liningCount:N(E(id,"lining-count")?.value),liningPrice:N(E(id,"lining-price")?.value),stone:N(E(id,"stone")?.value),lace:N(E(id,"lace")?.value),knot:N(E(id,"knot")?.value),handover:N(E(id,"handover")?.value),handoverDate:E(id,"handover-date")?.value||""};x.liningTotal=x.liningCount*x.liningPrice;x.total=x.count*x.price+x.liningTotal+x.stone+x.lace+x.knot;return x};
 window.nfFancyCalc=function(id){var x=nfGetFancyBlouse(id),a=document.getElementById("qo-fancy-lining-total-"+id),b=document.getElementById("qo-fancy-total-"+id),c=document.getElementById("qo-fancy-blouse-total-"+id),d=document.getElementById("qo-fancy-work-total-"+id);if(a)a.textContent=M(x.liningTotal);if(b)b.textContent=M(x.total);if(c)c.textContent=M(x.count*x.price);if(d)d.textContent=M(x.stone+x.lace+x.knot);nfFancyHandover(id)};
