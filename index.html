@@ -3114,19 +3114,32 @@ async function nfGetCustomerClothPhotoUrl(path){
   return nfR2PhotoUrl(path);
 }
 async function nfHydrateCloudClothPhotos(){
+  /* V187: Cloud hydration must never resurrect a photo that was deleted
+     locally, and hydrated photos must be persisted to IndexedDB so changing
+     pages does not require another cloud round-trip. */
   if(window.__nfPhotoHydratedAt && (Date.now()-window.__nfPhotoHydratedAt)<15000) return;
-  window.__nfPhotoHydratedAt=Date.now();
   if(nfCloudPhotoHydrationPromise)return nfCloudPhotoHydrationPromise;
   nfCloudPhotoHydrationPromise=(async function(){
     const customers=Array.isArray(state.customers)?state.customers:[];
     if(!customers.length || !navigator.onLine)return;
     let changed=false;
+    let pending=new Set();
+    try{ pending=new Set(JSON.parse(localStorage.getItem("nf_pending_photo_deletes")||"[]").map(String)); }catch(_){ }
     for(const c of customers){
       const id=String(c.id||"");
       if(!id)continue;
       const current=customerClothPhotos(id);
       for(let slot=0;slot<4;slot++){
         const path=nfCloudPhotoPath(id,slot);
+        if(pending.has(path)){
+          /* Local delete is authoritative until cloud delete succeeds. */
+          if(current[slot]){
+            current[slot]=null;
+            changed=true;
+          }
+          delete nfClothPhotoCloudPathCache[id+":"+slot];
+          continue;
+        }
         try{
           const res=await fetch(nfR2PhotoUrl(path),{method:"GET",cache:"no-store"});
           if(!res.ok)continue;
@@ -3136,12 +3149,13 @@ async function nfHydrateCloudClothPhotos(){
             current[slot]={src:url,name:"Customer cloth photo "+(slot+1),savedAt:current[slot]?.savedAt||new Date().toISOString(),cloudPath:path,originalType:current[slot]?.originalType||"image/*"};
             changed=true;
           }
-        }catch(_){}
+        }catch(_){ }
       }
       const existingRec=nfClothPhotoCache[id]||{};
       const designCurrent=Array.isArray(existingRec.blouseDesigns)?existingRec.blouseDesigns:Array(8).fill(null);
       for(let slot=0;slot<8;slot++){
         const path=nfBlouseDesignPhotoPath(id,slot);
+        if(pending.has(path))continue;
         try{
           const res=await fetch(nfR2PhotoUrl(path),{method:"GET",cache:"no-store"});
           if(!res.ok)continue;
@@ -3150,7 +3164,7 @@ async function nfHydrateCloudClothPhotos(){
             designCurrent[slot]={src:url,name:"Blouse Design "+(slot+1),savedAt:designCurrent[slot]?.savedAt||new Date().toISOString(),cloudPath:path,originalType:designCurrent[slot]?.originalType||"image/*"};
             changed=true;
           }
-        }catch(_){}
+        }catch(_){ }
       }
       const deliveryCurrent=customerDeliveryPhotos(id);
       const dst=customerStats(id);
@@ -3159,6 +3173,10 @@ async function nfHydrateCloudClothPhotos(){
         const limit=Math.min(NF_DELIVERY_SLOT_CAP,Math.max(0,Number(count||0)));
         for(let slot=0;slot<limit;slot++){
           const di=nfDeliveryPhotoIndex(type,status,slot),path=nfDeliveryPhotoPath(id,type,status,slot);
+          if(pending.has(path)){
+            if(deliveryCurrent[di]){deliveryCurrent[di]=null;changed=true;}
+            continue;
+          }
           try{
             const res=await fetch(nfR2PhotoUrl(path),{method:"GET",cache:"no-store"});
             if(!res.ok)continue;
@@ -3167,11 +3185,14 @@ async function nfHydrateCloudClothPhotos(){
               deliveryCurrent[di]={src:url,name:"Delivery "+type+" "+status+" "+(slot+1),savedAt:deliveryCurrent[di]?.savedAt||new Date().toISOString(),cloudPath:path,originalType:deliveryCurrent[di]?.originalType||"image/*"};
               changed=true;
             }
-          }catch(_){}
+          }catch(_){ }
         }
       }
       nfClothPhotoCache[id]={photos:current,blouseDesigns:designCurrent,deliveryPhotos:deliveryCurrent};
+      /* Persist cloud-hydrated state so page changes can render locally. */
+      try{await nfIdbPut({id:id,photos:current,blouseDesigns:designCurrent,deliveryPhotos:deliveryCurrent});}catch(_){ }
     }
+    window.__nfPhotoHydratedAt=Date.now();
     if(changed)renderCustomers();
   })().finally(()=>{nfCloudPhotoHydrationPromise=null});
   return nfCloudPhotoHydrationPromise;
@@ -3486,6 +3507,11 @@ async function saveCustomerClothPhoto(id,slot,file){
   const photoContext=nfCaptureCustomerPhotoContext(id);
   toast("Photo R2 cloud-ல் சேமிக்கப்படுகிறது...");
   try{
+    const targetPath=nfCloudPhotoPath(id,slot);
+    try{
+      const pending=JSON.parse(localStorage.getItem("nf_pending_photo_deletes")||"[]").map(String).filter(function(x){return x!==String(targetPath)});
+      localStorage.setItem("nf_pending_photo_deletes",JSON.stringify(pending));
+    }catch(_){}
     const path=await nfUploadCustomerClothPhoto(id,slot,file,file.type);
     if(!path)throw new Error(nfCloudPhotoLastError||"R2 upload failed");
     const url=await nfGetCustomerClothPhotoUrl(path);
@@ -3503,7 +3529,11 @@ async function saveCustomerClothPhoto(id,slot,file){
     const existingDelivery=Array.isArray(existingRec?.deliveryPhotos)?existingRec.deliveryPhotos:(typeof customerDeliveryPhotos==='function'?customerDeliveryPhotos(id):[]);
     nfClothPhotoCache[String(id)]={photos:arr,blouseDesigns:existingDesigns,deliveryPhotos:existingDelivery};
     nfClothPhotoCloudPathCache[String(id)+":"+slot]=path;
-    /* V185: invalidate the cached WhatsApp card immediately after upload.
+    try{
+      const pending=JSON.parse(localStorage.getItem("nf_pending_photo_deletes")||"[]").map(String).filter(function(x){return x!==String(path)});
+      localStorage.setItem("nf_pending_photo_deletes",JSON.stringify(pending));
+    }catch(_){}
+    /* V187: invalidate the cached WhatsApp card immediately after upload.
        Rebuild an already-open card so the new photo appears without refresh. */
     try{ nfWacInvalidateCustomerPhotoCaches(id); }catch(_){}
     toast(`Customer துணி photo ${slot+1} cloud-ல் சேமிக்கப்பட்டது. ☁️`);
@@ -8554,19 +8584,20 @@ async function nfWacEnsureCloudPhotos(){
 }
 async function nfWacResolvePhotos(id){
   var key=String(id||"");
-  var photos=typeof customerClothPhotos==="function"?customerClothPhotos(key):[];
-  /* Online: refresh cloud once per short window, not once for every customer.
-     This prevents Multi Customer cards from serially blocking the UI. */
-  await nfWacEnsureCloudPhotos();
-  photos=typeof customerClothPhotos==="function"?customerClothPhotos(key):photos;
-  if(Array.isArray(photos)&&photos.some(function(p){return p&&p.src})) return photos;
   if(typeof initCustomerClothPhotoStore==="function"){
     try{await nfWacWithTimeout(initCustomerClothPhotoStore(),1500,"photo-store-init");}catch(e){console.warn("WhatsApp card photo store init timeout/skipped:",e)}
   }
+  var photos=typeof customerClothPhotos==="function"?customerClothPhotos(key):[];
+  /* V187: local store is the immediate source of truth. Cloud hydration runs
+     in the background and is only needed when local data is missing. */
+  if(Array.isArray(photos)&&photos.some(function(p){return p&&p.src})){
+    nfWacEnsureCloudPhotos().catch(function(e){console.warn("Background WhatsApp photo hydration skipped:",e)});
+    return photos;
+  }
+  await nfWacEnsureCloudPhotos();
   photos=typeof customerClothPhotos==="function"?customerClothPhotos(key):photos;
   return Array.isArray(photos)?photos:[];
 }
-
 function nfWacSummary(id){
   var c=(state.customers||[]).find(x=>String(x.id)===String(id))||{};
   var os=typeof customerOrders==="function"?customerOrders(id):((state.orders||[]).filter(o=>String(o.customer_id)===String(id)));
@@ -12070,6 +12101,17 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-card{
       if(typeof toast==="function")toast("Customer Order screen திறக்க முடியவில்லை.",true);
     }
   },true);
+})();
+</script>
+<script id="nf-v187-photo-local-store-authority">
+(function(){
+  "use strict";
+  /* V187: whenever a customer cloth photo changes, keep the in-memory/local
+     store authoritative and invalidate the WhatsApp photo cache immediately. */
+  window.nfV187InvalidatePhoto=function(id){
+    try{if(typeof nfWacInvalidateCustomerPhotoCaches==="function")nfWacInvalidateCustomerPhotoCaches(String(id));}catch(_){}
+    try{window.__nfPhotoHydratedAt=0;}catch(_){}
+  };
 })();
 </script>
 </body>
