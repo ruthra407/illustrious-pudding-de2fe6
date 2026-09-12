@@ -692,7 +692,6 @@ body.nf-customer-slide-open{overflow:hidden!important;touch-action:none!importan
  .nf-design-slot-empty .nf-photo-empty-icon{width:42px;height:42px;border-radius:13px;font-size:27px}
 }
 @media(max-width:390px){.nf-blouse-design-photos{gap:6px}.nf-design-slot-label{font-size:9px}.nf-design-slot-actions label,.nf-design-slot-actions button{font-size:9px}}
-<style>
 /* Ultra 5: Blouse Design slots — same clean photo treatment as customer cloth slots. */
 .nf-blouse-design-photos{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:10px!important;width:100%!important}
 .nf-blouse-design-item{min-width:0!important;display:flex!important;flex-direction:column!important;gap:7px!important}
@@ -1989,6 +1988,30 @@ body.nf-photo-preview-scroll-locked{overscroll-behavior:none!important}
   .nf-fancy-work-input{width:32px!important}
   .nf-fancy-row-handover{grid-template-columns:minmax(0,1fr) 41px minmax(0,1fr) 76px!important}
   .nf-fancy-date{width:76px!important}
+}
+</style>
+<style id="nf-v171-blouse-design-final">
+/* V171 — Restore compact Customer Card > Blouse Designs layout. */
+.nf-blouse-design-heading{display:block!important;margin:14px 0 10px!important;padding:10px 14px!important;border-radius:14px!important;background:linear-gradient(135deg,#249ed0,#6c4df6,#e94678)!important;color:#fff!important;font-size:16px!important;font-weight:950!important;box-shadow:0 8px 20px rgba(36,158,208,.16)!important;text-align:center!important}
+.nf-blouse-design-photos{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:9px!important;width:100%!important;align-items:start!important}
+.nf-blouse-design-item{min-width:0!important;width:auto!important;display:flex!important;flex-direction:column!important;gap:6px!important}
+.nf-blouse-design-item .nf-design-slot{position:relative!important;width:100%!important;height:auto!important;aspect-ratio:4/5!important;min-height:0!important;border:1px solid #9ddfe9!important;border-radius:14px!important;overflow:hidden!important;background:linear-gradient(135deg,#f7fbff,#eefcff)!important;box-shadow:0 5px 14px rgba(80,55,110,.07)!important}
+.nf-blouse-design-item .nf-design-slot img{width:100%!important;height:100%!important;object-fit:cover!important;display:block!important}
+.nf-blouse-design-item .nf-design-slot-empty{height:100%!important;min-height:0!important;padding:6px!important;gap:6px!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;text-align:center!important;color:#4f426f!important;font-size:10px!important;font-weight:850!important}
+.nf-blouse-design-item .nf-design-slot-empty .nf-photo-empty-icon{width:42px!important;height:42px!important;border-radius:13px!important;display:grid!important;place-items:center!important;background:#fff!important;color:#6c4df6!important;font-size:28px!important;font-weight:900!important;box-shadow:0 4px 12px rgba(0,0,0,.09)!important}
+.nf-blouse-design-item .nf-design-slot-actions{display:grid!important;grid-template-columns:1fr 1fr!important;gap:5px!important;width:100%!important}
+.nf-blouse-design-item .nf-design-slot-actions label,.nf-blouse-design-item .nf-design-slot-actions button{min-width:0!important;width:100%!important;min-height:34px!important;height:34px!important;padding:0 3px!important;border:0!important;border-radius:9px!important;background:#fff!important;box-shadow:0 2px 7px rgba(0,0,0,.12)!important;display:flex!important;align-items:center!important;justify-content:center!important;font-size:9px!important;font-weight:850!important;white-space:nowrap!important}
+.nf-blouse-design-item .nf-design-photo-tools{left:4px!important;right:4px!important;bottom:4px!important;gap:4px!important}
+.nf-blouse-design-item .nf-design-photo-tools button{min-height:30px!important;height:30px!important;font-size:9px!important;border-radius:8px!important}
+@media(max-width:560px){
+ .nf-blouse-design-heading{font-size:14px!important;padding:9px 10px!important;margin:11px 0 8px!important}
+ .nf-blouse-design-photos{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:6px!important}
+ .nf-blouse-design-item{gap:5px!important}
+ .nf-blouse-design-item .nf-design-slot{aspect-ratio:4/5!important;border-radius:12px!important}
+ .nf-blouse-design-item .nf-design-slot-empty{font-size:8px!important;padding:4px!important;gap:4px!important}
+ .nf-blouse-design-item .nf-design-slot-empty .nf-photo-empty-icon{width:34px!important;height:34px!important;border-radius:10px!important;font-size:23px!important}
+ .nf-blouse-design-item .nf-design-slot-actions{gap:3px!important}
+ .nf-blouse-design-item .nf-design-slot-actions label,.nf-blouse-design-item .nf-design-slot-actions button{height:30px!important;min-height:30px!important;font-size:8px!important;border-radius:8px!important}
 }
 </style>
 </head><body><div class="loginpage" id="loginPage"><section class="loginbox"><div class="brand">NEW FASHION</div><div class="gold">TAILORING INDUSTRY</div><div class="sub">Online Tailoring Management Software</div><form id="loginForm"><div class="field"><label>Email</label><input autocomplete="email" class="input" id="loginEmail" placeholder="உங்கள் Email" required="" type="email"/></div><div class="field"><label>Password</label><input autocomplete="current-password" class="input" id="loginPassword" placeholder="Password" required="" type="password"/></div><button class="btn primary" id="loginBtn" type="submit">🔐 LOGIN</button><div class="msg" id="loginMsg"></div></form><button class="btn primary nf-reset-password-btn" id="resetPasswordBtn" type="button">🔄 RESET PASSWORD</button>
@@ -14641,27 +14664,6 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
        4) keeps the editOrderId on the form.
      Therefore V155 must not replace or pre-block that function. */
 
-  /* Design blouse photo area: UI removed as requested. Existing stored photo data is left untouched. */
-  function hideDesignPhotos(){
-    document.querySelectorAll(".nf-blouse-design-heading,.nf-blouse-design-photos").forEach(function(el){el.remove();});
-  }
-  var baseCustomerCard=window.customerCard;
-  if(typeof baseCustomerCard==="function" && !baseCustomerCard.__nfV155Photos){
-    var wrappedCard=function(id){
-      var html=baseCustomerCard.apply(this,arguments);
-      return html.replace(/<div class="nf-blouse-design-heading">[\s\S]*?<\/div><div class="nf-blouse-design-photos">[\s\S]*?<\/div>/g,"");
-    };
-    wrappedCard.__nfV155Photos=true;
-    window.customerCard=wrappedCard;
-  }
-
-  document.addEventListener("DOMContentLoaded",function(){
-    hideDesignPhotos();
-    setTimeout(hideDesignPhotos,200);
-    setTimeout(hideDesignPhotos,700);
-  },{once:true});
-  setTimeout(hideDesignPhotos,500);
-})();
 </script>
 <style id="nf-v155-lining-items-css">
 /* V156 — Simple lining cloth slot inside Design blouse only */
@@ -14682,7 +14684,6 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
 .nf-simple-lining-cloth .nf-lining-remove{width:32px;height:38px;border:0;border-radius:9px;background:#fff0f0;color:#b42318;font-size:19px;font-weight:800}
 .nf-simple-lining-total{display:flex;justify-content:flex-end;align-items:center;gap:9px;margin-top:7px;padding:7px 9px;border-radius:9px;background:#f0faf5;border:1px solid #ccebdc}
 .nf-simple-lining-total span{font-size:11px;font-weight:800;color:#526158}.nf-simple-lining-total b{font-size:14px;color:#16794c}
-.nf-blouse-design-heading,.nf-blouse-design-photos,.nf-design-photo-pair{display:none!important}
 @media(max-width:560px){
  .nf-simple-lining-head{gap:6px}.nf-simple-lining-head strong{font-size:14px}.nf-simple-lining-head span{font-size:10px}
  .nf-simple-lining-cloth .nf-lining-item-row{grid-template-columns:22px minmax(0,1fr) minmax(0,1fr) 70px 30px;gap:4px;padding:5px}
