@@ -3765,6 +3765,11 @@ function openCustomerOrderEditor(customerId,orderId){
    if(save)save.textContent=order?"💾 Update Order":"💾 Save Order";
    if(order)populateQuickOrderEditor(customerId,order);
    else clearQuickOrderEditor(customerId);
+   /* Final authoritative restore for Edit Order after the existing
+      populateQuickOrderEditor override chain has completed synchronously. */
+   if(order && typeof window.nfRestoreInlineLiningFromOrder==="function"){
+     window.nfRestoreInlineLiningFromOrder(customerId,order);
+   }
    setTimeout(()=>box.scrollIntoView({behavior:"smooth",block:"center"}),180);
  },180);
 }
@@ -7503,6 +7508,10 @@ function nfFormatPaymentDate(v){return v?dateText(v):"—";}
     populateQuickOrderEditor(key,o);
     updateQuickGarment(key);
     updateChudiLiningLabel(key);
+    /* Final authoritative restore for the cloned Orders Edit screen. */
+    if(typeof window.nfRestoreInlineLiningFromOrder==="function"){
+      window.nfRestoreInlineLiningFromOrder(key,o);
+    }
     var screenTitle=$("ordersNewOrderScreenTitle");
     if(screenTitle)screenTitle.textContent="✏️ Edit Order";
     modal.classList.add("open");
@@ -15156,6 +15165,15 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
     renderHost(id,"design",designItems);
     calc(id,true);
   }
+
+  /* Public edit-loader hook: restore section-aware Lining cloth rows
+     after an editor populate/clone cycle. This is a direct restore call,
+     not another save/populate wrapper. */
+  window.nfRestoreInlineLiningFromOrder=function(id,order){
+    try{
+      if(order && typeof syncFromOrder==="function") syncFromOrder(String(id),order);
+    }catch(e){ console.error("Lining cloth edit restore failed",e); }
+  };
 
   function getOrderForRoot(root){
     var editId=String(root&&root.dataset&&root.dataset.editOrderId||"").trim();
