@@ -8380,8 +8380,7 @@ function nfFormatPaymentDate(v){return v?dateText(v):"—";}
     setGroup(root,".nf-edit-chudi",f.chudi);
     setGroup(root,".nf-edit-saree",f.saree);
 
-    /* Lining cloth is common to the garment editor. */
-    setGroup(root,".nf-edit-lining-cloth",true);
+    /* V157 owns the two section-aware inline Lining cloth slots. */
     reorder(root,f.chudi);
 
     if(typeof window.updateChudiLiningLabel==="function"){
