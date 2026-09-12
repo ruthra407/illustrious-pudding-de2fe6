@@ -3505,9 +3505,7 @@ async function saveCustomerClothPhoto(id,slot,file){
     nfClothPhotoCloudPathCache[String(id)+":"+slot]=path;
     /* V185: invalidate the cached WhatsApp card immediately after upload.
        Rebuild an already-open card so the new photo appears without refresh. */
-    try{
-      if(typeof nfWacBuiltCache!=="undefined")delete nfWacBuiltCache[String(id)];
-    }catch(_){}
+    try{ nfWacInvalidateCustomerPhotoCaches(id); }catch(_){}
     toast(`Customer துணி photo ${slot+1} cloud-ல் சேமிக்கப்பட்டது. ☁️`);
     renderCustomers();
     nfRestoreCustomerPhotoContext(photoContext);
@@ -3541,6 +3539,7 @@ async function removeCustomerClothPhoto(id,slot){
   }catch(_){}
   setTimeout(nfRunPendingPhotoDeletes,300);
   delete nfClothPhotoCloudPathCache[cloudKey];
+  try{ nfWacInvalidateCustomerPhotoCaches(id); }catch(_){}
   renderCustomers();
   nfRestoreCustomerPhotoContext(photoContext);
   toast("Customer துணி photo நீக்கப்பட்டது.");
@@ -8611,6 +8610,33 @@ function nfWacWithTimeout(promise,ms,label){
     new Promise(function(_,reject){setTimeout(function(){reject(new Error((label||"operation")+"-timeout"))},ms);})
   ]);
 }
+function nfWacPhotoSrc(photo){
+  if(!photo)return "";
+  var src=photo.cloudPath&&typeof nfR2PhotoUrl==="function"?nfR2PhotoUrl(photo.cloudPath):String(photo.src||"");
+  if(!src)return "";
+  /* V186: R2 keeps the same slot path when a photo is replaced.
+     Add a version query so the browser/WebView cannot reuse the deleted/old image. */
+  if(photo.cloudPath && photo.savedAt){
+    var sep=src.indexOf("?")>=0?"&":"?";
+    src+=sep+"nfv="+encodeURIComponent(String(photo.savedAt));
+  }
+  return src;
+}
+function nfWacInvalidateCustomerPhotoCaches(id){
+  var key=String(id||"");
+  try{ if(typeof nfWacBuiltCache!=="undefined") delete nfWacBuiltCache[key]; }catch(_){}
+  try{
+    if(typeof groupFor==="function"){
+      var group=groupFor(key)||[];
+      group.forEach(function(c){try{if(typeof nfWacBuiltCache!=="undefined")delete nfWacBuiltCache[String(c.id)];}catch(_){} });
+      if(typeof deliveryBlobStore!=="undefined") deliveryBlobStore={whatsapp:null,delivery:null,whatsappBuilt:null};
+    }
+  }catch(_){}
+  try{
+    if(typeof window.__nfWacPhotoVersion!=="undefined"){}
+    window.__nfWacPhotoVersion=Date.now();
+  }catch(_){}
+}
 async function nfWacFetchBlob(src,timeoutMs){
   var controller=typeof AbortController!=="undefined"?new AbortController():null;
   var timer=controller?setTimeout(function(){try{controller.abort()}catch(_){}},timeoutMs):null;
@@ -8623,7 +8649,7 @@ async function nfWacFetchBlob(src,timeoutMs){
 async function nfWacPhotoDataUrls(photos){
   var list=(Array.isArray(photos)?photos:[]).filter(function(p){return p&&p.src}).slice(0,4);
   return Promise.all(list.map(async function(p){
-    var src=p.cloudPath&&typeof nfR2PhotoUrl==="function"?nfR2PhotoUrl(p.cloudPath):String(p.src||"");
+    var src=nfWacPhotoSrc(p);
     if(!src||/^data:image\//i.test(src))return src;
     try{
       var b=await nfWacFetchBlob(src,5000);
@@ -11346,7 +11372,7 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
     if(blouseCalc.design.qty)rows.push({name:'',garment:'Design blouse',totalQty:blouseCalc.design.qty,given:blouseCalc.design.given,remaining:Math.max(0,blouseCalc.design.qty-blouseCalc.design.given),amount:0,paid:0,status:'Pending'});
     photoPools.forEach(function(pool){if(pool.items[0]&&photos.length<8)photos.push(pool.items[0]);});
     for(var pass=1;pass<40&&photos.length<8;pass++)photoPools.forEach(function(pool){var p=pool.items[pass];if(p&&photos.length<8)photos.push(p);});
-    if(photos.length){var safePhotos=[];for(var spi=0;spi<photos.length;spi++){var sp=photos[spi];if(!sp||!sp.src)continue;try{var src=sp.cloudPath&&typeof nfR2PhotoUrl==='function'?nfR2PhotoUrl(sp.cloudPath):String(sp.src||'');if(/^data:image\//i.test(src)){safePhotos.push(Object.assign({},sp,{src:src}));continue;}if(typeof nfWacFetchBlob==='function'){var pb=await nfWacFetchBlob(src,7000);var purl=await new Promise(function(resolve,reject){var fr=new FileReader();fr.onload=function(){resolve(String(fr.result||''));};fr.onerror=reject;fr.readAsDataURL(pb);});if(purl)safePhotos.push(Object.assign({},sp,{src:purl}));}}catch(pe){console.warn('Delivery card photo embed skipped:',pe);}}photos=safePhotos;}
+    if(photos.length){var safePhotos=[];for(var spi=0;spi<photos.length;spi++){var sp=photos[spi];if(!sp||!sp.src)continue;try{var src=nfWacPhotoSrc(sp);if(/^data:image\//i.test(src)){safePhotos.push(Object.assign({},sp,{src:src}));continue;}if(typeof nfWacFetchBlob==='function'){var pb=await nfWacFetchBlob(src,7000);var purl=await new Promise(function(resolve,reject){var fr=new FileReader();fr.onload=function(){resolve(String(fr.result||''));};fr.onerror=reject;fr.readAsDataURL(pb);});if(purl)safePhotos.push(Object.assign({},sp,{src:purl}));}}catch(pe){console.warn('Delivery card photo embed skipped:',pe);}}photos=safePhotos;}
     var main=people[0]||{},mainOrders=ordersFor(main.id),clothDates=mainOrders.map(function(o){return o.cloth_received_date||o.order_date||'';}).filter(Boolean).sort(),deliveryDates=mainOrders.map(function(o){return o.delivery_date||'';}).filter(Boolean).sort();
     var clothDate=clothDates[0]||'',deliveryDate=deliveryDates[0]||'';
     var givenTotal=rows.reduce(function(a,r){return a+r.given;},0),remainingTotal=rows.reduce(function(a,r){return a+r.remaining;},0),totalAmount=sum.total,paidAmount=sum.paid,balanceAmount=sum.balance;
@@ -11419,7 +11445,7 @@ async function makeMultiCustomerDeliveryImage(mainId){
     });
     photoPools.forEach(function(pool){if(pool.items[0]&&photos.length<8)photos.push(pool.items[0]);});
     for(var pass=1;pass<40&&photos.length<8;pass++)photoPools.forEach(function(pool){var p=pool.items[pass];if(p&&photos.length<8)photos.push(p);});
-    if(photos.length){var safePhotos=[];for(var spi=0;spi<photos.length;spi++){var sp=photos[spi];if(!sp||!sp.src)continue;try{var src=sp.cloudPath&&typeof nfR2PhotoUrl==='function'?nfR2PhotoUrl(sp.cloudPath):String(sp.src||'');if(/^data:image\//i.test(src)){safePhotos.push(Object.assign({},sp,{src:src}));continue;}if(typeof nfWacFetchBlob==='function'){var pb=await nfWacFetchBlob(src,7000);var purl=await new Promise(function(resolve,reject){var fr=new FileReader();fr.onload=function(){resolve(String(fr.result||''));};fr.onerror=reject;fr.readAsDataURL(pb);});if(purl)safePhotos.push(Object.assign({},sp,{src:purl}));}}catch(pe){console.warn('Delivery card photo embed skipped:',pe);}}photos=safePhotos;}
+    if(photos.length){var safePhotos=[];for(var spi=0;spi<photos.length;spi++){var sp=photos[spi];if(!sp||!sp.src)continue;try{var src=nfWacPhotoSrc(sp);if(/^data:image\//i.test(src)){safePhotos.push(Object.assign({},sp,{src:src}));continue;}if(typeof nfWacFetchBlob==='function'){var pb=await nfWacFetchBlob(src,7000);var purl=await new Promise(function(resolve,reject){var fr=new FileReader();fr.onload=function(){resolve(String(fr.result||''));};fr.onerror=reject;fr.readAsDataURL(pb);});if(purl)safePhotos.push(Object.assign({},sp,{src:purl}));}}catch(pe){console.warn('Delivery card photo embed skipped:',pe);}}photos=safePhotos;}
     var main=people[0]||{},mainOrders=ordersFor(main.id),clothDates=mainOrders.map(function(o){return o.cloth_received_date||o.order_date||'';}).filter(Boolean).sort(),deliveryDates=mainOrders.map(function(o){return o.delivery_date||'';}).filter(Boolean).sort();
     var clothDate=clothDates[0]||'',deliveryDate=deliveryDates[0]||'';
     var totalAmount=sum.total,paidAmount=sum.paid,balanceAmount=sum.balance;
