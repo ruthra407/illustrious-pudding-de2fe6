@@ -1719,6 +1719,144 @@ body.nf-photo-preview-scroll-locked{overscroll-behavior:none!important}
  #app [id^="quick-order-"] .nf-fancy-date{width:80px!important;font-size:7px!important}
 }
 </style>
+
+<style id="nf-fancy-final-compact-v2">
+/* FINAL: Fancy Blouse compact colored rows — no overlap */
+#app [id^="quick-order-"] .nf-edit-fancy-blouse{
+  width:100%!important;max-width:100%!important;box-sizing:border-box!important;
+  overflow:hidden!important;border-radius:12px!important;
+}
+#app [id^="quick-order-"] .nf-fancy-panel{
+  width:100%!important;max-width:100%!important;box-sizing:border-box!important;
+  padding:34px 6px 7px!important;overflow:hidden!important;
+}
+#app [id^="quick-order-"] .nf-fancy-head{
+  width:100%!important;box-sizing:border-box!important;height:27px!important;
+  min-height:27px!important;margin:0 0 5px!important;padding:3px 7px!important;
+  border-radius:7px!important;background:linear-gradient(90deg,#f1ebff,#fff1f7)!important;
+  border:1px solid #d8c9f4!important;
+}
+#app [id^="quick-order-"] .nf-fancy-row{
+  display:grid!important;width:100%!important;max-width:100%!important;
+  box-sizing:border-box!important;align-items:center!important;
+  gap:4px!important;height:36px!important;min-height:36px!important;
+  margin:0 0 5px!important;padding:4px!important;border-radius:8px!important;
+  overflow:hidden!important;
+}
+#app [id^="quick-order-"] .nf-fancy-row-blouse,
+#app [id^="quick-order-"] .nf-fancy-row-lining{
+  grid-template-columns:minmax(0,1fr) 52px minmax(0,1fr) 52px 12px 64px!important;
+}
+#app [id^="quick-order-"] .nf-fancy-row-blouse{
+  background:#f0ebff!important;border:1px solid #cfc1f3!important;
+}
+#app [id^="quick-order-"] .nf-fancy-row-lining{
+  background:#eafafa!important;border:1px solid #bfe1e5!important;
+}
+#app [id^="quick-order-"] .nf-fancy-label{
+  display:block!important;min-width:0!important;width:auto!important;
+  margin:0!important;padding:0 2px!important;font-size:9px!important;
+  line-height:1!important;font-weight:900!important;white-space:nowrap!important;
+  overflow:hidden!important;text-overflow:ellipsis!important;
+}
+#app [id^="quick-order-"] .nf-fancy-input{
+  display:block!important;width:52px!important;height:28px!important;min-height:28px!important;
+  max-width:52px!important;box-sizing:border-box!important;margin:0!important;
+  padding:3px 5px!important;border-radius:6px!important;font-size:11px!important;
+  line-height:1!important;font-weight:900!important;text-align:right!important;
+  background:#fff!important;
+}
+#app [id^="quick-order-"] .nf-fancy-equals{
+  display:block!important;font-size:10px!important;font-weight:950!important;text-align:center!important;
+}
+#app [id^="quick-order-"] .nf-fancy-result{
+  display:flex!important;align-items:center!important;justify-content:flex-end!important;
+  width:64px!important;min-width:64px!important;height:28px!important;min-height:28px!important;
+  box-sizing:border-box!important;padding:3px 5px!important;border-radius:6px!important;
+  background:#fff!important;border:1px solid #d8d0e2!important;font-size:10px!important;
+  line-height:1!important;text-align:right!important;white-space:nowrap!important;
+}
+#app [id^="quick-order-"] .nf-fancy-work-row{
+  display:grid!important;width:100%!important;max-width:100%!important;
+  grid-template-columns:repeat(3,minmax(0,1fr)) 64px!important;gap:4px!important;
+  height:36px!important;min-height:36px!important;margin:0 0 5px!important;
+  box-sizing:border-box!important;overflow:hidden!important;
+}
+#app [id^="quick-order-"] .nf-fancy-work-item{
+  display:grid!important;grid-template-columns:minmax(0,1fr) 46px!important;
+  align-items:center!important;gap:3px!important;width:100%!important;min-width:0!important;
+  height:36px!important;min-height:36px!important;box-sizing:border-box!important;
+  padding:4px!important;border-radius:8px!important;overflow:hidden!important;
+}
+#app [id^="quick-order-"] .nf-fancy-work-item.stone{
+  background:#fff5cf!important;border:1px solid #e5ca68!important;
+}
+#app [id^="quick-order-"] .nf-fancy-work-item.lace{
+  background:#e8f6ff!important;border:1px solid #b8dff1!important;
+}
+#app [id^="quick-order-"] .nf-fancy-work-item.knot{
+  background:#eaf8ee!important;border:1px solid #b9dfc5!important;
+}
+#app [id^="quick-order-"] .nf-fancy-work-item span{
+  min-width:0!important;font-size:8px!important;font-weight:900!important;
+  line-height:1!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;
+}
+#app [id^="quick-order-"] .nf-fancy-work-input{
+  width:46px!important;max-width:46px!important;height:27px!important;min-height:27px!important;
+  box-sizing:border-box!important;padding:3px 4px!important;border-radius:6px!important;
+  font-size:10px!important;font-weight:900!important;text-align:right!important;background:#fff!important;
+}
+#app [id^="quick-order-"] .nf-fancy-work-result{
+  display:flex!important;align-items:center!important;justify-content:flex-end!important;
+  width:64px!important;min-width:64px!important;height:36px!important;box-sizing:border-box!important;
+  padding:4px!important;border-radius:8px!important;background:#f3efff!important;
+  border:1px solid #d5c8ef!important;white-space:nowrap!important;
+}
+#app [id^="quick-order-"] .nf-fancy-work-result span{font-size:9px!important;font-weight:900!important}
+#app [id^="quick-order-"] .nf-fancy-work-result b{font-size:10px!important;font-weight:950!important}
+#app [id^="quick-order-"] .nf-fancy-row-handover{
+  grid-template-columns:minmax(0,1fr) 52px minmax(0,1fr) 112px!important;
+  background:#fff1f5!important;border:1px solid #efc5d2!important;
+}
+#app [id^="quick-order-"] .nf-fancy-date{
+  width:112px!important;max-width:112px!important;height:28px!important;min-height:28px!important;
+  box-sizing:border-box!important;padding:3px 4px!important;border-radius:6px!important;
+  font-size:9px!important;background:#fff!important;
+}
+#app [id^="quick-order-"] .nf-fancy-total{
+  display:flex!important;align-items:center!important;justify-content:space-between!important;
+  width:100%!important;height:32px!important;min-height:32px!important;
+  box-sizing:border-box!important;margin:0!important;padding:4px 8px!important;
+  border-radius:8px!important;background:#fff1cf!important;border:1px solid #e6ca76!important;
+}
+#app [id^="quick-order-"] .nf-fancy-total span{font-size:9px!important;font-weight:950!important;white-space:nowrap!important}
+#app [id^="quick-order-"] .nf-fancy-total b{font-size:12px!important;font-weight:950!important;white-space:nowrap!important}
+@media(max-width:560px){
+  #app [id^="quick-order-"] .nf-fancy-panel{padding:34px 4px 6px!important}
+  #app [id^="quick-order-"] .nf-fancy-row{gap:3px!important;height:34px!important;min-height:34px!important;margin-bottom:4px!important;padding:3px!important}
+  #app [id^="quick-order-"] .nf-fancy-row-blouse,
+  #app [id^="quick-order-"] .nf-fancy-row-lining{
+    grid-template-columns:minmax(0,1fr) 44px minmax(0,1fr) 44px 9px 54px!important;
+  }
+  #app [id^="quick-order-"] .nf-fancy-label{font-size:7px!important}
+  #app [id^="quick-order-"] .nf-fancy-input{width:44px!important;max-width:44px!important;height:26px!important;min-height:26px!important;font-size:10px!important}
+  #app [id^="quick-order-"] .nf-fancy-result{width:54px!important;min-width:54px!important;height:26px!important;min-height:26px!important;font-size:9px!important}
+  #app [id^="quick-order-"] .nf-fancy-work-row{
+    grid-template-columns:repeat(3,minmax(0,1fr)) 54px!important;gap:3px!important;height:34px!important;min-height:34px!important;margin-bottom:4px!important;
+  }
+  #app [id^="quick-order-"] .nf-fancy-work-item{grid-template-columns:minmax(0,1fr) 34px!important;height:34px!important;min-height:34px!important;padding:3px!important}
+  #app [id^="quick-order-"] .nf-fancy-work-item span{font-size:7px!important}
+  #app [id^="quick-order-"] .nf-fancy-work-input{width:34px!important;max-width:34px!important;height:25px!important;min-height:25px!important;font-size:9px!important}
+  #app [id^="quick-order-"] .nf-fancy-work-result{width:54px!important;min-width:54px!important;height:34px!important}
+  #app [id^="quick-order-"] .nf-fancy-work-result b{font-size:9px!important}
+  #app [id^="quick-order-"] .nf-fancy-row-handover{
+    grid-template-columns:minmax(0,1fr) 44px minmax(0,1fr) 92px!important;
+  }
+  #app [id^="quick-order-"] .nf-fancy-date{width:92px!important;max-width:92px!important;height:26px!important;min-height:26px!important;font-size:8px!important}
+  #app [id^="quick-order-"] .nf-fancy-total{height:30px!important;min-height:30px!important;padding:3px 7px!important}
+}
+</style>
+
 </head><body><div class="loginpage" id="loginPage"><section class="loginbox"><div class="brand">NEW FASHION</div><div class="gold">TAILORING INDUSTRY</div><div class="sub">Online Tailoring Management Software</div><form id="loginForm"><div class="field"><label>Email</label><input autocomplete="email" class="input" id="loginEmail" placeholder="உங்கள் Email" required="" type="email"/></div><div class="field"><label>Password</label><input autocomplete="current-password" class="input" id="loginPassword" placeholder="Password" required="" type="password"/></div><button class="btn primary" id="loginBtn" type="submit">🔐 LOGIN</button><div class="msg" id="loginMsg"></div></form><button class="btn primary nf-reset-password-btn" id="resetPasswordBtn" type="button">🔄 RESET PASSWORD</button>
 <div class="nf-forgot-row">
 <button class="btn secondary nf-forgot-btn" id="forgotBtn" type="button">Forgot password?</button>
