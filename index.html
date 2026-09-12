@@ -2337,9 +2337,17 @@ async function nfLocalFirstLoadAll(silent=false,forceCloud=false){
  if(navigator.onLine){
   const result=await Promise.allSettled(NF_TABLES.map(t=>nfRawFrom(t).select("*").order("created_at",{ascending:false})));
   result.forEach((r,i)=>{if(r.status==="fulfilled"&&!r.value.error)state[NF_TABLES[i]]=r.value.data||[]});
+  /* V185: Finish photo hydration BEFORE the first cloud render.
+     The old flow rendered first and hydrated photos later, which could leave
+     Delivery / WhatsApp cards empty until the user manually refreshed. */
+  try{
+    await Promise.race([
+      nfHydrateCloudClothPhotos(),
+      new Promise(function(resolve){setTimeout(resolve,12000)})
+    ]);
+  }catch(e){console.warn("R2 photo hydrate before first render skipped",e)}
   nfInitialDataLoading=false;
   try{renderAll()}catch(e){console.error("Cloud render error",e)}
-  try{setTimeout(()=>{nfHydrateCloudClothPhotos().catch(e=>console.warn("R2 photo hydrate skipped",e))},0)}catch(e){}
  }else{
   /* Offline fallback: the local snapshot above is already rendered. */
   nfInitialDataLoading=false;
@@ -3495,9 +3503,23 @@ async function saveCustomerClothPhoto(id,slot,file){
     const existingDelivery=Array.isArray(existingRec?.deliveryPhotos)?existingRec.deliveryPhotos:(typeof customerDeliveryPhotos==='function'?customerDeliveryPhotos(id):[]);
     nfClothPhotoCache[String(id)]={photos:arr,blouseDesigns:existingDesigns,deliveryPhotos:existingDelivery};
     nfClothPhotoCloudPathCache[String(id)+":"+slot]=path;
+    /* V185: invalidate the cached WhatsApp card immediately after upload.
+       Rebuild an already-open card so the new photo appears without refresh. */
+    try{
+      if(typeof nfWacBuiltCache!=="undefined")delete nfWacBuiltCache[String(id)];
+    }catch(_){}
     toast(`Customer துணி photo ${slot+1} cloud-ல் சேமிக்கப்பட்டது. ☁️`);
     renderCustomers();
     nfRestoreCustomerPhotoContext(photoContext);
+    setTimeout(async function(){
+      try{
+        if(String(activeCustomerId||"")!==String(id)||!document.getElementById("nfWhatsAppCardOverlay")?.classList.contains("open"))return;
+        var preview=document.getElementById("nfWacPreview");
+        if(!preview)return;
+        preview.innerHTML="<div class=\"nf-wac-preview-loading\">📸 Customer photos updating...</div>";
+        await nfWacPreviewExact(null,preview);
+      }catch(e){console.warn("Immediate WhatsApp photo refresh skipped",e)}
+    },0);
   }catch(err){
     console.error("saveCustomerClothPhoto failed",err);
     nfRestoreCustomerPhotoContext(photoContext);
