@@ -14253,8 +14253,8 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
   if(typeof baseRenderCustomers==="function" && !baseRenderCustomers.__nfV155Lining){
     var wrappedRender=function(){
       var r=baseRenderCustomers.apply(this,arguments);
-      setTimeout(function(){(window.state&&state.customers||[]).forEach(function(c){enhance(String(c.id),null);});},40);
-      setTimeout(function(){(window.state&&state.customers||[]).forEach(function(c){enhance(String(c.id),null);});},350);
+      setTimeout(function(){(typeof state!=="undefined"&&Array.isArray(state.customers)?state.customers:[]).forEach(function(c){enhance(String(c.id),null);});},40);
+      setTimeout(function(){(typeof state!=="undefined"&&Array.isArray(state.customers)?state.customers:[]).forEach(function(c){enhance(String(c.id),null);});},350);
       return r;
     };
     wrappedRender.__nfV155Lining=true;
@@ -14268,7 +14268,7 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
       var items=window.nfGetLiningItems?window.nfGetLiningItems(id):[];
       var box=document.getElementById("quick-order-"+id);
       var editId=String(box&&box.dataset.editOrderId||"").trim();
-      var existing=editId&&window.state&&state.orders?state.orders.find(function(o){return String(o.id)===editId}):null;
+      var existing=editId&&typeof state!=="undefined"&&Array.isArray(state.orders)?state.orders.find(function(o){return String(o.id)===editId}):null;
       var source=document.getElementById("qo-lining-source-"+id);
       var total=liningTotalFromItems(items);
       if(items.length && source && !source.value)source.value="shop";
@@ -14284,13 +14284,13 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
 
       try{
         var orderId=editId;
-        if(!orderId && window.state && state.orders){
+        if(!orderId && typeof state!=="undefined" && Array.isArray(state.orders)){
           var cid=String(customerId||id||"");
           var latest=(state.orders||[]).filter(function(o){return String(o.customer_id)===cid}).slice().sort(function(a,b){return String(b.created_at||b.order_date||"").localeCompare(String(a.created_at||a.order_date||""))})[0];
           if(latest)orderId=String(latest.id);
         }
         if(orderId && window.supabaseClient){
-          var order=(state.orders||[]).find(function(o){return String(o.id)===String(orderId)})||existing;
+          var order=(typeof state!=="undefined"&&Array.isArray(state.orders)?state.orders:[]).find(function(o){return String(o.id)===String(orderId)})||existing;
           if(order){
             var notes=String(order.notes||"")
               .replace(/\s*\|\s*LINING_ITEMS:\[[^\]]*\]/g,"")
@@ -14311,7 +14311,7 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
             var u=await supabaseClient.from("orders").update(upd).eq("id",order.id).select("*").maybeSingle();
             if(u.error)throw u.error;
             if(u.data){
-              var ix=(state.orders||[]).findIndex(function(o){return String(o.id)===String(order.id)});
+              var ix=(typeof state!=="undefined"&&Array.isArray(state.orders)?state.orders:[]).findIndex(function(o){return String(o.id)===String(order.id)});
               if(ix>=0)state.orders[ix]=u.data;
             }
           }
@@ -14323,40 +14323,15 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
     window.saveQuickOrder=wrappedSave;
   }
 
-  /* ---------- Edit Order: remove the known key mismatch and make the touch target reliable ---------- */
-  var baseOpenEdit=window.openOrdersEditOrder;
-  if(typeof baseOpenEdit==="function" && !baseOpenEdit.__nfV155EditFinal){
-    var wrappedOpenEdit=function(orderId){
-      var o=(window.state&&state.orders||[]).find(function(x){return String(x.id)===String(orderId)});
-      if(!o){if(typeof toast==="function")toast("Edit செய்ய Order கிடைக்கவில்லை.",true);return;}
-      var result=baseOpenEdit.apply(this,arguments);
-      var safe=String(orderId).replace(/[^a-zA-Z0-9_-]/g,"_");
-      setTimeout(function(){
-        var key="orders_edit_"+safe;
-        var box=document.getElementById("quick-order-"+key);
-        if(!box){
-          /* Fallback: locate the only editor inside the dedicated edit screen. */
-          var root=document.getElementById("ordersNewOrderContent");
-          box=root&&root.querySelector('[id^="quick-order-"]');
-        }
-        if(box){
-          box.classList.remove("hidden");
-          box.dataset.editOrderId=String(orderId);
-          enhance(key,o);
-          if(typeof updateQuickGarment==="function")updateQuickGarment(key);
-          if(typeof updateQuickOrderCalc==="function")updateQuickOrderCalc(key);
-        }
-      },120);
-      setTimeout(function(){
-        var root=document.getElementById("ordersNewOrderContent");
-        var box=root&&root.querySelector('[id^="quick-order-"]');
-        if(box){box.classList.remove("hidden");box.dataset.editOrderId=String(orderId);}
-      },420);
-      return result;
-    };
-    wrappedOpenEdit.__nfV155EditFinal=true;
-    window.openOrdersEditOrder=wrappedOpenEdit;
-  }
+  /* ---------- Edit Order: keep the existing canonical opener untouched ----------
+     The main opener uses the lexical `state` object (declared as const state).
+     Wrapping it with `window.state` breaks the button because `window.state`
+     is not guaranteed to exist.  The canonical opener already:
+       1) resolves the order,
+       2) builds the dedicated edit screen,
+       3) populates the saved values, and
+       4) keeps the editOrderId on the form.
+     Therefore V155 must not replace or pre-block that function. */
 
   /* Design blouse photo area: UI removed as requested. Existing stored photo data is left untouched. */
   function hideDesignPhotos(){
@@ -14401,7 +14376,7 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
 .nf-v155-lining-items .nf-lining-summary{display:flex;justify-content:flex-end;gap:12px;align-items:center;margin-top:10px;padding:10px 12px;border-radius:11px;background:#f0faf5;border:1px solid #ccebdc}
 .nf-v155-lining-items .nf-lining-summary span{font-size:12px;font-weight:800;color:#526158}
 .nf-v155-lining-items .nf-lining-summary b{font-size:17px;color:#16794c}
-.nf-blouse-design-heading,.nf-blouse-design-photos{display:none!important}
+.nf-blouse-design-heading,.nf-blouse-design-photos{display:none!important}\n.nf-design-photo-pair{display:none!important}
 @media(max-width:560px){
  .nf-v155-lining-items .nf-lining-source-row{grid-template-columns:1fr}
  .nf-v155-lining-items .nf-lining-item-row{grid-template-columns:28px minmax(0,1fr) minmax(0,1fr) 78px 34px;gap:5px;padding:7px}
