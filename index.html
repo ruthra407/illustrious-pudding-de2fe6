@@ -14360,7 +14360,7 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
     var parts=cleanCalc(calc);if(!parts)return null;
     var c=all().find(function(x){return String(x&&x.id||"")===String(id);});
     var person=document.createElement("section");person.className="nf-v240-person";person.dataset.customerId=String(id);
-    var head=document.createElement("div");head.className="nf-v240-person-name";head.innerHTML='👤 '+esc(c&&c.name||"Customer");person.appendChild(head);
+    var head=document.createElement("div");head.className="nf-v240-person-name";head.innerHTML='<div class="nf-v240-person-name-text">👤 '+esc(c&&c.name||"Customer")+'</div>';var acts=document.createElement("div");acts.className="nf-v240-person-actions";var editBtn=document.createElement("button");editBtn.type="button";editBtn.className="nf-v240-person-edit";editBtn.textContent="✏️ Edit Order";editBtn.title="Edit Order";editBtn.onclick=function(e){e.stopPropagation();openLatestCustomerOrderEdit(String(id));};var newBtn=document.createElement("button");newBtn.type="button";newBtn.className="nf-v240-person-new";newBtn.textContent="＋ New Order";newBtn.title="New Order";newBtn.onclick=function(e){e.stopPropagation();openOrdersNewOrderForCustomer(String(id));};acts.appendChild(editBtn);acts.appendChild(newBtn);head.appendChild(acts);person.appendChild(head);
     person.appendChild(hook("Cash Collection","💰",cash,"cash"));
     person.appendChild(hook("Blouse / Saree / Chudi Calculation","🧮",parts.calc,"calc"));
     person.appendChild(hook("Blouse Collection","👗",blouse,"blouse"));
@@ -14534,6 +14534,9 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
   .nf-v240-hook{min-height:48px;padding:8px 10px}
   .nf-v240-hook-plus{width:32px;height:32px;min-width:32px;font-size:21px}
 }
+
+.nf-v240-person-name-text{min-width:0;line-height:1.2}.nf-v240-person-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:7px}.nf-v240-person-actions button{border:1px solid #ddd5ef;border-radius:10px;background:#fff;padding:6px 10px;color:#4d267c;font-size:11px;font-weight:850;cursor:pointer}.nf-v240-person-actions .nf-v240-person-new{background:#f1eaff;border-color:#d7c9ff}.nf-v240-person-actions .nf-v240-person-edit{background:#fff3f7;border-color:#f1c9d8}
+@media(max-width:560px){.nf-v240-person-actions{gap:5px}.nf-v240-person-actions button{padding:6px 8px;font-size:10.5px}}
 </style>
 <style id="nf-v280-five-hook-photo-css">
 .nf-v280-photo-hook{margin:8px;border:1px solid #ddd5ef;border-radius:14px;overflow:hidden;background:#fff}
