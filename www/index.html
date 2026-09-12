@@ -11982,6 +11982,48 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-card{
   };
 })();
 </script>
+
+<script id="nf-v184-additional-customer-card-action-fix">
+(function(){
+  "use strict";
+
+  /* V184: Customer Card → Additional Customer action buttons.
+     Use one capture-phase handler so Android/WebView and older stacked
+     customer-card handlers cannot swallow the button tap. */
+  document.addEventListener("click",function(e){
+    var btn=e.target&&e.target.closest?e.target.closest(".nf-v240-person-actions button"):null;
+    if(!btn)return;
+    var person=btn.closest(".nf-v240-person");
+    var customerId=person&&person.getAttribute("data-customer-id");
+    if(!customerId)return;
+
+    e.preventDefault();
+    e.stopImmediatePropagation();
+
+    try{
+      if(btn.classList.contains("nf-v240-person-edit")){
+        if(typeof window.nfV22AdditionalEditOrder==="function")
+          window.nfV22AdditionalEditOrder(String(customerId));
+        else if(typeof window.openLatestCustomerOrderEdit==="function")
+          window.openLatestCustomerOrderEdit(String(customerId));
+        else if(typeof toast==="function")
+          toast("Edit Order screen கிடைக்கவில்லை.",true);
+        return;
+      }
+
+      if(btn.classList.contains("nf-v240-person-new")){
+        if(typeof window.openOrdersNewOrderForCustomer==="function")
+          window.openOrdersNewOrderForCustomer(String(customerId));
+        else if(typeof toast==="function")
+          toast("New Order screen கிடைக்கவில்லை.",true);
+      }
+    }catch(err){
+      console.error("V184 Additional Customer card action:",err);
+      if(typeof toast==="function")toast("Customer Order screen திறக்க முடியவில்லை.",true);
+    }
+  },true);
+})();
+</script>
 </body>
 <script id="nf-v120-single-cash-dedupe-fix">
 /* V22: superseded by the single stable customer-group renderer. */
