@@ -3746,7 +3746,8 @@ const clothPhotoActionsHtml="";
 
     <div class="nf-fancy-main-grid">
       <div class="nf-fancy-mini nf-fancy-c1"><span>Blouse Count</span><input id="qo-fancy-count-${id}" class="input" type="number" min="0" step="1" value="0" inputmode="numeric" oninput="nfFancyCalc('${id}')"></div>
-      <div class="nf-fancy-mini nf-fancy-c2"><span>Price = ₹</span><input id="qo-fancy-price-${id}" class="input" type="number" min="0" step="0.01" value="0" inputmode="decimal" oninput="nfFancyCalc('${id}')"></div>
+      <div class="nf-fancy-mini nf-fancy-c2"><span>Price ₹</span><input id="qo-fancy-price-${id}" class="input" type="number" min="0" step="0.01" value="0" inputmode="decimal" oninput="nfFancyCalc('${id}')"></div>
+      <div class="nf-fancy-row-total nf-fancy-blouse-total"><span>= Price</span><b id="qo-fancy-blouse-total-${id}">₹0.00</b></div>
     </div>
 
     <div class="nf-fancy-lining">
@@ -3762,6 +3763,7 @@ const clothPhotoActionsHtml="";
       <div class="nf-fancy-mini nf-fancy-stone"><span>Stone ₹</span><input id="qo-fancy-stone-${id}" class="input" type="number" min="0" step="0.01" value="0" inputmode="decimal" oninput="nfFancyCalc('${id}')"></div>
       <div class="nf-fancy-mini nf-fancy-lace"><span>Lace ₹</span><input id="qo-fancy-lace-${id}" class="input" type="number" min="0" step="0.01" value="0" inputmode="decimal" oninput="nfFancyCalc('${id}')"></div>
       <div class="nf-fancy-mini nf-fancy-knot"><span>Knot ₹</span><input id="qo-fancy-knot-${id}" class="input" type="number" min="0" step="0.01" value="0" inputmode="decimal" oninput="nfFancyCalc('${id}')"></div>
+      <div class="nf-fancy-row-total nf-fancy-work-total"><span>= Price</span><b id="qo-fancy-work-total-${id}">₹0.00</b></div>
     </div>
 
     <div class="nf-fancy-handover-grid">
@@ -11670,6 +11672,240 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-card{
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",function(){setTimeout(refresh,80);setTimeout(refresh,300);},{once:true});else{setTimeout(refresh,80);setTimeout(refresh,300);}
 })();
 </script>
+
+<script id="nf-v163-fancy-toggle-final">
+(function(){
+  "use strict";
+  window.nfToggleFancyBlouse=function(id){
+    try{
+      var panel=document.getElementById("qo-fancy-panel-"+id);
+      var sec=panel ? panel.closest(".nf-edit-fancy-blouse") : null;
+      if(!sec) return false;
+      var hook=sec.querySelector(".nf-fancy-hook");
+      var plus=sec.querySelector(".nf-fancy-plus");
+      var open=!sec.classList.contains("nf-fancy-collapsed");
+      if(open){
+        sec.classList.add("nf-fancy-collapsed");
+        if(panel) panel.style.display="none";
+        if(hook) hook.setAttribute("aria-expanded","false");
+        if(plus) plus.textContent="+";
+      }else{
+        sec.classList.remove("nf-fancy-collapsed");
+        if(panel) panel.style.display="block";
+        if(hook) hook.setAttribute("aria-expanded","true");
+        if(plus) plus.textContent="−";
+        if(typeof window.nfFancyCalc==="function") window.nfFancyCalc(id);
+      }
+    }catch(e){}
+    return false;
+  };
+})();
+</script>
+
+<style id="nf-v163-fancy-compact-final-css">
+/* V163 — Fancy Blouse compact horizontal rows. Existing Lining Blouse is untouched. */
+#app [id^="quick-order-"] .nf-edit-fancy-blouse{
+  position:relative!important;
+  margin-top:8px!important;
+  padding:0!important;
+  border:1px solid #d8c9f3!important;
+  border-radius:12px!important;
+  background:#fff!important;
+  overflow:visible!important;
+}
+#app [id^="quick-order-"] .nf-edit-fancy-blouse.nf-fancy-collapsed{
+  min-height:0!important;
+  background:transparent!important;
+  border-color:#ded7eb!important;
+}
+#app [id^="quick-order-"] .nf-fancy-hook{
+  position:absolute!important;
+  top:5px!important;
+  right:6px!important;
+  z-index:20!important;
+  width:auto!important;
+  height:28px!important;
+  min-height:28px!important;
+  padding:3px 7px!important;
+  border:1px solid #cdbcf0!important;
+  border-radius:7px!important;
+  background:#f2ecff!important;
+  color:#5d3fc1!important;
+  font-size:11px!important;
+  font-weight:900!important;
+  line-height:1!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  gap:3px!important;
+  box-shadow:none!important;
+  pointer-events:auto!important;
+  touch-action:manipulation!important;
+}
+#app [id^="quick-order-"] .nf-fancy-plus{
+  width:15px!important;height:15px!important;min-width:15px!important;
+  border-radius:4px!important;display:grid!important;place-items:center!important;
+  background:#6c45e8!important;color:#fff!important;font-size:12px!important;
+  line-height:1!important;
+}
+#app [id^="quick-order-"] .nf-fancy-panel{
+  padding:38px 6px 6px!important;
+}
+#app [id^="quick-order-"] .nf-edit-fancy-blouse.nf-fancy-collapsed .nf-fancy-panel{display:none!important}
+#app [id^="quick-order-"] .nf-edit-fancy-blouse:not(.nf-fancy-collapsed) .nf-fancy-panel{display:block!important}
+
+#app [id^="quick-order-"] .nf-fancy-titlebar{
+  display:flex!important;align-items:center!important;gap:6px!important;
+  margin:0 0 5px!important;padding:5px 7px!important;
+  min-height:31px!important;border-radius:8px!important;
+  background:linear-gradient(90deg,#eee8ff,#fff0f7)!important;
+  border:1px solid #e1d8f1!important;
+}
+#app [id^="quick-order-"] .nf-fancy-titlebar>span{font-size:17px!important;line-height:1!important}
+#app [id^="quick-order-"] .nf-fancy-titlebar strong{
+  display:inline!important;font-size:12px!important;font-weight:950!important;
+  color:#29213b!important;line-height:1!important;
+}
+#app [id^="quick-order-"] .nf-fancy-titlebar small{
+  display:inline!important;margin-left:5px!important;font-size:8px!important;
+  font-weight:700!important;color:#70687a!important;line-height:1!important;
+}
+
+#app [id^="quick-order-"] .nf-fancy-main-grid{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr) 76px!important;
+  gap:4px!important;margin:0 0 4px!important;
+}
+#app [id^="quick-order-"] .nf-fancy-mini{
+  min-width:0!important;height:34px!important;min-height:34px!important;
+  padding:3px 5px!important;border:1px solid!important;border-radius:7px!important;
+  display:grid!important;grid-template-columns:minmax(0,1fr) 60px!important;
+  align-items:center!important;gap:3px!important;box-shadow:none!important;
+}
+#app [id^="quick-order-"] .nf-fancy-mini span{
+  min-width:0!important;overflow:hidden!important;text-overflow:ellipsis!important;
+  white-space:nowrap!important;font-size:8px!important;line-height:1!important;
+  font-weight:900!important;color:#40394a!important;
+}
+#app [id^="quick-order-"] .nf-fancy-mini .input{
+  width:60px!important;height:28px!important;min-height:28px!important;
+  padding:2px 5px!important;border-radius:6px!important;font-size:11px!important;
+  font-weight:900!important;text-align:right!important;
+}
+#app [id^="quick-order-"] .nf-fancy-c1{background:#eeeaff!important;border-color:#d8d0fb!important}
+#app [id^="quick-order-"] .nf-fancy-c2{background:#fff0f6!important;border-color:#f0d3e0!important}
+
+#app [id^="quick-order-"] .nf-fancy-row-total{
+  min-width:0!important;height:34px!important;min-height:34px!important;
+  padding:3px 5px!important;border-radius:7px!important;
+  display:flex!important;flex-direction:column!important;
+  justify-content:center!important;align-items:flex-end!important;
+  background:#e9f8ef!important;border:1px solid #c5e6d2!important;
+  overflow:hidden!important;
+}
+#app [id^="quick-order-"] .nf-fancy-row-total span{
+  display:block!important;font-size:7px!important;line-height:1!important;
+  font-weight:800!important;color:#617066!important;white-space:nowrap!important;
+}
+#app [id^="quick-order-"] .nf-fancy-row-total b{
+  display:block!important;font-size:10px!important;line-height:1.15!important;
+  font-weight:950!important;color:#16794c!important;white-space:nowrap!important;
+}
+
+#app [id^="quick-order-"] .nf-fancy-lining{
+  margin:0 0 4px!important;padding:4px!important;border:1px solid #b9dfe8!important;
+  border-radius:8px!important;background:#effbfc!important;
+}
+#app [id^="quick-order-"] .nf-fancy-row-head{
+  height:15px!important;display:flex!important;align-items:center!important;
+  justify-content:space-between!important;gap:5px!important;margin:0 1px 3px!important;
+}
+#app [id^="quick-order-"] .nf-fancy-row-head strong{
+  font-size:9px!important;line-height:1!important;color:#176a75!important;
+}
+#app [id^="quick-order-"] .nf-fancy-row-head span{
+  font-size:7px!important;line-height:1!important;color:#69747b!important;
+}
+#app [id^="quick-order-"] .nf-fancy-lining-row{
+  display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 70px!important;
+  gap:4px!important;align-items:end!important;
+}
+#app [id^="quick-order-"] .nf-fancy-cell{min-width:0!important}
+#app [id^="quick-order-"] .nf-fancy-cell label{
+  display:block!important;font-size:7px!important;line-height:1!important;
+  font-weight:900!important;color:#625d6b!important;margin:0 0 2px!important;
+}
+#app [id^="quick-order-"] .nf-fancy-cell input{
+  width:100%!important;height:29px!important;min-height:29px!important;
+  padding:3px 6px!important;border-radius:7px!important;font-size:11px!important;
+  font-weight:900!important;text-align:right!important;
+}
+#app [id^="quick-order-"] .nf-fancy-line-total{
+  height:29px!important;min-height:29px!important;padding:3px 4px!important;
+  border-radius:7px!important;background:#e8f8ef!important;
+  border:1px solid #c5e6d2!important;display:flex!important;
+  flex-direction:column!important;justify-content:center!important;text-align:right!important;
+}
+#app [id^="quick-order-"] .nf-fancy-line-total span{font-size:6px!important;line-height:1!important}
+#app [id^="quick-order-"] .nf-fancy-line-total b{font-size:10px!important;line-height:1.1!important}
+
+#app [id^="quick-order-"] .nf-fancy-work-grid{
+  display:grid!important;
+  grid-template-columns:repeat(3,minmax(0,1fr)) 76px!important;
+  gap:4px!important;margin:0 0 4px!important;
+}
+#app [id^="quick-order-"] .nf-fancy-work-grid .nf-fancy-mini{grid-template-columns:minmax(0,1fr) 50px!important}
+#app [id^="quick-order-"] .nf-fancy-work-grid .nf-fancy-mini .input{width:50px!important}
+#app [id^="quick-order-"] .nf-fancy-stone{background:#fff7df!important;border-color:#f0dca4!important}
+#app [id^="quick-order-"] .nf-fancy-lace{background:#eaf8ff!important;border-color:#c8e8f3!important}
+#app [id^="quick-order-"] .nf-fancy-knot{background:#edf9f1!important;border-color:#cce8d5!important}
+#app [id^="quick-order-"] .nf-fancy-work-total{background:#f4edff!important;border-color:#d9caf6!important}
+#app [id^="quick-order-"] .nf-fancy-work-total b{color:#6542c8!important}
+
+#app [id^="quick-order-"] .nf-fancy-handover-grid{
+  display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;
+  gap:4px!important;margin:0 0 4px!important;
+}
+#app [id^="quick-order-"] .nf-fancy-handover-grid .nf-fancy-mini{
+  grid-template-columns:minmax(0,1fr) 68px!important;
+  background:#f7f1ff!important;border-color:#ddd0f4!important;
+}
+#app [id^="quick-order-"] .nf-fancy-handover-grid .nf-fancy-h2{background:#fff2e9!important;border-color:#f0d5c0!important}
+#app [id^="quick-order-"] .nf-fancy-handover-grid .input{width:68px!important}
+
+#app [id^="quick-order-"] .nf-fancy-total{
+  height:32px!important;min-height:32px!important;margin:0!important;padding:5px 8px!important;
+  border-radius:8px!important;background:linear-gradient(90deg,#fff1c8,#fff8e9)!important;
+  border:1px solid #e2b94d!important;display:flex!important;
+  justify-content:space-between!important;align-items:center!important;gap:8px!important;
+}
+#app [id^="quick-order-"] .nf-fancy-total span{font-size:10px!important;font-weight:950!important;color:#5c4615!important;white-space:nowrap!important}
+#app [id^="quick-order-"] .nf-fancy-total b{font-size:13px!important;color:#8b5b00!important;white-space:nowrap!important}
+
+@media(max-width:560px){
+  #app [id^="quick-order-"] .nf-fancy-panel{padding:37px 5px 5px!important}
+  #app [id^="quick-order-"] .nf-fancy-titlebar{min-height:29px!important;padding:4px 6px!important}
+  #app [id^="quick-order-"] .nf-fancy-titlebar strong{font-size:11px!important}
+  #app [id^="quick-order-"] .nf-fancy-titlebar small{font-size:7px!important;margin-left:3px!important}
+  #app [id^="quick-order-"] .nf-fancy-main-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr) 68px!important}
+  #app [id^="quick-order-"] .nf-fancy-mini{height:32px!important;min-height:32px!important;grid-template-columns:minmax(0,1fr) 54px!important;padding:2px 4px!important}
+  #app [id^="quick-order-"] .nf-fancy-mini span{font-size:7.5px!important}
+  #app [id^="quick-order-"] .nf-fancy-mini .input{width:54px!important;height:27px!important;min-height:27px!important;font-size:10px!important}
+  #app [id^="quick-order-"] .nf-fancy-row-total{height:32px!important;min-height:32px!important;padding:2px 4px!important}
+  #app [id^="quick-order-"] .nf-fancy-row-total span{font-size:6px!important}
+  #app [id^="quick-order-"] .nf-fancy-row-total b{font-size:9px!important}
+  #app [id^="quick-order-"] .nf-fancy-lining-row{grid-template-columns:minmax(0,1fr) minmax(0,1fr) 66px!important}
+  #app [id^="quick-order-"] .nf-fancy-cell input{height:27px!important;min-height:27px!important;font-size:10px!important}
+  #app [id^="quick-order-"] .nf-fancy-line-total{height:27px!important;min-height:27px!important}
+  #app [id^="quick-order-"] .nf-fancy-work-grid{grid-template-columns:repeat(3,minmax(0,1fr)) 68px!important}
+  #app [id^="quick-order-"] .nf-fancy-work-grid .nf-fancy-mini{grid-template-columns:minmax(0,1fr) 38px!important}
+  #app [id^="quick-order-"] .nf-fancy-work-grid .nf-fancy-mini .input{width:38px!important}
+  #app [id^="quick-order-"] .nf-fancy-handover-grid .nf-fancy-mini{grid-template-columns:minmax(0,1fr) 58px!important}
+  #app [id^="quick-order-"] .nf-fancy-handover-grid .input{width:58px!important}
+  #app [id^="quick-order-"] .nf-fancy-total{height:30px!important;min-height:30px!important;padding:4px 7px!important}
+  #app [id^="quick-order-"] .nf-fancy-total span{font-size:9px!important}
+  #app [id^="quick-order-"] .nf-fancy-total b{font-size:12px!important}
+}
+</style>
 </html><script id="nf-v52-dashboard-scroll-fix-js">
 (function(){
   "use strict";
@@ -14513,7 +14749,7 @@ function E(id,k){return document.getElementById("qo-fancy-"+k+"-"+id)}
 window.nfToggleFancyBlouse=function(id){try{var panel=document.getElementById("qo-fancy-panel-"+id);var sec=panel?panel.closest(".nf-edit-fancy-blouse"):null;if(!sec)return false;var closed=sec.classList.contains("nf-fancy-collapsed");var b=sec.querySelector(".nf-fancy-hook"),p=sec.querySelector(".nf-fancy-plus");if(closed){sec.classList.remove("nf-fancy-collapsed");if(panel)panel.style.display="block";if(b)b.setAttribute("aria-expanded","true");if(p)p.textContent="−";}else{sec.classList.add("nf-fancy-collapsed");if(panel)panel.style.display="none";if(b)b.setAttribute("aria-expanded","false");if(p)p.textContent="+";}return false;}catch(e){return false}};
 window.nfFancyHandover=function(id){var q=N(E(id,"count")?.value),h=E(id,"handover");if(!h)return;h.max=String(q);var v=Math.min(q,N(h.value));if(Number(h.value||0)!==v)h.value=String(v)};
 window.nfGetFancyBlouse=function(id){var x={count:N(E(id,"count")?.value),price:N(E(id,"price")?.value),liningCount:N(E(id,"lining-count")?.value),liningPrice:N(E(id,"lining-price")?.value),stone:N(E(id,"stone")?.value),lace:N(E(id,"lace")?.value),knot:N(E(id,"knot")?.value),handover:N(E(id,"handover")?.value),handoverDate:E(id,"handover-date")?.value||""};x.liningTotal=x.liningCount*x.liningPrice;x.total=x.count*x.price+x.liningTotal+x.stone+x.lace+x.knot;return x};
-window.nfFancyCalc=function(id){var x=nfGetFancyBlouse(id),a=document.getElementById("qo-fancy-lining-total-"+id),b=document.getElementById("qo-fancy-total-"+id);if(a)a.textContent=M(x.liningTotal);if(b)b.textContent=M(x.total);nfFancyHandover(id)};
+window.nfFancyCalc=function(id){var x=nfGetFancyBlouse(id),a=document.getElementById("qo-fancy-lining-total-"+id),b=document.getElementById("qo-fancy-total-"+id),c=document.getElementById("qo-fancy-blouse-total-"+id),d=document.getElementById("qo-fancy-work-total-"+id);if(a)a.textContent=M(x.liningTotal);if(b)b.textContent=M(x.total);if(c)c.textContent=M(x.count*x.price);if(d)d.textContent=M(x.stone+x.lace+x.knot);nfFancyHandover(id)};
 window.nfSetFancyBlouse=function(id,x){x=x||{};[["count",x.count],["price",x.price],["lining-count",x.liningCount],["lining-price",x.liningPrice],["stone",x.stone],["lace",x.lace],["knot",x.knot],["handover",x.handover]].forEach(function(a){var el=E(id,a[0]);if(el)el.value=String(N(a[1]))});var d=E(id,"handover-date");if(d)d.value=x.handoverDate||"";nfFancyCalc(id)};
 window.nfParseFancyBlouse=function(order){var n=String(order?.notes||""),m=n.match(/FANCY_BLOUSE:(\{[^}]+\})/);if(!m)return null;try{return JSON.parse(m[1])}catch(e){return null}};
 window.nfClearFancyBlouse=function(id){nfSetFancyBlouse(id,{});var panel=document.getElementById("qo-fancy-panel-"+id),sec=panel?panel.parentElement:null;if(sec){sec.classList.add("nf-fancy-collapsed");var b=sec.querySelector(".nf-fancy-hook"),p=sec.querySelector(".nf-fancy-plus");if(b)b.setAttribute("aria-expanded","false");if(p)p.textContent="+";}};
