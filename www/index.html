@@ -2476,7 +2476,7 @@ function cleanOrderNotes(v){
     .replace(/(?:^|\s*\|\s*)SAREE_RATE:[^|\s]+/g,"")
     .replace(/(?:^|\s*\|\s*)LINING_COST:\{[^}]+\}/g,"")
     .replace(/(?:^|\s*\|\s*)LINING_ITEMS:\[[^\]]*\]/g,"")
-    .replace(/(?:^|\s*\|\s*)FANCY_LINING_CLOTH_QTY:[^|\s]+/g,"")
+    .replace(/(?:^|\s*\|\s*)FANCY_LINING_CLOTH_QTY:[0-9]+/g,"")
 
     .replace(/\bLining\s+cloth\s*[:：]\s*(?:Customer\s*கொடுத்தது|நாம்\s*வாங்கியது)\s*/gi,"")
     .replace(/\s*\|\s*\|\s*/g," | ")
@@ -2501,7 +2501,7 @@ function orderNotesWithAlteration(rawNotes,alterationNotes){
     /SAREE_RATE:[^|\s]+/g,
     /LINING_COST:\{[^}]+\}/g,
     /LINING_ITEMS:\[[^\]]*\]/g,
-    /FANCY_LINING_CLOTH_QTY:[^|\s]+/g,
+    /FANCY_LINING_CLOTH_QTY:[0-9]+/g,
     /ADVANCE_DATE:[0-9]{4}-[0-9]{2}-[0-9]{2}/g,
     /BALANCE_PAID_DATE:[0-9]{4}-[0-9]{2}-[0-9]{2}/g
   ];
@@ -14814,80 +14814,53 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
 </style>
 
 
-
-<style id="nf-v159-fancy-lining-cloth-css">
-/* V159 — Fancy Lining Blouse: compact single row INSIDE Lining blouse box. */
-#app [id^="quick-order-"] .nf-fancy-lining-row{
-  display:grid!important;
-  grid-template-columns:minmax(0,1fr) 92px!important;
-  align-items:center!important;
-  gap:7px!important;
-  margin-top:7px!important;
-  padding:5px 7px!important;
-  border:1px solid #dfe7e3!important;
-  border-radius:8px!important;
-  background:#f8fffb!important;
+<style id="nf-v159-fancy-lining-count-css">
+.nf-fancy-lining-row{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  margin-top:7px;
+  padding:6px 8px;
+  border:1px solid #e1dced;
+  border-radius:10px;
+  background:#fff;
 }
-#app [id^="quick-order-"] .nf-fancy-lining-row .nf-fancy-lining-label{
-  min-width:0!important;
-  font-size:11px!important;
-  line-height:1.15!important;
+.nf-fancy-lining-label{
+  flex:1 1 auto;
+  min-width:0;
+  font-size:11px;
+  line-height:1.25;
+  font-weight:850;
+  color:#4b376b;
+}
+.nf-fancy-lining-label span{font-weight:700;color:#777084}
+.nf-fancy-lining-qty{
+  width:76px!important;
+  min-height:36px!important;
+  padding:6px 8px!important;
+  text-align:center!important;
   font-weight:900!important;
-  color:#23664b!important;
-  white-space:nowrap!important;
-  overflow:hidden!important;
-  text-overflow:ellipsis!important;
-}
-#app [id^="quick-order-"] .nf-fancy-lining-row .nf-fancy-lining-label span{
-  font-size:9px!important;
-  font-weight:750!important;
-  color:#66756e!important;
-  margin-left:4px!important;
-}
-#app [id^="quick-order-"] .nf-fancy-lining-row .nf-fancy-lining-qty{
-  width:100%!important;
-  min-height:30px!important;
-  height:30px!important;
-  padding:4px 6px!important;
-  text-align:right!important;
-  font-size:13px!important;
-  font-weight:900!important;
-  border-radius:7px!important;
+  border-radius:9px!important;
 }
 @media(max-width:560px){
-  #app [id^="quick-order-"] .nf-fancy-lining-row{
-    grid-template-columns:minmax(0,1fr) 78px!important;
-    gap:5px!important;
-    margin-top:5px!important;
-    padding:4px 6px!important;
-  }
-  #app [id^="quick-order-"] .nf-fancy-lining-row .nf-fancy-lining-label{
-    font-size:10px!important;
-  }
-  #app [id^="quick-order-"] .nf-fancy-lining-row .nf-fancy-lining-label span{
-    font-size:8px!important;
-  }
-  #app [id^="quick-order-"] .nf-fancy-lining-row .nf-fancy-lining-qty{
-    min-height:28px!important;
-    height:28px!important;
-    font-size:12px!important;
-  }
+  .nf-fancy-lining-row{gap:6px;padding:5px 7px}
+  .nf-fancy-lining-label{font-size:10px}
+  .nf-fancy-lining-qty{width:68px!important;min-height:34px!important;font-size:13px}
 }
 </style>
 
-<script id="nf-v159-fancy-lining-cloth-final">
+
+<script id="nf-v159-fancy-lining-count-final">
 (function(){
   "use strict";
-  if(window.__nfV159FancyLiningInstalled)return;
-  window.__nfV159FancyLiningInstalled=true;
+  if(window.__nfV159FancyLiningCountInstalled)return;
+  window.__nfV159FancyLiningCountInstalled=true;
 
   function N(v){
     var n=Number(v);
     return Number.isFinite(n)?Math.max(0,Math.floor(n)):0;
   }
-  function rootFor(id){
-    return document.getElementById("quick-order-"+String(id));
-  }
+  function rootFor(id){return document.getElementById("quick-order-"+String(id));}
 
   function parseFancyQty(order){
     var notes=String(order&&order.notes||"");
@@ -14907,51 +14880,31 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
       row.className="nf-fancy-lining-row";
       row.innerHTML=
         '<div class="nf-fancy-lining-label">✨ Fancy Lining Blouse <span>· Lining cloth Count</span></div>'+
-        '<input id="qo-fancy-lining-cloth-qty-'+String(id).replace(/"/g,"&quot;")+'" class="input nf-fancy-lining-qty" type="number" min="0" step="1" inputmode="numeric" value="0" aria-label="Fancy Lining Blouse Lining cloth Count">';
+        '<input id="qo-fancy-lining-cloth-qty-'+String(id).replace(/'/g,"\\'")+'" class="input nf-fancy-lining-qty" type="number" min="0" step="1" inputmode="numeric" value="0">';
       var slot=box.querySelector('.nf-simple-lining-cloth[data-lining-section="lining"]');
-      if(slot && slot.parentNode===box) slot.insertAdjacentElement("afterend",row);
+      if(slot) slot.insertAdjacentElement("afterend",row);
       else box.appendChild(row);
-
-      var input=row.querySelector(".nf-fancy-lining-qty");
-      if(input){
-        input.addEventListener("input",function(){
-          var v=N(input.value);
-          if(String(v)!==String(input.value))input.value=String(v);
-        });
-      }
     }
     return row;
   }
 
-  function setFancyQty(id,qty){
-    var row=ensureFancyRow(id);
-    var input=row&&row.querySelector(".nf-fancy-lining-qty");
-    if(input)input.value=String(N(qty));
-  }
-
   function syncFancyFromOrder(id,order){
-    setFancyQty(id,parseFancyQty(order||{}));
-    var input=document.querySelector("#qo-fancy-lining-cloth-qty-"+CSS.escape(String(id)));
-    if(input){
-      /* Remove the metadata marker from the editable Notes field. */
-      var notes=document.getElementById("qo-notes-"+id);
-      if(notes){
-        notes.value=String(notes.value||"")
-          .replace(/(?:^|\s*\|\s*)FANCY_LINING_CLOTH_QTY:[0-9]+/g,"")
-          .replace(/\s*\|\s*\|\s*/g," | ")
-          .replace(/^\s*\|\s*|\s*\|\s*$/g,"")
-          .trim();
-      }
+    var row=ensureFancyRow(id);
+    if(!row)return;
+    var input=row.querySelector(".nf-fancy-lining-qty");
+    if(!input)return;
+    input.value=String(parseFancyQty(order||{}));
+
+    var notes=document.getElementById("qo-notes-"+id);
+    if(notes){
+      notes.value=String(notes.value||"")
+        .replace(/(?:^|\s*\|\s*)FANCY_LINING_CLOTH_QTY:[0-9]+/g,"")
+        .replace(/\s*\|\s*\|\s*/g," | ")
+        .replace(/^\s*\|\s*|\s*\|\s*$/g,"")
+        .trim();
     }
   }
 
-  function currentFancyQty(id){
-    var row=ensureFancyRow(id);
-    var input=row&&row.querySelector(".nf-fancy-lining-qty");
-    return N(input&&input.value);
-  }
-
-  /* Populate the separate Fancy count when Edit Order opens. */
   var basePopulate=window.populateQuickOrderEditor;
   if(typeof basePopulate==="function" && !basePopulate.__nfV159Fancy){
     var wrappedPopulate=function(id,o){
@@ -14964,52 +14917,57 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
     window.populateQuickOrderEditor=wrappedPopulate;
   }
 
-  /* Save only this one extra count as order metadata; existing lining cloth
-     rows and calculations remain untouched. */
   var baseSave=window.saveQuickOrder;
   if(typeof baseSave==="function" && !baseSave.__nfV159Fancy){
     var wrappedSave=async function(id,customerId){
-      ensureFancyRow(id);
-      var fancyQty=currentFancyQty(id);
-      var box=document.getElementById("quick-order-"+id);
-      var editId=String(box&&box.dataset&&box.dataset.editOrderId||"").trim();
+      var input=document.getElementById("qo-fancy-lining-cloth-qty-"+id);
+      var fancyQty=N(input&&input.value);
+
       var result=await baseSave.apply(this,arguments);
 
       try{
+        var box=document.getElementById("quick-order-"+id);
+        var editId=String(box&&box.dataset.editOrderId||"").trim();
         var orderId=editId;
-        var orders=(typeof state!=="undefined"&&Array.isArray(state.orders))?state.orders:[];
-        if(!orderId){
+
+        if(!orderId && typeof state!=="undefined" && Array.isArray(state.orders)){
           var cid=String(customerId||id||"");
-          var latest=orders.filter(function(o){return String(o.customer_id)===cid})
-            .slice().sort(function(a,b){
-              return String(b.created_at||b.order_date||"").localeCompare(String(a.created_at||a.order_date||""));
+          var latest=(state.orders||[])
+            .filter(function(o){return String(o.customer_id)===cid})
+            .slice()
+            .sort(function(a,b){
+              return String(b.created_at||b.order_date||"")
+                .localeCompare(String(a.created_at||a.order_date||""));
             })[0];
           if(latest)orderId=String(latest.id);
         }
 
-        var order=orders.find(function(o){return String(o.id)===String(orderId)})||null;
-        if(orderId && window.supabaseClient){
-          var notes=String(order&&order.notes||"")
-            .replace(/\s*\|\s*FANCY_LINING_CLOTH_QTY:[0-9]+/g,"")
-            .replace(/^FANCY_LINING_CLOTH_QTY:[0-9]+\s*\|\s*/,"")
-            .trim();
-          if(fancyQty>0)notes+=(notes?" | ":"")+"FANCY_LINING_CLOTH_QTY:"+fancyQty;
+        if(orderId && typeof state!=="undefined" && Array.isArray(state.orders)){
+          var order=state.orders.find(function(o){return String(o.id)===String(orderId)});
+          if(order && window.supabaseClient){
+            var notes=String(order.notes||"")
+              .replace(/(?:^|\s*\|\s*)FANCY_LINING_CLOTH_QTY:[0-9]+/g,"")
+              .replace(/\s*\|\s*\|\s*/g," | ")
+              .replace(/^\s*\|\s*|\s*\|\s*$/g,"")
+              .trim();
 
-          var u=await supabaseClient.from("orders").update({notes:notes}).eq("id",orderId).select("*").maybeSingle();
-          if(u.error)throw u.error;
-          var saved=u.data||Object.assign({},order||{},{
-            id:orderId,
-            notes:notes,
-            customer_id:String(customerId||id||order?.customer_id||"")
-          });
-          if(typeof state!=="undefined"&&Array.isArray(state.orders)){
-            var ix=state.orders.findIndex(function(o){return String(o.id)===String(orderId)});
-            if(ix>=0)state.orders[ix]=saved;
+            if(fancyQty>0) notes+=(notes?" | ":"")+"FANCY_LINING_CLOTH_QTY:"+fancyQty;
+
+            var u=await supabaseClient.from("orders")
+              .update({notes:notes})
+              .eq("id",order.id)
+              .select("*")
+              .maybeSingle();
+
+            if(u.error)throw u.error;
+            if(u.data){
+              var ix=state.orders.findIndex(function(o){return String(o.id)===String(order.id)});
+              if(ix>=0)state.orders[ix]=u.data;
+            }
           }
         }
       }catch(e){
-        console.error("V159 Fancy Lining count save failed",e);
-        if(typeof toast==="function")toast("Fancy Lining count save ஆகவில்லை. மீண்டும் முயற்சி செய்யுங்கள்.",true);
+        console.error("V159 Fancy Lining count sync failed",e);
       }
       return result;
     };
@@ -15019,21 +14977,20 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
 
   function scan(){
     document.querySelectorAll('[id^="quick-order-"]').forEach(function(root){
-      ensureFancyRow(root.id.slice("quick-order-".length));
+      if(root.querySelector(".nf-edit-lining-blouse")) ensureFancyRow(root.id.replace(/^quick-order-/,""));
     });
   }
 
   document.addEventListener("DOMContentLoaded",function(){
-    setTimeout(scan,100);
+    scan();
+    setTimeout(scan,120);
     setTimeout(scan,350);
-    setTimeout(scan,900);
-  },{once:true});
-
-  if(document.body){
-    new MutationObserver(function(){
-      clearTimeout(window.__nfV159FancyTimer);
-      window.__nfV159FancyTimer=setTimeout(scan,100);
-    }).observe(document.body,{childList:true,subtree:true});
-  }
+    try{
+      var mo=new MutationObserver(function(){scan();});
+      mo.observe(document.body,{childList:true,subtree:true});
+    }catch(e){}
+  });
 })();
 </script>
+
+</html>
