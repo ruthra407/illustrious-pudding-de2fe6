@@ -3937,7 +3937,6 @@ async function saveQuickOrder(id,customerId){
    .replace(/\s*\|\s*\|\s*/g," | ")
    .replace(/^\s*\|\s*|\s*\|\s*$/g,"")
    .trim();
- if(liningItems.length)notes+=(notes?" | ":"")+"LINING_ITEMS:"+JSON.stringify(liningItems);
  if(fancyList.some(function(x){return Number(x.count||0)>0||Number(x.liningCount||0)>0||Number(x.price||0)>0||Number(x.liningPrice||0)>0||Number(x.stone||0)>0||Number(x.lace||0)>0||Number(x.knot||0)>0||Number(x.handover||0)>0})){
    notes+=` | FANCY_BLOUSES:${JSON.stringify(fancyList)}`;
  }
@@ -7774,6 +7773,11 @@ function nfFormatPaymentDate(v){return v?dateText(v):"—";}
     const ch=isChudi?Math.min(cq,N(document.getElementById("qo-chudi-handover-"+id)?.value)):0;
     const sq=isBlouse?N(document.getElementById("qo-saree-"+id)?.value):0,sr=isBlouse?N(document.getElementById("qo-saree-rate-"+id)?.value||r.saree):0;
     const sh=isBlouse?Math.min(sq,N(document.getElementById("qo-saree-handover-"+id)?.value)):0;
+    // V179: section-aware Lining cloth must be synchronized before the effective save.
+    if(typeof window.nfLiningItemsCalc==="function")window.nfLiningItemsCalc(id);
+    const liningItems=(typeof window.nfGetLiningItems==="function"?window.nfGetLiningItems(id):[])
+      .map(function(x){return {qty:N(x&&x.qty),rate:N(x&&x.rate),section:String(x&&x.section||"lining").toLowerCase()==="design"?"design":"lining"};})
+      .filter(function(x){return x.qty>0||x.rate>0;});
     // Fancy Blouse is part of the same order: always read the live Fancy sections
     // before calculating and saving the order.
     const fancyList=(typeof window.nfGetFancyBlouses==="function"?window.nfGetFancyBlouses(id):[]);
@@ -7811,6 +7815,14 @@ function nfFormatPaymentDate(v){return v?dateText(v):"—";}
     if(sq>0)notes+=" | SAREE_RATE:"+sr;
     if(isBlouse&&s.design>0)notes+=" | DESIGN_RATES:"+JSON.stringify(designRates);
     if(ls==="shop")notes+=` | LINING_COST:${JSON.stringify({source:ls,qty:lq,rate:lr,total:liningTotal})}`;
+    // Replace old section-aware Lining metadata, then save the current two slots.
+    notes=String(notes||"")
+      .replace(/\s*\|\s*LINING_ITEMS:\[[^\]]*\]/g,"")
+      .replace(/\s*\|\s*\|\s*/g," | ")
+      .replace(/^\s*\|\s*|\s*\|\s*$/g,"")
+      .trim();
+    if(liningItems.length)notes+=(notes?" | ":"")+"LINING_ITEMS:"+JSON.stringify(liningItems);
+
     // Replace any old Fancy metadata, then save the current Fancy sections.
     notes=String(notes||"").replace(/\s*\|\s*FANCY_BLOUSES:\[[\s\S]*?\](?=\s*\||$)/g,"").trim();
     if(fancyList.some(function(x){
@@ -14626,143 +14638,7 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
   try{var cap=window.Capacitor,app=cap&&cap.Plugins&&cap.Plugins.App;if(app&&typeof app.addListener==="function")app.addListener("backButton",function(){if(overlay.classList.contains("open"))close(true);});}catch(e){console.warn('Delivery preview back listener unavailable',e);}
 })();
 </script>
-<script id="nf-v155-lining-items-and-edit-final">
-(function(){
-  "use strict";
 
-  function N(v){var n=Number(v);return Number.isFinite(n)?Math.max(0,n):0;}
-  function moneyLocal(v){try{return typeof money==="function"?money(v):"₹"+N(v).toFixed(2)}catch(e){return "₹"+N(v).toFixed(2)}}
-  function escLocal(v){return typeof esc==="function"?esc(v):String(v==null?"":v).replace(/[&<>"']/g,function(c){return ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"})[c]});}
-
-  /* ---------- Lining cloth: multiple independent qty × rate rows ---------- */
-  function parseLiningItems(order){
-    var notes=String(order&&order.notes||"");
-    var m=notes.match(/(?:^|\s*\|\s*)LINING_ITEMS:(\[[^\]]*\])/);
-    if(m){
-      try{
-        var a=JSON.parse(m[1]);
-        if(Array.isArray(a)) return a.map(function(x){return {qty:N(x.qty),rate:N(x.rate)}}).filter(function(x){return x.qty>0||x.rate>0;});
-      }catch(e){}
-    }
-    var lc=typeof window.nfLiningCost==="function"?window.nfLiningCost(order||{}):null;
-    if(lc && (N(lc.qty)>0||N(lc.rate)>0)) return [{qty:N(lc.qty),rate:N(lc.rate)}];
-    var oldQty=N(order&&order.lining_cloth_qty), oldRate=0;
-    var lm=notes.match(/LINING_COST:(\{[^}]+\})/);
-    if(lm){try{var x=JSON.parse(lm[1]);oldQty=N(x.qty);oldRate=N(x.rate)}catch(e){}}
-    return oldQty>0||oldRate>0?[{qty:oldQty,rate:oldRate}]:[];
-  }
-
-  function rowHtml(id,index,item){
-    item=item||{};
-    var q=N(item.qty),r=N(item.rate);
-    return '<div class="nf-lining-item-row" data-lining-row="1">'
-      +'<div class="nf-lining-item-no">#'+(index+1)+'</div>'
-      +'<div class="nf-lining-item-field"><label>அளவு</label><input class="input nf-li-qty" type="number" min="0" step="1" inputmode="numeric" value="'+q+'" oninput="nfLiningItemsCalc(\''+id+'\')"></div>'
-      +'<div class="nf-lining-item-field"><label>ஒன்றுக்கு விலை</label><input class="input nf-li-rate" type="number" min="0" step="0.01" inputmode="decimal" value="'+r+'" oninput="nfLiningItemsCalc(\''+id+'\')"></div>'
-      +'<div class="nf-lining-item-result"><span>மொத்தம்</span><b class="nf-li-total">'+moneyLocal(q*r)+'</b></div>'
-      +'<button type="button" class="nf-lining-remove" onclick="nfRemoveLiningItem(\''+id+'\',this)" aria-label="Remove lining row" title="இந்த row-ஐ நீக்கு">×</button>'
-      +'</div>';
-  }
-
-  function ensureLiningUI(id,items){
-    var root=document.getElementById("quick-order-"+id);if(!root)return;
-    var inline=root.querySelector("#qo-lining-inline-"+CSS.escape(String(id))) || root.querySelector(".nf-v155-lining-inline");
-    if(!inline)return;
-    var host=document.getElementById("qo-lining-items-"+id);
-    if(!host)return;
-    var arr=Array.isArray(items)?items:[];
-    if(!arr.length)arr=[{qty:0,rate:0}];
-    host.innerHTML=arr.map(function(x,i){return rowHtml(id,i,x)}).join("");
-    var source=document.getElementById("qo-lining-source-"+id);
-    if(source)source.onchange=function(){nfLiningItemsCalc(id);};
-    nfLiningItemsCalc(id);
-  }
-
-  function readRows(id){
-    var host=document.getElementById("qo-lining-items-"+id);if(!host)return [];
-    return Array.from(host.querySelectorAll("[data-lining-row]")).map(function(row){
-      return {qty:N(row.querySelector(".nf-li-qty")&&row.querySelector(".nf-li-qty").value),rate:N(row.querySelector(".nf-li-rate")&&row.querySelector(".nf-li-rate").value)};
-    });
-  }
-
-  window.nfGetLiningItems=function(id){return readRows(id).filter(function(x){return x.qty>0||x.rate>0;});};
-  window.nfLiningItemsCalc=function(id){
-    var host=document.getElementById("qo-lining-items-"+id);if(!host)return;
-    var rows=readRows(id),total=0,qty=0;
-    host.querySelectorAll("[data-lining-row]").forEach(function(row,i){
-      var x=rows[i]||{qty:0,rate:0},t=x.qty*x.rate;qty+=x.qty;total+=t;
-      var label=row.querySelector(".nf-lining-item-no");if(label)label.textContent="#"+(i+1);
-      var out=row.querySelector(".nf-li-total");if(out)out.textContent=moneyLocal(t);
-    });
-    var source=document.getElementById("qo-lining-source-"+id);
-    if(source && qty>0 && !source.value) source.value="shop";
-    var q=document.getElementById("qo-lining-qty-"+id),r=document.getElementById("qo-lining-cost-rate-"+id);
-    if(q)q.value=String(qty);
-    if(r)r.value=String(qty>0?total/qty:0);
-    var out=document.getElementById("qo-lining-total-"+id);if(out)out.textContent=moneyLocal((source&&source.value==="shop")?total:0);
-    if(typeof window.updateQuickOrderCalcV314==="function")window.updateQuickOrderCalcV314(id);
-    else if(typeof window.updateQuickOrderCalc==="function")window.updateQuickOrderCalc(id);
-  };
-  window.nfAddLiningItem=function(id){
-    var host=document.getElementById("qo-lining-items-"+id);if(!host)return;
-    var i=host.querySelectorAll("[data-lining-row]").length;
-    host.insertAdjacentHTML("beforeend",rowHtml(id,i,{qty:0,rate:0}));
-    var source=document.getElementById("qo-lining-source-"+id);if(source&&!source.value)source.value="shop";
-    nfLiningItemsCalc(id);
-    setTimeout(function(){var rows=host.querySelectorAll("[data-lining-row]");var last=rows[rows.length-1];last&&last.querySelector(".nf-li-qty")&&last.querySelector(".nf-li-qty").focus();},0);
-  };
-  window.nfRemoveLiningItem=function(id,btn){
-    var host=document.getElementById("qo-lining-items-"+id);if(!host)return;
-    var row=btn&&btn.closest("[data-lining-row]");if(row)row.remove();
-    if(!host.querySelector("[data-lining-row]"))host.insertAdjacentHTML("beforeend",rowHtml(id,0,{qty:0,rate:0}));
-    nfLiningItemsCalc(id);
-  };
-
-  function liningTotalFromItems(items){return (items||[]).reduce(function(a,x){return a+N(x.qty)*N(x.rate)},0);}
-
-  /* Replace the old single qty/rate UI whenever the editor is rendered. */
-  function enhance(id,order){
-    var items=parseLiningItems(order||{});
-    ensureLiningUI(id,items);
-  }
-  window.nfEnhanceLiningUI=function(id,order){enhance(String(id),order||{});};
-
-  var basePopulate=window.populateQuickOrderEditor;
-  if(typeof basePopulate==="function" && !basePopulate.__nfV155Lining){
-    var wrappedPopulate=function(id,o){
-      basePopulate.apply(this,arguments);
-      setTimeout(function(){enhance(id,o||{});},0);
-      setTimeout(function(){enhance(id,o||{});},120);
-    };
-    wrappedPopulate.__nfV155Lining=true;
-    window.populateQuickOrderEditor=wrappedPopulate;
-  }
-
-  var baseRenderCustomers=window.renderCustomers;
-  if(typeof baseRenderCustomers==="function" && !baseRenderCustomers.__nfV155Lining){
-    var wrappedRender=function(){
-      var r=baseRenderCustomers.apply(this,arguments);
-      setTimeout(function(){(typeof state!=="undefined"&&Array.isArray(state.customers)?state.customers:[]).forEach(function(c){enhance(String(c.id),null);});},40);
-      setTimeout(function(){(typeof state!=="undefined"&&Array.isArray(state.customers)?state.customers:[]).forEach(function(c){enhance(String(c.id),null);});},350);
-      return r;
-    };
-    wrappedRender.__nfV155Lining=true;
-    window.renderCustomers=wrappedRender;
-  }
-
-  /* Save is handled directly by the canonical saveQuickOrder above. */
-
-  /* ---------- Edit Order: keep the existing canonical opener untouched ----------
-     The main opener uses the lexical `state` object (declared as const state).
-     Wrapping it with `window.state` breaks the button because `window.state`
-     is not guaranteed to exist.  The canonical opener already:
-       1) resolves the order,
-       2) builds the dedicated edit screen,
-       3) populates the saved values, and
-       4) keeps the editOrderId on the form.
-     Therefore V155 must not replace or pre-block that function. */
-
-</script>
 <style id="nf-v155-lining-items-css">
 /* V156 — Simple lining cloth slot inside Design blouse only */
 .nf-simple-lining-cloth{margin-top:10px;padding:10px;border:1px solid #d8d0ea;border-radius:13px;background:#fff}
