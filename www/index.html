@@ -14379,3 +14379,435 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
  .nf-simple-lining-head .nf-lining-add{font-size:10px;padding:6px 8px}
 }
 </style>>
+
+<!-- V157: Lining cloth belongs INSIDE the existing Lining blouse + Design blouse boxes.
+     No standalone Lining cloth section. Keep existing Edit Order/save architecture intact. -->
+<script id="nf-v157-inline-lining-cloth-final">
+(function(){
+  "use strict";
+  if(window.__nfV157InlineLiningInstalled)return;
+  window.__nfV157InlineLiningInstalled=true;
+
+  function N(v){
+    var n=Number(v);
+    return Number.isFinite(n)?Math.max(0,n):0;
+  }
+  function moneyLocal(v){
+    try{return typeof money==="function"?money(v):"₹"+N(v).toFixed(2)}
+    catch(e){return "₹"+N(v).toFixed(2)}
+  }
+
+  function rootFor(id){return document.getElementById("quick-order-"+String(id));}
+
+  function rowHtml(id,index,item,section){
+    item=item||{};
+    var q=N(item.qty), r=N(item.rate);
+    return '<div class="nf-lining-item-row" data-lining-row="1" data-lining-section="'+section+'">'
+      +'<div class="nf-lining-item-no">#'+(index+1)+'</div>'
+      +'<div class="nf-lining-item-field"><label>Count</label><input class="input nf-li-qty" type="number" min="0" step="1" inputmode="numeric" value="'+q+'" oninput="nfLiningItemsCalc(\''+String(id).replace(/'/g,"\\'")+'\')"></div>'
+      +'<div class="nf-lining-item-field"><label>₹ Price</label><input class="input nf-li-rate" type="number" min="0" step="0.01" inputmode="decimal" value="'+r+'" oninput="nfLiningItemsCalc(\''+String(id).replace(/'/g,"\\'")+'\')"></div>'
+      +'<div class="nf-lining-item-result"><span>Total</span><b class="nf-li-total">'+moneyLocal(q*r)+'</b></div>'
+      +'<button type="button" class="nf-lining-remove" onclick="nfRemoveLiningItem(\''+String(id).replace(/'/g,"\\'")+'\',this)" aria-label="Remove lining row" title="Remove">×</button>'
+      +'</div>';
+  }
+
+  function slotHtml(id,section,title){
+    var sid=String(id), sec=String(section);
+    return '<div class="nf-simple-lining-cloth nf-v157-lining-slot" data-lining-section="'+sec+'" id="qo-lining-inline-'+sid+'-'+sec+'">'
+      +'<div class="nf-simple-lining-head"><strong>🧵 Lining cloth</strong><span>Count / Price = Total</span>'
+      +'<button type="button" class="btn nf-lining-add" onclick="nfAddLiningItem(\''+sid+'\',\''+sec+'\')">＋ Add</button></div>'
+      +'<div id="qo-lining-items-'+sid+'-'+sec+'" class="nf-lining-items"></div>'
+      +'<div class="nf-simple-lining-total"><span>Lining cloth total</span><b id="qo-lining-total-'+sid+'-'+sec+'">₹0.00</b></div>'
+      +'</div>';
+  }
+
+  function findCategory(root,cls){
+    return root.querySelector("."+cls);
+  }
+
+  function ensureSlots(id){
+    var root=rootFor(id);
+    if(!root)return null;
+
+    /* The old V156 slot is the Design-blouse slot. Convert it to V157's
+       section-aware markup while preserving its current rows. */
+    var design=findCategory(root,"nf-edit-design-blouse");
+    var lining=findCategory(root,"nf-edit-lining-blouse");
+    if(!design||!lining)return null;
+
+    var old=design.querySelector(".nf-simple-lining-cloth");
+    var designSlot=old;
+    if(!designSlot){
+      design.insertAdjacentHTML("beforeend",slotHtml(id,"design","Design blouse"));
+      designSlot=design.querySelector(".nf-simple-lining-cloth");
+    }else{
+      designSlot.classList.add("nf-v157-lining-slot");
+      designSlot.setAttribute("data-lining-section","design");
+      designSlot.id="qo-lining-inline-"+id+"-design";
+      var dh=designSlot.querySelector(".nf-simple-lining-head");
+      if(dh){
+        var add=dh.querySelector(".nf-lining-add");
+        if(add)add.setAttribute("onclick","nfAddLiningItem('"+String(id).replace(/'/g,"\\'")+"','design')");
+      }
+      var host=designSlot.querySelector(".nf-lining-items");
+      if(host)host.id="qo-lining-items-"+id+"-design";
+      var total=designSlot.querySelector(".nf-simple-lining-total b");
+      if(total)total.id="qo-lining-total-"+id+"-design";
+      designSlot.querySelectorAll("[data-lining-row]").forEach(function(row){
+        row.setAttribute("data-lining-section","design");
+      });
+    }
+
+    if(!lining.querySelector(".nf-simple-lining-cloth")){
+      lining.insertAdjacentHTML("beforeend",slotHtml(id,"lining","Lining blouse"));
+    }
+    var liningSlot=lining.querySelector(".nf-simple-lining-cloth");
+    if(liningSlot){
+      liningSlot.classList.add("nf-v157-lining-slot");
+      liningSlot.setAttribute("data-lining-section","lining");
+    }
+
+    /* Hide/remove the old standalone generated category. Its fields remain
+       hidden for backwards compatibility with the existing save schema. */
+    root.querySelectorAll(".nf-edit-lining-cloth").forEach(function(el){
+      el.style.setProperty("display","none","important");
+    });
+
+    return {root:root,lining:lining,design:design,liningSlot:lining.querySelector(".nf-simple-lining-cloth"),designSlot:design.querySelector(".nf-simple-lining-cloth")};
+  }
+
+  function hostFor(id,section){
+    var root=rootFor(id); if(!root)return null;
+    var slot=root.querySelector('.nf-simple-lining-cloth[data-lining-section="'+section+'"]');
+    return slot?slot.querySelector(".nf-lining-items"):null;
+  }
+
+  function readHost(host,section){
+    if(!host)return [];
+    return Array.from(host.querySelectorAll("[data-lining-row]")).map(function(row){
+      return {
+        qty:N(row.querySelector(".nf-li-qty")&&row.querySelector(".nf-li-qty").value),
+        rate:N(row.querySelector(".nf-li-rate")&&row.querySelector(".nf-li-rate").value),
+        section:section
+      };
+    });
+  }
+
+  function allRows(id){
+    var out=[];
+    ["lining","design"].forEach(function(sec){
+      var h=hostFor(id,sec);
+      out=out.concat(readHost(h,sec));
+    });
+    return out;
+  }
+
+  function renderHost(id,section,items){
+    var host=hostFor(id,section);
+    if(!host)return;
+    var arr=Array.isArray(items)?items:[];
+    if(!arr.length)arr=[{qty:0,rate:0,section:section}];
+    host.innerHTML=arr.map(function(x,i){return rowHtml(id,i,x,section)}).join("");
+  }
+
+  function parseStoredItems(order){
+    var notes=String(order&&order.notes||"");
+    var m=notes.match(/(?:^|\s*\|\s*)LINING_ITEMS:(\[[^\]]*\])/);
+    if(m){
+      try{
+        var a=JSON.parse(m[1]);
+        if(Array.isArray(a)){
+          return a.map(function(x){
+            return {
+              qty:N(x&&x.qty),
+              rate:N(x&&x.rate),
+              section:String(x&&x.section||"lining").toLowerCase()==="design"?"design":"lining"
+            };
+          }).filter(function(x){return x.qty>0||x.rate>0;});
+        }
+      }catch(e){}
+    }
+    /* Legacy single-row Lining_COST data belongs in Lining blouse. */
+    var lc=typeof window.nfLiningCost==="function"?window.nfLiningCost(order||{}):null;
+    if(lc&&(N(lc.qty)>0||N(lc.rate)>0))return [{qty:N(lc.qty),rate:N(lc.rate),section:"lining"}];
+    var q=N(order&&order.lining_cloth_qty), r=0;
+    var lm=notes.match(/LINING_COST:(\{[^}]+\})/);
+    if(lm){try{var z=JSON.parse(lm[1]);q=N(z.qty);r=N(z.rate)}catch(e){}}
+    return q>0||r>0?[{qty:q,rate:r,section:"lining"}]:[];
+  }
+
+  function calc(id,callMain){
+    var slots=ensureSlots(id); if(!slots)return;
+    var grand=0,qty=0;
+    ["lining","design"].forEach(function(sec){
+      var host=hostFor(id,sec);
+      var rows=readHost(host,sec), sectionTotal=0, sectionQty=0;
+      if(host){
+        host.querySelectorAll("[data-lining-row]").forEach(function(row,i){
+          var x=rows[i]||{qty:0,rate:0}, t=x.qty*x.rate;
+          sectionQty+=x.qty; sectionTotal+=t;
+          var no=row.querySelector(".nf-lining-item-no"), out=row.querySelector(".nf-li-total");
+          if(no)no.textContent="#"+(i+1);
+          if(out)out.textContent=moneyLocal(t);
+        });
+      }
+      grand+=sectionTotal; qty+=sectionQty;
+      var totalEl=document.getElementById("qo-lining-total-"+id+"-"+sec);
+      if(totalEl)totalEl.textContent=moneyLocal(sectionTotal);
+    });
+
+    var source=document.getElementById("qo-lining-source-"+id);
+    if(source && qty>0 && !source.value)source.value="shop";
+    var q=document.getElementById("qo-lining-qty-"+id);
+    var r=document.getElementById("qo-lining-cost-rate-"+id);
+    if(q)q.value=String(qty);
+    if(r)r.value=String(qty>0?grand/qty:0);
+
+    /* The legacy total is kept as the aggregate of both inline slots. */
+    var legacy=document.getElementById("qo-lining-total-"+id);
+    if(legacy)legacy.textContent=moneyLocal((source&&source.value==="shop")?grand:0);
+    var legacyDisplay=document.getElementById("qo-lining-total-display-"+id);
+    if(legacyDisplay)legacyDisplay.textContent=moneyLocal((source&&source.value==="shop")?grand:0);
+
+    if(callMain!==false){
+      if(typeof window.updateQuickOrderCalcV314==="function")window.updateQuickOrderCalcV314(id);
+      else if(typeof window.updateQuickOrderCalc==="function" && window.updateQuickOrderCalc!==window.nfLiningItemsCalc)window.updateQuickOrderCalc(id);
+    }
+  }
+
+  window.nfGetLiningItems=function(id){
+    return allRows(id).filter(function(x){return x.qty>0||x.rate>0;});
+  };
+
+  window.nfLiningItemsCalc=function(id){calc(String(id),true);};
+
+  window.nfAddLiningItem=function(id,section){
+    section=(section==="design"||section==="lining")?section:"lining";
+    var host=hostFor(id,section);
+    if(!host)return;
+    var i=host.querySelectorAll("[data-lining-row]").length;
+    host.insertAdjacentHTML("beforeend",rowHtml(id,i,{qty:0,rate:0},section));
+    var source=document.getElementById("qo-lining-source-"+id);
+    if(source&&!source.value)source.value="shop";
+    calc(id,true);
+    setTimeout(function(){
+      var rows=host.querySelectorAll("[data-lining-row]"),last=rows[rows.length-1];
+      if(last){
+        var q=last.querySelector(".nf-li-qty");
+        if(q)q.focus();
+      }
+    },0);
+  };
+
+  window.nfRemoveLiningItem=function(id,btn){
+    var row=btn&&btn.closest("[data-lining-row]");
+    if(row)row.remove();
+    ["lining","design"].forEach(function(sec){
+      var host=hostFor(id,sec);
+      if(host&&!host.querySelector("[data-lining-row]"))host.insertAdjacentHTML("beforeend",rowHtml(id,0,{qty:0,rate:0},sec));
+    });
+    calc(id,true);
+  };
+
+  function syncFromOrder(id,order){
+    var slots=ensureSlots(id); if(!slots)return;
+    var items=parseStoredItems(order||{});
+    var liningItems=items.filter(function(x){return x.section==="lining";});
+    var designItems=items.filter(function(x){return x.section==="design";});
+
+    /* For a legacy order, all old lining rows appear in the Lining blouse box. */
+    renderHost(id,"lining",liningItems);
+    renderHost(id,"design",designItems);
+    calc(id,true);
+  }
+
+  function getOrderForRoot(root){
+    var editId=String(root&&root.dataset&&root.dataset.editOrderId||"").trim();
+    if(editId && typeof state!=="undefined" && Array.isArray(state.orders)){
+      return state.orders.find(function(o){return String(o.id)===editId})||null;
+    }
+    return null;
+  }
+
+  function patch(id){
+    var root=rootFor(id); if(!root)return;
+    var before=!!root.querySelector(".nf-v157-lining-slot");
+    var slots=ensureSlots(id); if(!slots)return;
+    var editId=String(root.dataset&&root.dataset.editOrderId||"").trim();
+    var bound=String(root.dataset&&root.dataset.v157LiningBound||"");
+    var order=getOrderForRoot(root);
+    /* Populate only when this editor is first created or when a different
+       order is loaded. Never re-populate on ordinary DOM mutations such as
+       pressing +Add or typing into a row. */
+    if(order && (!before || bound!==editId)){
+      syncFromOrder(id,order);
+      root.dataset.v157LiningBound=editId||"__new__";
+    }else{
+      calc(id,false);
+      if(!order && !bound)root.dataset.v157LiningBound="__new__";
+    }
+  }
+
+  function scan(){
+    document.querySelectorAll('[id^="quick-order-"]').forEach(function(root){
+      patch(root.id.slice("quick-order-".length));
+    });
+  }
+
+  document.addEventListener("DOMContentLoaded",function(){
+    setTimeout(scan,100);
+    setTimeout(scan,320);
+    setTimeout(scan,800);
+  },{once:true});
+
+  /* Edit Order / New Order render cycles can recreate the cloned editor. */
+  if(document.body){
+    new MutationObserver(function(){
+      clearTimeout(window.__nfV157ScanTimer);
+      window.__nfV157ScanTimer=setTimeout(scan,120);
+    }).observe(document.body,{childList:true,subtree:true});
+  }
+
+  /* Keep the two visible slots visually compact and hide the standalone box. */
+})();
+</script>
+<style id="nf-v157-inline-lining-css">
+/* V157: no standalone Lining cloth category; only compact slots inside Lining/Design blouse boxes. */
+#app [id^="quick-order-"] .nf-edit-lining-cloth{display:none!important}
+#app [id^="quick-order-"] .nf-v157-lining-slot{
+  margin-top:9px!important;
+  padding:8px!important;
+  border:1px solid #d9d2e7!important;
+  border-radius:11px!important;
+  background:#fff!important;
+  box-shadow:none!important;
+}
+#app [id^="quick-order-"] .nf-v157-lining-slot .nf-simple-lining-head{
+  display:flex!important;
+  align-items:center!important;
+  gap:6px!important;
+  margin-bottom:6px!important;
+  flex-wrap:nowrap!important;
+}
+#app [id^="quick-order-"] .nf-v157-lining-slot .nf-simple-lining-head strong{
+  font-size:13px!important;
+  white-space:nowrap!important;
+}
+#app [id^="quick-order-"] .nf-v157-lining-slot .nf-simple-lining-head span{
+  flex:1!important;
+  min-width:0!important;
+  font-size:10px!important;
+  color:#777084!important;
+  white-space:nowrap!important;
+}
+#app [id^="quick-order-"] .nf-v157-lining-slot .nf-lining-add{
+  min-height:32px!important;
+  height:32px!important;
+  padding:5px 8px!important;
+  border-radius:8px!important;
+  font-size:10px!important;
+  white-space:nowrap!important;
+}
+#app [id^="quick-order-"] .nf-v157-lining-slot .nf-lining-items{
+  display:grid!important;
+  gap:5px!important;
+}
+#app [id^="quick-order-"] .nf-v157-lining-slot .nf-lining-item-row{
+  display:grid!important;
+  grid-template-columns:22px minmax(0,1fr) minmax(0,1fr) 66px 28px!important;
+  gap:4px!important;
+  align-items:end!important;
+  padding:5px!important;
+  border:1px solid #e4dfeb!important;
+  border-radius:9px!important;
+  background:#faf9fc!important;
+}
+#app [id^="quick-order-"] .nf-v157-lining-slot .nf-lining-item-field label{
+  display:block!important;
+  font-size:8px!important;
+  line-height:1.1!important;
+  margin:0 0 2px!important;
+  color:#625d6b!important;
+  font-weight:850!important;
+}
+#app [id^="quick-order-"] .nf-v157-lining-slot .nf-lining-item-field input{
+  width:100%!important;
+  min-height:34px!important;
+  height:34px!important;
+  padding:5px 6px!important;
+  text-align:right!important;
+  font-size:14px!important;
+  font-weight:900!important;
+  border-radius:8px!important;
+}
+#app [id^="quick-order-"] .nf-v157-lining-slot .nf-lining-item-no{
+  font-size:10px!important;
+  padding-bottom:8px!important;
+  color:#16794c!important;
+}
+#app [id^="quick-order-"] .nf-v157-lining-slot .nf-lining-item-result{
+  min-height:34px!important;
+  padding:5px 3px!important;
+  border-radius:8px!important;
+  background:#eef9f3!important;
+  text-align:right!important;
+}
+#app [id^="quick-order-"] .nf-v157-lining-slot .nf-lining-item-result span{
+  display:block!important;
+  font-size:7px!important;
+  color:#617066!important;
+  line-height:1!important;
+}
+#app [id^="quick-order-"] .nf-v157-lining-slot .nf-lining-item-result b{
+  font-size:10px!important;
+  color:#16794c!important;
+}
+#app [id^="quick-order-"] .nf-v157-lining-slot .nf-lining-remove{
+  width:28px!important;
+  height:34px!important;
+  min-height:34px!important;
+  border:0!important;
+  border-radius:8px!important;
+  background:#fff0f0!important;
+  color:#b42318!important;
+  font-size:17px!important;
+}
+#app [id^="quick-order-"] .nf-v157-lining-slot .nf-simple-lining-total{
+  display:flex!important;
+  justify-content:flex-end!important;
+  align-items:center!important;
+  gap:7px!important;
+  margin-top:5px!important;
+  padding:5px 7px!important;
+  border-radius:8px!important;
+  background:#f0faf5!important;
+  border:1px solid #ccebdc!important;
+}
+#app [id^="quick-order-"] .nf-v157-lining-slot .nf-simple-lining-total span{
+  font-size:9px!important;
+  font-weight:800!important;
+}
+#app [id^="quick-order-"] .nf-v157-lining-slot .nf-simple-lining-total b{
+  font-size:12px!important;
+  color:#16794c!important;
+}
+@media(max-width:560px){
+  #app [id^="quick-order-"] .nf-v157-lining-slot{padding:7px!important}
+  #app [id^="quick-order-"] .nf-v157-lining-slot .nf-simple-lining-head strong{font-size:12px!important}
+  #app [id^="quick-order-"] .nf-v157-lining-slot .nf-simple-lining-head span{font-size:9px!important}
+  #app [id^="quick-order-"] .nf-v157-lining-slot .nf-lining-item-row{
+    grid-template-columns:20px minmax(0,1fr) minmax(0,1fr) 62px 27px!important;
+    gap:3px!important;
+  }
+  #app [id^="quick-order-"] .nf-v157-lining-slot .nf-lining-item-field input{
+    min-height:32px!important;height:32px!important;font-size:13px!important;
+  }
+  #app [id^="quick-order-"] .nf-v157-lining-slot .nf-lining-item-result{
+    min-height:32px!important;
+  }
+  #app [id^="quick-order-"] .nf-v157-lining-slot .nf-lining-remove{
+    width:27px!important;height:32px!important;min-height:32px!important;
+  }
+}
+</style>
+
