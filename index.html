@@ -15043,6 +15043,7 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
     var sid=String(id), sec=String(section);
     return '<div class="nf-simple-lining-cloth nf-v157-lining-slot" data-lining-section="'+sec+'" id="qo-lining-inline-'+sid+'-'+sec+'">'
       +'<div class="nf-simple-lining-head"><strong>🧵 Lining cloth</strong><span>Count / Price = Total</span>'
+      +'<button type="button" class="nf-lining-add" onclick="nfAddLiningItem(\''+sid+\',\''+sec+\')">+ Add</button>'
       +'</div>'
       +'<div id="qo-lining-items-'+sid+'-'+sec+'" class="nf-lining-items"></div>'
       +'<div class="nf-simple-lining-total"><span>Lining cloth total</span><b id="qo-lining-total-'+sid+'-'+sec+'">₹0.00</b></div>'
@@ -15094,6 +15095,12 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
       liningSlot.classList.add("nf-v157-lining-slot");
       liningSlot.setAttribute("data-lining-section","lining");
     }
+
+    /* V169: Always keep one visible Count / Price row. */
+    [["lining",lining.querySelector('.nf-simple-lining-cloth[data-lining-section="lining"]')],["design",design.querySelector('.nf-simple-lining-cloth[data-lining-section="design"]')]].forEach(function(pair){
+      var slot=pair[1],host=slot&&slot.querySelector(".nf-lining-items");
+      if(host&&!host.querySelector("[data-lining-row]")) host.insertAdjacentHTML("beforeend",rowHtml(id,0,{qty:0,rate:0},pair[0]));
+    });
 
     /* Hide/remove the old standalone generated category. Its fields remain
        hidden for backwards compatibility with the existing save schema. */
@@ -15290,10 +15297,12 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
 
   /* Edit Order / New Order render cycles can recreate the cloned editor. */
   if(document.body){
-    new MutationObserver(function(){
+    new MutationObserver(function(mutations){
+      var relevant=mutations.some(function(m){return m.type==="childList" || (m.type==="attributes" && m.attributeName==="data-edit-order-id");});
+      if(!relevant)return;
       clearTimeout(window.__nfV157ScanTimer);
       window.__nfV157ScanTimer=setTimeout(scan,120);
-    }).observe(document.body,{childList:true,subtree:true});
+    }).observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:["data-edit-order-id"]});
   }
 
   /* Keep the two visible slots visually compact and hide the standalone box. */
