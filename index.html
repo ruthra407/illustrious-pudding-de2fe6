@@ -2476,6 +2476,7 @@ function cleanOrderNotes(v){
     .replace(/(?:^|\s*\|\s*)SAREE_RATE:[^|\s]+/g,"")
     .replace(/(?:^|\s*\|\s*)LINING_COST:\{[^}]+\}/g,"")
     .replace(/(?:^|\s*\|\s*)LINING_ITEMS:\[[^\]]*\]/g,"")
+    .replace(/(?:^|\s*\|\s*)FANCY_LINING_CLOTH_QTY:[^|\s]+/g,"")
 
     .replace(/\bLining\s+cloth\s*[:：]\s*(?:Customer\s*கொடுத்தது|நாம்\s*வாங்கியது)\s*/gi,"")
     .replace(/\s*\|\s*\|\s*/g," | ")
@@ -2500,6 +2501,7 @@ function orderNotesWithAlteration(rawNotes,alterationNotes){
     /SAREE_RATE:[^|\s]+/g,
     /LINING_COST:\{[^}]+\}/g,
     /LINING_ITEMS:\[[^\]]*\]/g,
+    /FANCY_LINING_CLOTH_QTY:[^|\s]+/g,
     /ADVANCE_DATE:[0-9]{4}-[0-9]{2}-[0-9]{2}/g,
     /BALANCE_PAID_DATE:[0-9]{4}-[0-9]{2}-[0-9]{2}/g
   ];
@@ -11407,200 +11409,6 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-card{
 })();
 </script>
 
-
-<script id="nf-v159-fancy-lining-inside-box">
-(function(){
-"use strict";
-if(window.__nfV159FancyLiningInstalled)return;
-window.__nfV159FancyLiningInstalled=true;
-
-function N(v){var n=Number(v);return Number.isFinite(n)?Math.max(0,n):0}
-function moneyF(v){try{return typeof money==="function"?money(v):"₹"+N(v).toFixed(2)}catch(e){return "₹"+N(v).toFixed(2)}}
-function root(id){return document.getElementById("quick-order-"+id)}
-function esc(v){return String(v==null?"":v).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/"/g,"&quot;")}
-
-function rowHtml(id,i,x){
- x=x||{};
- var type=["Stone","Lace","Knot"].indexOf(x.work)>=0?x.work:"Stone";
- return '<div class="nf-fancy-lining-row" data-fancy-row="1">'
- +' <div class="nf-fancy-no">#'+(i+1)+'</div>'
- +' <div class="nf-fancy-field"><label>வேலை</label><select class="input nf-fl-work" onchange="nfFancyLiningCalc(\''+esc(id)+'\')"><option'+(type==="Stone"?" selected":"")+'>Stone</option><option'+(type==="Lace"?" selected":"")+'>Lace</option><option'+(type==="Knot"?" selected":"")+'>Knot</option></select></div>'
- +' <div class="nf-fancy-field"><label>Lining Qty</label><input class="input nf-fl-lq" type="number" min="0" step="0.01" value="'+N(x.liningQty)+'" oninput="nfFancyLiningCalc(\''+esc(id)+'\')"></div>'
- +' <div class="nf-fancy-field"><label>Lining Rate</label><input class="input nf-fl-lr" type="number" min="0" step="0.01" value="'+N(x.liningRate)+'" oninput="nfFancyLiningCalc(\''+esc(id)+'\')"></div>'
- +' <div class="nf-fancy-field"><label>Blouse Rate</label><input class="input nf-fl-br" type="number" min="0" step="0.01" value="'+N(x.blouseRate)+'" oninput="nfFancyLiningCalc(\''+esc(id)+'\')"></div>'
- +' <div class="nf-fancy-field"><label>'+type+' Charge</label><input class="input nf-fl-wr" type="number" min="0" step="0.01" value="'+N(x.workRate)+'" oninput="nfFancyLiningCalc(\''+esc(id)+'\')"></div>'
- +' <div class="nf-fancy-total"><span>Total</span><b class="nf-fl-total">'+moneyF(N(x.liningQty)*N(x.liningRate)+N(x.blouseRate)+N(x.workRate))+'</b></div>'
- +' <button type="button" class="nf-fancy-remove" onclick="nfFancyLiningRemove(\''+esc(id)+'\',this)" title="Remove">×</button>'
- +'</div>';
-}
-function boxHtml(id){
- return '<div class="nf-fancy-lining-wrap">'
-  +'<div class="nf-fancy-head"><strong>✨ Fancy Lining Blouse</strong><span>ஒவ்வொரு blouse-க்கும் தனி Row</span></div>'
-  +'<div class="nf-fancy-count"><label>Fancy Lining Blouse — எத்தனை</label><input id="qo-fancy-lining-'+id+'" class="input" type="number" min="0" step="1" value="0" oninput="nfFancyLiningCount(\''+esc(id)+'\')"></div>'
-  +'<div id="qo-fancy-lining-rows-'+id+'" class="nf-fancy-rows"></div>'
-  +'<div class="nf-fancy-grand"><span>Fancy Lining Total</span><b id="qo-fancy-lining-total-'+id+'">₹0.00</b></div>'
-  +'</div>';
-}
-function find(id){var r=root(id);return r&&r.querySelector(".nf-edit-lining-blouse")}
-function ensure(id){
- var sec=find(id);if(!sec)return null;
- var box=sec.querySelector(".nf-fancy-lining-wrap");
- if(!box){sec.insertAdjacentHTML("beforeend",boxHtml(id));box=sec.querySelector(".nf-fancy-lining-wrap")}
- return box;
-}
-function rows(id){var r=root(id);return r?Array.from(r.querySelectorAll(".nf-fancy-lining-row")):[]}
-function read(id){
- return rows(id).map(function(row){
-  return {work:row.querySelector(".nf-fl-work")?.value||"Stone",
-   liningQty:N(row.querySelector(".nf-fl-lq")?.value),
-   liningRate:N(row.querySelector(".nf-fl-lr")?.value),
-   blouseRate:N(row.querySelector(".nf-fl-br")?.value),
-   workRate:N(row.querySelector(".nf-fl-wr")?.value)};
- });
-}
-function render(id,arr){
- var b=ensure(id);if(!b)return;
- var host=b.querySelector(".nf-fancy-rows");
- arr=Array.isArray(arr)?arr:[];
- var count=arr.length;
- var countEl=document.getElementById("qo-fancy-lining-"+id);
- if(countEl)countEl.value=count;
- host.innerHTML=arr.map(function(x,i){return rowHtml(id,i,x)}).join("");
- calc(id,false);
-}
-function calc(id,callMain){
- var b=ensure(id);if(!b)return;
- var rs=rows(id),total=0;
- rs.forEach(function(row,i){
-  var lq=N(row.querySelector(".nf-fl-lq")?.value),lr=N(row.querySelector(".nf-fl-lr")?.value),br=N(row.querySelector(".nf-fl-br")?.value),wr=N(row.querySelector(".nf-fl-wr")?.value);
-  var t=lq*lr+br+wr;total+=t;
-  var no=row.querySelector(".nf-fancy-no");if(no)no.textContent="#"+(i+1);
-  var work=row.querySelector(".nf-fl-work")?.value||"Stone";
-  var label=row.querySelector(".nf-fl-wr")?.closest(".nf-fancy-field")?.querySelector("label");if(label)label.textContent=work+" Charge";
-  var out=row.querySelector(".nf-fl-total");if(out)out.textContent=moneyF(t);
- });
- var tot=document.getElementById("qo-fancy-lining-total-"+id);if(tot)tot.textContent=moneyF(total);
- var count=document.getElementById("qo-fancy-lining-"+id);if(count && Number(count.value||0)!==rs.length)count.value=rs.length;
- if(callMain!==false && typeof window.updateQuickOrderCalcV314==="function")window.updateQuickOrderCalcV314(id);
- else if(callMain!==false && typeof window.updateQuickOrderCalc==="function")window.updateQuickOrderCalc(id);
-}
-function countChange(id){
- var el=document.getElementById("qo-fancy-lining-"+id);if(!el)return;
- var n=Math.max(0,Math.floor(N(el.value)));
- var rs=read(id);
- while(rs.length<n)rs.push({work:"Stone",liningQty:0,liningRate:0,blouseRate:0,workRate:0});
- if(rs.length>n)rs=rs.slice(0,n);
- render(id,rs);
-}
-window.nfFancyLiningCalc=calc;
-window.nfFancyLiningCount=countChange;
-window.nfFancyLiningRemove=function(id,btn){
- var row=btn&&btn.closest(".nf-fancy-lining-row");if(row)row.remove();
- var n=rows(id).length,el=document.getElementById("qo-fancy-lining-"+id);if(el)el.value=n;
- calc(id,true);
-};
-function stored(order){
- var notes=String(order&&order.notes||"");
- var m=notes.match(/FANCY_LINING_ITEMS:(\[[^\]]*\])/);
- if(!m)return [];
- try{var a=JSON.parse(m[1]);return Array.isArray(a)?a:[]}catch(e){return []}
-}
-function sync(id,order){
- ensure(id);
- var a=stored(order||{});
- render(id,a);
-}
-function patch(id){
- var r=root(id);if(!r)return;
- ensure(id);
- var oid=String(r.dataset.editOrderId||"");
- var bound=String(r.dataset.v159FancyBound||"");
- var o=null;
- try{if(oid&&typeof state!=="undefined"&&Array.isArray(state.orders))o=state.orders.find(function(x){return String(x.id)===oid})||null}catch(e){}
- if(o && bound!==oid){sync(id,o);r.dataset.v159FancyBound=oid}
- else if(!bound){calc(id,false);r.dataset.v159FancyBound=oid||"__new__"}
-}
-function scan(){document.querySelectorAll('[id^="quick-order-"]').forEach(function(r){patch(r.id.slice(12))})}
-
-var oldPopulate=window.populateQuickOrderEditor;
-if(typeof oldPopulate==="function"&&!oldPopulate.__nfV159Fancy){
- window.populateQuickOrderEditor=function(id,o){
-  var z=oldPopulate.apply(this,arguments);
-  setTimeout(function(){ensure(id);sync(id,o||{});},0);
-  return z;
- };
- window.populateQuickOrderEditor.__nfV159Fancy=true;
-}
-
-var oldCalc=window.updateQuickOrderCalc;
-if(typeof oldCalc==="function"&&!oldCalc.__nfV159Fancy){
- window.updateQuickOrderCalc=function(id){
-  var z=oldCalc.apply(this,arguments);
-  var total=read(id).reduce(function(a,x){return a+x.liningQty*x.liningRate+x.blouseRate+x.workRate},0);
-  var el=document.getElementById("qo-total-"+id);
-  if(el){
-   var base=Number(String(el.textContent||"").replace(/[^\d.-]/g,""))||0;
-   /* Base calc already includes the legacy lining total; add Fancy rows only. */
-   el.textContent=moneyF(base+total);
-  }
-  var gt=document.getElementById("qo-garment-total-"+id);
-  if(gt){
-   var gbase=Number(String(gt.textContent||"").replace(/[^\d.-]/g,""))||0;
-   el && (el.textContent=moneyF(gbase+total+(Number(document.getElementById("qo-lining-total-"+id)?.textContent?.replace(/[^\d.-]/g,"")||0))));
-  }
-  return z;
- };
- window.updateQuickOrderCalc.__nfV159Fancy=true;
-}
-
-var oldSave=window.saveQuickOrder;
-if(typeof oldSave==="function"&&!oldSave.__nfV159Fancy){
- window.saveQuickOrder=async function(id,customerId){
-  var fancy=read(id);
-  var box=root(id);
-  var originalNotes=document.getElementById("qo-notes-"+id)?.value||"";
-  var clean=String(originalNotes).replace(/\s*\|\s*FANCY_LINING_ITEMS:\[[^\]]*\]/,"").trim();
-  var valid=fancy.length;
-  if(valid) document.getElementById("qo-notes-"+id).value=clean+" | FANCY_LINING_ITEMS:"+JSON.stringify(fancy);
-  var result=await oldSave.apply(this,arguments);
-  if(document.getElementById("qo-notes-"+id))document.getElementById("qo-notes-"+id).value=originalNotes;
-  return result;
- };
- window.saveQuickOrder.__nfV159Fancy=true;
-}
-
-document.addEventListener("DOMContentLoaded",function(){
- setTimeout(scan,250);setTimeout(scan,800);
-},{once:true});
-if(document.body)new MutationObserver(function(){clearTimeout(window.__nfV159FancyTimer);window.__nfV159FancyTimer=setTimeout(scan,180)}).observe(document.body,{childList:true,subtree:true});
-})();
-</script>
-<style id="nf-v159-fancy-lining-style">
-#app [id^="quick-order-"] .nf-fancy-lining-wrap{margin-top:10px;padding:9px;border:1px solid #e7b4c2;border-radius:14px;background:linear-gradient(135deg,#fff7f9,#fff)}
-#app [id^="quick-order-"] .nf-fancy-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
-#app [id^="quick-order-"] .nf-fancy-head strong{font-size:14px;font-weight:950;color:#a52245}
-#app [id^="quick-order-"] .nf-fancy-head span{font-size:10px;color:#6f6570;font-weight:800}
-#app [id^="quick-order-"] .nf-fancy-count{display:grid;grid-template-columns:1fr 110px;gap:8px;align-items:center;margin-bottom:8px;padding:8px;border-radius:11px;background:#fff;border:1px solid #eadde2}
-#app [id^="quick-order-"] .nf-fancy-count label{font-size:11px;font-weight:900;color:#29242e}
-#app [id^="quick-order-"] .nf-fancy-count input{text-align:right}
-#app [id^="quick-order-"] .nf-fancy-rows{display:grid;gap:6px}
-#app [id^="quick-order-"] .nf-fancy-lining-row{display:grid;grid-template-columns:28px minmax(100px,1.15fr) repeat(4,minmax(78px,1fr)) 82px 30px;gap:6px;align-items:end;padding:7px;border:1px solid #eadde2;border-radius:11px;background:#fff}
-#app [id^="quick-order-"] .nf-fancy-no{font-size:12px;font-weight:950;color:#a52245;text-align:center;padding-bottom:11px}
-#app [id^="quick-order-"] .nf-fancy-field label{display:block;font-size:9px;font-weight:900;color:#6c626a;margin:0 0 3px}
-#app [id^="quick-order-"] .nf-fancy-field .input{min-height:38px;padding:7px 8px;font-size:12px}
-#app [id^="quick-order-"] .nf-fancy-total{min-height:38px;padding:7px 5px;border-radius:9px;background:#fff6df;border:1px solid #efd79a;text-align:right}
-#app [id^="quick-order-"] .nf-fancy-total span{display:block;font-size:9px;color:#766b59;font-weight:850}
-#app [id^="quick-order-"] .nf-fancy-total b{font-size:13px;color:#8b5c00}
-#app [id^="quick-order-"] .nf-fancy-remove{height:38px;width:30px;border:1px solid #efb5b5;border-radius:9px;background:#fff0f0;color:#b42318;font-size:20px;line-height:1}
-#app [id^="quick-order-"] .nf-fancy-grand{display:flex;justify-content:space-between;align-items:center;margin-top:7px;padding:8px 10px;border-radius:10px;background:#fff0f5;border:1px solid #e7b4c2}
-#app [id^="quick-order-"] .nf-fancy-grand span{font-size:11px;font-weight:900;color:#7b3a4c}
-#app [id^="quick-order-"] .nf-fancy-grand b{font-size:16px;color:#a52245}
-@media(max-width:700px){
- #app [id^="quick-order-"] .nf-fancy-lining-row{grid-template-columns:24px minmax(88px,1fr) repeat(4,minmax(65px,1fr)) 70px 28px;overflow-x:auto}
- #app [id^="quick-order-"] .nf-fancy-field .input{min-width:65px}
-}
-</style>
-
 </body>
 <script id="nf-v120-single-cash-dedupe-fix">
 /* V22: superseded by the single stable customer-group renderer. */
@@ -15005,3 +14813,227 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
 }
 </style>
 
+
+
+<style id="nf-v159-fancy-lining-cloth-css">
+/* V159 — Fancy Lining Blouse: compact single row INSIDE Lining blouse box. */
+#app [id^="quick-order-"] .nf-fancy-lining-row{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) 92px!important;
+  align-items:center!important;
+  gap:7px!important;
+  margin-top:7px!important;
+  padding:5px 7px!important;
+  border:1px solid #dfe7e3!important;
+  border-radius:8px!important;
+  background:#f8fffb!important;
+}
+#app [id^="quick-order-"] .nf-fancy-lining-row .nf-fancy-lining-label{
+  min-width:0!important;
+  font-size:11px!important;
+  line-height:1.15!important;
+  font-weight:900!important;
+  color:#23664b!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+}
+#app [id^="quick-order-"] .nf-fancy-lining-row .nf-fancy-lining-label span{
+  font-size:9px!important;
+  font-weight:750!important;
+  color:#66756e!important;
+  margin-left:4px!important;
+}
+#app [id^="quick-order-"] .nf-fancy-lining-row .nf-fancy-lining-qty{
+  width:100%!important;
+  min-height:30px!important;
+  height:30px!important;
+  padding:4px 6px!important;
+  text-align:right!important;
+  font-size:13px!important;
+  font-weight:900!important;
+  border-radius:7px!important;
+}
+@media(max-width:560px){
+  #app [id^="quick-order-"] .nf-fancy-lining-row{
+    grid-template-columns:minmax(0,1fr) 78px!important;
+    gap:5px!important;
+    margin-top:5px!important;
+    padding:4px 6px!important;
+  }
+  #app [id^="quick-order-"] .nf-fancy-lining-row .nf-fancy-lining-label{
+    font-size:10px!important;
+  }
+  #app [id^="quick-order-"] .nf-fancy-lining-row .nf-fancy-lining-label span{
+    font-size:8px!important;
+  }
+  #app [id^="quick-order-"] .nf-fancy-lining-row .nf-fancy-lining-qty{
+    min-height:28px!important;
+    height:28px!important;
+    font-size:12px!important;
+  }
+}
+</style>
+
+<script id="nf-v159-fancy-lining-cloth-final">
+(function(){
+  "use strict";
+  if(window.__nfV159FancyLiningInstalled)return;
+  window.__nfV159FancyLiningInstalled=true;
+
+  function N(v){
+    var n=Number(v);
+    return Number.isFinite(n)?Math.max(0,Math.floor(n)):0;
+  }
+  function rootFor(id){
+    return document.getElementById("quick-order-"+String(id));
+  }
+
+  function parseFancyQty(order){
+    var notes=String(order&&order.notes||"");
+    var m=notes.match(/(?:^|\s*\|\s*)FANCY_LINING_CLOTH_QTY:([0-9]+)/);
+    return m?N(m[1]):0;
+  }
+
+  function ensureFancyRow(id){
+    var root=rootFor(id);
+    if(!root)return null;
+    var box=root.querySelector(".nf-edit-lining-blouse");
+    if(!box)return null;
+
+    var row=box.querySelector(".nf-fancy-lining-row");
+    if(!row){
+      row=document.createElement("div");
+      row.className="nf-fancy-lining-row";
+      row.innerHTML=
+        '<div class="nf-fancy-lining-label">✨ Fancy Lining Blouse <span>· Lining cloth Count</span></div>'+
+        '<input id="qo-fancy-lining-cloth-qty-'+String(id).replace(/"/g,"&quot;")+'" class="input nf-fancy-lining-qty" type="number" min="0" step="1" inputmode="numeric" value="0" aria-label="Fancy Lining Blouse Lining cloth Count">';
+      var slot=box.querySelector('.nf-simple-lining-cloth[data-lining-section="lining"]');
+      if(slot && slot.parentNode===box) slot.insertAdjacentElement("afterend",row);
+      else box.appendChild(row);
+
+      var input=row.querySelector(".nf-fancy-lining-qty");
+      if(input){
+        input.addEventListener("input",function(){
+          var v=N(input.value);
+          if(String(v)!==String(input.value))input.value=String(v);
+        });
+      }
+    }
+    return row;
+  }
+
+  function setFancyQty(id,qty){
+    var row=ensureFancyRow(id);
+    var input=row&&row.querySelector(".nf-fancy-lining-qty");
+    if(input)input.value=String(N(qty));
+  }
+
+  function syncFancyFromOrder(id,order){
+    setFancyQty(id,parseFancyQty(order||{}));
+    var input=document.querySelector("#qo-fancy-lining-cloth-qty-"+CSS.escape(String(id)));
+    if(input){
+      /* Remove the metadata marker from the editable Notes field. */
+      var notes=document.getElementById("qo-notes-"+id);
+      if(notes){
+        notes.value=String(notes.value||"")
+          .replace(/(?:^|\s*\|\s*)FANCY_LINING_CLOTH_QTY:[0-9]+/g,"")
+          .replace(/\s*\|\s*\|\s*/g," | ")
+          .replace(/^\s*\|\s*|\s*\|\s*$/g,"")
+          .trim();
+      }
+    }
+  }
+
+  function currentFancyQty(id){
+    var row=ensureFancyRow(id);
+    var input=row&&row.querySelector(".nf-fancy-lining-qty");
+    return N(input&&input.value);
+  }
+
+  /* Populate the separate Fancy count when Edit Order opens. */
+  var basePopulate=window.populateQuickOrderEditor;
+  if(typeof basePopulate==="function" && !basePopulate.__nfV159Fancy){
+    var wrappedPopulate=function(id,o){
+      basePopulate.apply(this,arguments);
+      var order=o||{};
+      setTimeout(function(){syncFancyFromOrder(id,order);},0);
+      setTimeout(function(){syncFancyFromOrder(id,order);},160);
+    };
+    wrappedPopulate.__nfV159Fancy=true;
+    window.populateQuickOrderEditor=wrappedPopulate;
+  }
+
+  /* Save only this one extra count as order metadata; existing lining cloth
+     rows and calculations remain untouched. */
+  var baseSave=window.saveQuickOrder;
+  if(typeof baseSave==="function" && !baseSave.__nfV159Fancy){
+    var wrappedSave=async function(id,customerId){
+      ensureFancyRow(id);
+      var fancyQty=currentFancyQty(id);
+      var box=document.getElementById("quick-order-"+id);
+      var editId=String(box&&box.dataset&&box.dataset.editOrderId||"").trim();
+      var result=await baseSave.apply(this,arguments);
+
+      try{
+        var orderId=editId;
+        var orders=(typeof state!=="undefined"&&Array.isArray(state.orders))?state.orders:[];
+        if(!orderId){
+          var cid=String(customerId||id||"");
+          var latest=orders.filter(function(o){return String(o.customer_id)===cid})
+            .slice().sort(function(a,b){
+              return String(b.created_at||b.order_date||"").localeCompare(String(a.created_at||a.order_date||""));
+            })[0];
+          if(latest)orderId=String(latest.id);
+        }
+
+        var order=orders.find(function(o){return String(o.id)===String(orderId)})||null;
+        if(orderId && window.supabaseClient){
+          var notes=String(order&&order.notes||"")
+            .replace(/\s*\|\s*FANCY_LINING_CLOTH_QTY:[0-9]+/g,"")
+            .replace(/^FANCY_LINING_CLOTH_QTY:[0-9]+\s*\|\s*/,"")
+            .trim();
+          if(fancyQty>0)notes+=(notes?" | ":"")+"FANCY_LINING_CLOTH_QTY:"+fancyQty;
+
+          var u=await supabaseClient.from("orders").update({notes:notes}).eq("id",orderId).select("*").maybeSingle();
+          if(u.error)throw u.error;
+          var saved=u.data||Object.assign({},order||{},{
+            id:orderId,
+            notes:notes,
+            customer_id:String(customerId||id||order?.customer_id||"")
+          });
+          if(typeof state!=="undefined"&&Array.isArray(state.orders)){
+            var ix=state.orders.findIndex(function(o){return String(o.id)===String(orderId)});
+            if(ix>=0)state.orders[ix]=saved;
+          }
+        }
+      }catch(e){
+        console.error("V159 Fancy Lining count save failed",e);
+        if(typeof toast==="function")toast("Fancy Lining count save ஆகவில்லை. மீண்டும் முயற்சி செய்யுங்கள்.",true);
+      }
+      return result;
+    };
+    wrappedSave.__nfV159Fancy=true;
+    window.saveQuickOrder=wrappedSave;
+  }
+
+  function scan(){
+    document.querySelectorAll('[id^="quick-order-"]').forEach(function(root){
+      ensureFancyRow(root.id.slice("quick-order-".length));
+    });
+  }
+
+  document.addEventListener("DOMContentLoaded",function(){
+    setTimeout(scan,100);
+    setTimeout(scan,350);
+    setTimeout(scan,900);
+  },{once:true});
+
+  if(document.body){
+    new MutationObserver(function(){
+      clearTimeout(window.__nfV159FancyTimer);
+      window.__nfV159FancyTimer=setTimeout(scan,100);
+    }).observe(document.body,{childList:true,subtree:true});
+  }
+})();
+</script>
