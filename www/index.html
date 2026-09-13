@@ -11969,6 +11969,23 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
   window.r100OpenCustomerCard=function(kind,id){return openCustomerCard(kind,id);};
   window.r100GetDeliveryCustomer=function(id){var cs=allCustomers();return cs.find(function(c){return String(c&&c.id||'')===String(id||'');})||null;};
 
+  /* V234: Visible layout for the separate Multi Customer Photo Card. */
+  var v234Style=document.createElement('style');
+  v234Style.id='nf-v234-multi-photo-card-style';
+  v234Style.textContent=`
+    .v233-multi-photo-box{margin:22px 0 0;padding:18px;border:2px solid #d8c9ee;border-radius:24px;background:#fff;box-shadow:0 10px 28px rgba(40,20,70,.08)}
+    .v233-photo-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 18px;border-radius:18px;background:linear-gradient(135deg,#4d1d95,#c2186b);color:#fff}
+    .v233-photo-head strong{display:block;font-size:22px;font-weight:950}.v233-photo-head small{display:block;margin-top:4px;font-size:14px;font-weight:800;opacity:.9}
+    .v233-photo-share{border:0;border-radius:14px;padding:11px 15px;background:#fff;color:#5e3be0;font-weight:900;font-size:15px;cursor:pointer}
+    .v233-photo-customers{display:grid;grid-template-columns:1fr;gap:16px;margin-top:16px}
+    .v233-photo-customer{border:1.5px solid #e0d9ea;border-radius:20px;padding:15px;background:#faf8fd}
+    .v233-photo-customer-title{font-size:22px;font-weight:950;color:#241b2e;margin-bottom:12px}
+    .v233-photo-section{margin-top:12px;padding:12px;border-radius:16px;background:#fff;border:1px solid #e5deee}.v233-photo-section b{display:block;font-size:17px;color:#4b4054;margin-bottom:9px}
+    .v233-photo-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}.v233-photo-slot,.v233-photo-empty{min-height:105px;border-radius:13px;background:#f4f1f8;border:1px solid #ddd5e7;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden}.v233-photo-slot img{width:100%;height:82px;object-fit:cover;display:block}.v233-photo-slot small,.v233-photo-empty small{font-size:12px;font-weight:850;padding:5px;text-align:center}.v233-photo-empty span{font-size:28px;opacity:.65}
+    @media(max-width:600px){.v233-photo-head{align-items:flex-start}.v233-photo-head strong{font-size:19px}.v233-photo-share{font-size:13px;padding:9px 11px}.v233-photo-customer-title{font-size:20px}.v233-photo-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  `;
+  (document.head||document.documentElement).appendChild(v234Style);
+
   /* V233: Multi Customer-only separate Photo Card on the Delivery page.
      Keep the existing Single Customer Delivery Card and Multi Customer WhatsApp Card untouched. */
   function photoSrcV233(p){
@@ -12061,7 +12078,30 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
       if(extra.length){html+='<div class="r100-delivery-additional">'+extra.map(function(x){return '<span>👤 '+escText(x.name||'Customer')+'</span>';}).join('')+'</div>';}
       html+='<div class="r100-delivery-card-links"><button type="button" class="r100-delivery-card-link r100-delivery-wa" data-r100-kind="whatsapp" data-r100-customer="'+escText(c.id)+'"><span><strong>🟢 WhatsApp Card</strong><small>Tap → தனியாக Card Open</small></span><span class="arrow">›</span></button><button type="button" class="r100-delivery-card-link r100-delivery-del" data-r100-kind="delivery" data-r100-customer="'+escText(c.id)+'"><span><strong>🚚 Delivery Card</strong><small>Tap → தனியாக Card Open</small></span><span class="arrow">›</span></button></div></section>';
     });
-    html+='</div>';box.innerHTML=html;
+    html+='</div>';
+    box.innerHTML=html;
+
+    /* V234: Actually mount the separate Multi Customer Photo Card below the
+       Delivery customer cards. V233 had the builder functions, but never
+       inserted the card into #r100DeliveryContent, so nothing was visible. */
+    var photoMain=selectedMain;
+    if(!photoMain){
+      for(var pm=0;pm<mains.length;pm++){
+        if(groupFor(mains[pm].id).length>1){photoMain=mains[pm];break;}
+      }
+    }
+    if(photoMain){
+      var photoGroup=groupFor(photoMain.id);
+      if(photoGroup.length>1){
+        var holder=document.createElement('div');
+        holder.innerHTML=buildMultiPhotoCardShell(photoMain,photoGroup);
+        var photoCard=holder.firstElementChild;
+        if(photoCard){
+          box.appendChild(photoCard);
+          hydrateMultiPhotoCards(box);
+        }
+      }
+    }
   }
   async function render(){
     var box=document.getElementById('r100DeliveryContent');if(!box)return;
