@@ -12595,6 +12595,210 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-card{
   document.addEventListener('DOMContentLoaded',function(){setTimeout(function(){try{renderOrders()}catch(e){console.warn('V227 Order Card render:',e)}},120)});
 })();
 </script>
+
+<style id="nf-v230-additional-delete-edit-sync-css">
+.nf-v230-person-actions{display:flex;flex-wrap:wrap;gap:7px;margin-top:8px}
+.nf-v230-person-actions button{border:1px solid #ddd5ef;border-radius:10px;padding:7px 10px;font-weight:900;cursor:pointer;background:#fff}
+.nf-v230-person-actions .nf-v230-edit{background:#eee8ff;color:#5131a0}
+.nf-v230-person-actions .nf-v230-delete{background:#fff0f0;color:#b32626;border-color:#efc2c2}
+.nf-v230-edit-person.is-deleted{display:none!important}
+</style>
+<script id="nf-v230-additional-delete-edit-sync">
+(function(){
+  "use strict";
+  if(window.__nfV230Installed)return;
+  window.__nfV230Installed=true;
+  var PARENT_RE=/(?:^|\|\s*)(?:NF_MULTI_PARENT|NF_PARENT_CUSTOMER):\s*([^|\s]+)/i;
+  function S(v){return String(v==null?"":v)}
+  function allCustomers(){return (typeof state!=="undefined"&&Array.isArray(state.customers))?state.customers:[]}
+  function parentId(c){var m=S(c&&c.notes).match(PARENT_RE);return m?S(m[1]):""}
+  function isAdditional(c){return !!parentId(c)}
+  function latestOrder(cid){
+    var list=(state.orders||[]).filter(function(o){return S(o&&o.customer_id)===S(cid)});
+    list.sort(function(a,b){return S(b&&b.created_at||b&&b.order_date).localeCompare(S(a&&a.created_at||a&&a.order_date))});
+    return list[0]||null;
+  }
+  function esc230(v){return typeof window.esc==='function'?window.esc(v==null?'':S(v)):S(v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+
+  async function deleteAdditionalCustomer(cid,skipConfirm){
+    cid=S(cid); if(!cid||typeof supabaseClient==='undefined')return false;
+    var c=allCustomers().find(function(x){return S(x&&x.id)===cid});
+    if(!c||!isAdditional(c)){if(typeof toast==='function')toast('Additional Customer கிடைக்கவில்லை.',true);return false}
+    if(!skipConfirm && !confirm('“'+S(c.name||'Customer')+'” Additional Customer-ஐ முழுவதுமாக delete செய்யவா?\n\nஇந்த customer-ன் Orders, Payments, Alterations, Measurements மற்றும் Photos தொடர்புடைய data-வும் delete ஆகும்.'))return false;
+    try{
+      var orders=(state.orders||[]).filter(function(o){return S(o&&o.customer_id)===cid});
+      var ids=orders.map(function(o){return o&&o.id}).filter(Boolean);
+      if(ids.length){
+        var p=await supabaseClient.from('payments').delete().in('order_id',ids); if(p.error)throw p.error;
+        var a=await supabaseClient.from('alterations').delete().in('order_id',ids); if(a.error)throw a.error;
+      }
+      var ac=await supabaseClient.from('alterations').delete().eq('customer_id',cid); if(ac.error)throw ac.error;
+      var m=await supabaseClient.from('measurements').delete().eq('customer_id',cid); if(m.error)throw m.error;
+      var o=await supabaseClient.from('orders').delete().eq('customer_id',cid); if(o.error)throw o.error;
+      var cc=await supabaseClient.from('customers').delete().eq('id',cid); if(cc.error)throw cc.error;
+      try{
+        if(typeof nfDbAll==='function'&&typeof nfDbDelete==='function'&&typeof NF_QUEUE_STORE!=='undefined'){
+          var q=await nfDbAll(NF_QUEUE_STORE);
+          for(const item of q||[]){
+            var payload=item&&item.payload||{},filters=item&&item.filters||[];
+            var match=S(payload.customer_id)===cid||S(payload.id)===cid||filters.some(function(f){return S(f&&f.value)===cid});
+            if(match)await nfDbDelete(NF_QUEUE_STORE,item.key);
+          }
+        }
+      }catch(e){console.warn('V230 queue cleanup skipped',e)}
+      try{localStorage.removeItem('nf_village_'+cid);localStorage.removeItem('nf_customer_designs_'+cid);localStorage.removeItem('nf_customer_selected_designs_'+cid);localStorage.removeItem('nf_customer_cloth_photos_'+cid)}catch(e){}
+      try{if(typeof nfIdbDelete==='function')await nfIdbDelete(cid)}catch(e){}
+      state.customers=allCustomers().filter(function(x){return S(x&&x.id)!==cid});
+      state.orders=(state.orders||[]).filter(function(x){return S(x&&x.customer_id)!==cid});
+      if(typeof loadAll==='function')await loadAll(true);
+      if(typeof renderCustomers==='function')renderCustomers();
+      if(typeof renderOrders==='function')renderOrders();
+      if(typeof renderDashboardCustomers==='function')renderDashboardCustomers();
+      if(typeof renderSidebarCustomerList==='function')renderSidebarCustomerList();
+      if(typeof renderMyCustomersSlideMenu==='function')renderMyCustomersSlideMenu();
+      if(typeof toast==='function')toast('Additional Customer மற்றும் அவருடைய Order data முழுவதும் delete செய்யப்பட்டு Sync செய்யப்பட்டது.');
+      return true;
+    }catch(err){
+      console.error('V230 Additional Customer delete:',err);
+      if(typeof toast==='function')toast('Additional Customer delete failed: '+S(err&&err.message||err),true);
+      return false;
+    }
+  }
+  window.nfV230DeleteAdditionalCustomer=deleteAdditionalCustomer;
+
+  /* Customer Card / Multi Customer additional-person Delete button. */
+  document.addEventListener('click',function(e){
+    var del=e.target&&e.target.closest?e.target.closest('.nf-v230-delete,.nf-v240-person-delete,.nf116-delete,.nf140-child-delete'):null;
+    if(!del)return;
+    var person=del.closest('.nf-v240-person');
+    var id=person&&person.getAttribute('data-customer-id');
+    if(!id){
+      var row=del.closest('.nf116-person,.nf140-child,.nf111-edit-person');
+      id=row&&(row.getAttribute('data-customer-id')||row.getAttribute('data-nf116-id')||row.getAttribute('data-nf140-delete')||row.getAttribute('data-nf111-id'));
+    }
+    if(!id)return;
+    var c=allCustomers().find(function(x){return S(x&&x.id)===S(id)});
+    if(!c||!isAdditional(c))return;
+    e.preventDefault();e.stopImmediatePropagation();
+    deleteAdditionalCustomer(id,false);
+  },true);
+
+  /* Edit Customer screen: clicking Delete on an existing Additional Customer now
+     deletes the online customer + all linked data immediately, then refreshes state.
+     New unsaved blank rows are still simply removed from the form. */
+  document.addEventListener('click',function(e){
+    var btn=e.target&&e.target.closest?e.target.closest('[data-nf111-delete]'):null;
+    if(!btn)return;
+    var row=btn.closest('.nf111-edit-person'); if(!row)return;
+    var id=S(row.getAttribute('data-nf111-id'));
+    if(!id)return; // allow the original handler to remove a blank unsaved row
+    var c=allCustomers().find(function(x){return S(x&&x.id)===id});
+    if(!c||!isAdditional(c))return;
+    e.preventDefault();e.stopImmediatePropagation();
+    deleteAdditionalCustomer(id,false).then(function(ok){if(ok){row.remove();}});
+  },true);
+
+  /* Additional Customer Edit Order: always use the stable dedicated Orders editor. */
+  window.nfV230EditAdditionalOrder=function(cid){
+    var o=latestOrder(cid);
+    if(o&&typeof window.openOrdersEditOrder==='function'){
+      try{window.openOrdersEditOrder(S(o.id));return true}catch(e){console.warn('V230 openOrdersEditOrder failed',e)}
+    }
+    if(typeof window.openCustomerOrderEditor==='function'&&o){window.openCustomerOrderEditor(S(cid),S(o.id));return true}
+    if(typeof toast==='function')toast('Edit Order screen திறக்க முடியவில்லை.',true);
+    return false;
+  };
+  window.nfV22AdditionalEditOrder=window.nfV230EditAdditionalOrder;
+  window.nfMultiCustomerEditOrder=window.nfV230EditAdditionalOrder;
+
+  /* Rebuild the person action row in the current four-hook Multi Customer card. */
+  var baseCustomerCard=window.customerCard;
+  if(typeof baseCustomerCard==='function'&&!baseCustomerCard.__nfV230){
+    window.customerCard=function(id){
+      var html=baseCustomerCard.apply(this,arguments);
+      try{
+        var holder=document.createElement('div');holder.innerHTML=html;
+        holder.querySelectorAll('.nf-v240-person').forEach(function(person){
+          var cid=S(person.getAttribute('data-customer-id')),c=allCustomers().find(function(x){return S(x&&x.id)===cid});
+          if(!c||!isAdditional(c))return;
+          var head=person.querySelector('.nf-v240-person-name');if(!head)return;
+          var old=head.querySelector('.nf-v240-person-actions');if(old)old.remove();
+          var acts=document.createElement('div');acts.className='nf-v230-person-actions';
+          acts.innerHTML='<button type="button" class="nf-v230-edit">✏️ Edit Order</button><button type="button" class="nf-v230-delete">🗑️ Delete Customer</button>';
+          acts.querySelector('.nf-v230-edit').onclick=function(e){e.preventDefault();e.stopPropagation();window.nfV230EditAdditionalOrder(cid)};
+          acts.querySelector('.nf-v230-delete').onclick=function(e){e.preventDefault();e.stopPropagation();deleteAdditionalCustomer(cid,false)};
+          head.appendChild(acts);
+        });
+        return holder.querySelector('.customerCard')?.outerHTML||html;
+      }catch(e){return html}
+    };
+    window.customerCard.__nfV230=true;
+  }
+
+  /* Order Full Details: each Additional Customer gets Edit + Delete. Main Customer
+     keeps only Edit Order. */
+  var oldOpen=window.openOrderFullDetails;
+  if(typeof oldOpen==='function'&&!oldOpen.__nfV230){
+    window.openOrderFullDetails=function(orderId){
+      var r=oldOpen.apply(this,arguments);
+      setTimeout(function(){
+        try{
+          var content=document.getElementById('nfOrderFullDetailsContent');if(!content)return;
+          content.querySelectorAll('.nf-v227-customer').forEach(function(sec){
+            var role=(sec.querySelector('.nf-v227-customer-role')?.textContent||'').trim();
+            if(!/^Additional Customer/i.test(role))return;
+            var head=sec.querySelector('.nf-v227-customer-head');if(!head)return;
+            var title=(sec.querySelector('.nf-v227-customer-name')?.textContent||'').trim();
+            var os=(state.orders||[]).filter(function(o){return title.indexOf(S(o.order_no||'Order'))===0});
+            var o=os[0];
+            var customer=allCustomers().find(function(c){return o&&S(c.id)===S(o.customer_id)});
+            if(!customer)return;
+            var old=head.querySelector('.nf-v230-order-person-actions');if(old)old.remove();
+            var acts=document.createElement('div');acts.className='nf-v230-order-person-actions';
+            acts.style.cssText='display:flex;gap:6px;flex-wrap:wrap;margin-top:7px';
+            acts.innerHTML='<button type="button" class="btn nf-v230-edit" style="padding:7px 10px">✏️ Edit Order</button><button type="button" class="btn nf-v230-delete" style="padding:7px 10px">🗑️ Delete Customer</button>';
+            acts.querySelector('.nf-v230-edit').onclick=function(e){e.preventDefault();e.stopPropagation();window.nfV230EditAdditionalOrder(customer.id)};
+            acts.querySelector('.nf-v230-delete').onclick=function(e){e.preventDefault();e.stopPropagation();deleteAdditionalCustomer(customer.id,false)};
+            head.appendChild(acts);
+          });
+        }catch(e){console.warn('V230 Order details action patch:',e)}
+      },80);
+      return r;
+    };
+    window.openOrderFullDetails.__nfV230=true;
+  }
+
+  /* Order Card Edit button: use the stable dedicated editor, not the old inline
+     customer-card route that could fail after the Multi Customer rebuild. */
+  window.nfV230EditOrderFromCard=function(orderId){
+    var o=(state.orders||[]).find(function(x){return S(x&&x.id)===S(orderId)});
+    if(!o){if(typeof toast==='function')toast('Edit செய்ய Order கிடைக்கவில்லை.',true);return}
+    try{
+      closeOrderFullDetails();
+    }catch(e){}
+    if(typeof window.openOrdersEditOrder==='function'){
+      try{window.openOrdersEditOrder(S(o.id));return}catch(e){console.warn('V230 card edit failed',e)}
+    }
+    if(typeof window.openCustomerOrderEditor==='function')window.openCustomerOrderEditor(S(o.customer_id),S(o.id));
+  };
+
+  /* Replace the top Edit button created by V229 with the stable handler. */
+  document.addEventListener('click',function(e){
+    var b=e.target&&e.target.closest?e.target.closest('.nf-v229-edit-btn'):null;
+    if(!b)return;
+    var content=document.getElementById('nfOrderFullDetailsContent');
+    var first=(state.orders||[]).find(function(o){return content&&content.textContent.indexOf(S(o.order_no||''))>=0});
+    if(!first)return;
+    e.preventDefault();e.stopImmediatePropagation();
+    window.nfV230EditOrderFromCard(first.id);
+  },true);
+
+  /* After any customer/order change, refresh all views from the synced source. */
+  window.nfV230RefreshAll=function(){
+    if(typeof loadAll==='function')return loadAll(true);
+  };
+})();
+</script>
 </body>
 <script id="nf-v120-single-cash-dedupe-fix">
 /* V22: superseded by the single stable customer-group renderer. */
