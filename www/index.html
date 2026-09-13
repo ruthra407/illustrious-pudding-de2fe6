@@ -12112,55 +12112,45 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
     mains.forEach(function(c,i){
       var group=groupFor(c.id),extra=group.slice(1),badge=extra.length?'👥 Multi · '+group.length:'👤 Single';
       var isThisSelected=isSelected&&String(c.id||'')===String(selectedMain.id||'');
-      html+='<section class="r100-delivery-customer-row nf-delivery-color-'+(i%6)+(isThisSelected?' nf-delivery-selected':'')+'"><div class="r100-delivery-customer-top"><div class="r100-delivery-num">'+(i+1)+'</div><div class="r100-delivery-customer-name">'+escText(c.name||'Customer')+'</div><span class="r100-delivery-customer-badge">'+badge+(isThisSelected?' · SELECTED':'')+'</span><button type="button" class="r100-delivery-photo-hook" data-r100-photo-hook="'+escText(c.id)+'" aria-label="Customer Cloth Photos" title="Customer Cloth Photos">📸</button></div>';
+      html+='<section class="r100-delivery-customer-row nf-delivery-color-'+(i%6)+(isThisSelected?' nf-delivery-selected':'')+'" data-r100-customer-section="'+escText(c.id)+'"><div class="r100-delivery-customer-top"><div class="r100-delivery-num">'+(i+1)+'</div><div class="r100-delivery-customer-name">'+escText(c.name||'Customer')+'</div><span class="r100-delivery-customer-badge">'+badge+(isThisSelected?' · SELECTED':'')+'</span><button type="button" class="r100-delivery-photo-hook" data-r100-photo-hook="'+escText(c.id)+'" aria-label="Customer Cloth Photos" title="Customer Cloth Photos">📸</button></div>';
       if(extra.length){html+='<div class="r100-delivery-additional">'+extra.map(function(x){return '<span>👤 '+escText(x.name||'Customer')+'</span>';}).join('')+'</div>';}
-      html+='<div class="r100-delivery-card-links"><button type="button" class="r100-delivery-card-link r100-delivery-wa" data-r100-kind="whatsapp" data-r100-customer="'+escText(c.id)+'"><span><strong>🟢 WhatsApp Card</strong><small>Tap → தனியாக Card Open</small></span><span class="arrow">›</span></button><button type="button" class="r100-delivery-card-link r100-delivery-del" data-r100-kind="delivery" data-r100-customer="'+escText(c.id)+'"><span><strong>🚚 Delivery Card</strong><small>Tap → தனியாக Card Open</small></span><span class="arrow">›</span></button></div></section>';
+      html+='<div class="r100-delivery-card-links"><button type="button" class="r100-delivery-card-link r100-delivery-wa" data-r100-kind="whatsapp" data-r100-customer="'+escText(c.id)+'"><span><strong>🟢 WhatsApp Card</strong><small>Tap → தனியாக Card Open</small></span><span class="arrow">›</span></button><button type="button" class="r100-delivery-card-link r100-delivery-del" data-r100-kind="delivery" data-r100-customer="'+escText(c.id)+'"><span><strong>🚚 Delivery Card</strong><small>Tap → தனியாக Card Open</small></span><span class="arrow">›</span></button></div><div class="r100-inline-photo-holder" data-r100-photo-holder="'+escText(c.id)+'" hidden></div></section>';
     });
     html+='</div>';
     box.innerHTML=html;
 
-    /* V234: Actually mount the separate Multi Customer Photo Card below the
-       Delivery customer cards. V233 had the builder functions, but never
-       inserted the card into #r100DeliveryContent, so nothing was visible. */
-    var photoMain=selectedMain;
-    if(!photoMain){
-      for(var pm=0;pm<mains.length;pm++){
-        if(groupFor(mains[pm].id).length>1){photoMain=mains[pm];break;}
-      }
-    }
-    if(photoMain){
-      var photoGroup=groupFor(photoMain.id);
-      if(photoGroup.length>1){
-        var holder=document.createElement('div');
-        holder.innerHTML=buildMultiPhotoCardShell(photoMain,photoGroup);
-        var photoCard=holder.firstElementChild;
-        if(photoCard){
-          box.appendChild(photoCard);
-          hydrateMultiPhotoCards(box);
-        }
-      }
-    }
+    /* V241: Each main-customer section owns its own Photo Card.
+       The card starts hidden and is toggled by that section's single 📸 button. */
+    box.querySelectorAll('.r100-inline-photo-holder').forEach(function(holder){
+      var id=holder.getAttribute('data-r100-photo-holder')||'';
+      var main=mains.find(function(c){return String(c&&c.id||'')===String(id);});
+      if(!main)return;
+      var photoGroup=groupFor(main.id);
+      if(!photoGroup.length)return;
+      holder.innerHTML=buildMultiPhotoCardShell(main,photoGroup);
+      hydrateMultiPhotoCards(holder);
+    });
   }
   window.__nfV239OpenCustomerPhotoGroup=function(mainId){
-    var content=document.getElementById('r100DeliveryContent');
-    if(!content)return;
-    var mains=[];
-    try{
-      var cs=Array.isArray(state.customers)?state.customers:[];
-      var main=cs.find(function(c){return String(c&&c.id||'')===String(mainId||'');});
-      if(!main)return;
-      var group=groupFor(main.id);
-      if(!group.length)return;
-      content.querySelectorAll('.v233-multi-photo-box').forEach(function(card){card.remove();});
-      var holder=document.createElement('div');
-      holder.innerHTML=buildMultiPhotoCardShell(main,group);
-      var card=holder.firstElementChild;
-      if(!card)return;
-      content.appendChild(card);
-      hydrateMultiPhotoCards(content);
-      requestAnimationFrame(function(){card.scrollIntoView({behavior:'smooth',block:'start'});});
-    }catch(err){console.error('V239 photo hook open failed',err);}
+    var box=document.getElementById('r100DeliveryContent');
+    if(!box)return;
+    var id=String(mainId||'');
+    if(!id)return;
+    var section=box.querySelector('.r100-delivery-customer-row[data-r100-customer-section="'+CSS.escape(id)+'"]');
+    if(!section)return;
+    var holder=section.querySelector('.r100-inline-photo-holder');
+    if(!holder)return;
+    var isHidden=holder.hasAttribute('hidden');
+    if(isHidden){
+      holder.removeAttribute('hidden');
+      requestAnimationFrame(function(){
+        holder.scrollIntoView({behavior:'smooth',block:'nearest'});
+      });
+    }else{
+      holder.setAttribute('hidden','');
+    }
   };
+
   async function render(){
     var box=document.getElementById('r100DeliveryContent');if(!box)return;
     selectedId=resolveDeliverySelection();
@@ -16667,3 +16657,12 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
   },true);
 })();
 </script>
+
+<style id="nf-v241-inline-photo-toggle-style">
+.r100-inline-photo-holder{margin-top:10px;width:100%}
+.r100-inline-photo-holder[hidden]{display:none!important}
+.r100-inline-photo-holder .v233-multi-photo-box{margin-top:0!important}
+@media(max-width:700px){
+  .r100-inline-photo-holder{margin-top:8px}
+}
+</style>
