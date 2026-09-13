@@ -16026,3 +16026,119 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
 #app [id^="quick-order-"] .nf-edit-design-blouse > .nf-v157-lining-slot .nf-lining-item-row{display:grid!important;visibility:visible!important}
 #app [id^="quick-order-"] .nf-edit-design-blouse > .nf-v157-lining-slot .nf-lining-item-field,#app [id^="quick-order-"] .nf-edit-design-blouse > .nf-v157-lining-slot .nf-lining-item-result,#app [id^="quick-order-"] .nf-edit-design-blouse > .nf-v157-lining-slot .nf-lining-remove{visibility:visible!important}
 </style>
+
+<style id="nf-v229-order-card-actions-fix-css">
+.nf-v229-top-actions{display:flex;gap:9px;flex-wrap:wrap;margin:0 0 14px}
+.nf-v229-top-actions .btn{flex:1;min-width:145px;min-height:46px;font-size:15px;font-weight:900}
+.nf-v229-delete-btn{background:#fff0ef!important;color:#b42318!important;border:1px solid #efb1ab!important}
+.nf-v229-edit-btn{background:linear-gradient(135deg,#6846e8,#a14fe4)!important;color:#fff!important}
+</style>
+<script id="nf-v229-order-card-delete-edit-top-multigroup-final">
+(function(){
+  "use strict";
+  function S(v){return String(v==null?"":v)}
+  function N(v){var n=Number(v);return Number.isFinite(n)?n:0}
+  function E(v){return typeof esc==='function'?esc(v==null?'':String(v)):String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+  function customers(){return Array.isArray(state.customers)?state.customers:[]}
+  function parentId(c){var m=S(c&&c.notes).match(/(?:^|\\|\\s*)NF_MULTI_PARENT:([^|\\s]+)/i);return m?S(m[1]):''}
+  function customerById(id){return customers().find(function(c){return S(c&&c.id)===S(id)})||null}
+  function multiGroup(id){
+    var all=customers(),c=customerById(id);if(!c)return[];
+    var root=parentId(c)||S(c.id),main=all.find(function(x){return S(x&&x.id)===root&&!parentId(x)});
+    if(!main){
+      var linked=all.filter(function(x){return S(x&&x.id)===root||parentId(x)===root});
+      return linked.length?linked:[c];
+    }
+    var out=[main],seen={};seen[S(main.id)]=1;
+    all.forEach(function(x){var xid=S(x&&x.id);if(!xid||seen[xid])return;if(parentId(x)===root){seen[xid]=1;out.push(x)}});
+    return out;
+  }
+  function ordersForGroup(g){
+    var out=[],seen={};
+    (g||[]).forEach(function(c){(state.orders||[]).forEach(function(o){if(S(o&&o.customer_id)!==S(c&&c.id)||seen[S(o.id)])return;seen[S(o.id)]=1;out.push(o)})});
+    return out;
+  }
+  function moneyX(v){return typeof money==='function'?money(v):'₹'+N(v).toFixed(2)}
+  function statusPillX(v){return typeof statusPill==='function'?statusPill(v):'<span class="pill">'+E(v||'Pending')+'</span>'}
+  function dateX(v){return typeof dateText==='function'?dateText(v):S(v||'—')}
+  function groupTotals(gos){var total=0,paid=0;(gos||[]).forEach(function(o){total+=N(typeof orderTotal==='function'?orderTotal(o):o.total_amount||o.total);if(typeof nfOrderPaymentInfo==='function')paid+=N(nfOrderPaymentInfo(o).totalPaid);else paid+=N(o.advance_amount||o.paid)});return{total:total,paid:paid,balance:Math.max(0,total-paid)}}
+
+  /* Customer delete can finish online while an older in-memory orders array still contains
+     the deleted customer's rows. Order Cards must never display an order whose customer no
+     longer exists. Multi Customer grouping is rebuilt from the same authoritative customer list. */
+  window.renderOrders=function(){
+    var q=(($('orderSearch')&&$('orderSearch').value)||'').toLowerCase(),sf=($('orderStatusFilter')&&$('orderStatusFilter').value)||'';
+    var allOrders=Array.isArray(state.orders)?state.orders:[],seen={},groups=[];
+    allOrders.forEach(function(o){
+      var cid=S(o&&o.customer_id),c=customerById(cid);
+      if(!c)return; /* stale/orphan order after Customer deletion */
+      if(sf&&o.status!==sf)return;
+      var g=multiGroup(cid);if(!g.length)return;
+      var root=S(g[0].id);if(seen[root])return;
+      var gos=ordersForGroup(g);if(!gos.length)return;
+      if(q){
+        var hay=[];gos.forEach(function(x){hay.push(S(x.order_no));hay.push(S(customerById(x.customer_id)?.name||''));});
+        if(!hay.join(' ').toLowerCase().includes(q))return;
+      }
+      seen[root]=1;groups.push({g:g,os:gos});
+    });
+    var host=$('ordersTable');if(!host)return;
+    host.innerHTML=groups.length?'<div class="nf-v227-order-list">'+groups.map(function(x){
+      var g=x.g,os=x.os,t=groupTotals(os),first=os[0],multi=g.length>1;
+      return '<article class="nf-v227-order-card" onclick="openOrderFullDetails(\''+E(first.id)+'\')">'+
+        '<div class="nf-v227-head"><div><div class="nf-v227-order-no">🧾 '+E(first.order_no||'Order')+'</div><div class="nf-v227-main">👤 '+E(g[0].name||'Customer')+(multi?' · '+g.length+' Customers':'')+'</div>'+(multi?'<div class="nf-v227-multi">✓ Multi Customer</div>':'')+'</div><div>'+statusPillX(first.status)+'</div></div>'+ 
+        '<div class="nf-v227-summary"><div class="nf-v227-stat"><span>Order Date</span><b>'+dateX(first.order_date)+'</b></div><div class="nf-v227-stat"><span>Delivery</span><b>'+dateX(first.delivery_date)+'</b></div><div class="nf-v227-stat"><span>Total</span><b>'+moneyX(t.total)+'</b></div><div class="nf-v227-stat"><span>Balance</span><b>'+moneyX(t.balance)+'</b></div></div></article>';
+    }).join('')+'</div>':'<div class="empty">No orders found.</div>';
+  };
+  window.renderOrders.__nfV229=true;
+
+  /* Keep the rebuilt full-details content, but put Edit/Delete at the TOP so they are
+     immediately reachable. Delete removes only the selected Order and its payment /
+     alteration records; Customer records remain intact. */
+  async function deleteOrderFromCard(orderId){
+    var id=S(orderId),o=(state.orders||[]).find(function(x){return S(x&&x.id)===id});
+    if(!o){toast('Order கிடைக்கவில்லை.',true);return}
+    if(!confirm('“'+S(o.order_no||'Order')+'” Order-ஐ delete செய்யவா?\n\nஇந்த Order-ன் Payments மற்றும் Alterations தொடர்புடைய records-ம் delete ஆகும். Customer delete ஆகாது.'))return;
+    try{
+      var payments=await supabaseClient.from('payments').delete().eq('order_id',id);if(payments.error)throw payments.error;
+      var alterations=await supabaseClient.from('alterations').delete().eq('order_id',id);if(alterations.error)throw alterations.error;
+      var orderDel=await supabaseClient.from('orders').delete().eq('id',id);if(orderDel.error)throw orderDel.error;
+      try{state.orders=(state.orders||[]).filter(function(x){return S(x&&x.id)!==id});}catch(_){ }
+      closeOrderFullDetails();
+      if(typeof loadAll==='function')await loadAll(true);
+      renderOrders();
+      if(typeof renderCustomers==='function')renderCustomers();
+      if(typeof renderDashboardCustomers==='function')renderDashboardCustomers();
+      if(typeof toast==='function')toast('Order delete செய்யப்பட்டது.');
+    }catch(err){if(typeof toast==='function')toast('Order delete failed: '+(err&&err.message||err),true)}
+  }
+  window.deleteOrderFromCard=deleteOrderFromCard;
+
+  var baseOpen=window.openOrderFullDetails;
+  if(typeof baseOpen==='function'&&!baseOpen.__nfV229Wrapped){
+    window.openOrderFullDetails=function(orderId){
+      var r=baseOpen.apply(this,arguments);
+      setTimeout(function(){
+        try{
+          var content=$('nfOrderFullDetailsContent');if(!content)return;
+          var old=content.querySelector('.nf-v227-actions');
+          var first=(state.orders||[]).find(function(x){return S(x&&x.id)===S(orderId)});
+          if(!first)return;
+          var oldEdit=old&&old.querySelector('.nf-v227-actions .primary');
+          var editFn=oldEdit&&oldEdit.getAttribute('onclick');
+          var editButton=editFn?'<button class="btn nf-v229-edit-btn" type="button" onclick="'+E(editFn)+'">✏️ Edit Order</button>':'<button class="btn nf-v229-edit-btn" type="button" onclick="event.stopPropagation();openOrdersEditOrder(\''+E(first.id)+'\')">✏️ Edit Order</button>';
+          var top=document.createElement('div');top.className='nf-v229-top-actions';top.innerHTML=editButton+'<button class="btn nf-v229-delete-btn" type="button" onclick="event.stopPropagation();deleteOrderFromCard(\''+E(first.id)+'\')">🗑️ Delete Order</button>';
+          var head=content.querySelector('.nf-v227-head');
+          if(head)head.insertAdjacentElement('afterend',top);else content.insertBefore(top,content.firstChild);
+          if(old)old.remove();
+        }catch(err){console.warn('V229 Order action placement:',err)}
+      },40);
+      return r;
+    };
+    window.openOrderFullDetails.__nfV229Wrapped=true;
+  }
+
+  function refresh(){try{window.renderOrders()}catch(e){console.warn('V229 renderOrders:',e)}}
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){setTimeout(refresh,120);setTimeout(refresh,450)});else setTimeout(refresh,120);
+})();
+</script>
