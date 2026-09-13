@@ -11880,6 +11880,29 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
       y+=sh+gap;
     });
 
+
+    // Group total: keep each customer's own boxes unchanged, then show one short combined total.
+    var groupTotal=0,groupPaid=0,groupPaidDates=[],groupBalanceDates=[],groupBalancePaidDates=[];
+    people.forEach(function(c,idx){
+      var m=info[idx];
+      groupTotal+=n(m.total);
+      groupPaid+=n(m.paid);
+      if(m.paidDate)groupPaidDates.push(m.paidDate);
+      if(m.balance>0&&m.deliveryDate)groupBalanceDates.push(m.deliveryDate);
+      if(m.balanceDate)groupBalancePaidDates.push(m.balanceDate);
+    });
+    var groupBalance=Math.max(0,groupTotal-groupPaid);
+    var groupPaidDate=latestDate(groupPaidDates);
+    var groupBalanceDate=groupBalance>0?latestDate(groupBalanceDates):latestDate(groupBalancePaidDates);
+
+    var totalH=185;
+    rr(pad,y,inner,totalH,22,'#fff','#ddd2e8',2);
+    txt('மொத்தத் தொகை',W/2,y+30,27,950,'#4f2db7','center');
+    txt(money2(groupTotal),W/2,y+70,42,950,'#17131b','center');
+    txt('கொடுத்தது: '+money2(groupPaid)+(groupPaidDate?'   📅 '+dateTextSafe(groupPaidDate):''),W/2,y+116,20,900,'#0e9367','center');
+    txt('மீதம்: '+money2(groupBalance)+(groupBalanceDate?'   📅 '+dateTextSafe(groupBalanceDate):''),W/2,y+150,20,900,'#d13b58','center');
+    y+=totalH+gap;
+
     var fg=ctx.createLinearGradient(pad,y,W-pad,y);fg.addColorStop(0,'#24105d');fg.addColorStop(1,'#b80c61');rr(pad,y,inner,footerH,20,fg);
     txt('Thank you for choosing us!',W/2,y+36,30,950,'#ffd84c','center');
     txt('NEW FASHION TAILORING',W/2,y+73,24,950,'#fff','center');
