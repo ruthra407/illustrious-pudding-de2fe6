@@ -11968,6 +11968,74 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
   }
   window.r100OpenCustomerCard=function(kind,id){return openCustomerCard(kind,id);};
   window.r100GetDeliveryCustomer=function(id){var cs=allCustomers();return cs.find(function(c){return String(c&&c.id||'')===String(id||'');})||null;};
+
+  /* V233: Multi Customer-only separate Photo Card on the Delivery page.
+     Keep the existing Single Customer Delivery Card and Multi Customer WhatsApp Card untouched. */
+  function photoSrcV233(p){
+    var src=p&&(p.dataSrc||p.src||p.url||p.dataUrl||'');
+    if(!src&&typeof nfWacPhotoSrc==='function'){try{src=nfWacPhotoSrc(p)||''}catch(_){}}
+    return src||'';
+  }
+  function photoSlotHtmlV233(src,label){
+    if(!src)return '<div class=\"v233-photo-empty\"><span>📷</span><small>'+escText(label)+'</small></div>';
+    return '<div class=\"v233-photo-slot\"><img src=\"'+escText(src)+'\" alt=\"'+escText(label)+'\" loading=\"lazy\" decoding=\"async\" data-v233-photo=\"1\"><small>'+escText(label)+'</small></div>';
+  }
+  function buildMultiPhotoCardShell(main,group){
+    var ids=group.map(function(c){return String(c&&c.id||'')});
+    return '<section class=\"v233-multi-photo-box\" data-v233-main=\"'+escText(main.id)+'\" data-v233-ids=\"'+escText(JSON.stringify(ids))+'\">'+
+      '<div class=\"v233-photo-head\"><div><strong>📸 Customer Cloth Photos</strong><small>Multi Customer · '+group.length+' customers</small></div><button type=\"button\" class=\"v233-photo-share\" data-v233-share=\"'+escText(main.id)+'\">📤 Share</button></div>'+
+      '<div class=\"v233-photo-customers\">'+group.map(function(c){return '<article class=\"v233-photo-customer\" data-v233-customer=\"'+escText(c.id)+'\"><div class=\"v233-photo-customer-title\">👤 '+escText(c.name||'Customer')+'</div>'+
+        '<div class=\"v233-photo-section\"><b>📥 கஸ்டமர் கொடுத்த துணிகள்</b><div class=\"v233-photo-grid\" data-v233-original></div></div>'+
+        '<div class=\"v233-photo-section\"><b>🧵 கஸ்டமருக்கு தைத்து கொடுத்த துணிகள்</b><div class=\"v233-photo-grid\" data-v233-given></div></div>'+
+        '<div class=\"v233-photo-section\"><b>📦 மீதம் உள்ள துணிகள்</b><div class=\"v233-photo-grid\" data-v233-pending></div></div></article>';}).join('')+'</div></section>';
+  }
+  function hydrateMultiPhotoCards(box){
+    box.querySelectorAll('.v233-multi-photo-box').forEach(function(card){
+      card.querySelectorAll('.v233-photo-customer').forEach(function(person){
+        var id=person.getAttribute('data-v233-customer')||'';
+        var originals=typeof customerClothPhotos==='function'?customerClothPhotos(id):[];
+        var originalGrid=person.querySelector('[data-v233-original]');
+        if(originalGrid){originalGrid.innerHTML=(originals||[]).map(function(p,i){return photoSlotHtmlV233(photoSrcV233(p),'Photo '+(i+1));}).join('');}
+        var d=typeof customerDeliveryPhotos==='function'?customerDeliveryPhotos(id):[];
+        function pick(type,status){var idx=typeof nfDeliveryPhotoIndex==='function'?nfDeliveryPhotoIndex(type,status,0):0;return d[idx]||null;}
+        var given=[pick('normal','given'),pick('lining','given'),pick('design','given')];
+        var pending=[pick('normal','pending'),pick('lining','pending'),pick('design','pending')];
+        var givenGrid=person.querySelector('[data-v233-given]'),pendingGrid=person.querySelector('[data-v233-pending]');
+        if(givenGrid)givenGrid.innerHTML=given.map(function(p,i){return photoSlotHtmlV233(photoSrcV233(p),['Normal Blouse','Lining Blouse','Design Blouse'][i]);}).join('');
+        if(pendingGrid)pendingGrid.innerHTML=pending.map(function(p,i){return photoSlotHtmlV233(photoSrcV233(p),['Normal Blouse','Lining Blouse','Design Blouse'][i]);}).join('');
+      });
+      var share=card.querySelector('[data-v233-share]');
+      if(share&&!share.__v233Bound){share.__v233Bound=true;share.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();shareMultiPhotoCardV233(card).catch(function(err){console.error(err);if(typeof toast==='function')toast('❌ Photo Card share ஆகவில்லை.',true);});});}
+    });
+  }
+  function loadImgV233(src){return new Promise(function(resolve){if(!src){resolve(null);return;}var im=new Image(),done=false,t=setTimeout(function(){if(done)return;done=true;resolve(null)},4500);try{im.crossOrigin='anonymous'}catch(_){}im.onload=function(){if(done)return;done=true;clearTimeout(t);resolve(im)};im.onerror=function(){if(done)return;done=true;clearTimeout(t);resolve(null)};im.src=src;});}
+  async function shareMultiPhotoCardV233(card){
+    var btn=card.querySelector('[data-v233-share]');if(btn)btn.disabled=true;
+    try{
+      var W=1000,pad=28,people=Array.from(card.querySelectorAll('.v233-photo-customer')),rows=[];
+      for(var i=0;i<people.length;i++){
+        var person=people[i],name=person.querySelector('.v233-photo-customer-title')?.textContent||'Customer';
+        var sections=Array.from(person.querySelectorAll('.v233-photo-section')),items=[];
+        for(var j=0;j<sections.length;j++){
+          var title=sections[j].querySelector('b')?.textContent||'';var imgs=Array.from(sections[j].querySelectorAll('img'));var loaded=[];
+          for(var k=0;k<imgs.length;k++){var im=await loadImgV233(imgs[k].src);if(im)loaded.push(im);}
+          items.push({title:title,images:loaded});
+        }
+        rows.push({name:name,sections:items});
+      }
+      var H=170;rows.forEach(function(r){H+=58;r.sections.forEach(function(sec){H+=42;H+=sec.images.length?190:38;});H+=18});H+=90;
+      var canvas=document.createElement('canvas');canvas.width=W;canvas.height=H;var ctx=canvas.getContext('2d');
+      ctx.fillStyle='#f7f4fb';ctx.fillRect(0,0,W,H);function txt(v,x,y,size,w,fill,align){ctx.font=(w||800)+' '+size+'px Noto Sans Tamil,Arial,sans-serif';ctx.fillStyle=fill||'#171827';ctx.textAlign=align||'left';ctx.textBaseline='middle';ctx.fillText(String(v||''),x,y)}
+      txt('📸 CUSTOMER CLOTH PHOTOS',W/2,42,30,950,'#5e3be0','center');txt('Multi Customer',W/2,78,18,800,'#77758a','center');var y=120;
+      for(var a=0;a<rows.length;a++){var r=rows[a];ctx.fillStyle='#fff';ctx.strokeStyle='#ddd5ef';ctx.lineWidth=2;ctx.beginPath();ctx.roundRect(pad,y,W-pad*2,50,14);ctx.fill();ctx.stroke();txt(r.name,pad+18,y+25,22,900,'#241b2e');y+=58;
+        for(var b=0;b<r.sections.length;b++){var sec=r.sections[b];txt(sec.title,pad+8,y+18,17,900,'#4b4054');y+=42;if(sec.images.length){var x=pad+8;for(var q=0;q<sec.images.length;q++){var im=sec.images[q],cw=210,ch=155,sc=Math.min(cw/im.width,ch/im.height),dw=im.width*sc,dh=im.height*sc;ctx.fillStyle='#fff';ctx.strokeStyle='#e1d9e9';ctx.beginPath();ctx.roundRect(x,y,cw,ch,12);ctx.fill();ctx.stroke();ctx.drawImage(im,x+(cw-dw)/2,y+(ch-dh)/2,dw,dh);x+=cw+10;if(x+cw>W-pad){x=pad+8;y+=ch+10;}}y+=165}else{txt('Photo இல்லை',pad+20,y+18,14,750,'#9a919e');y+=38;}}y+=18;}
+      txt('NEW FASHION TAILORING',W/2,H-32,22,900,'#b23e62','center');
+      var blob=await new Promise(function(resolve,reject){canvas.toBlob(function(b){b?resolve(b):reject(new Error('blob-failed'))},'image/jpeg',.84)});
+      if(typeof window.__nfWacShareBlob!=='function')throw new Error('share-bridge-unavailable');
+      var mainId=card.getAttribute('data-v233-main')||'';var main=allCustomers().find(function(c){return String(c.id)===String(mainId)})||{};
+      await window.__nfWacShareBlob(blob,'','NEW_FASHION_TAILORING_CUSTOMER_CLOTH_PHOTOS.jpg',main.phone||'');if(typeof toast==='function')toast('✅ Customer Photo Card share செய்யப்பட்டது.');
+    }finally{if(btn)btn.disabled=false;}
+  }
   function renderCustomerList(){
     var box=document.getElementById('r100DeliveryContent');if(!box)return;
     var allMains=deliveryMainCustomers();
