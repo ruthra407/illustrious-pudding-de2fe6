@@ -12512,7 +12512,29 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-card{
   "use strict";
   function N(v){var n=Number(v);return Number.isFinite(n)?n:0}
   function E(v){return typeof esc==='function'?esc(v==null?'':String(v)):String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
-  function customerGroup(id){return typeof groupFor==='function'?(groupFor(id)||[]):[(state.customers||[]).find(function(c){return String(c.id)===String(id)})].filter(Boolean)}
+  /* V228: Build the Multi Customer group locally from the authoritative NF_MULTI_PARENT marker.
+     Do not call the older global groupFor()/customerGroup() helpers here because this file
+     contains legacy functions with the same names and they can return a DOM section instead
+     of the customer array needed by the Order Card. */
+  function multiParentId(c){
+    var m=String(c&&c.notes||'').match(/(?:^|\|\s*)NF_MULTI_PARENT:([^|\s]+)/);
+    return m?String(m[1]):'';
+  }
+  function customerGroup(id){
+    var all=Array.isArray(state.customers)?state.customers:[],sid=String(id||'');
+    var c=all.find(function(x){return String(x&&x.id||'')===sid;});
+    if(!c)return[];
+    var root=multiParentId(c)||sid;
+    var main=all.find(function(x){return String(x&&x.id||'')===root&&!multiParentId(x);});
+    if(!main)return[c];
+    var out=[main],seen={};seen[String(main.id)]=1;
+    all.forEach(function(x){
+      var xid=String(x&&x.id||'');
+      if(!xid||seen[xid])return;
+      if(multiParentId(x)===String(main.id)){seen[xid]=1;out.push(x);}
+    });
+    return out;
+  }
   function groupOrders(group){var seen={},out=[];(group||[]).forEach(function(c){(state.orders||[]).filter(function(o){return String(o.customer_id)===String(c.id)}).forEach(function(o){if(!seen[o.id]){seen[o.id]=1;out.push(o)}})});return out}
   function paymentInfo(o){return typeof nfOrderPaymentInfo==='function'?nfOrderPaymentInfo(o):{advance:N(o.advance_amount),customerPaid:0,totalPaid:N(o.advance_amount),balance:Math.max(0,N(orderTotal(o))-N(o.advance_amount)),payments:[]}}
   function groupTotals(os){var total=0,paid=0;os.forEach(function(o){var p=paymentInfo(o);total+=N(orderTotal(o));paid+=N(p.totalPaid)});return {total:total,paid:paid,balance:Math.max(0,total-paid)}}
