@@ -12883,21 +12883,24 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-card{
   function esc230(v){return typeof window.esc==='function'?window.esc(v==null?'':S(v)):S(v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
 
   async function deleteAdditionalCustomer(cid,skipConfirm){
-    cid=S(cid); if(!cid||typeof supabaseClient==='undefined')return false;
+    cid=S(cid); if(!cid)return false;
     var c=allCustomers().find(function(x){return S(x&&x.id)===cid});
     if(!c||!isAdditional(c)){if(typeof toast==='function')toast('Additional Customer கிடைக்கவில்லை.',true);return false}
     if(!skipConfirm && !confirm('“'+S(c.name||'Customer')+'” Additional Customer-ஐ முழுவதுமாக delete செய்யவா?\n\nஇந்த customer-ன் Orders, Payments, Alterations, Measurements மற்றும் Photos தொடர்புடைய data-வும் delete ஆகும்.'))return false;
     try{
       var orders=(state.orders||[]).filter(function(o){return S(o&&o.customer_id)===cid});
       var ids=orders.map(function(o){return o&&o.id}).filter(Boolean);
+      if(!nfD1Enabled())throw new Error('D1 Worker connection இல்லை.');
+      nfD1AccessToken=await nfD1GetAccessToken();
+      if(!nfD1AccessToken)throw new Error('Login session token கிடைக்கவில்லை.');
       if(ids.length){
-        var p=await supabaseClient.from('payments').delete().in('order_id',ids); if(p.error)throw p.error;
-        var a=await supabaseClient.from('alterations').delete().in('order_id',ids); if(a.error)throw a.error;
+        var p=await nfD1Execute('payments','delete',null,[{field:'order_id',__in:ids}],null,null); if(p.error)throw new Error(p.error.message||'D1 payments delete failed');
+        var a=await nfD1Execute('alterations','delete',null,[{field:'order_id',__in:ids}],null,null); if(a.error)throw new Error(a.error.message||'D1 alterations delete failed');
       }
-      var ac=await supabaseClient.from('alterations').delete().eq('customer_id',cid); if(ac.error)throw ac.error;
-      var m=await supabaseClient.from('measurements').delete().eq('customer_id',cid); if(m.error)throw m.error;
-      var o=await supabaseClient.from('orders').delete().eq('customer_id',cid); if(o.error)throw o.error;
-      var cc=await supabaseClient.from('customers').delete().eq('id',cid); if(cc.error)throw cc.error;
+      var ac=await nfD1Execute('alterations','delete',null,[{field:'customer_id',value:cid}],null,null); if(ac.error)throw new Error(ac.error.message||'D1 alterations delete failed');
+      var m=await nfD1Execute('measurements','delete',null,[{field:'customer_id',value:cid}],null,null); if(m.error)throw new Error(m.error.message||'D1 measurements delete failed');
+      var o=await nfD1Execute('orders','delete',null,[{field:'customer_id',value:cid}],null,null); if(o.error)throw new Error(o.error.message||'D1 orders delete failed');
+      var cc=await nfD1Execute('customers','delete',null,[{field:'id',value:cid}],null,null); if(cc.error)throw new Error(cc.error.message||'D1 customer delete failed');
       try{
         if(typeof nfDbAll==='function'&&typeof nfDbDelete==='function'&&typeof NF_QUEUE_STORE!=='undefined'){
           var q=await nfDbAll(NF_QUEUE_STORE);
@@ -14866,7 +14869,7 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-card{
     form.insertBefore(panel,box.nextSibling);document.getElementById("nf140-single").onclick=function(){setMode("single")};document.getElementById("nf140-multiple").onclick=function(){setMode("multiple")};document.getElementById("nf140-add").onclick=function(){addPerson(true)};panel.addEventListener("click",function(e){var b=e.target.closest("[data-nf140-remove]");if(!b)return;var p=b.closest(".nf140-person");p?.remove();renumber(panel)});setMode("single");
   }
   window.openModal=function(type,id){var r=originalOpen.apply(this,arguments);if(type==="customer"&&!id)setTimeout(build,0);return r;};
-  async function saveMultiple(){var msg=document.getElementById("formMsg"),btn=document.getElementById("saveBtn");var main={name:String(document.getElementById("nf140-main-name")?.value||"").trim(),phone:String(document.getElementById("nf140-main-phone")?.value||"").trim(),address:String(document.getElementById("nf140-main-address")?.value||"").trim(),village:String(document.getElementById("nf140-main-village")?.value||"").trim(),notes:String(document.getElementById("nf140-main-notes")?.value||"").trim()};if(!main.name){msg.textContent="Main Customer பெயர் கொடுக்க வேண்டும்.";msg.className="msg error";return;}var people=Array.from(document.querySelectorAll("#nf140-people .nf140-person")).map(function(p){return{name:String(p.querySelector(".nf140-name")?.value||"").trim(),phone:String(p.querySelector(".nf140-phone")?.value||"").trim()}}).filter(function(x){return x.name||x.phone});for(var i=0;i<people.length;i++){if(!people[i].name||!people[i].phone){msg.textContent="Additional Customer "+(i+1)+"-க்கு பெயரும் Phone number-மும் கொடுக்க வேண்டும்.";msg.className="msg error";return;}}if(!people.length){msg.textContent="குறைந்தது ஒரு Additional Customer சேர்க்க வேண்டும்.";msg.className="msg error";return;}btn.disabled=true;btn.textContent="Saving...";var created=[];try{var mr=await supabaseClient.from("customers").insert({name:main.name,phone:main.phone||null,address:main.address||null,notes:main.notes||null}).select().single();if(mr.error)throw mr.error;created.push(mr.data);localStorage.setItem("nf_village_"+mr.data.id,main.village);try{await supabaseClient.from("customers").update({village:main.village}).eq("id",mr.data.id)}catch(_){ }for(var j=0;j<people.length;j++){var cr=await supabaseClient.from("customers").insert({name:people[j].name,phone:people[j].phone,address:null,notes:PREFIX+String(mr.data.id)}).select().single();if(cr.error)throw cr.error;created.push(cr.data);}state.customers=created.concat(state.customers||[]);closeModal(true);await loadAll(true);if(typeof renderCustomers==="function")renderCustomers();toast("Multiple Customer saved successfully.");if(typeof openOrdersNewOrderForCustomer==="function")openOrdersNewOrderForCustomer(String(mr.data.id));}catch(err){for(var k=created.length-1;k>=0;k--){try{await supabaseClient.from("customers").delete().eq("id",created[k].id)}catch(_){}}msg.textContent="Multiple Customer Save failed: "+(err?.message||err);msg.className="msg error";}finally{btn.disabled=false;btn.textContent="Save";}}
+  async function saveMultiple(){var msg=document.getElementById("formMsg"),btn=document.getElementById("saveBtn");var main={name:String(document.getElementById("nf140-main-name")?.value||"").trim(),phone:String(document.getElementById("nf140-main-phone")?.value||"").trim(),address:String(document.getElementById("nf140-main-address")?.value||"").trim(),village:String(document.getElementById("nf140-main-village")?.value||"").trim(),notes:String(document.getElementById("nf140-main-notes")?.value||"").trim()};if(!main.name){msg.textContent="Main Customer பெயர் கொடுக்க வேண்டும்.";msg.className="msg error";return;}var people=Array.from(document.querySelectorAll("#nf140-people .nf140-person")).map(function(p){return{name:String(p.querySelector(".nf140-name")?.value||"").trim(),phone:String(p.querySelector(".nf140-phone")?.value||"").trim()}}).filter(function(x){return x.name||x.phone});for(var i=0;i<people.length;i++){if(!people[i].name||!people[i].phone){msg.textContent="Additional Customer "+(i+1)+"-க்கு பெயரும் Phone number-மும் கொடுக்க வேண்டும்.";msg.className="msg error";return;}}if(!people.length){msg.textContent="குறைந்தது ஒரு Additional Customer சேர்க்க வேண்டும்.";msg.className="msg error";return;}btn.disabled=true;btn.textContent="Saving...";var created=[];try{var mr=await supabaseClient.from("customers").insert({name:main.name,phone:main.phone||null,address:main.address||null,notes:main.notes||null}).select().single();if(mr.error)throw mr.error;created.push(mr.data);localStorage.setItem("nf_village_"+mr.data.id,main.village);try{await supabaseClient.from("customers").update({village:main.village}).eq("id",mr.data.id)}catch(_){ }for(var j=0;j<people.length;j++){if(!nfD1Enabled())throw new Error("D1 Worker connection இல்லை.");nfD1AccessToken=await nfD1GetAccessToken();if(!nfD1AccessToken)throw new Error("Login session token கிடைக்கவில்லை.");var cr=await nfD1Execute("customers","insert",{name:people[j].name,phone:people[j].phone,address:null,notes:PREFIX+String(mr.data.id)},[],null,"single");if(cr.error)throw new Error(cr.error.message||"D1 Additional Customer save failed");created.push(cr.data);}state.customers=created.concat(state.customers||[]);closeModal(true);await loadAll(true);if(typeof renderCustomers==="function")renderCustomers();toast("Multiple Customer saved successfully.");if(typeof openOrdersNewOrderForCustomer==="function")openOrdersNewOrderForCustomer(String(mr.data.id));}catch(err){for(var k=created.length-1;k>=0;k--){try{await supabaseClient.from("customers").delete().eq("id",created[k].id)}catch(_){}}msg.textContent="Multiple Customer Save failed: "+(err?.message||err);msg.className="msg error";}finally{btn.disabled=false;btn.textContent="Save";}}
   document.getElementById("dataForm")?.addEventListener("submit",function(e){if(!multiple||state.editing?.type!=="customer")return;e.preventDefault();e.stopImmediatePropagation();saveMultiple()},true);
   var oldRender=window.renderCustomers;if(typeof oldRender==="function"&&!oldRender.__nf140){window.renderCustomers=function(){var q=(document.getElementById("customerSearch")?.value||"").toLowerCase(),r=bases().filter(function(c){return[c.name,c.phone,c.address,c.village].join(" ").toLowerCase().includes(q)});document.getElementById("customersTable").innerHTML=r.length?r.map(function(c){return customerCard(c.id)}).join(""):"<div class=\"card empty\" style=\"grid-column:1/-1\">No customers found.</div>"};window.renderCustomers.__nf140=true;}
   document.addEventListener("click",function(e){var edit=e.target.closest?.("[data-nf140-edit]");if(edit){e.preventDefault();openModal("customer",edit.getAttribute("data-nf140-edit"));return;}var del=e.target.closest?.("[data-nf140-delete]");if(del){e.preventDefault();deleteCustomer(del.getAttribute("data-nf140-delete"));}},true);
@@ -15297,7 +15300,7 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-card{
 
   async function deleteAdditionalDirect(customerId){
     var cid=String(customerId||"");
-    if(!cid||typeof supabaseClient==="undefined")return;
+    if(!cid)return;
     var customers=(typeof state!=="undefined"&&Array.isArray(state.customers))?state.customers:[];
     var c=customers.find(function(x){return String(x&&x.id||"")===cid;});
     if(!c)return;
@@ -15305,14 +15308,17 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-card{
     try{
       var orders=(state.orders||[]).filter(function(o){return String(o&&o.customer_id||"")===cid;});
       var ids=orders.map(function(o){return o&&o.id;}).filter(Boolean);
+      if(!nfD1Enabled())throw new Error("D1 Worker connection இல்லை.");
+      nfD1AccessToken=await nfD1GetAccessToken();
+      if(!nfD1AccessToken)throw new Error("Login session token கிடைக்கவில்லை.");
       if(ids.length){
-        var p=await supabaseClient.from("payments").delete().in("order_id",ids);if(p.error)throw p.error;
-        var a=await supabaseClient.from("alterations").delete().in("order_id",ids);if(a.error)throw a.error;
+        var p=await nfD1Execute("payments","delete",null,[{field:"order_id",__in:ids}],null,null); if(p.error)throw new Error(p.error.message||"D1 payments delete failed");
+        var a=await nfD1Execute("alterations","delete",null,[{field:"order_id",__in:ids}],null,null); if(a.error)throw new Error(a.error.message||"D1 alterations delete failed");
       }
-      var ac=await supabaseClient.from("alterations").delete().eq("customer_id",cid);if(ac.error)throw ac.error;
-      var m=await supabaseClient.from("measurements").delete().eq("customer_id",cid);if(m.error)throw m.error;
-      var o=await supabaseClient.from("orders").delete().eq("customer_id",cid);if(o.error)throw o.error;
-      var cc=await supabaseClient.from("customers").delete().eq("id",cid);if(cc.error)throw cc.error;
+      var ac=await nfD1Execute("alterations","delete",null,[{field:"customer_id",value:cid}],null,null); if(ac.error)throw new Error(ac.error.message||"D1 alterations delete failed");
+      var m=await nfD1Execute("measurements","delete",null,[{field:"customer_id",value:cid}],null,null); if(m.error)throw new Error(m.error.message||"D1 measurements delete failed");
+      var o=await nfD1Execute("orders","delete",null,[{field:"customer_id",value:cid}],null,null); if(o.error)throw new Error(o.error.message||"D1 orders delete failed");
+      var cc=await nfD1Execute("customers","delete",null,[{field:"id",value:cid}],null,null); if(cc.error)throw new Error(cc.error.message||"D1 customer delete failed");
       localStorage.removeItem("nf_village_"+cid);
       localStorage.removeItem("nf_customer_designs_"+cid);
       localStorage.removeItem("nf_customer_selected_designs_"+cid);
