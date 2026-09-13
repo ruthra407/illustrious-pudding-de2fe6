@@ -12141,6 +12141,26 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
       }
     }
   }
+  window.__nfV239OpenCustomerPhotoGroup=function(mainId){
+    var content=document.getElementById('r100DeliveryContent');
+    if(!content)return;
+    var mains=[];
+    try{
+      var cs=Array.isArray(state.customers)?state.customers:[];
+      var main=cs.find(function(c){return String(c&&c.id||'')===String(mainId||'');});
+      if(!main)return;
+      var group=groupFor(main.id);
+      if(!group.length)return;
+      content.querySelectorAll('.v233-multi-photo-box').forEach(function(card){card.remove();});
+      var holder=document.createElement('div');
+      holder.innerHTML=buildMultiPhotoCardShell(main,group);
+      var card=holder.firstElementChild;
+      if(!card)return;
+      content.appendChild(card);
+      hydrateMultiPhotoCards(content);
+      requestAnimationFrame(function(){card.scrollIntoView({behavior:'smooth',block:'start'});});
+    }catch(err){console.error('V239 photo hook open failed',err);}
+  };
   async function render(){
     var box=document.getElementById('r100DeliveryContent');if(!box)return;
     selectedId=resolveDeliverySelection();
@@ -16633,55 +16653,17 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
   if(window.__nfV239PhotoHookInstalled)return;
   window.__nfV239PhotoHookInstalled=true;
 
-  function currentIsDelivery(){
-    var view=document.getElementById('view-delivery');
-    return !!(view && view.classList.contains('active'));
-  }
-
-  function openGroupPhotoCard(mainId){
-    var content=document.getElementById('r100DeliveryContent');
-    if(!content || typeof groupFor!=='function' || typeof buildMultiPhotoCardShell!=='function')return;
-
-    var id=String(mainId||'');
-    if(!id)return;
-
-    var existing=content.querySelector('.v233-multi-photo-box[data-v233-main="'+CSS.escape(id)+'"]');
-    if(existing){
-      existing.scrollIntoView({behavior:'smooth',block:'start'});
-      return;
-    }
-
-    var cs=(typeof state!=='undefined' && Array.isArray(state.customers))?state.customers:[];
-    var main=cs.find(function(c){return String(c&&c.id||'')===id;});
-    if(!main)return;
-
-    var group=groupFor(id);
-    if(!group.length)return;
-
-    /* Keep exactly one Photo Card visible: the common button switches the group. */
-    content.querySelectorAll('.v233-multi-photo-box').forEach(function(card){card.remove();});
-
-    var holder=document.createElement('div');
-    holder.innerHTML=buildMultiPhotoCardShell(main,group);
-    var card=holder.firstElementChild;
-    if(!card)return;
-
-    content.appendChild(card);
-    if(typeof hydrateMultiPhotoCards==='function')hydrateMultiPhotoCards(content);
-
-    requestAnimationFrame(function(){
-      card.scrollIntoView({behavior:'smooth',block:'start'});
-    });
-  }
-
   document.addEventListener('click',function(e){
-    if(!currentIsDelivery())return;
-    var b=e.target && e.target.closest ? e.target.closest('.r100-delivery-photo-hook') : null;
+    var b=e.target&&e.target.closest?e.target.closest('.r100-delivery-photo-hook'):null;
     if(!b)return;
     e.preventDefault();
-    e.stopImmediatePropagation();
-    openGroupPhotoCard(b.getAttribute('data-r100-photo-hook')||'');
+    e.stopPropagation();
+    var id=b.getAttribute('data-r100-photo-hook')||'';
+    if(typeof window.__nfV239OpenCustomerPhotoGroup==='function'){
+      window.__nfV239OpenCustomerPhotoGroup(id);
+    }else{
+      console.error('Customer photo hook bridge is not ready');
+    }
   },true);
 })();
 </script>
-
