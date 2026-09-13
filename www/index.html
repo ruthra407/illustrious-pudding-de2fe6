@@ -11513,13 +11513,22 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
     }
     var givenPhotoCount=givenPhotoItems.length;
     var pendingPhotoCount=pendingPhotoItems.length;
-    /* V211: Delivery Card keeps Given and Pending photos in separate sections.
-       Canvas height is derived from the exact number of successfully loaded
-       photos in each section, so missing/empty slots never create fake tiles. */
-    var baseBottom=744+rows.length*82;
-    var givenSectionH=givenPhotoCount?72+Math.ceil(givenPhotoCount/2)*238:0;
-    var pendingSectionH=pendingPhotoCount?72+Math.ceil(pendingPhotoCount/2)*238:0;
-    var photoGap=(givenSectionH&&pendingSectionH)?14:0;
+    /* V213: Exactly two Delivery Card photo sections. Each section also has
+       explicit Normal / Lining / Design counters, independent of image load. */
+    var givenCounts={normal:0,lining:0,design:0},pendingCounts={normal:0,lining:0,design:0};
+    people.forEach(function(c){
+      var st=typeof customerStats==='function'?customerStats(c.id):{};
+      givenCounts.normal+=n(st.handedNormal);givenCounts.lining+=n(st.handedLining);givenCounts.design+=n(st.handedDesign);
+      pendingCounts.normal+=n(st.pendingNormal);pendingCounts.lining+=n(st.pendingLining);pendingCounts.design+=n(st.pendingDesign);
+    });
+    var givenCounterH=64+54;
+    var pendingCounterH=64+54;
+    var givenPhotoH=givenPhotoCount?Math.ceil(givenPhotoCount/2)*238:0;
+    var pendingPhotoH=pendingPhotoCount?Math.ceil(pendingPhotoCount/2)*238:0;
+    var givenSectionH=givenCounterH+givenPhotoH;
+    var pendingSectionH=pendingCounterH+pendingPhotoH;
+    var baseBottom=730+rows.length*78;
+    var photoGap=14;
     var H=baseBottom+16+givenSectionH+pendingSectionH+photoGap;
     var canvas=document.createElement('canvas');
     canvas.width=W*S;canvas.height=Math.max(1,H*S);
@@ -11530,36 +11539,73 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
     var bg=ctx.createLinearGradient(0,0,W,H);bg.addColorStop(0,'#f2edff');bg.addColorStop(.5,'#fff3f8');bg.addColorStop(1,'#fff9e8');ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
     var y=pad,hg=ctx.createLinearGradient(pad,y,W-pad,y);hg.addColorStop(0,'#351083');hg.addColorStop(1,'#df286e');rr(pad,y,inner,150,24,hg,'#f1cb43',3);
     txt('NEW FASHION TAILORING',W/2,y+38,42,950,'#fff','center');txt('🚚 DELIVERY CARD',W/2,y+88,48,950,'#ffe24d','center');y+=168;
-    rr(pad,y,inner,150,20,'#fff','#ddd2e8',2);txt('CUSTOMER',pad+25,y+35,22,850,'#6b4bc0');txt(people.map(function(c){return c.name||'Customer'}).join(' • '),pad+25,y+72,32,950,'#17131b');
-    txt('ORDER DATE',pad+25,y+112,20,850,'#777');txt(dateTextSafe(orderDate),pad+170,y+112,26,950,'#17131b');txt('DELIVERY DATE',W/2+30,y+112,20,850,'#777');txt(dateTextSafe(deliveryDate),W/2+210,y+112,26,950,'#08794f');y+=168;
-    var calcH=68+Math.max(1,rows.length)*68+130;rr(pad,y,inner,calcH,20,'#fff','#ddd2e8',2);var cg=ctx.createLinearGradient(pad,y,W-pad,y);cg.addColorStop(0,'#5b1d7f');cg.addColorStop(1,'#d52d73');ctx.fillStyle=cg;ctx.fillRect(pad,y,inner,64);txt('🧮 துணி கணக்கு + விலை',pad+24,y+32,30,950,'#fff');y+=64;
-    var cols=[pad+28,W-520,W-365,W-205,W-55];txt('ITEM',cols[0],y+35,18,900,'#6b4b7a');txt('QTY',cols[1],y+35,18,900,'#6b4b7a','center');txt('RATE',cols[2],y+35,18,900,'#6b4b7a','center');txt('AMOUNT',cols[3],y+35,18,900,'#6b4b7a','center');txt('GIVEN / REMAIN',cols[4],y+35,17,900,'#6b4b7a','right');y+=74;
+    rr(pad,y,inner,126,20,'#fff','#ddd2e8',2);
+    txt('CUSTOMER',pad+25,y+28,20,850,'#6b4bc0');
+    txt(people.map(function(c){return c.name||'Customer'}).join(' • '),pad+25,y+61,36,950,'#17131b');
+    txt('ORDER DATE',pad+25,y+98,17,850,'#777');
+    txt(dateTextSafe(orderDate),pad+155,y+98,24,950,'#17131b');
+    txt('DELIVERY DATE',W/2+25,y+98,17,850,'#777');
+    txt(dateTextSafe(deliveryDate),W/2+205,y+98,24,950,'#08794f');
+    y+=144;
+    var calcH=68+Math.max(1,rows.length)*78+130;
+    rr(pad,y,inner,calcH,20,'#fff','#ddd2e8',2);
+    var cg=ctx.createLinearGradient(pad,y,W-pad,y);cg.addColorStop(0,'#5b1d7f');cg.addColorStop(1,'#d52d73');ctx.fillStyle=cg;ctx.fillRect(pad,y,inner,64);
+    txt('🧮 துணி கணக்கு + விலை',pad+24,y+32,30,950,'#fff');y+=64;
+
+    var calcCols=[pad+28,W-440,W-245,W-130];
+    txt('ITEM',calcCols[0],y+32,18,900,'#6b4b7a');
+    txt('கணக்கு',calcCols[1],y+32,18,900,'#6b4b7a','center');
+    txt('தொகை',calcCols[2],y+32,18,900,'#6b4b7a','center');
+    txt('கொடுத்தது / மீதம்',calcCols[3],y+32,16,900,'#6b4b7a','right');
+    y+=66;
+
     rows.forEach(function(r,i){
-      rr(pad+12,y,inner-24,72,10,i%2?'#fff':'#faf7ff','#e7dfef',1);txt(r.label,cols[0],y+36,22,850,'#17131b');
-      txt(String(r.qty),cols[1],y+36,26,950,'#17131b','center');txt(moneyText(r.rate),cols[2],y+36,23,900,'#5b35c8','center');txt(moneyText(r.amount),cols[3],y+36,24,950,'#17131b','center');
-      txt(String(r.given)+' / '+String(r.remain),cols[4],y+36,21,950,r.remain?'#b4233c':'#08794f','right');y+=82;
-    });y+=8;
-    var bw=(inner-20)/3;[['TOTAL AMOUNT',totalAmount,'#5f3ee1'],['PAID AMOUNT',paidAmount,'#0e9367'],['கொடுக்க வேண்டியது',balanceAmount,'#d83e68']].forEach(function(a,i){var x=pad+i*(bw+12);rr(x,y,bw,112,16,a[2]);txt(a[0],x+18,y+32,19,900,'#fff');txt(moneyText(a[1]),x+18,y+75,34,950,'#fff');});y+=130;
+      rr(pad+12,y,inner-24,70,10,i%2?'#fff':'#faf7ff','#e7dfef',1);
+      txt(r.label,calcCols[0],y+35,24,900,'#17131b');
+      txt(String(r.qty)+' × '+moneyText(r.rate),calcCols[1],y+35,22,900,'#5b35c8','center');
+      txt(moneyText(r.amount),calcCols[2],y+35,24,950,'#17131b','center');
+      txt(String(r.given)+' / '+String(r.remain),calcCols[3],y+35,21,950,r.remain?'#b4233c':'#08794f','right');
+      y+=78;
+    });
+    y+=8;
+    var bw=(inner-20)/3;
+    [['மொத்த தொகை',totalAmount,'#5f3ee1'],['கஸ்டமர் கொடுத்தது',paidAmount,'#0e9367'],['இன்னும் கொடுக்க வேண்டியது',balanceAmount,'#d83e68']].forEach(function(a,i){
+      var x=pad+i*(bw+12);rr(x,y,bw,118,16,a[2]);
+      txt(a[0],x+18,y+32,18,900,'#fff');
+      txt(moneyText(a[1]),x+18,y+77,32,950,'#fff');
+    });y+=136;
     rr(pad,y,inner,82,16,remainingCount?'#fff4df':'#e8fff4',remainingCount?'#e1ad35':'#1caa73',2);txt(remainingCount?'📦 இன்னும் கொடுக்க வேண்டிய துணி: '+remainingCount+'':'✅ எல்லா துணிகளும் கொடுக்கப்பட்டது',pad+24,y+41,27,950,remainingCount?'#996700':'#087c50');y+=100;
-    function drawDeliveryPhotoSection(items,title,fromY){
-      if(!items.length)return fromY;
-      var count=items.length,photoRows=Math.ceil(count/2),ph=72+photoRows*238;
+    function drawDeliveryPhotoSection(items,title,fromY,counts){
+      var count=items.length,photoRows=Math.ceil(count/2),ph=64+54+(count?photoRows*238:0);
       rr(pad,fromY,inner,ph,20,'#fff','#ddd2e8',2);
       var pg=ctx.createLinearGradient(pad,fromY,W-pad,fromY);
       pg.addColorStop(0,'#6b20ca');pg.addColorStop(1,'#d30a61');
-      ctx.fillStyle=pg;ctx.fillRect(pad,fromY,inner,60);
-      txt(title,pad+24,fromY+30,28,950,'#fff');
+      ctx.fillStyle=pg;ctx.fillRect(pad,fromY,inner,58);
+      txt(title,pad+24,fromY+29,29,950,'#fff');
 
-      var yy0=fromY+72,cw=(inner-14)/2;
+      // Blouse counters: name + count, always visible even when a photo is missing.
+      var labels=[
+        ['Normal Blouse',n(counts.normal)],
+        ['Lining Blouse',n(counts.lining)],
+        ['Design Blouse',n(counts.design)]
+      ];
+      var gap=10,cw=(inner-2*gap)/3,cy=fromY+68;
+      labels.forEach(function(a,i){
+        var x=pad+i*(cw+gap);
+        rr(x,cy,cw,42,12,'#f7f3ff','#dcd1ef',1);
+        txt(a[0],x+10,cy+14,15,900,'#5b35c8');
+        txt(String(a[1]),x+10,cy+31,18,950,'#17131b');
+      });
+
+      if(!count)return fromY+ph;
+      var yy0=fromY+130,photoW=(inner-14)/2;
       for(var i=0;i<count;i++){
-        var meta=items[i].meta,col=i%2,row=Math.floor(i/2),x=pad+col*(cw+14),yy=yy0+row*238;
+        var meta=items[i].meta,col=i%2,row=Math.floor(i/2),x=pad+col*(photoW+14),yy=yy0+row*238;
         var im=items[i].image;
-        rr(x,yy,cw,220,16,'#fff','#d9cce9',2);
-        var sc=Math.min((cw-24)/im.width,175/im.height),dw=im.width*sc,dh=im.height*sc;
-        ctx.drawImage(im,x+cw/2-dw/2,yy+110-dh/2,dw,dh);
-
-        // Only these three blouse categories are shown on Delivery Card.
-        txt(meta.category||'',x+12,yy+203,14,850,'#5b35c8');
+        rr(x,yy,photoW,220,16,'#fff','#d9cce9',2);
+        var sc=Math.min((photoW-24)/im.width,175/im.height),dw=im.width*sc,dh=im.height*sc;
+        ctx.drawImage(im,x+photoW/2-dw/2,yy+110-dh/2,dw,dh);
+        txt(meta.category||'',x+12,yy+203,16,900,'#5b35c8');
       }
       return fromY+ph;
     }
@@ -11567,14 +11613,13 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
     // EXACTLY TWO sections on Delivery Card:
     // 1) கஸ்டமருக்கு கொடுத்த துணி
     // 2) மீதமுள்ள துணி
-    // Normal / Lining / Design blouse photos appear under the relevant section.
-    // Customer-given source photos themselves remain in the WhatsApp Card.
-    if(givenPhotoItems.length){
-      y=drawDeliveryPhotoSection(givenPhotoItems,'📸 கஸ்டமருக்கு கொடுத்த துணி',y);
-      if(pendingPhotoItems.length)y+=14;
+    // Normal / Lining / Design counters are explicit in both sections.
+    if(givenPhotoItems.length||givenCounts.normal||givenCounts.lining||givenCounts.design){
+      y=drawDeliveryPhotoSection(givenPhotoItems,'📸 கஸ்டமருக்கு கொடுத்த துணி',y,givenCounts);
+      if(pendingPhotoItems.length||pendingCounts.normal||pendingCounts.lining||pendingCounts.design)y+=14;
     }
-    if(pendingPhotoItems.length){
-      y=drawDeliveryPhotoSection(pendingPhotoItems,'📸 மீதமுள்ள துணி',y);
+    if(pendingPhotoItems.length||pendingCounts.normal||pendingCounts.lining||pendingCounts.design){
+      y=drawDeliveryPhotoSection(pendingPhotoItems,'📸 மீதமுள்ள துணி',y,pendingCounts);
     }
     try{return await canvasBlob(canvas);}
     catch(encErr){
