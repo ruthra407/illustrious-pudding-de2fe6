@@ -11404,7 +11404,7 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
       var photoJobs=block.photos.map(function(photo){
         return new Promise(function(resolve){
           try{
-            var src=nfWacPhotoSrc(photo);
+            var src=(photo&&/^data:image\//i.test(String(photo.src||'')))?String(photo.src):nfWacPhotoSrc(photo);
             if(!src){resolve(null);return;}
             var im=new Image(),done=false,t=setTimeout(function(){
               if(done)return;done=true;resolve(null);
@@ -11432,7 +11432,7 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
     function rowH(r){return r.sub?94:72;}
     var customerSectionHeights=customerBlocks.map(function(cb){
       var rowsH=cb.block.rows.reduce(function(a,r){return a+rowH(r)},0);
-      var ph=cb.block.photoItems.length?Math.ceil(cb.block.photoItems.length/2)*238+58:0;
+      var ph=cb.block.photoItems.length?Math.ceil(cb.block.photoItems.length/4)*150+50:0;
       return 68+58+rowsH+72+ph;
     });
     var peopleH=peopleHead+people.length*personH+18;
@@ -11447,7 +11447,7 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
     roundRect(ctx,pad,y,inner,peopleH,20,'#fff','#ded4ec',2);var tg=ctx.createLinearGradient(pad,y,W-pad,y);tg.addColorStop(0,'#24105d');tg.addColorStop(1,'#c90c5b');ctx.fillStyle=tg;ctx.fillRect(pad,y,inner,peopleHead);drawText(ctx,'👥 CUSTOMERS',pad+24,y+32,30,950,'#fff');y+=peopleHead;
     people.forEach(function(c,i){var yy=y+i*personH;roundRect(ctx,pad+14,yy+7,inner-28,personH-14,12,i%2?'#fff':'#faf7ff','#e3dcec',1);drawText(ctx,(i+1)+'. '+(c.name||'Customer'),pad+32,yy+personH/2,32,950,'#17131b');});y+=people.length*personH+18;
     customerBlocks.forEach(function(cb,bi){
-      var c=cb.customer,b=cb.block,rows=b.rows,rowsH=rows.reduce(function(a,r){return a+rowH(r)},0),photoH=b.photoItems.length?Math.ceil(b.photoItems.length/2)*238+58:0,secH=68+58+rowsH+72+photoH;
+      var c=cb.customer,b=cb.block,rows=b.rows,rowsH=rows.reduce(function(a,r){return a+rowH(r)},0),photoH=b.photoItems.length?Math.ceil(b.photoItems.length/4)*150+50:0,secH=68+58+rowsH+72+photoH;
       roundRect(ctx,pad,y,inner,secH,20,'#fff','#ded4ec',2);var sg=ctx.createLinearGradient(pad,y,W-pad,y);sg.addColorStop(0,'#24105d');sg.addColorStop(1,'#c90c5b');ctx.fillStyle=sg;ctx.fillRect(pad,y,inner,68);drawText(ctx,'👤 '+(c.name||'Customer'),pad+26,y+34,32,950,'#fff');y+=68;
       ctx.fillStyle='#f7f4ff';ctx.fillRect(pad,y,inner,58);drawText(ctx,'ITEM',pad+28,y+29,21,950,'#3e3150');drawText(ctx,'CALCULATION',W-pad-28,y+29,21,950,'#3e3150','right');y+=58;
       rows.forEach(function(r,i){var rh=rowH(r),yy=y;roundRect(ctx,pad+12,yy+6,inner-24,rh-12,11,i%2?'#fff':'#faf7ff','#e7dfef',1);drawText(ctx,r.label,pad+28,yy+(r.sub?34:36),25,950,'#111318');var mathSize=24;ctx.font='950 '+mathSize+'px Noto Sans Tamil,Arial,sans-serif';if(ctx.measureText(r.math).width>inner*.52)mathSize=21;drawText(ctx,r.math,W-pad-28,yy+36,mathSize,950,'#5b35c8','right');if(r.sub)drawText(ctx,r.sub,pad+48,yy+70,19,800,'#66586f');y+=rh;});
@@ -12845,6 +12845,7 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-card{
   }catch(_){ }
 })();
 </script>
+<!-- V232: compact Multi Customer WhatsApp customer-cloth photos + remove duplicate global Edit Order -->
 </body>
 <script id="nf-v120-single-cash-dedupe-fix">
 /* V22: superseded by the single stable customer-group renderer. */
@@ -16376,8 +16377,7 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
           if(!first)return;
           var oldEdit=old&&old.querySelector('.nf-v227-actions .primary');
           var editFn=oldEdit&&oldEdit.getAttribute('onclick');
-          var editButton=editFn?'<button class="btn nf-v229-edit-btn" type="button" onclick="'+E(editFn)+'">✏️ Edit Order</button>':'<button class="btn nf-v229-edit-btn" type="button" onclick="event.stopPropagation();openOrdersEditOrder(\''+E(first.id)+'\')">✏️ Edit Order</button>';
-          var top=document.createElement('div');top.className='nf-v229-top-actions';top.innerHTML=editButton+'<button class="btn nf-v229-delete-btn" type="button" onclick="event.stopPropagation();deleteOrderFromCard(\''+E(first.id)+'\')">🗑️ Delete Order</button>';
+          var top=document.createElement('div');top.className='nf-v229-top-actions';top.innerHTML='<button class="btn nf-v229-delete-btn" type="button" onclick="event.stopPropagation();deleteOrderFromCard(\''+E(first.id)+'\')">🗑️ Delete Order</button>';
           var head=content.querySelector('.nf-v227-head');
           if(head)head.insertAdjacentElement('afterend',top);else content.insertBefore(top,content.firstChild);
           if(old)old.remove();
