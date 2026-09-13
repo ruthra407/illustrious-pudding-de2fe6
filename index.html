@@ -11337,8 +11337,25 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
     if(typeof nfWacPhotoDataUrls==='function'){
       try{var urls=await nfWacPhotoDataUrls(photos.slice(0,8));photos=photos.map(function(p,i){return urls[i]?Object.assign({},p,{src:urls[i]}):null;}).filter(Boolean);}catch(e){photos=[];}
     }
+    /* V216: Multi WhatsApp Card previously referenced photoItems / actualPhotoCount
+       without creating them. That caused a ReferenceError and the card stayed on
+       "Card open ஆகவில்லை". Decode the already-normalized data URLs here, then
+       render only the images that successfully loaded. */
+    var photoItems=[];
+    for(var pi=0;pi<photos.length;pi++){
+      try{
+        var pim=await new Promise(function(resolve,reject){
+          var im=new Image(),done=false,t=setTimeout(function(){if(done)return;done=true;reject(new Error('multi-photo-timeout'));},5000);
+          im.onload=function(){if(done)return;done=true;clearTimeout(t);resolve(im)};
+          im.onerror=function(){if(done)return;done=true;clearTimeout(t);reject(new Error('multi-photo-failed'))};
+          im.src=photos[pi].src;
+        });
+        photoItems.push({meta:photos[pi],image:pim});
+      }catch(e){console.warn('Multi WhatsApp photo skipped:',e)}
+    }
+    var actualPhotoCount=photoItems.length;
     var headH=250,dateH=145,peopleHead=64,personH=92,tableHead=72,rowH=78,totalH=82,payH=124,photoTitleH=66,photoCellH=300,gap=18;
-    var photoRows=photos.length?Math.ceil(photos.length/2):0,photoH=photoRows?photoRows*photoCellH+(photoRows-1)*gap+26:0;
+    var photoRows=actualPhotoCount?Math.ceil(actualPhotoCount/2):0,photoH=photoRows?photoRows*photoCellH+(photoRows-1)*gap+26:0;
     var peopleH=peopleHead+people.length*personH+18;
     var tableH=tableHead+Math.max(1,rows.length)*rowH+totalH;
     var H=pad+headH+16+dateH+16+peopleH+16+tableH+16+payH+(photos.length?16+photoTitleH+photoH:0)+22+128+pad;
