@@ -11262,7 +11262,21 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
     });});
     return rows;
   }
-  function groupSummary(group){var rows=garmentRows(group),total=0,paid=0;rows.forEach(function(r){total+=r.total;paid+=r.paid;});return{rows:rows,total:total,paid:paid,balance:Math.max(0,total-paid)};}
+  function groupSummary(group){
+    var rows=garmentRows(group),total=0,paid=0;
+    /* V226: Calculate customer/group totals from each order exactly once.
+       garmentRows() also contains Fancy Blouse / Lining / Work breakdown rows,
+       so summing those display rows together with the parent order row double-counts
+       Fancy amounts. Keep rows for display, but use orderTotal()/payment info for totals. */
+    (group||[]).forEach(function(c){
+      ordersFor(c.id).forEach(function(o){
+        total+=typeof orderTotal==='function'?Number(orderTotal(o)||0):Number(o&&o.total_amount||o&&o.total||0);
+        var pay=typeof nfOrderPaymentInfo==='function'?nfOrderPaymentInfo(o):null;
+        paid+=pay?Number(pay.totalPaid||pay.customerPaid||0):Number(o&&o.paid||o&&o.advance_amount||0);
+      });
+    });
+    return{rows:rows,total:total,paid:paid,balance:Math.max(0,total-paid)};
+  }
   function safeFilename(kind){return kind==='whatsapp'?'NEW_FASHION_TAILORING_CUSTOMER_CARD.jpg':'NEW_FASHION_TAILORING_DELIVERY_CARD.jpg';}
   function r2CardPath(mainId,kind){return String(mainId||'')+'/cards/'+(kind==='whatsapp'?'customer-card.jpg':'delivery-card.jpg');}
   async function syncCardToR2(mainId,kind,blob){
