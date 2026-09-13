@@ -12013,8 +12013,8 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
     return '<section class="v233-multi-photo-box" data-v233-main="'+escText(main.id)+'" data-v233-ids="'+escText(JSON.stringify(ids))+'">'+
       '<div class="v233-photo-head"><div><strong>📸 Customer Cloth Photos</strong><small>Multi Customer · '+group.length+' customers</small></div><button type="button" class="v233-photo-share" data-v233-share="'+escText(main.id)+'">📤 Share</button></div>'+
       '<div class="v233-photo-customers">'+group.map(function(c){return '<article class="v233-photo-customer" data-v233-customer="'+escText(c.id)+'"><div class="v233-photo-customer-title">👤 '+escText(c.name||'Customer')+'</div>'+
-        '<div class="v233-photo-row-head"><span>பெயர்</span><span>📥 கொடுத்த துணிகள்</span><span>🧵 தைத்து கொடுத்தவை</span><span>📦 மீதம்</span></div>'+
-        '<div class="v233-photo-row"><div class="v233-photo-label">👤 '+escText(c.name||'Customer')+'</div>'+
+        '<div class="v233-photo-row-head"><span>📥 கொடுத்த துணிகள்</span><span>🧵 தைத்து கொடுத்தவை</span><span>📦 மீதம்</span></div>'+
+        '<div class="v233-photo-row">'+
         '<div class="v233-photo-cell" data-v233-original></div>'+
         '<div class="v233-photo-cell" data-v233-given></div>'+
         '<div class="v233-photo-cell" data-v233-pending></div></div></article>';}).join('')+'</div></section>';
@@ -12071,13 +12071,13 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
       ctx.fillStyle='#f7f4fb';ctx.fillRect(0,0,W,H);
       function txt(v,x,y,size,w,fill,align){ctx.font=(w||800)+' '+size+'px Noto Sans Tamil,Arial,sans-serif';ctx.fillStyle=fill||'#171827';ctx.textAlign=align||'left';ctx.textBaseline='middle';ctx.fillText(String(v||''),x,y);}
       txt('📸 CUSTOMER CLOTH PHOTOS',W/2,32,26,950,'#5e3be0','center');txt('Multi Customer',W/2,62,15,800,'#77758a','center');
-      var y=88,labelW=150,gap=8,colW=(W-pad*2-labelW-gap*3)/3;
+      var y=88,gap=8,colW=(W-pad*2-gap*2)/3;
       rows.forEach(function(r){
         ctx.fillStyle='#fff';ctx.strokeStyle='#ddd5ef';ctx.lineWidth=2;ctx.beginPath();ctx.roundRect(pad,y,W-pad*2,rowH,14);ctx.fill();ctx.stroke();
         txt(r.name,pad+14,y+24,18,900,'#241b2e');
         var heads=['📥 கொடுத்த துணிகள்','🧵 தைத்து கொடுத்தவை','📦 மீதம்'];
         for(var c=0;c<3;c++){
-          var x=pad+labelW+gap+c*(colW+gap);ctx.fillStyle='#f3eff8';ctx.beginPath();ctx.roundRect(x,y+10,colW,32,8);ctx.fill();txt(heads[c],x+colW/2,y+26,11,900,'#4b4054','center');
+          var x=pad+c*(colW+gap);ctx.fillStyle='#f3eff8';ctx.beginPath();ctx.roundRect(x,y+10,colW,32,8);ctx.fill();txt(heads[c],x+colW/2,y+26,11,900,'#4b4054','center');
           var cell=r.cells[c],ix=x+8,iy=y+50;
           if(cell.images.length){cell.images.slice(0,4).forEach(function(im){var cw=145,ch=155,sc=Math.min(cw/im.width,ch/im.height),dw=im.width*sc,dh=im.height*sc;ctx.fillStyle='#fff';ctx.strokeStyle='#e1d9e9';ctx.beginPath();ctx.roundRect(ix,iy,cw,ch,10);ctx.fill();ctx.stroke();ctx.drawImage(im,ix+(cw-dw)/2,iy+(ch-dh)/2,dw,dh);ix+=cw+7;if(ix+cw>x+colW){ix=x+8;iy+=ch+7;}});}
           else txt(cell.status||'📷 Photo இல்லை',x+colW/2,y+125,13,800,cell.status?'#117452':'#9a919e','center');
@@ -16538,3 +16538,73 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){setTimeout(refresh,120);setTimeout(refresh,450)});else setTimeout(refresh,120);
 })();
 </script>
+
+<style id="nf-v236-vibrant-photo-borders">
+/* V236: Vibrant borders for the Multi Customer Photo Card only. */
+.v233-multi-photo-box{
+  border:3px solid transparent!important;
+  border-image:linear-gradient(135deg,#6c3df5,#e94678,#ff9b45,#19b8d7) 1!important;
+  border-radius:22px!important;
+  box-shadow:0 10px 30px rgba(108,61,245,.14),0 0 0 1px rgba(233,70,120,.08)!important;
+}
+.v233-photo-head{
+  border:2px solid rgba(255,255,255,.78)!important;
+  box-shadow:0 6px 18px rgba(108,61,245,.22)!important;
+}
+.v233-photo-customer{
+  border:2px solid transparent!important;
+  border-image:linear-gradient(135deg,#6c3df5,#ef4f8a,#ff9b45) 1!important;
+  box-shadow:0 7px 20px rgba(108,61,245,.10)!important;
+  background:linear-gradient(#faf8fd,#faf8fd) padding-box,
+             linear-gradient(135deg,#6c3df5,#ef4f8a,#ff9b45) border-box!important;
+}
+.v233-photo-row-head{
+  border:2px solid #8b5cf6!important;
+  border-bottom:1px solid #8b5cf6!important;
+  background:linear-gradient(90deg,#eee7ff,#ffe8f1,#fff2df)!important;
+}
+.v233-photo-row{
+  border:2px solid #e94678!important;
+  border-top:0!important;
+  box-shadow:inset 0 0 0 1px rgba(25,184,215,.16)!important;
+}
+.v233-photo-cell{
+  border-left:2px solid #d7c5ff!important;
+}
+.v233-photo-cell:nth-child(2){border-left-color:#8b5cf6!important}
+.v233-photo-cell:nth-child(3){border-left-color:#e94678!important}
+.v233-photo-cell:nth-child(4){border-left-color:#19b8d7!important}
+.v233-photo-slot,.v233-photo-empty{
+  border:2px solid #c7b5ff!important;
+  box-shadow:0 5px 14px rgba(108,61,245,.12)!important;
+  background:linear-gradient(135deg,#f5f0ff,#fff4f8)!important;
+}
+.v233-photo-slot:nth-child(odd){border-color:#ef82a5!important}
+.v233-photo-empty{border-color:#8fd8e7!important}
+.v233-photo-status{
+  border:2px solid #38b987!important;
+  border-radius:12px!important;
+  background:#ecfff6!important;
+}
+</style>
+
+
+<style id="nf-v237-photo-name-gap-fix">
+/* V237: remove duplicate customer name from the photo row and close the gap above Photo Card. */
+.v233-photo-row-head,
+.v233-photo-row{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+.v233-photo-row-head{gap:6px!important}
+.v233-photo-row{gap:6px!important}
+.v233-photo-label{display:none!important}
+/* The Delivery list has bottom navigation padding; the Photo Card is a sibling, so that padding
+   otherwise becomes an unwanted blank gap between the WhatsApp/Delivery customer cards and Photo Card. */
+#view-delivery .r100-delivery-list-wrap{padding-bottom:0!important}
+.v233-multi-photo-box{margin-top:0!important}
+@media(max-width:700px){
+  .v233-photo-row-head,
+  .v233-photo-row{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:4px!important}
+  .v233-photo-row-head{padding:4px!important}
+  .v233-photo-row-head span{font-size:9px!important;line-height:1.15!important}
+  .v233-photo-cell{padding:5px!important}
+}
+</style>
