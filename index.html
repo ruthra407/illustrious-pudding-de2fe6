@@ -11973,16 +11973,27 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
   var v234Style=document.createElement('style');
   v234Style.id='nf-v234-multi-photo-card-style';
   v234Style.textContent=`
-    .v233-multi-photo-box{margin:22px 0 0;padding:18px;border:2px solid #d8c9ee;border-radius:24px;background:#fff;box-shadow:0 10px 28px rgba(40,20,70,.08)}
-    .v233-photo-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 18px;border-radius:18px;background:linear-gradient(135deg,#4d1d95,#c2186b);color:#fff}
-    .v233-photo-head strong{display:block;font-size:22px;font-weight:950}.v233-photo-head small{display:block;margin-top:4px;font-size:14px;font-weight:800;opacity:.9}
-    .v233-photo-share{border:0;border-radius:14px;padding:11px 15px;background:#fff;color:#5e3be0;font-weight:900;font-size:15px;cursor:pointer}
-    .v233-photo-customers{display:grid;grid-template-columns:1fr;gap:16px;margin-top:16px}
-    .v233-photo-customer{border:1.5px solid #e0d9ea;border-radius:20px;padding:15px;background:#faf8fd}
-    .v233-photo-customer-title{font-size:22px;font-weight:950;color:#241b2e;margin-bottom:12px}
-    .v233-photo-section{margin-top:12px;padding:12px;border-radius:16px;background:#fff;border:1px solid #e5deee}.v233-photo-section b{display:block;font-size:17px;color:#4b4054;margin-bottom:9px}
-    .v233-photo-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}.v233-photo-slot,.v233-photo-empty{min-height:105px;border-radius:13px;background:#f4f1f8;border:1px solid #ddd5e7;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden}.v233-photo-slot img{width:100%;height:82px;object-fit:cover;display:block}.v233-photo-slot small,.v233-photo-empty small{font-size:12px;font-weight:850;padding:5px;text-align:center}.v233-photo-empty span{font-size:28px;opacity:.65}
-    @media(max-width:600px){.v233-photo-head{align-items:flex-start}.v233-photo-head strong{font-size:19px}.v233-photo-share{font-size:13px;padding:9px 11px}.v233-photo-customer-title{font-size:20px}.v233-photo-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+    .v233-multi-photo-box{margin:18px 0 0;padding:14px;border:2px solid #d8c9ee;border-radius:22px;background:#fff;box-shadow:0 10px 28px rgba(40,20,70,.08)}
+    .v233-photo-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;border-radius:16px;background:linear-gradient(135deg,#4d1d95,#c2186b);color:#fff}
+    .v233-photo-head strong{display:block;font-size:19px;font-weight:950}.v233-photo-head small{display:block;margin-top:2px;font-size:11px;font-weight:800;opacity:.9}
+    .v233-photo-share{border:0;border-radius:12px;padding:9px 12px;background:#fff;color:#5e3be0;font-weight:900;font-size:13px;cursor:pointer}
+    .v233-photo-customers{display:grid;grid-template-columns:1fr;gap:10px;margin-top:10px}
+    .v233-photo-customer{border:1.5px solid #e0d9ea;border-radius:17px;padding:9px;background:#faf8fd}
+    .v233-photo-customer-title{font-size:17px;font-weight:950;color:#241b2e;margin:0 0 7px}
+    .v233-photo-row-head{display:grid;grid-template-columns:120px repeat(3,minmax(0,1fr));gap:6px;padding:5px 6px;background:#f3eff8;border-radius:10px 10px 0 0;border:1px solid #e5deee;border-bottom:0}
+    .v233-photo-row-head span{font-size:11px;font-weight:900;color:#4b4054;text-align:center}
+    .v233-photo-row{display:grid;grid-template-columns:120px repeat(3,minmax(0,1fr));gap:6px;border:1px solid #e5deee;border-radius:0 0 10px 10px;background:#fff;overflow:hidden}
+    .v233-photo-label{padding:8px 6px;display:flex;align-items:center;font-size:11px;font-weight:850;color:#5a5060;line-height:1.25}
+    .v233-photo-cell{min-width:0;padding:6px;display:flex;align-items:center;gap:7px;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;border-left:1px solid #eee8f2}
+    .v233-photo-slot,.v233-photo-empty{flex:0 0 170px;width:170px;height:145px;border-radius:12px;background:#f4f1f8;border:1px solid #ddd5e7;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden}
+    .v233-photo-slot img{width:100%;height:115px;object-fit:cover;display:block}.v233-photo-slot small,.v233-photo-empty small{font-size:10px;font-weight:850;padding:4px;text-align:center}
+    .v233-photo-empty span{font-size:24px;opacity:.65}.v233-photo-status{font-size:11px;font-weight:900;text-align:center;padding:8px;color:#117452}
+    @media(max-width:700px){
+      .v233-multi-photo-box{padding:10px;margin-top:14px}.v233-photo-head{padding:10px 11px}.v233-photo-head strong{font-size:16px}.v233-photo-head small{font-size:9px}.v233-photo-share{font-size:11px;padding:8px 9px}
+      .v233-photo-customer{padding:7px}.v233-photo-customer-title{font-size:15px;margin-bottom:5px}
+      .v233-photo-row-head,.v233-photo-row{grid-template-columns:86px repeat(3,minmax(0,1fr));gap:4px}.v233-photo-row-head{padding:4px}.v233-photo-row-head span{font-size:9px}.v233-photo-label{font-size:9px;padding:6px 4px}
+      .v233-photo-cell{padding:5px;gap:6px}.v233-photo-slot,.v233-photo-empty{flex-basis:165px;width:165px;height:140px}.v233-photo-slot img{height:111px}.v233-photo-slot small,.v233-photo-empty small{font-size:9px}
+    }
   `;
   (document.head||document.documentElement).appendChild(v234Style);
 
@@ -11999,12 +12010,14 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
   }
   function buildMultiPhotoCardShell(main,group){
     var ids=group.map(function(c){return String(c&&c.id||'')});
-    return '<section class=\"v233-multi-photo-box\" data-v233-main=\"'+escText(main.id)+'\" data-v233-ids=\"'+escText(JSON.stringify(ids))+'\">'+
-      '<div class=\"v233-photo-head\"><div><strong>📸 Customer Cloth Photos</strong><small>Multi Customer · '+group.length+' customers</small></div><button type=\"button\" class=\"v233-photo-share\" data-v233-share=\"'+escText(main.id)+'\">📤 Share</button></div>'+
-      '<div class=\"v233-photo-customers\">'+group.map(function(c){return '<article class=\"v233-photo-customer\" data-v233-customer=\"'+escText(c.id)+'\"><div class=\"v233-photo-customer-title\">👤 '+escText(c.name||'Customer')+'</div>'+
-        '<div class=\"v233-photo-section\"><b>📥 கஸ்டமர் கொடுத்த துணிகள்</b><div class=\"v233-photo-grid\" data-v233-original></div></div>'+
-        '<div class=\"v233-photo-section\"><b>🧵 கஸ்டமருக்கு தைத்து கொடுத்த துணிகள்</b><div class=\"v233-photo-grid\" data-v233-given></div></div>'+
-        '<div class=\"v233-photo-section\"><b>📦 மீதம் உள்ள துணிகள்</b><div class=\"v233-photo-grid\" data-v233-pending></div></div></article>';}).join('')+'</div></section>';
+    return '<section class="v233-multi-photo-box" data-v233-main="'+escText(main.id)+'" data-v233-ids="'+escText(JSON.stringify(ids))+'">'+
+      '<div class="v233-photo-head"><div><strong>📸 Customer Cloth Photos</strong><small>Multi Customer · '+group.length+' customers</small></div><button type="button" class="v233-photo-share" data-v233-share="'+escText(main.id)+'">📤 Share</button></div>'+
+      '<div class="v233-photo-customers">'+group.map(function(c){return '<article class="v233-photo-customer" data-v233-customer="'+escText(c.id)+'"><div class="v233-photo-customer-title">👤 '+escText(c.name||'Customer')+'</div>'+
+        '<div class="v233-photo-row-head"><span>பெயர்</span><span>📥 கொடுத்த துணிகள்</span><span>🧵 தைத்து கொடுத்தவை</span><span>📦 மீதம்</span></div>'+
+        '<div class="v233-photo-row"><div class="v233-photo-label">👤 '+escText(c.name||'Customer')+'</div>'+
+        '<div class="v233-photo-cell" data-v233-original></div>'+
+        '<div class="v233-photo-cell" data-v233-given></div>'+
+        '<div class="v233-photo-cell" data-v233-pending></div></div></article>';}).join('')+'</div></section>';
   }
   function hydrateMultiPhotoCards(box){
     box.querySelectorAll('.v233-multi-photo-box').forEach(function(card){
@@ -12012,14 +12025,27 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
         var id=person.getAttribute('data-v233-customer')||'';
         var originals=typeof customerClothPhotos==='function'?customerClothPhotos(id):[];
         var originalGrid=person.querySelector('[data-v233-original]');
-        if(originalGrid){originalGrid.innerHTML=(originals||[]).map(function(p,i){return photoSlotHtmlV233(photoSrcV233(p),'Photo '+(i+1));}).join('');}
+        if(originalGrid)originalGrid.innerHTML=(originals||[]).filter(Boolean).map(function(p,i){return photoSlotHtmlV233(photoSrcV233(p),'Photo '+(i+1));}).join('')||'<div class="v233-photo-empty"><span>📷</span><small>Photo இல்லை</small></div>';
         var d=typeof customerDeliveryPhotos==='function'?customerDeliveryPhotos(id):[];
-        function pick(type,status){var idx=typeof nfDeliveryPhotoIndex==='function'?nfDeliveryPhotoIndex(type,status,0):0;return d[idx]||null;}
-        var given=[pick('normal','given'),pick('lining','given'),pick('design','given')];
-        var pending=[pick('normal','pending'),pick('lining','pending'),pick('design','pending')];
+        function pick(type,status){
+          var arr=[];
+          for(var slot=0;slot<20;slot++){var idx=typeof nfDeliveryPhotoIndex==='function'?nfDeliveryPhotoIndex(type,status,slot):0;if(d[idx])arr.push(d[idx]);}
+          return arr;
+        }
+        var given=pick('normal','given').concat(pick('lining','given'),pick('design','given'));
+        var pending=pick('normal','pending').concat(pick('lining','pending'),pick('design','pending'));
         var givenGrid=person.querySelector('[data-v233-given]'),pendingGrid=person.querySelector('[data-v233-pending]');
-        if(givenGrid)givenGrid.innerHTML=given.map(function(p,i){return photoSlotHtmlV233(photoSrcV233(p),['Normal Blouse','Lining Blouse','Design Blouse'][i]);}).join('');
-        if(pendingGrid)pendingGrid.innerHTML=pending.map(function(p,i){return photoSlotHtmlV233(photoSrcV233(p),['Normal Blouse','Lining Blouse','Design Blouse'][i]);}).join('');
+        if(givenGrid)givenGrid.innerHTML=given.map(function(p,i){return photoSlotHtmlV233(photoSrcV233(p),['Normal','Lining','Design'][i]||('Photo '+(i+1)));}).join('')||'<div class="v233-photo-empty"><span>📷</span><small>Photo இல்லை</small></div>';
+        var remaining=0;
+        try{
+          var st=typeof customerStats==='function'?customerStats(id):{};
+          remaining=Math.max(0,Number(st.pendingNormal||0)+Number(st.pendingLining||0)+Number(st.pendingDesign||0));
+        }catch(_){}
+        if(pendingGrid){
+          if(remaining<=0) pendingGrid.innerHTML='<div class="v233-photo-status">✅ மீதம் இல்லை</div>';
+          else if(pending.length) pendingGrid.innerHTML=pending.map(function(p,i){return photoSlotHtmlV233(photoSrcV233(p),['Normal','Lining','Design'][i]||('Photo '+(i+1)));}).join('');
+          else pendingGrid.innerHTML='<div class="v233-photo-empty"><span>📷</span><small>Photo இல்லை</small></div>';
+        }
       });
       var share=card.querySelector('[data-v233-share]');
       if(share&&!share.__v233Bound){share.__v233Bound=true;share.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();shareMultiPhotoCardV233(card).catch(function(err){console.error(err);if(typeof toast==='function')toast('❌ Photo Card share ஆகவில்லை.',true);});});}
@@ -12029,27 +12055,39 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
   async function shareMultiPhotoCardV233(card){
     var btn=card.querySelector('[data-v233-share]');if(btn)btn.disabled=true;
     try{
-      var W=1000,pad=28,people=Array.from(card.querySelectorAll('.v233-photo-customer')),rows=[];
+      var W=1200,pad=28,people=Array.from(card.querySelectorAll('.v233-photo-customer')),rows=[];
       for(var i=0;i<people.length;i++){
         var person=people[i],name=person.querySelector('.v233-photo-customer-title')?.textContent||'Customer';
-        var sections=Array.from(person.querySelectorAll('.v233-photo-section')),items=[];
-        for(var j=0;j<sections.length;j++){
-          var title=sections[j].querySelector('b')?.textContent||'';var imgs=Array.from(sections[j].querySelectorAll('img'));var loaded=[];
+        var cells=[person.querySelector('[data-v233-original]'),person.querySelector('[data-v233-given]'),person.querySelector('[data-v233-pending]')],items=[];
+        for(var j=0;j<cells.length;j++){
+          var imgs=Array.from(cells[j]?.querySelectorAll('img')||[]),loaded=[];
           for(var k=0;k<imgs.length;k++){var im=await loadImgV233(imgs[k].src);if(im)loaded.push(im);}
-          items.push({title:title,images:loaded});
+          items.push({images:loaded,status:cells[j]?.querySelector('.v233-photo-status')?.textContent||''});
         }
-        rows.push({name:name,sections:items});
+        rows.push({name:name,cells:items});
       }
-      var H=170;rows.forEach(function(r){H+=58;r.sections.forEach(function(sec){H+=42;H+=sec.images.length?190:38;});H+=18});H+=90;
+      var rowH=250,H=115+rows.length*rowH+70;
       var canvas=document.createElement('canvas');canvas.width=W;canvas.height=H;var ctx=canvas.getContext('2d');
-      ctx.fillStyle='#f7f4fb';ctx.fillRect(0,0,W,H);function txt(v,x,y,size,w,fill,align){ctx.font=(w||800)+' '+size+'px Noto Sans Tamil,Arial,sans-serif';ctx.fillStyle=fill||'#171827';ctx.textAlign=align||'left';ctx.textBaseline='middle';ctx.fillText(String(v||''),x,y)}
-      txt('📸 CUSTOMER CLOTH PHOTOS',W/2,42,30,950,'#5e3be0','center');txt('Multi Customer',W/2,78,18,800,'#77758a','center');var y=120;
-      for(var a=0;a<rows.length;a++){var r=rows[a];ctx.fillStyle='#fff';ctx.strokeStyle='#ddd5ef';ctx.lineWidth=2;ctx.beginPath();ctx.roundRect(pad,y,W-pad*2,50,14);ctx.fill();ctx.stroke();txt(r.name,pad+18,y+25,22,900,'#241b2e');y+=58;
-        for(var b=0;b<r.sections.length;b++){var sec=r.sections[b];txt(sec.title,pad+8,y+18,17,900,'#4b4054');y+=42;if(sec.images.length){var x=pad+8;for(var q=0;q<sec.images.length;q++){var im=sec.images[q],cw=210,ch=155,sc=Math.min(cw/im.width,ch/im.height),dw=im.width*sc,dh=im.height*sc;ctx.fillStyle='#fff';ctx.strokeStyle='#e1d9e9';ctx.beginPath();ctx.roundRect(x,y,cw,ch,12);ctx.fill();ctx.stroke();ctx.drawImage(im,x+(cw-dw)/2,y+(ch-dh)/2,dw,dh);x+=cw+10;if(x+cw>W-pad){x=pad+8;y+=ch+10;}}y+=165}else{txt('Photo இல்லை',pad+20,y+18,14,750,'#9a919e');y+=38;}}y+=18;}
-      txt('NEW FASHION TAILORING',W/2,H-32,22,900,'#b23e62','center');
+      ctx.fillStyle='#f7f4fb';ctx.fillRect(0,0,W,H);
+      function txt(v,x,y,size,w,fill,align){ctx.font=(w||800)+' '+size+'px Noto Sans Tamil,Arial,sans-serif';ctx.fillStyle=fill||'#171827';ctx.textAlign=align||'left';ctx.textBaseline='middle';ctx.fillText(String(v||''),x,y);}
+      txt('📸 CUSTOMER CLOTH PHOTOS',W/2,32,26,950,'#5e3be0','center');txt('Multi Customer',W/2,62,15,800,'#77758a','center');
+      var y=88,labelW=150,gap=8,colW=(W-pad*2-labelW-gap*3)/3;
+      rows.forEach(function(r){
+        ctx.fillStyle='#fff';ctx.strokeStyle='#ddd5ef';ctx.lineWidth=2;ctx.beginPath();ctx.roundRect(pad,y,W-pad*2,rowH,14);ctx.fill();ctx.stroke();
+        txt(r.name,pad+14,y+24,18,900,'#241b2e');
+        var heads=['📥 கொடுத்த துணிகள்','🧵 தைத்து கொடுத்தவை','📦 மீதம்'];
+        for(var c=0;c<3;c++){
+          var x=pad+labelW+gap+c*(colW+gap);ctx.fillStyle='#f3eff8';ctx.beginPath();ctx.roundRect(x,y+10,colW,32,8);ctx.fill();txt(heads[c],x+colW/2,y+26,11,900,'#4b4054','center');
+          var cell=r.cells[c],ix=x+8,iy=y+50;
+          if(cell.images.length){cell.images.slice(0,4).forEach(function(im){var cw=145,ch=155,sc=Math.min(cw/im.width,ch/im.height),dw=im.width*sc,dh=im.height*sc;ctx.fillStyle='#fff';ctx.strokeStyle='#e1d9e9';ctx.beginPath();ctx.roundRect(ix,iy,cw,ch,10);ctx.fill();ctx.stroke();ctx.drawImage(im,ix+(cw-dw)/2,iy+(ch-dh)/2,dw,dh);ix+=cw+7;if(ix+cw>x+colW){ix=x+8;iy+=ch+7;}});}
+          else txt(cell.status||'📷 Photo இல்லை',x+colW/2,y+125,13,800,cell.status?'#117452':'#9a919e','center');
+        }
+        y+=rowH;
+      });
+      txt('NEW FASHION TAILORING',W/2,H-28,18,900,'#b23e62','center');
       var blob=await new Promise(function(resolve,reject){canvas.toBlob(function(b){b?resolve(b):reject(new Error('blob-failed'))},'image/jpeg',.84)});
       if(typeof window.__nfWacShareBlob!=='function')throw new Error('share-bridge-unavailable');
-      var mainId=card.getAttribute('data-v233-main')||'';var main=allCustomers().find(function(c){return String(c.id)===String(mainId)})||{};
+      var mainId=card.getAttribute('data-v233-main')||'',main=allCustomers().find(function(c){return String(c.id)===String(mainId)})||{};
       await window.__nfWacShareBlob(blob,'','NEW_FASHION_TAILORING_CUSTOMER_CLOTH_PHOTOS.jpg',main.phone||'');if(typeof toast==='function')toast('✅ Customer Photo Card share செய்யப்பட்டது.');
     }finally{if(btn)btn.disabled=false;}
   }
