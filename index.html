@@ -11320,52 +11320,53 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
   async function makeMultiWhatsAppImage(mainId){
     var group=groupFor(mainId);if(!group.length)throw new Error('customer-not-found');
     var W=1200,pad=24,inner=W-pad*2,people=group.slice(0,8);
-    var main=people[0]||{},mainOrders=ordersFor(main.id);
-    var clothDates=mainOrders.map(function(o){return o.cloth_received_date||o.order_date||'';}).filter(Boolean).sort();
-    var deliveryDates=mainOrders.map(function(o){return o.delivery_date||'';}).filter(Boolean).sort();
-    var clothDate=clothDates[0]||'',deliveryDate=deliveryDates[0]||'';
     var customerBlocks=[];
-
-    function n(v){return Math.max(0,Number(v||0));}
-    function addRateRow(map,label,qty,rate){
-      qty=n(qty);rate=n(rate);if(!qty)return;
-      var key=label+'|'+rate;
-      if(!map[key])map[key]={label:label,qty:0,rate:rate,total:0};
-      map[key].qty+=qty;map[key].total+=qty*rate;
-    }
+    function n(v){var x=Number(v||0);return Number.isFinite(x)?Math.max(0,x):0;}
+    function m(v){return moneyText(n(v));}
+    function addSimple(rows,label,qty,rate){qty=n(qty);rate=n(rate);if(qty)rows.push({label:label,math:qty+' × '+m(rate)+' = '+m(qty*rate),amount:qty*rate});}
     function buildCustomerRows(c){
-      var os=ordersFor(c.id),map={},displayTotal=0;
+      var os=ordersFor(c.id),rows=[],displayTotal=0;
       os.forEach(function(o){
-        var s=blouseSplit(o),r=nfOrderRates(o);
-        addRateRow(map,'Normal Blouse',s.normal,r.normal);
-        if(s.design){
-          var dr=typeof nfDesignRates==='function'?nfDesignRates(o):[];
-          var dq=n(s.design);
-          for(var di=0;di<dq;di++)addRateRow(map,'Design Blouse',1,n(dr[di]||r.design));
+        var s=typeof blouseSplit==='function'?blouseSplit(o):{normal:0,lining:0,design:0},r=typeof nfOrderRates==='function'?nfOrderRates(o):{};
+        var g=String(o&&o.garment_type||'Blouse').toLowerCase(),isBlouse=g==='blouse'||!o.garment_type;
+        if(isBlouse){
+          addSimple(rows,'Normal Blouse',s.normal,r.normal);
+          addSimple(rows,'Lining Blouse',s.lining,r.lining);
+          var dq=n(s.design),dr=typeof nfDesignRates==='function'?nfDesignRates(o):[];
+          if(dq){
+            var designTotal=0;for(var di=0;di<dq;di++)designTotal+=n(dr[di]||r.design);
+            var designRate=dq?designTotal/dq:0;
+            rows.push({label:'Design Blouse',math:dq+' × '+m(designRate)+' = '+m(designTotal),amount:designTotal});
+          }
+          var fancy=typeof window.nfParseFancyBlouses==='function'?(window.nfParseFancyBlouses(o)||[]):[];
+          fancy.forEach(function(f){
+            var fq=n(f&&f.count),fr=n(f&&f.price),stone=n(f&&f.stone),lace=n(f&&f.lace),knot=n(f&&f.knot),work=stone+lace+knot;
+            var base=fq*fr,flq=n(f&&f.liningCount),flr=n(f&&f.liningPrice),lining=flq*flr,total=base+lining+work;
+            if(fq||work||lining){
+              var parts=[];
+              if(work)parts.push(m(work)+' + ');
+              if(fq)parts.push(fq+' × '+m(fr));
+              var mainMath=(work?m(work)+' + ':'')+(fq?fq+' × '+m(fr):'')+(lining?' + '+m(lining):'')+' = '+m(total);
+              rows.push({label:'Fancy Blouse'+(fancy.length>1?' '+(fancy.indexOf(f)+1):'')+(work?' (Stone + Lace + Knot)':''),math:mainMath,sub:work?'('+m(stone)+' + '+m(lace)+' + '+m(knot)+') = '+m(work):'',amount:total});
+            }
+          });
+          var ex=typeof nfGarmentExtra==='function'?nfGarmentExtra(o):{};
+          addSimple(rows,'Saree / சேலை',ex.saree,r.saree);
+        }else if(g==='chudi'){
+          var ex2=typeof nfGarmentExtra==='function'?nfGarmentExtra(o):{};
+          addSimple(rows,'Chudi / சுடிதார்',ex2.chudi,r.chudi);
         }
-        addRateRow(map,'Lining Blouse',s.lining,r.lining);
-        var fancy=typeof window.nfParseFancyBlouses==='function'?(window.nfParseFancyBlouses(o)||[]):[];
-        fancy.forEach(function(f,fi){
-          var fq=n(f&&f.count),fr=n(f&&f.price),flq=n(f&&f.liningCount),flr=n(f&&f.liningPrice);
-          if(fq)addRateRow(map,'Fancy Blouse'+(fancy.length>1?' '+(fi+1):''),fq,fr);
-          if(flq)addRateRow(map,'Fancy Lining'+(fancy.length>1?' '+(fi+1):''),flq,flr);
-          var fw=n(f&&f.stone)+n(f&&f.lace)+n(f&&f.knot);if(fw)addRateRow(map,'Fancy Work'+(fancy.length>1?' '+(fi+1):''),1,fw);
-        });
-        var gx=typeof nfGarmentExtra==='function'?nfGarmentExtra(o):{};
-        addRateRow(map,'Saree / சேலை',gx.saree,r.saree);
-        addRateRow(map,'Chudidhar / சுடிதார்',gx.chudi,r.chudi);
-        if(['shop','tailor'].includes(String(o.lining_cloth_source||'').toLowerCase())&&n(o.lining_cloth_qty)){
-          var lc=typeof nfLiningCost==='function'?nfLiningCost(o):{total:0};
-          addRateRow(map,'Lining Cloth',n(o.lining_cloth_qty),n(lc.total)/Math.max(1,n(o.lining_cloth_qty)));
+        if(['shop','tailor'].includes(String(o&&o.lining_cloth_source||'').toLowerCase())&&n(o&&o.lining_cloth_qty)){
+          var lc=typeof nfLiningCost==='function'?nfLiningCost(o):{};
+          addSimple(rows,'Lining Cloth',n(o.lining_cloth_qty),n(lc&&lc.total)/Math.max(1,n(o.lining_cloth_qty)));
         }
       });
-      var rows=Object.keys(map).map(function(k){return map[k]});
-      rows.forEach(function(x){displayTotal+=x.total});
-      var st=customerStats(c.id),target=n(st.total),diff=target-displayTotal;
-      if(diff>0.009)rows.push({label:'மற்ற தொகை',qty:1,rate:diff,total:diff});
-      return {rows:rows,total:target,paid:n(st.paid),balance:n(st.balance),photos:[]};
+      rows.forEach(function(x){displayTotal+=n(x.amount)});
+      var st=typeof customerStats==='function'?customerStats(c.id):{total:displayTotal,paid:0,balance:0};
+      var target=n(st.total);
+      if(target-displayTotal>0.009){rows.push({label:'மற்ற தொகை',math:m(target-displayTotal),amount:target-displayTotal});displayTotal=target;}
+      return {rows:rows,total:target||displayTotal,paid:n(st.paid),balance:n(st.balance),photos:[],photoItems:[]};
     }
-
     for(var ci=0;ci<people.length;ci++){
       var c=people[ci],block=buildCustomerRows(c);
       try{
@@ -11377,7 +11378,6 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
         }
         block.photos=pp;
       }catch(e){console.warn('Multi customer photo load skipped:',e)}
-      block.photoItems=[];
       for(var pi=0;pi<block.photos.length;pi++){
         try{
           var src=nfWacPhotoSrc(block.photos[pi]);
@@ -11393,65 +11393,38 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
       }
       customerBlocks.push({customer:c,block:block});
     }
-
-    var sum=groupSummary(group),headH=250,dateH=145,peopleHead=64,personH=92,gap=18,sectionGap=18,footerH=128;
+    var main=people[0]||{},mainOrders=ordersFor(main.id);
+    var clothDates=mainOrders.map(function(o){return o.cloth_received_date||o.order_date||''}).filter(Boolean).sort();
+    var deliveryDates=mainOrders.map(function(o){return o.delivery_date||''}).filter(Boolean).sort();
+    var clothDate=clothDates[0]||'',deliveryDate=deliveryDates[0]||'';
+    var sum=groupSummary(group),headH=250,dateH=145,peopleHead=64,personH=92,sectionGap=18,payH=124,footerH=128;
+    function rowH(r){return r.sub?94:72;}
     var customerSectionHeights=customerBlocks.map(function(cb){
-      var rows=Math.max(1,cb.block.rows.length),ph=cb.block.photoItems.length?Math.ceil(cb.block.photoItems.length/2)*238+58:0;
-      return 68+58+rows*68+72+ph;
+      var rowsH=cb.block.rows.reduce(function(a,r){return a+rowH(r)},0);
+      var ph=cb.block.photoItems.length?Math.ceil(cb.block.photoItems.length/2)*238+58:0;
+      return 68+58+rowsH+72+ph;
     });
     var peopleH=peopleHead+people.length*personH+18;
     var sectionsH=customerSectionHeights.reduce(function(a,v){return a+v},0)+Math.max(0,customerSectionHeights.length-1)*sectionGap;
-    var payH=124;
     var H=pad+headH+16+dateH+16+peopleH+16+sectionsH+16+payH+22+footerH+pad;
     var canvas=document.createElement('canvas');canvas.width=W;canvas.height=H;var ctx=canvas.getContext('2d');if(!ctx)throw new Error('canvas-unavailable');
     ctx.fillStyle='#fff';ctx.fillRect(0,0,W,H);
     var bg=ctx.createLinearGradient(0,0,W,H);bg.addColorStop(0,'#f3edff');bg.addColorStop(.5,'#fff2f7');bg.addColorStop(1,'#fff9e8');ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
-    var y=pad;
-    var hg=ctx.createLinearGradient(pad,y,W-pad,y);hg.addColorStop(0,'#16082f');hg.addColorStop(1,'#c70861');roundRect(ctx,pad,y,inner,headH,24,hg,'#f3ca42',3);
-    drawText(ctx,'NEW FASHION TAILORING',W/2,y+54,50,950,'#fff','center');
-    drawText(ctx,main.name||'Customer',W/2,y+112,48,950,'#ffd83d','center');
-    drawText(ctx,'CUSTOMER CARD • MULTI CUSTOMER',W/2,y+164,37,950,'#ff9bd5','center');
-    drawText(ctx,'👥 '+people.length+' CUSTOMERS',W/2,y+214,29,900,'#fff','center');
-    y+=headH+16;
-    roundRect(ctx,pad,y,inner,dateH,20,'#fff','#6c4df6',3);
-    var dg=ctx.createLinearGradient(pad,y,W-pad,y);dg.addColorStop(0,'#6e19c7');dg.addColorStop(1,'#d20a61');ctx.fillStyle=dg;ctx.fillRect(pad,y,inner,58);
-    drawText(ctx,'📅 IMPORTANT DATES',pad+24,y+29,30,950,'#fff');
-    drawText(ctx,'துணி கொடுத்த தேதி',pad+34,y+91,22,900,'#4e3b61');drawText(ctx,dateTextSafe(clothDate),pad+34,y+119,38,950,'#171020');
-    drawText(ctx,'🚚 Delivery Date',W/2+30,y+91,22,900,'#7d255e');drawText(ctx,dateTextSafe(deliveryDate),W/2+30,y+119,38,950,'#08794f');
-    y+=dateH+16;
-    roundRect(ctx,pad,y,inner,peopleH,20,'#fff','#ded4ec',2);
-    var tg=ctx.createLinearGradient(pad,y,W-pad,y);tg.addColorStop(0,'#24105d');tg.addColorStop(1,'#c90c5b');ctx.fillStyle=tg;ctx.fillRect(pad,y,inner,peopleHead);
-    drawText(ctx,'👥 CUSTOMERS',pad+24,y+32,30,950,'#fff');
-    y+=peopleHead;
-    people.forEach(function(c,i){var yy=y+i*personH;roundRect(ctx,pad+14,yy+7,inner-28,personH-14,12,i%2?'#fff':'#faf7ff','#e3dcec',1);drawText(ctx,(i+1)+'. '+(c.name||'Customer'),pad+32,yy+personH/2,32,950,'#17131b');});
-    y+=people.length*personH+18;
-
+    var y=pad,hg=ctx.createLinearGradient(pad,y,W-pad,y);hg.addColorStop(0,'#16082f');hg.addColorStop(1,'#c70861');roundRect(ctx,pad,y,inner,headH,24,hg,'#f3ca42',3);
+    drawText(ctx,'NEW FASHION TAILORING',W/2,y+54,50,950,'#fff','center');drawText(ctx,main.name||'Customer',W/2,y+112,48,950,'#ffd83d','center');drawText(ctx,'CUSTOMER CARD • MULTI CUSTOMER',W/2,y+164,37,950,'#ff9bd5','center');drawText(ctx,'👥 '+people.length+' CUSTOMERS',W/2,y+214,29,900,'#fff','center');y+=headH+16;
+    roundRect(ctx,pad,y,inner,dateH,20,'#fff','#6c4df6',3);var dg=ctx.createLinearGradient(pad,y,W-pad,y);dg.addColorStop(0,'#6e19c7');dg.addColorStop(1,'#d20a61');ctx.fillStyle=dg;ctx.fillRect(pad,y,inner,58);drawText(ctx,'📅 IMPORTANT DATES',pad+24,y+29,30,950,'#fff');drawText(ctx,'துணி கொடுத்த தேதி',pad+34,y+91,22,900,'#4e3b61');drawText(ctx,dateTextSafe(clothDate),pad+34,y+119,38,950,'#171020');drawText(ctx,'🚚 Delivery Date',W/2+30,y+91,22,900,'#7d255e');drawText(ctx,dateTextSafe(deliveryDate),W/2+30,y+119,38,950,'#08794f');y+=dateH+16;
+    roundRect(ctx,pad,y,inner,peopleH,20,'#fff','#ded4ec',2);var tg=ctx.createLinearGradient(pad,y,W-pad,y);tg.addColorStop(0,'#24105d');tg.addColorStop(1,'#c90c5b');ctx.fillStyle=tg;ctx.fillRect(pad,y,inner,peopleHead);drawText(ctx,'👥 CUSTOMERS',pad+24,y+32,30,950,'#fff');y+=peopleHead;
+    people.forEach(function(c,i){var yy=y+i*personH;roundRect(ctx,pad+14,yy+7,inner-28,personH-14,12,i%2?'#fff':'#faf7ff','#e3dcec',1);drawText(ctx,(i+1)+'. '+(c.name||'Customer'),pad+32,yy+personH/2,32,950,'#17131b');});y+=people.length*personH+18;
     customerBlocks.forEach(function(cb,bi){
-      var c=cb.customer,b=cb.block,rows=b.rows,secH=68+58+Math.max(1,rows.length)*68+72+(b.photoItems.length?Math.ceil(b.photoItems.length/2)*238+58:0);
-      roundRect(ctx,pad,y,inner,secH,20,'#fff','#ded4ec',2);
-      var sg=ctx.createLinearGradient(pad,y,W-pad,y);sg.addColorStop(0,'#24105d');sg.addColorStop(1,'#c90c5b');ctx.fillStyle=sg;ctx.fillRect(pad,y,inner,68);
-      drawText(ctx,'👤 '+(c.name||'Customer'),pad+26,y+34,32,950,'#fff');
-      y+=68;
-      ctx.fillStyle='#f7f4ff';ctx.fillRect(pad,y,inner,58);
-      drawText(ctx,'ITEM',pad+26,y+29,20,950,'#3e3150');
-      drawText(ctx,'QTY',W-235,y+29,20,950,'#3e3150','center');
-      drawText(ctx,'RATE',W-130,y+29,20,950,'#3e3150','center');
-      drawText(ctx,'AMOUNT',W-42,y+29,20,950,'#3e3150','right');
-      y+=58;
-      rows.forEach(function(r,i){var yy=y+i*68;roundRect(ctx,pad+12,yy+6,inner-24,56,11,i%2?'#fff':'#faf7ff','#e7dfef',1);drawText(ctx,r.label,pad+28,yy+34,22,950,'#111318');drawText(ctx,String(r.qty),W-235,yy+34,23,950,'#17336f','center');drawText(ctx,moneyText(r.rate),W-130,yy+34,20,900,'#8f1647','center');drawText(ctx,moneyText(r.total),W-42,yy+34,22,950,'#075d36','right');});
-      y+=Math.max(1,rows.length)*68;
-      var totalY=y;ctx.fillStyle=sg;ctx.fillRect(pad,y,inner,72);drawText(ctx,'TOTAL — '+(c.name||'Customer'),pad+26,y+36,25,950,'#fff');drawText(ctx,moneyText(b.total),W-pad-26,y+36,32,950,'#fff','right');y+=72;
-      if(b.photoItems.length){
-        y+=8;drawText(ctx,'📸 CUSTOMER PHOTOS — '+(c.name||'Customer'),pad+20,y+22,22,950,'#6e1e56');y+=38;
-        for(var pj=0;pj<b.photoItems.length;pj++){var item=b.photoItems[pj],im=item.image,col=pj%2,row=Math.floor(pj/2),cw=(inner-18)/2,x=pad+col*(cw+18),yy=y+row*238;roundRect(ctx,x,yy,cw,224,14,'#fff','#d36b9c',2);var sc=Math.min((cw-24)/im.width,175/im.height),dw=im.width*sc,dh=im.height*sc;ctx.drawImage(im,x+cw/2-dw/2,yy+105-dh/2,dw,dh);drawText(ctx,'Photo '+(pj+1),x+14,yy+204,17,850,'#6e1e56');}
-        y+=Math.ceil(b.photoItems.length/2)*238;
-      }
+      var c=cb.customer,b=cb.block,rows=b.rows,rowsH=rows.reduce(function(a,r){return a+rowH(r)},0),photoH=b.photoItems.length?Math.ceil(b.photoItems.length/2)*238+58:0,secH=68+58+rowsH+72+photoH;
+      roundRect(ctx,pad,y,inner,secH,20,'#fff','#ded4ec',2);var sg=ctx.createLinearGradient(pad,y,W-pad,y);sg.addColorStop(0,'#24105d');sg.addColorStop(1,'#c90c5b');ctx.fillStyle=sg;ctx.fillRect(pad,y,inner,68);drawText(ctx,'👤 '+(c.name||'Customer'),pad+26,y+34,32,950,'#fff');y+=68;
+      ctx.fillStyle='#f7f4ff';ctx.fillRect(pad,y,inner,58);drawText(ctx,'ITEM',pad+28,y+29,21,950,'#3e3150');drawText(ctx,'CALCULATION',W-pad-28,y+29,21,950,'#3e3150','right');y+=58;
+      rows.forEach(function(r,i){var rh=rowH(r),yy=y;roundRect(ctx,pad+12,yy+6,inner-24,rh-12,11,i%2?'#fff':'#faf7ff','#e7dfef',1);drawText(ctx,r.label,pad+28,yy+(r.sub?34:36),25,950,'#111318');var mathSize=24;ctx.font='950 '+mathSize+'px Noto Sans Tamil,Arial,sans-serif';if(ctx.measureText(r.math).width>inner*.52)mathSize=21;drawText(ctx,r.math,W-pad-28,yy+36,mathSize,950,'#5b35c8','right');if(r.sub)drawText(ctx,r.sub,pad+48,yy+70,19,800,'#66586f');y+=rh;});
+      ctx.fillStyle=sg;ctx.fillRect(pad,y,inner,72);drawText(ctx,'TOTAL — '+(c.name||'Customer'),pad+26,y+36,27,950,'#fff');drawText(ctx,moneyText(b.total),W-pad-26,y+36,34,950,'#fff','right');y+=72;
+      if(b.photoItems.length){y+=8;drawText(ctx,'📸 CUSTOMER PHOTOS — '+(c.name||'Customer'),pad+20,y+22,22,950,'#6e1e56');y+=38;for(var pj=0;pj<b.photoItems.length;pj++){var item=b.photoItems[pj],im=item.image,col=pj%2,row=Math.floor(pj/2),cw=(inner-18)/2,x=pad+col*(cw+18),yy=y+row*238;roundRect(ctx,x,yy,cw,224,14,'#fff','#d36b9c',2);var sc=Math.min((cw-24)/im.width,175/im.height),dw=im.width*sc,dh=im.height*sc;ctx.drawImage(im,x+cw/2-dw/2,yy+105-dh/2,dw,dh);drawText(ctx,'Photo '+(pj+1),x+14,yy+204,17,850,'#6e1e56');}y+=Math.ceil(b.photoItems.length/2)*238;}
       if(bi<customerBlocks.length-1)y+=sectionGap;
     });
-
-    y+=16;
-    var bw=(inner-20)/3;[['TOTAL AMOUNT',sum.total,'#5e3be0'],['PAID AMOUNT',sum.paid,'#0e9367'],['BALANCE',sum.balance,'#db3f6b']].forEach(function(a,i){var x=pad+i*(bw+10);roundRect(ctx,x,y,bw,payH,18,a[2]);drawText(ctx,a[0],x+18,y+36,21,900,'#fff');drawText(ctx,moneyText(a[1]),x+18,y+83,38,950,'#fff');});y+=payH;
-    y+=22;var fg=ctx.createLinearGradient(pad,y,W-pad,y);fg.addColorStop(0,'#24105d');fg.addColorStop(1,'#b80c61');roundRect(ctx,pad,y,inner,footerH,20,fg);drawText(ctx,'Thank you for choosing us!',W/2,y+38,34,950,'#ffd84c','center');drawText(ctx,'NEW FASHION TAILORING',W/2,y+78,27,950,'#fff','center');drawText(ctx,'☎ PHONE: 8524931003',W/2,y+108,34,950,'#fff','center');
+    y+=16;var bw=(inner-20)/3;[['TOTAL AMOUNT',sum.total,'#5e3be0'],['PAID AMOUNT',sum.paid,'#0e9367'],['BALANCE',sum.balance,'#db3f6b']].forEach(function(a,i){var x=pad+i*(bw+10);roundRect(ctx,x,y,bw,payH,18,a[2]);drawText(ctx,a[0],x+18,y+36,21,900,'#fff');drawText(ctx,moneyText(a[1]),x+18,y+83,38,950,'#fff');});y+=payH;y+=22;var fg=ctx.createLinearGradient(pad,y,W-pad,y);fg.addColorStop(0,'#24105d');fg.addColorStop(1,'#b80c61');roundRect(ctx,pad,y,inner,footerH,20,fg);drawText(ctx,'Thank you for choosing us!',W/2,y+38,34,950,'#ffd84c','center');drawText(ctx,'NEW FASHION TAILORING',W/2,y+78,27,950,'#fff','center');drawText(ctx,'☎ PHONE: 8524931003',W/2,y+108,34,950,'#fff','center');
     return canvasBlob(canvas);
   }
 
