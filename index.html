@@ -5075,6 +5075,9 @@ async function deleteCustomer(id){
     const customerIds=new Set([String(id)]);
     const isAdditionalCustomer=(x)=>{
       if(!x)return false;
+      const notes=String(x.notes||"");
+      const marker=notes.match(/(?:^|\|\s*)NF_MULTI_PARENT:\s*([^|\s]+)/i);
+      if(marker&&marker[1])return true;
       const mainRef=String(x.main_customer_id||x.parent_customer_id||x.parent_id||x.main_id||"");
       return !!mainRef;
     };
@@ -5087,7 +5090,8 @@ async function deleteCustomer(id){
       (state.customers||[]).forEach(x=>{
         if(String(x.id)===String(id))return;
         const parent=String(x?.main_customer_id||x?.parent_customer_id||x?.parent_id||x?.main_id||"");
-        if(parent===String(id))customerIds.add(String(x.id));
+        const m=String(x?.notes||"").match(/(?:^|\|\s*)NF_MULTI_PARENT:\s*([^|\s]+)/i);
+        if(parent===String(id)||(m&&String(m[1])===String(id)))customerIds.add(String(x.id));
       });
     }
 
@@ -11175,7 +11179,7 @@ setTimeout(decorateAll,100);
   "use strict";
   var PREFIX="NF_MULTI_PARENT:";
   function parentId(c){
-    var m=String(c&&c.notes||"").match(/(?:^|\\|\\s*)NF_MULTI_PARENT:([^|\\s]+)/);
+    var m=String(c&&c.notes||"").match(/(?:^|\|\s*)NF_MULTI_PARENT:([^|\s]+)/);
     return m?String(m[1]):"";
   }
   function isMultiChild(c){ return !!parentId(c); }
