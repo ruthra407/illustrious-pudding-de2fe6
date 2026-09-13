@@ -11384,19 +11384,21 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
     for(var ci=0;ci<people.length;ci++){
       var c=people[ci],block=buildCustomerRows(c);
       try{
-        var pp=typeof nfWacResolvePhotos==='function'?await nfWacResolvePhotos(c.id):[];
-        pp=(pp||[]).filter(function(x){return x&&x.src}).slice(0,4);
+        /* V231: Customer-given cloth photos are read directly from the same
+           customerClothPhotos() store used by the Customer Card upload UI.
+           Prefer the stored src/dataSrc; fall back to the R2 resolver. */
+        if(typeof initCustomerClothPhotoStore==='function'){try{await initCustomerClothPhotoStore()}catch(_){}}
+        var pp=typeof customerClothPhotos==='function'?customerClothPhotos(c.id):[];
+        pp=(Array.isArray(pp)?pp:[]).filter(function(x){return x&&(x.dataSrc||x.src||x.cloudPath)}).slice(0,4);
         if(pp.length&&typeof nfWacPhotoDataUrls==='function'){
           var urls=await nfWacPhotoDataUrls(pp);
-          /* Keep only successfully embedded image data URLs.
-             A failed remote/CORS photo must not block the WhatsApp card. */
           pp=pp.map(function(p,i){
             var u=String(urls[i]||'');
-            return /^data:image\\//i.test(u)?Object.assign({},p,{src:u}):null;
+            return /^data:image\//i.test(u)?Object.assign({},p,{src:u}):null;
           }).filter(Boolean);
         }
-        block.photos=pp;
-      }catch(e){console.warn('Multi customer photo load skipped:',e)}
+      }catch(e){console.warn('Multi customer customer-cloth photo load skipped:',e);pp=[];}
+      block.photos=pp;
       /* Load photos in parallel with a short per-photo timeout.
          One broken upload therefore cannot make the whole card fail. */
       var photoJobs=block.photos.map(function(photo){
@@ -12576,7 +12578,7 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-card{
   }
   function customerSection(c,role){
     var os=(state.orders||[]).filter(function(o){return String(o.customer_id)===String(c.id)});var totals=groupTotals(os),photos=photoList(c.id);
-    var ordersHtml=os.map(function(o){var p=paymentInfo(o),items=orderItems(o);return '<div class="nf-v227-customer"><div class="nf-v227-customer-head"><div class="nf-v227-customer-name">'+E(o.order_no||'Order')+' · '+E(o.garment_type||'Work')+'</div><span class="nf-v227-customer-role">'+E(role)+'</span></div><div class="nf-v227-mini-grid"><div class="nf-v227-mini"><span>Order Date</span><b>'+date(o.order_date)+'</b></div><div class="nf-v227-mini"><span>Cloth Received</span><b>'+date(o.cloth_received_date)+'</b></div><div class="nf-v227-mini"><span>Delivery</span><b>'+date(o.delivery_date)+'</b></div></div><div class="nf-v227-section" style="margin-top:9px"><h4>👗 Order Details</h4>'+items.map(function(x){return '<div class="nf-v227-orderline"><span>'+E(x[0])+' · '+x[1]+' × '+moneyX(x[2])+'</span><b>'+moneyX(x[3])+'</b></div>'}).join('')+'<div class="nf-v227-orderline"><span>Total Order</span><b>'+moneyX(orderTotal(o))+'</b></div></div><div class="nf-v227-section" style="margin-top:9px"><h4>💰 Payment</h4><div class="nf-v227-money-grid"><div class="nf-v227-money"><span>Advance</span><b>'+moneyX(p.advance)+'</b></div><div class="nf-v227-money"><span>Customer Paid</span><b>'+moneyX(p.customerPaid)+'</b></div><div class="nf-v227-money"><span>Total Paid</span><b>'+moneyX(p.totalPaid)+'</b></div><div class="nf-v227-money"><span>Balance</span><b>'+moneyX(p.balance)+'</b></div></div><div style="margin-top:9px">'+paymentHtml([o])+'</div></div>'+(photos.length?'<div class="nf-v227-section full" style="margin-top:9px"><h4>📸 Photos · '+photos.length+'</h4><div class="nf-v227-photos">'+photos.map(function(ph){return '<div class="nf-v227-photo"><img src="'+E(ph.src)+'" alt="'+E(ph.label)+'" onclick="previewCustomerClothPhoto && previewCustomerClothPhoto(\''+E(c.id)+'\',0)" onerror="this.parentNode.remove()"><div class="nf-v227-photo-label">'+E(ph.label)+'</div></div>'}).join('')+'</div></div>':'')+'</div>'}).join('');
+    var ordersHtml=os.map(function(o){var p=paymentInfo(o),items=orderItems(o);return '<div class="nf-v227-customer"><div class="nf-v227-customer-head"><div class="nf-v227-customer-name">'+E(o.order_no||'Order')+' · '+E(o.garment_type||'Work')+'</div><div class="nf-v231-customer-actions"><span class="nf-v227-customer-role">'+E(role)+'</span><button type="button" class="nf-v231-edit" onclick="event.stopPropagation();nfV231EditOrder(\''+E(c.id)+'\',\''+E(o.id)+'\')">✏️ Edit Order</button></div></div><div class="nf-v227-mini-grid"><div class="nf-v227-mini"><span>Order Date</span><b>'+date(o.order_date)+'</b></div><div class="nf-v227-mini"><span>Cloth Received</span><b>'+date(o.cloth_received_date)+'</b></div><div class="nf-v227-mini"><span>Delivery</span><b>'+date(o.delivery_date)+'</b></div></div><div class="nf-v227-section" style="margin-top:9px"><h4>👗 Order Details</h4>'+items.map(function(x){return '<div class="nf-v227-orderline"><span>'+E(x[0])+' · '+x[1]+' × '+moneyX(x[2])+'</span><b>'+moneyX(x[3])+'</b></div>'}).join('')+'<div class="nf-v227-orderline"><span>Total Order</span><b>'+moneyX(orderTotal(o))+'</b></div></div><div class="nf-v227-section" style="margin-top:9px"><h4>💰 Payment</h4><div class="nf-v227-money-grid"><div class="nf-v227-money"><span>Advance</span><b>'+moneyX(p.advance)+'</b></div><div class="nf-v227-money"><span>Customer Paid</span><b>'+moneyX(p.customerPaid)+'</b></div><div class="nf-v227-money"><span>Total Paid</span><b>'+moneyX(p.totalPaid)+'</b></div><div class="nf-v227-money"><span>Balance</span><b>'+moneyX(p.balance)+'</b></div></div><div style="margin-top:9px">'+paymentHtml([o])+'</div></div>'+(photos.length?'<div class="nf-v227-section full" style="margin-top:9px"><h4>📸 Photos · '+photos.length+'</h4><div class="nf-v227-photos">'+photos.map(function(ph){return '<div class="nf-v227-photo"><img src="'+E(ph.src)+'" alt="'+E(ph.label)+'" onclick="previewCustomerClothPhoto && previewCustomerClothPhoto(\''+E(c.id)+'\',0)" onerror="this.parentNode.remove()"><div class="nf-v227-photo-label">'+E(ph.label)+'</div></div>'}).join('')+'</div></div>':'')+'</div>'}).join('');
     return '<section class="nf-v227-section full"><h4>👤 '+E(c.name||'Customer')+' · '+E(role)+'</h4>'+ordersHtml+'</section>';
   }
   function build(group,clickedId){
@@ -12797,6 +12799,50 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-card{
   window.nfV230RefreshAll=function(){
     if(typeof loadAll==='function')return loadAll(true);
   };
+})();
+</script>
+
+<style id="nf-v231-multi-whatsapp-photo-edit-fix-css">
+.nf-v231-customer-actions{display:flex;align-items:center;justify-content:flex-end;gap:7px;flex-wrap:wrap}
+.nf-v231-edit{border:0;border-radius:10px;padding:7px 10px;background:#eee8ff;color:#5131a0;font-weight:900;cursor:pointer;white-space:nowrap}
+@media(max-width:520px){.nf-v231-customer-actions{width:100%;justify-content:flex-start}.nf-v231-edit{padding:7px 11px}}
+</style>
+<script id="nf-v231-multi-whatsapp-photo-edit-fix">
+(function(){
+  "use strict";
+  if(window.__nfV231Installed)return;
+  window.__nfV231Installed=true;
+  function S(v){return String(v==null?"":v)}
+  function N(v){var n=Number(v);return Number.isFinite(n)?Math.max(0,n):0}
+  function customers(){return Array.isArray(state.customers)?state.customers:[]}
+  function parentId(c){var m=S(c&&c.notes).match(/(?:^|\|\s*)NF_MULTI_PARENT:([^|\s]+)/i);return m?S(m[1]):""}
+  function customerById(id){return customers().find(function(c){return S(c&&c.id)===S(id)})||null}
+  function groupForLocal(id){var c=customerById(id);if(!c)return[];var root=parentId(c)||S(c.id),main=customers().find(function(x){return S(x&&x.id)===root&&!parentId(x)});if(!main)return[c];var out=[main],seen={};seen[root]=1;customers().forEach(function(x){var xid=S(x&&x.id);if(!xid||seen[xid])return;if(parentId(x)===root){seen[xid]=1;out.push(x)}});return out}
+  function editOrder(cid,oid){
+    var o=(state.orders||[]).find(function(x){return S(x&&x.id)===S(oid)});
+    if(!o){if(typeof toast==='function')toast('Edit செய்ய Order கிடைக்கவில்லை.',true);return;}
+    try{if(typeof closeOrderFullDetails==='function')closeOrderFullDetails()}catch(_){ }
+    setTimeout(function(){
+      try{
+        if(typeof openCustomerOrderEditor==='function'){openCustomerOrderEditor(S(cid),S(oid));return;}
+        if(typeof openOrdersEditOrder==='function'){openOrdersEditOrder(S(oid));return;}
+        if(typeof toast==='function')toast('Edit Order screen கிடைக்கவில்லை.',true);
+      }catch(err){if(typeof toast==='function')toast('Edit Order failed: '+(err&&err.message||err),true)}
+    },80);
+  }
+  window.nfV231EditOrder=editOrder;
+
+  /* The builder may be captured by makeWhatsAppImage's closure, so also expose a direct
+     rebuild hook for callers that use the global function after this patch. */
+  try{
+    if(typeof window.makeWhatsAppImage==='function'){
+      var oldMake=window.makeWhatsAppImage;
+      if(!oldMake.__nfV231Wrapped){
+        window.makeWhatsAppImage=async function(id){return await oldMake(id)};
+        window.makeWhatsAppImage.__nfV231Wrapped=true;
+      }
+    }
+  }catch(_){ }
 })();
 </script>
 </body>
