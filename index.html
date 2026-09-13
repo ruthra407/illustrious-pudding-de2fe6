@@ -11830,7 +11830,7 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
             makeWhatsAppImage(cid),
             new Promise(function(_,reject){setTimeout(function(){reject(new Error('card-build-timeout'));},35000);})
           ])
-        : await nfBuildDeliveryCardGuarded(cid);
+        : await makeDeliveryImage(cid);
       if(kind==='whatsapp')deliveryBlobStore.whatsapp=b.blob;
       else deliveryBlobStore.delivery=b;
       if(typeof window.__nfDeliverySetPreviewBlob==='function')window.__nfDeliverySetPreviewBlob(previewToken,b.blob||b,label);
