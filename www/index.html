@@ -3393,7 +3393,9 @@ async function saveCustomerDeliveryPhoto(id,type,status,slot,file){
     const path=await nfUploadDeliveryPhoto(id,t,st,slot,file,file.type);
     if(!path)throw new Error(nfCloudPhotoLastError||"R2 upload failed");
     const arr=customerDeliveryPhotos(id),idx=nfDeliveryPhotoIndex(t,st,slot),url=nfR2PhotoUrl(path);
-    arr[idx]={src:url,name:"Delivery "+t+" "+st+" "+(Number(slot)+1),savedAt:new Date().toISOString(),cloudPath:path,originalType:file.type,originalSize:file.size};
+    let localDataSrc="";
+    try{localDataSrc=await fileToOriginalDataUrl(file)||"";}catch(dataErr){console.warn("Delivery photo local copy skipped:",dataErr)}
+    arr[idx]={src:url,dataSrc:localDataSrc,name:"Delivery "+t+" "+st+" "+(Number(slot)+1),savedAt:new Date().toISOString(),cloudPath:path,originalType:file.type,originalSize:file.size};
     await setCustomerDeliveryPhotos(id,arr);
     toast("தைக்கப்பட்ட துணி photo cloud-ல் சேமிக்கப்பட்டது. ☁️");
     renderCustomers();
@@ -11298,15 +11300,15 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
             if(done)return;
             /* Some Android WebViews can stall on toBlob. Fall back to dataURL. */
             try{
-              var data=canvas.toDataURL('image/jpeg',.92);
+              var data=canvas.toDataURL('image/jpeg',.82);
               var bin=atob(data.split(',')[1]||'');
               var arr=new Uint8Array(bin.length);for(var i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);
               ok(new Blob([arr],{type:'image/jpeg'}));
             }catch(e){fail(e)}
           },8000);
-          try{canvas.toBlob(function(blob){clearTimeout(timer);ok(blob);},'image/jpeg',.95)}catch(e){clearTimeout(timer);fail(e)}
+          try{canvas.toBlob(function(blob){clearTimeout(timer);ok(blob);},'image/jpeg',.82)}catch(e){clearTimeout(timer);fail(e)}
         }else{
-          var data=canvas.toDataURL('image/jpeg',.92);
+          var data=canvas.toDataURL('image/jpeg',.82);
           var bin=atob(data.split(',')[1]||'');
           var arr=new Uint8Array(bin.length);for(var i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);
           ok(new Blob([arr],{type:'image/jpeg'}));
@@ -11371,11 +11373,12 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
     y+=Math.max(1,rows.length)*rowH;
     var sumY=y;ctx.fillStyle=th;ctx.fillRect(pad,y,inner,totalH);drawText(ctx,'GRAND TOTAL',pad+28,y+41,31,950,'#fff');drawText(ctx,moneyText(sum.total),W-pad-28,y+41,42,950,'#fff','right');y+=totalH;
     y+=16;
-    var bw=(inner-24)/3;[['TOTAL AMOUNT',sum.total,'#5e3be0'],['PAID AMOUNT',sum.paid,'#0e9367'],['BALANCE',sum.balance,'#db3f6b']].forEach(function(a,i){var x=pad+i*(bw+12);roundRect(ctx,x,y,bw,payH,18,a[2]);drawText(ctx,a[0],x+18,y+36,21,900,'#fff');drawText(ctx,moneyText(a[1]),x+18,y+83,38,950,'#fff');});y+=payH;
-    if(photos.length){
+    var bw=(inner-20)/3;[['TOTAL AMOUNT',sum.total,'#5e3be0'],['PAID AMOUNT',sum.paid,'#0e9367'],['BALANCE',sum.balance,'#db3f6b']].forEach(function(a,i){var x=pad+i*(bw+12);roundRect(ctx,x,y,bw,payH,18,a[2]);drawText(ctx,a[0],x+18,y+36,21,900,'#fff');drawText(ctx,moneyText(a[1]),x+18,y+83,38,950,'#fff');});y+=payH;
+
+    if(actualPhotoCount){
       y+=16;var pg=ctx.createLinearGradient(pad,y,W-pad,y);pg.addColorStop(0,'#7112c4');pg.addColorStop(1,'#d30a61');ctx.fillStyle=pg;ctx.fillRect(pad,y,inner,photoTitleH);drawText(ctx,'📸 CUSTOMER PHOTOS',pad+24,y+33,30,950,'#fff');y+=photoTitleH+10;
-      for(var i=0;i<photos.length;i++){var p=photos[i],col=i%2,row=Math.floor(i/2),x=pad+col*((inner-18)/2),yy=y+row*(photoCellH+gap),cw=(inner-18)/2;roundRect(ctx,x,yy,cw,photoCellH,16,'#fff','#d36b9c',2);drawText(ctx,p.customerName||'Customer',x+18,yy+27,22,950,'#6e1e56');if(p.src)try{var im=await new Promise(function(resolve,reject){var z=new Image();z.onload=function(){resolve(z)};z.onerror=reject;z.src=p.src;});var sc=Math.min((cw-36)/im.width,220/im.height),dw=im.width*sc,dh=im.height*sc;ctx.drawImage(im,x+cw/2-dw/2,yy+140-dh/2,dw,dh);}catch(e){} }
-      y+=photoRows*(photoCellH+gap)-gap;
+      for(var i=0;i<actualPhotoCount;i++){var item=photoItems[i],p=item.meta,im=item.image,col=i%2,row=Math.floor(i/2),x=pad+col*((inner-18)/2),yy=y+row*(photoCellH+gap),cw=(inner-18)/2;roundRect(ctx,x,yy,cw,photoCellH,16,'#fff','#d36b9c',2);drawText(ctx,p.name||'Customer',x+18,yy+27,22,950,'#6e1e56');var sc=Math.min((cw-36)/im.width,220/im.height),dw=im.width*sc,dh=im.height*sc;ctx.drawImage(im,x+cw/2-dw/2,yy+140-dh/2,dw,dh);}
+      y+=Math.ceil(actualPhotoCount/2)*(photoCellH+gap)-gap;
     }
     y+=22;var fg=ctx.createLinearGradient(pad,y,W-pad,y);fg.addColorStop(0,'#24105d');fg.addColorStop(1,'#b80c61');roundRect(ctx,pad,y,inner,128,20,fg);drawText(ctx,'Thank you for choosing us!',W/2,y+38,34,950,'#ffd84c','center');drawText(ctx,'NEW FASHION TAILORING',W/2,y+78,27,950,'#fff','center');drawText(ctx,'☎ PHONE: 8524931003',W/2,y+108,34,950,'#fff','center');
     return canvasBlob(canvas);
@@ -11389,10 +11392,15 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
 
   async function nfBuildSimpleDeliveryCard(mainId){
     var group=groupFor(mainId);if(!group.length)throw new Error('customer-not-found');
+    /* V201: The delivery-photo cache is IndexedDB-backed. The old builder read
+       customerDeliveryPhotos() before initializing that store, so a fresh page
+       could see an empty cache even though the saved Delivery photos existed.
+       Hydrate the local photo store before resolving Delivery Pending photos. */
+    try{if(typeof initCustomerClothPhotoStore==='function')await initCustomerClothPhotoStore();}catch(e){console.warn('Delivery photo store init skipped:',e)}
     /* V199: Delivery card is rendered at CSS resolution on mobile. The old 2x
        canvas could exceed Android WebView canvas/bitmap limits once the photo
        section made the canvas tall, causing the whole builder to reject. */
-    var W=1400,S=1,pad=48,inner=W-pad*2,people=group.slice(0,8),rows=[],photos=[];
+    var W=1000,S=1,pad=32,inner=W-pad*2,people=group.slice(0,8),rows=[],photos=[];
     function n(v){return Math.max(0,Number(v||0));}
     function add(label,qty,given,rate,amount){
       qty=n(qty);given=Math.min(qty,n(given));rate=n(rate);
@@ -11435,36 +11443,22 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
       });
       try{
         var dps=typeof customerDeliveryPhotos==='function'?customerDeliveryPhotos(c.id):[];
-        var defs=[{type:'normal',label:'Normal'},{type:'lining',label:'Lining'},{type:'design',label:'Design'}];
+        var st=typeof customerStats==='function'?customerStats(c.id):{};
+        var defs=[{type:'normal',label:'Normal',count:Number(st.pendingNormal||0)},{type:'lining',label:'Lining',count:Number(st.pendingLining||0)},{type:'design',label:'Design',count:Number(st.pendingDesign||0)}];
         defs.forEach(function(m){
-          for(var slot=0;slot<NF_DELIVERY_SLOT_CAP;slot++){
+          var lim=Math.min(NF_DELIVERY_SLOT_CAP,Math.max(0,m.count));
+          for(var slot=0;slot<lim;slot++){
             var idx=typeof nfDeliveryPhotoIndex==='function'?nfDeliveryPhotoIndex(m.type,'pending',slot):-1;
             var x=idx>=0&&dps[idx]?dps[idx]:null;
-            if(x&&x.src)photos.push({src:x.src,name:(c.name||'Customer')+' - '+m.label,cloudPath:x.cloudPath||'',savedAt:x.savedAt||''});
+            if(x){
+              var resolvedSrc=x.dataSrc||x.src||'';
+              if(!resolvedSrc && x.cloudPath && typeof nfR2PhotoUrl==='function') resolvedSrc=nfR2PhotoUrl(x.cloudPath);
+              if(resolvedSrc){
+                photos.push({src:resolvedSrc,dataSrc:x.dataSrc||'',name:(c.name||'Customer')+' - '+m.label,cloudPath:x.cloudPath||'',savedAt:x.savedAt||''});
+              }
+            }
           }
         });
-        /* Cache may not be hydrated yet. Resolve only the pending slots that
-           the current delivery counts actually need, directly from R2. */
-        var st=typeof customerStats==='function'?customerStats(c.id):{};
-        var need=[['normal','Normal',st.pendingNormal],['lining','Lining',st.pendingLining],['design','Design',st.pendingDesign]];
-        for(var ni=0;ni<need.length;ni++){
-          var typ=need[ni][0],lab=need[ni][1],lim=Math.min(NF_DELIVERY_SLOT_CAP,Math.max(0,Number(need[ni][2]||0)));
-          for(var sl=0;sl<lim;sl++){
-            var ix=nfDeliveryPhotoIndex(typ,'pending',sl);
-            if(dps[ix]&&dps[ix].src)continue;
-            try{
-              var path=nfDeliveryPhotoPath(c.id,typ,'pending',sl),url=nfR2PhotoUrl(path);
-              var ac=typeof AbortController!=='undefined'?new AbortController():null;
-              var ft=ac?setTimeout(function(){try{ac.abort()}catch(_){}},2500):null;
-              var rr=await fetch(url,{method:'GET',cache:'no-store',signal:ac?ac.signal:undefined});
-              if(ft)clearTimeout(ft);
-              if(rr.ok){
-                var exists=photos.some(function(q){return q&&q.cloudPath===path;});
-                if(!exists)photos.push({src:url,name:(c.name||'Customer')+' - '+lab,cloudPath:path,savedAt:''});
-              }
-            }catch(_){ }
-          }
-        }
       }catch(e){console.warn('Delivery card delivery-photo load skipped:',e)}
     }
     var main=people[0]||{},mainOrders=ordersFor(main.id);
@@ -11480,8 +11474,44 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
     var balanceAmount=Math.max(0,totalAmount-paidAmount);
     var remainingCount=rows.reduce(function(a,r){return a+r.remain;},0);
     var remainingRows=rows.filter(function(r){return r.remain>0;});
-    var H=650+rows.length*82+(photos.length?430+Math.ceil(Math.min(8,photos.length)/2)*300:0);
-    var canvas=document.createElement('canvas');canvas.width=W*S;canvas.height=H*S;var ctx=canvas.getContext('2d');if(!ctx)throw new Error('canvas-unavailable');ctx.scale(S,S);
+    function loadDeliveryPhotoSafe(p){
+      return Promise.race([
+        new Promise(function(resolve){
+          var src=p&&(p.dataSrc||p.src);
+          if(!p?.dataSrc&&typeof nfWacPhotoSrc==='function')src=nfWacPhotoSrc(p);
+          if(!src){resolve(null);return;}
+          var z=new Image();
+          try{z.crossOrigin='anonymous'}catch(_){}
+          var done=false;
+          var timer=setTimeout(function(){if(done)return;done=true;try{z.src=''}catch(_){};resolve(null)},5000);
+          z.onload=function(){if(done)return;done=true;clearTimeout(timer);resolve(z)};
+          z.onerror=function(){if(done)return;done=true;clearTimeout(timer);resolve(null)};
+          try{z.src=src}catch(_){if(done)return;done=true;clearTimeout(timer);resolve(null)}
+        }),
+        new Promise(function(resolve){setTimeout(function(){resolve(null)},5000)})
+      ]);
+    }
+    var photoItems=[];
+    for(var pi=0;pi<photos.length&&photoItems.length<8;pi++){
+      var pp=photos[pi];
+      try{
+        var im=await loadDeliveryPhotoSafe(pp);
+        if(im)photoItems.push({meta:pp,image:im});
+      }catch(photoErr){console.warn('Delivery photo skipped:',photoErr)}
+    }
+    var photoCount=photoItems.length;
+    /* V209: derive canvas height from the exact drawing flow below. The previous
+       formula could be shorter than the actual content (especially with no
+       photos), which cropped the bottom of the Delivery Card. */
+    var baseBottom=744+rows.length*82;
+    var photoRowsExact=Math.ceil(photoCount/2);
+    var H=photoCount
+      ? baseBottom+72+238*photoRowsExact
+      : baseBottom+16;
+    var canvas=document.createElement('canvas');
+    canvas.width=W*S;canvas.height=Math.max(1,H*S);
+    var ctx=canvas.getContext('2d');if(!ctx)throw new Error('canvas-unavailable');
+    ctx.scale(S,S);
     function rr(x,y,w,h,r,fill,stroke,lw){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();if(fill){ctx.fillStyle=fill;ctx.fill()}if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=lw||2;ctx.stroke()}}
     function txt(v,x,y,size,weight,fill,align){ctx.font=(weight||700)+' '+size+'px Noto Sans Tamil,Arial,sans-serif';ctx.fillStyle=fill||'#171923';ctx.textAlign=align||'left';ctx.textBaseline='middle';ctx.fillText(String(v==null?'':v),x,y);}
     var bg=ctx.createLinearGradient(0,0,W,H);bg.addColorStop(0,'#f2edff');bg.addColorStop(.5,'#fff3f8');bg.addColorStop(1,'#fff9e8');ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
@@ -11489,76 +11519,43 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
     txt('NEW FASHION TAILORING',W/2,y+38,42,950,'#fff','center');txt('🚚 DELIVERY CARD',W/2,y+88,48,950,'#ffe24d','center');y+=168;
     rr(pad,y,inner,150,20,'#fff','#ddd2e8',2);txt('CUSTOMER',pad+25,y+35,22,850,'#6b4bc0');txt(people.map(function(c){return c.name||'Customer'}).join(' • '),pad+25,y+72,32,950,'#17131b');
     txt('ORDER DATE',pad+25,y+112,20,850,'#777');txt(dateTextSafe(orderDate),pad+170,y+112,26,950,'#17131b');txt('DELIVERY DATE',W/2+30,y+112,20,850,'#777');txt(dateTextSafe(deliveryDate),W/2+210,y+112,26,950,'#08794f');y+=168;
-    var calcH=74+Math.max(1,rows.length)*82+150;rr(pad,y,inner,calcH,20,'#fff','#ddd2e8',2);var cg=ctx.createLinearGradient(pad,y,W-pad,y);cg.addColorStop(0,'#5b1d7f');cg.addColorStop(1,'#d52d73');ctx.fillStyle=cg;ctx.fillRect(pad,y,inner,64);txt('🧮 துணி கணக்கு + விலை',pad+24,y+32,30,950,'#fff');y+=64;
+    var calcH=68+Math.max(1,rows.length)*68+130;rr(pad,y,inner,calcH,20,'#fff','#ddd2e8',2);var cg=ctx.createLinearGradient(pad,y,W-pad,y);cg.addColorStop(0,'#5b1d7f');cg.addColorStop(1,'#d52d73');ctx.fillStyle=cg;ctx.fillRect(pad,y,inner,64);txt('🧮 துணி கணக்கு + விலை',pad+24,y+32,30,950,'#fff');y+=64;
     var cols=[pad+28,W-520,W-365,W-205,W-55];txt('ITEM',cols[0],y+35,18,900,'#6b4b7a');txt('QTY',cols[1],y+35,18,900,'#6b4b7a','center');txt('RATE',cols[2],y+35,18,900,'#6b4b7a','center');txt('AMOUNT',cols[3],y+35,18,900,'#6b4b7a','center');txt('GIVEN / REMAIN',cols[4],y+35,17,900,'#6b4b7a','right');y+=74;
     rows.forEach(function(r,i){
       rr(pad+12,y,inner-24,72,10,i%2?'#fff':'#faf7ff','#e7dfef',1);txt(r.label,cols[0],y+36,22,850,'#17131b');
       txt(String(r.qty),cols[1],y+36,26,950,'#17131b','center');txt(moneyText(r.rate),cols[2],y+36,23,900,'#5b35c8','center');txt(moneyText(r.amount),cols[3],y+36,24,950,'#17131b','center');
       txt(String(r.given)+' / '+String(r.remain),cols[4],y+36,21,950,r.remain?'#b4233c':'#08794f','right');y+=82;
     });y+=8;
-    var bw=(inner-24)/3;[['TOTAL AMOUNT',totalAmount,'#5f3ee1'],['PAID AMOUNT',paidAmount,'#0e9367'],['கொடுக்க வேண்டியது',balanceAmount,'#d83e68']].forEach(function(a,i){var x=pad+i*(bw+12);rr(x,y,bw,112,16,a[2]);txt(a[0],x+18,y+32,19,900,'#fff');txt(moneyText(a[1]),x+18,y+75,34,950,'#fff');});y+=130;
+    var bw=(inner-20)/3;[['TOTAL AMOUNT',totalAmount,'#5f3ee1'],['PAID AMOUNT',paidAmount,'#0e9367'],['கொடுக்க வேண்டியது',balanceAmount,'#d83e68']].forEach(function(a,i){var x=pad+i*(bw+12);rr(x,y,bw,112,16,a[2]);txt(a[0],x+18,y+32,19,900,'#fff');txt(moneyText(a[1]),x+18,y+75,34,950,'#fff');});y+=130;
     rr(pad,y,inner,82,16,remainingCount?'#fff4df':'#e8fff4',remainingCount?'#e1ad35':'#1caa73',2);txt(remainingCount?'📦 இன்னும் கொடுக்க வேண்டிய துணி: '+remainingCount+'':'✅ எல்லா துணிகளும் கொடுக்கப்பட்டது',pad+24,y+41,27,950,remainingCount?'#996700':'#087c50');y+=100;
-    if(photos.length){
-      var count=Math.min(8,photos.length),photoRows=Math.ceil(count/2),ph=photoRows*300+76;rr(pad,y,inner,ph,20,'#fff','#ddd2e8',2);
+    if(photoItems.length){
+      var count=photoItems.length,photoRows=Math.ceil(count/2),ph=72+photoRows*238;rr(pad,y,inner,ph,20,'#fff','#ddd2e8',2);
       var pg=ctx.createLinearGradient(pad,y,W-pad,y);pg.addColorStop(0,'#6b20ca');pg.addColorStop(1,'#d30a61');ctx.fillStyle=pg;ctx.fillRect(pad,y,inner,60);txt('📸 மிச்சமுள்ள துணி போட்டோ',pad+24,y+30,28,950,'#fff');y+=72;
-      var cw=(inner-18)/2;
-      /* Load delivery photos in parallel. The old sequential await could take 8×9s and hit the 35s card-open timeout. */
-      /* V194: photo loading must never block Delivery Card generation.
-         Each photo has a hard 4s budget; failed/slow photos become placeholders. */
-      function loadDeliveryPhotoSafe(p){
-        /* A rejected photo promise must NEVER reject Promise.all().
-           One bad/expired R2 URL was previously aborting the entire Delivery Card. */
-        return Promise.race([
-          (async function(){
-            var src=p&&p.src;
-            if(typeof nfWacPhotoSrc==='function')src=nfWacPhotoSrc(p);
-            if(!src)throw new Error('photo-source-empty');
-            var data=src;
-            if(/^blob:|^https?:/i.test(src)&&typeof nfWacFetchBlob==='function'){
-              var pb=await nfWacFetchBlob(src,3000);
-              data=await new Promise(function(res,rej){
-                var fr=new FileReader(),done=false;
-                var timer=setTimeout(function(){if(done)return;done=true;try{fr.abort()}catch(_){}rej(new Error('photo-filereader-timeout'));},1000);
-                fr.onload=function(){if(done)return;done=true;clearTimeout(timer);res(fr.result);};
-                fr.onerror=function(e){if(done)return;done=true;clearTimeout(timer);rej(e||new Error('photo-filereader-failed'));};
-                fr.onabort=function(){if(done)return;done=true;clearTimeout(timer);rej(new Error('photo-filereader-aborted'));};
-                try{fr.readAsDataURL(pb)}catch(e){if(done)return;done=true;clearTimeout(timer);rej(e);}
-              });
-            }
-            return await new Promise(function(res,rej){var z=new Image();z.onload=function(){res(z)};z.onerror=rej;z.src=data;});
-          })(),
-          new Promise(function(resolve){setTimeout(function(){resolve(null)},4000);})
-        ]).catch(function(e){
-          console.warn('Delivery photo skipped:',e);
-          return null;
-        });
-      }
-      var photoImages=await Promise.all(photos.slice(0,count).map(loadDeliveryPhotoSafe));
+      var cw=(inner-14)/2;
       for(var i=0;i<count;i++){
-        var p=photos[i],col=i%2,row=Math.floor(i/2),x=pad+col*(cw+18),yy=y+row*318;
-        rr(x,yy,cw,300,16,'#fff','#d9cce9',2);
-        var im=photoImages[i];
-        if(im){var sc=Math.min((cw-30)/im.width,235/im.height),dw=im.width*sc,dh=im.height*sc;ctx.drawImage(im,x+cw/2-dw/2,yy+160-dh/2,dw,dh);}
-        else txt('Photo unavailable',x+cw/2,yy+150,18,700,'#777','center');
+        var p=photoItems[i].meta,col=i%2,row=Math.floor(i/2),x=pad+col*(cw+14),yy=y+row*238;
+        var im=photoItems[i].image;
+        rr(x,yy,cw,220,16,'#fff','#d9cce9',2);
+        var sc=Math.min((cw-24)/im.width,175/im.height),dw=im.width*sc,dh=im.height*sc;
+        ctx.drawImage(im,x+cw/2-dw/2,yy+110-dh/2,dw,dh);
       }
     }
     try{return await canvasBlob(canvas);}
     catch(encErr){
-      /* V199: if a photo-heavy bitmap cannot be encoded on the device, rebuild
-         the same calculation card without the optional photo layer rather than
-         surfacing the generic Card-open failure. */
-      console.warn('Delivery photo-card encode failed; retrying compact card:',encErr);
-      var compactH=650+rows.length*82;
-      var cc=document.createElement('canvas');cc.width=W;cc.height=compactH;
-      var cx=cc.getContext('2d');if(!cx)throw encErr;
-      cx.fillStyle='#fff';cx.fillRect(0,0,W,compactH);
-      cx.fillStyle='#351083';cx.fillRect(48,48,W-96,110);
-      cx.font='950 38px Arial,sans-serif';cx.fillStyle='#fff';cx.textAlign='center';cx.fillText('NEW FASHION TAILORING',W/2,92);
-      cx.font='950 38px Arial,sans-serif';cx.fillStyle='#ffe24d';cx.fillText('🚚 DELIVERY CARD',W/2,132);
-      cx.textAlign='left';cx.font='950 30px Arial,sans-serif';cx.fillStyle='#17131b';cx.fillText(people.map(function(q){return q.name||'Customer'}).join(' • '),48,205);
-      cx.font='800 24px Arial,sans-serif';cx.fillStyle='#5b1d7f';cx.fillText('Calculation',48,255);
-      rows.forEach(function(r,ri){var yy=280+ri*82;cx.font='700 22px Arial,sans-serif';cx.fillStyle='#17131b';cx.fillText(r.label+'   '+r.qty+'   '+moneyText(r.rate)+'   '+moneyText(r.amount)+'   '+r.given+' / '+r.remain,62,yy);});
-      return await canvasBlob(cc);
+      /* V205 FIX: never silently replace a photo Delivery Card with a
+         calculation-only card. Retry the SAME rendered card at a smaller
+         scale/size, including the already-loaded photos. */
+      console.warn('Delivery card encode failed; retrying rendered card:',encErr);
+      try{
+        var rw=900, scale=0.9, rh=Math.max(1,Math.ceil(H*scale));
+        var rc=document.createElement('canvas'); rc.width=rw; rc.height=rh;
+        var rctx=rc.getContext('2d'); if(!rctx)throw encErr;
+        rctx.drawImage(canvas,0,0,rw,rh);
+        return await canvasBlob(rc);
+      }catch(retryErr){
+        console.error('Delivery rendered-card encode retry failed:',retryErr);
+        throw encErr;
+      }
     }
   }
 
@@ -11588,36 +11585,10 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
       return await nfBuildSimpleDeliveryCard(cid);
     }catch(primary){
       console.error('Delivery primary builder failed:',primary);
-      try{
-        var group=groupFor(cid); if(!group.length)throw primary;
-        var W=1400,S=2,pad=48,inner=W-pad*2;
-        var c=document.createElement('canvas'); c.width=W*S; c.height=980*S;
-        var ctx=c.getContext('2d'); if(!ctx)throw new Error('canvas-unavailable'); ctx.scale(S,S);
-        var bg=ctx.createLinearGradient(0,0,W,980); bg.addColorStop(0,'#f2edff'); bg.addColorStop(1,'#fff9e8'); ctx.fillStyle=bg; ctx.fillRect(0,0,W,980);
-        function t(v,x,y,size,weight,fill,align){ctx.font=(weight||700)+' '+size+'px Noto Sans Tamil,Arial,sans-serif';ctx.fillStyle=fill||'#171923';ctx.textAlign=align||'left';ctx.textBaseline='middle';ctx.fillText(String(v==null?'':v),x,y);}
-        t('NEW FASHION TAILORING',W/2,90,42,950,'#351083','center');
-        t('🚚 DELIVERY CARD',W/2,145,44,950,'#b80c61','center');
-        t(group.map(function(x){return x.name||'Customer'}).join(' • '),pad,220,34,950,'#17131b');
-        t('Card generation fallback',pad,270,24,800,'#777');
-        t('Delivery Card could not use one of its optional data/photo layers.',pad,335,22,700,'#555');
-        t('The card is still opened safely.',pad,380,22,700,'#08794f');
-        var y=470;
-        group.slice(0,8).forEach(function(cu){
-          var os=ordersFor(cu.id)||[]; t((cu.name||'Customer')+' · '+os.length+' order(s)',pad,y,25,900,'#5b35c8'); y+=45;
-          os.slice(0,6).forEach(function(o){
-            var label=String(o.garment||o.garment_type||o.item_name||'Work');
-            var q=Number(o.quantity||o.qty||o.blouse_qty||1)||1;
-            var total=Number(o.total_amount||o.total||0)||0;
-            t(label+'  |  QTY '+q+'  |  ₹'+total.toLocaleString('en-IN'),pad+20,y,20,750,'#17131b'); y+=34;
-          });
-          y+=18;
-        });
-        return await canvasBlob(c);
-      }catch(fallback){
-        console.error('Delivery emergency builder failed:',fallback,'primary:',primary);
-        var msg=String(primary&&primary.message||primary||'unknown-error');
-        throw new Error('delivery-card-build-failed: '+msg);
-      }
+      /* Do not hide the real failure behind a fake calculation-only card.
+         The caller will show the actual Card-open error and preserve the
+         distinction between calculation and photo/render failures. */
+      throw primary;
     }
   }
 
