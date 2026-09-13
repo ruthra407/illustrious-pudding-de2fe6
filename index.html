@@ -4970,7 +4970,17 @@ if(type==="payment" && payload.__orderUpdate){
   const ur=await supabaseClient.from("orders").update(ou).eq("id",String(payload.order_id));
   if(ur.error)throw ur.error;
 }
-let result=id?await supabaseClient.from(def.table).update(payload).eq("id",id).select().single():await supabaseClient.from(def.table).insert(payload).select().single();
+let result;
+if(type==="customer"){
+  if(!nfD1Enabled())throw new Error("D1 Worker connection இல்லை.");
+  nfD1AccessToken=await nfD1GetAccessToken();
+  if(!nfD1AccessToken)throw new Error("Login session token கிடைக்கவில்லை.");
+  result=id
+    ?await nfD1Execute("customers","update",payload,[{field:"id",value:id}],null,"single")
+    :await nfD1Execute("customers","insert",payload,[],null,"single");
+}else{
+  result=id?await supabaseClient.from(def.table).update(payload).eq("id",id).select().single():await supabaseClient.from(def.table).insert(payload).select().single();
+}
 if(result.error)throw result.error;
 if((type==="order" || type==="payment") && result.data){
   const syncOrderId=type==="order" ? String(result.data.id||"") : String(payload.order_id||"");
@@ -4987,10 +4997,11 @@ if(type==="customer"){
   const alterationNotes=nfStripVillageMarker(payload.notes||"");
   /* If a real village column exists, also write it. If not, the marker stored
      in the existing notes column is the portable cloud fallback. */
-  try{
-    const vr=await supabaseClient.from("customers").update({village:village}).eq("id",result.data.id);
-    if(vr.error)console.warn("customers.village column unavailable; using notes marker.",vr.error.message);
-  }catch(_){}
+  if(!nfD1Enabled())throw new Error("D1 Worker connection இல்லை.");
+  nfD1AccessToken=await nfD1GetAccessToken();
+  if(!nfD1AccessToken)throw new Error("Login session token கிடைக்கவில்லை.");
+  const vr=await nfD1Execute("customers","update",{village:village},[{field:"id",value:result.data.id}],null,"single");
+  if(vr.error)throw new Error(vr.error.message||"D1 Customer village save failed");
   const linkedOrders=(state.orders||[]).filter(o=>String(o.customer_id)===String(result.data.id));
   for(const order of linkedOrders){
     const nextNotes=orderNotesWithAlteration(order.notes,alterationNotes);
@@ -11223,14 +11234,17 @@ setTimeout(decorateAll,100);
           var kid=kids[i];
           var kidOrders=(state.orders||[]).filter(function(o){return String(o.customer_id)===String(kid.id);});
           var orderIds=kidOrders.map(function(o){return o.id;}).filter(Boolean);
+          if(!nfD1Enabled())throw new Error("D1 Worker connection இல்லை.");
+          nfD1AccessToken=await nfD1GetAccessToken();
+          if(!nfD1AccessToken)throw new Error("Login session token கிடைக்கவில்லை.");
           if(orderIds.length){
-            var pe=await supabaseClient.from("payments").delete().in("order_id",orderIds); if(pe.error)throw pe.error;
-            var ae=await supabaseClient.from("alterations").delete().in("order_id",orderIds); if(ae.error)throw ae.error;
+            var pe=await nfD1Execute("payments","delete",null,[{field:"order_id",in:orderIds}]); if(pe.error)throw pe.error;
+            var ae=await nfD1Execute("alterations","delete",null,[{field:"order_id",in:orderIds}]); if(ae.error)throw ae.error;
           }
-          var ac=await supabaseClient.from("alterations").delete().eq("customer_id",kid.id); if(ac.error)throw ac.error;
-          var me=await supabaseClient.from("measurements").delete().eq("customer_id",kid.id); if(me.error)throw me.error;
-          var oe=await supabaseClient.from("orders").delete().eq("customer_id",kid.id); if(oe.error)throw oe.error;
-          var ce=await supabaseClient.from("customers").delete().eq("id",kid.id); if(ce.error)throw ce.error;
+          var ac=await nfD1Execute("alterations","delete",null,[{field:"customer_id",value:kid.id}]); if(ac.error)throw ac.error;
+          var me=await nfD1Execute("measurements","delete",null,[{field:"customer_id",value:kid.id}]); if(me.error)throw me.error;
+          var oe=await nfD1Execute("orders","delete",null,[{field:"customer_id",value:kid.id}]); if(oe.error)throw oe.error;
+          var ce=await nfD1Execute("customers","delete",null,[{field:"id",value:kid.id}]); if(ce.error)throw ce.error;
           localStorage.removeItem("nf_village_"+kid.id);
           localStorage.removeItem("nf_customer_designs_"+kid.id);
           localStorage.removeItem("nf_customer_selected_designs_"+kid.id);
@@ -15050,11 +15064,17 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-card{
             }
             continue;
           }
-          var er=await supabaseClient.from("customers").update({name:r.name,phone:r.phone||null,notes:(existingMap[r.id]?.notes||("NF_MULTI_PARENT:"+p.mainId))}).eq("id",r.id).select().single();
-          if(er.error)throw er.error;
+          if(!nfD1Enabled())throw new Error("D1 Worker connection இல்லை.");
+          nfD1AccessToken=await nfD1GetAccessToken();
+          if(!nfD1AccessToken)throw new Error("Login session token கிடைக்கவில்லை.");
+          var er=await nfD1Execute("customers","update",{name:r.name,phone:r.phone||null,notes:(existingMap[r.id]?.notes||("NF_MULTI_PARENT:"+p.mainId))},[{field:"id",value:r.id}],null,"single");
+          if(er.error)throw new Error(er.error.message||"D1 Additional Customer update failed");
         }else if(!r.deleted){
-          var ir=await supabaseClient.from("customers").insert({name:r.name,phone:r.phone||null,address:null,notes:"NF_MULTI_PARENT:"+p.mainId}).select().single();
-          if(ir.error)throw ir.error;
+          if(!nfD1Enabled())throw new Error("D1 Worker connection இல்லை.");
+          nfD1AccessToken=await nfD1GetAccessToken();
+          if(!nfD1AccessToken)throw new Error("Login session token கிடைக்கவில்லை.");
+          var ir=await nfD1Execute("customers","insert",{name:r.name,phone:r.phone||null,address:null,notes:"NF_MULTI_PARENT:"+p.mainId},[],null,"single");
+          if(ir.error)throw new Error(ir.error.message||"D1 Additional Customer save failed");
         }
       }
       var fresh=await supabaseClient.from("customers").select("*");
@@ -15075,16 +15095,19 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-card{
 
   async function deleteCustomerDirect(id){
     var c=all().find(function(x){return String(x.id)===String(id);});if(!c)return;
+    if(!nfD1Enabled())throw new Error("D1 Worker connection இல்லை.");
+    nfD1AccessToken=await nfD1GetAccessToken();
+    if(!nfD1AccessToken)throw new Error("Login session token கிடைக்கவில்லை.");
     var orders=(state.orders||[]).filter(function(o){return String(o.customer_id)===String(id);});
     var ids=orders.map(function(o){return o.id;}).filter(Boolean);
     if(ids.length){
-      var a=await supabaseClient.from("payments").delete().in("order_id",ids);if(a.error)throw a.error;
-      var b=await supabaseClient.from("alterations").delete().in("order_id",ids);if(b.error)throw b.error;
+      var a=await nfD1Execute("payments","delete",null,[{field:"order_id",in:ids}]);if(a.error)throw a.error;
+      var b=await nfD1Execute("alterations","delete",null,[{field:"order_id",in:ids}]);if(b.error)throw b.error;
     }
-    var d=await supabaseClient.from("alterations").delete().eq("customer_id",id);if(d.error)throw d.error;
-    var m=await supabaseClient.from("measurements").delete().eq("customer_id",id);if(m.error)throw m.error;
-    var o=await supabaseClient.from("orders").delete().eq("customer_id",id);if(o.error)throw o.error;
-    var cc=await supabaseClient.from("customers").delete().eq("id",id);if(cc.error)throw cc.error;
+    var d=await nfD1Execute("alterations","delete",null,[{field:"customer_id",value:id}]);if(d.error)throw d.error;
+    var m=await nfD1Execute("measurements","delete",null,[{field:"customer_id",value:id}]);if(m.error)throw m.error;
+    var o=await nfD1Execute("orders","delete",null,[{field:"customer_id",value:id}]);if(o.error)throw o.error;
+    var cc=await nfD1Execute("customers","delete",null,[{field:"id",value:id}]);if(cc.error)throw cc.error;
   }
 
   /* Keep the existing Main Customer edit form and its Save button untouched; only append the group editor. */
