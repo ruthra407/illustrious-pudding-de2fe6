@@ -9536,6 +9536,16 @@ window.addEventListener("keydown",function(e){if(e.key==="Escape")window.closeCu
       });
   }
 
+
+  var v237HookStyle=document.createElement('style');
+  v237HookStyle.id='nf-v237-group-photo-hook-style';
+  v237HookStyle.textContent=`
+    .r100-delivery-customer-top{position:relative!important;padding-right:54px!important;}
+    .nf-group-photo-btn{position:absolute;right:8px;top:50%;transform:translateY(-50%);width:42px;height:42px;border:2px solid #ffffff;border-radius:12px;background:linear-gradient(135deg,#6c45e8,#ef467c);color:#fff;font-size:21px;line-height:1;display:flex;align-items:center;justify-content:center;box-shadow:0 7px 18px rgba(108,69,232,.28);cursor:pointer;z-index:5;}
+    .nf-group-photo-btn:active{transform:translateY(-50%) scale(.94);}
+    @media(max-width:560px){.nf-group-photo-btn{width:40px;height:40px;right:7px;font-size:20px;}.r100-delivery-customer-top{padding-right:51px!important;}}
+  `;
+  document.head.appendChild(v237HookStyle);
   function renderCustomerList(){
     var host=document.getElementById("ordersTable");
     if(!host)return;
@@ -12112,12 +12122,23 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
     mains.forEach(function(c,i){
       var group=groupFor(c.id),extra=group.slice(1),badge=extra.length?'👥 Multi · '+group.length:'👤 Single';
       var isThisSelected=isSelected&&String(c.id||'')===String(selectedMain.id||'');
-      html+='<section class="r100-delivery-customer-row nf-delivery-color-'+(i%6)+(isThisSelected?' nf-delivery-selected':'')+'"><div class="r100-delivery-customer-top"><div class="r100-delivery-num">'+(i+1)+'</div><div class="r100-delivery-customer-name">'+escText(c.name||'Customer')+'</div><span class="r100-delivery-customer-badge">'+badge+(isThisSelected?' · SELECTED':'')+'</span></div>';
+      html+='<section class="r100-delivery-customer-row nf-delivery-color-'+(i%6)+(isThisSelected?' nf-delivery-selected':'')+'"><div class="r100-delivery-customer-top"><div class="r100-delivery-num">'+(i+1)+'</div><div class="r100-delivery-customer-name">'+escText(c.name||'Customer')+'</div><span class="r100-delivery-customer-badge">'+badge+(isThisSelected?' · SELECTED':'')+'</span><button type="button" class="nf-group-photo-btn" data-nf-group-photo="'+escText(c.id)+'" aria-label="Customer Photos" title="Customer Photos">📸</button></div>';
       if(extra.length){html+='<div class="r100-delivery-additional">'+extra.map(function(x){return '<span>👤 '+escText(x.name||'Customer')+'</span>';}).join('')+'</div>';}
       html+='<div class="r100-delivery-card-links"><button type="button" class="r100-delivery-card-link r100-delivery-wa" data-r100-kind="whatsapp" data-r100-customer="'+escText(c.id)+'"><span><strong>🟢 WhatsApp Card</strong><small>Tap → தனியாக Card Open</small></span><span class="arrow">›</span></button><button type="button" class="r100-delivery-card-link r100-delivery-del" data-r100-kind="delivery" data-r100-customer="'+escText(c.id)+'"><span><strong>🚚 Delivery Card</strong><small>Tap → தனியாக Card Open</small></span><span class="arrow">›</span></button></div></section>';
     });
     html+='</div>';
     box.innerHTML=html;
+
+    box.querySelectorAll('[data-nf-group-photo]').forEach(function(btn){
+      btn.addEventListener('click',function(e){
+        e.preventDefault();e.stopPropagation();
+        var gid=btn.getAttribute('data-nf-group-photo')||'';
+        var target=box.querySelector('.v233-multi-photo-box[data-v233-main=\"'+CSS.escape(gid)+'\"]');
+        if(target){target.scrollIntoView({behavior:'smooth',block:'start'});return;}
+        var customer=allCustomers().find(function(x){return String(x&&x.id||'')===String(gid)});
+        if(customer){selectedId=String(gid);renderCustomerList();setTimeout(function(){var t=box.querySelector('.v233-multi-photo-box');if(t)t.scrollIntoView({behavior:'smooth',block:'start'});},60);}
+      });
+    });
 
     /* V234: Actually mount the separate Multi Customer Photo Card below the
        Delivery customer cards. V233 had the builder functions, but never
