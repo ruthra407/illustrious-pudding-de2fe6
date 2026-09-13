@@ -11449,9 +11449,40 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
     if(photos.length){
       var count=Math.min(8,photos.length),photoRows=Math.ceil(count/2),ph=photoRows*300+76;rr(pad,y,inner,ph,20,'#fff','#ddd2e8',2);
       var pg=ctx.createLinearGradient(pad,y,W-pad,y);pg.addColorStop(0,'#6b20ca');pg.addColorStop(1,'#d30a61');ctx.fillStyle=pg;ctx.fillRect(pad,y,inner,60);txt('📸 மிச்சமுள்ள துணி போட்டோ',pad+24,y+30,28,950,'#fff');y+=72;
-      var cw=(inner-18)/2;for(var i=0;i<count;i++){var p=photos[i],col=i%2,row=Math.floor(i/2),x=pad+col*(cw+18),yy=y+row*318;rr(x,yy,cw,300,16,'#fff','#d9cce9',2);
-        try{var src=p.src;if(typeof nfWacPhotoSrc==='function')src=nfWacPhotoSrc(p);var data=src;if(/^blob:|^https?:/i.test(src)&&typeof nfWacFetchBlob==='function'){var pb=await nfWacFetchBlob(src,9000);data=await new Promise(function(res,rej){var fr=new FileReader();fr.onload=function(){res(fr.result)};fr.onerror=rej;fr.readAsDataURL(pb);});}
-        var im=await new Promise(function(res,rej){var z=new Image();z.onload=function(){res(z)};z.onerror=rej;z.src=data});var sc=Math.min((cw-30)/im.width,235/im.height),dw=im.width*sc,dh=im.height*sc;ctx.drawImage(im,x+cw/2-dw/2,yy+160-dh/2,dw,dh);}catch(e){txt('Photo unavailable',x+cw/2,yy+150,18,700,'#777','center');}
+      var cw=(inner-18)/2;
+      /* Load delivery photos in parallel. The old sequential await could take 8×9s and hit the 35s card-open timeout. */
+      /* V194: photo loading must never block Delivery Card generation.
+         Each photo has a hard 4s budget; failed/slow photos become placeholders. */
+      function loadDeliveryPhotoSafe(p){
+        return Promise.race([
+          (async function(){
+            var src=p&&p.src;
+            if(typeof nfWacPhotoSrc==='function')src=nfWacPhotoSrc(p);
+            if(!src)throw new Error('photo-source-empty');
+            var data=src;
+            if(/^blob:|^https?:/i.test(src)&&typeof nfWacFetchBlob==='function'){
+              var pb=await nfWacFetchBlob(src,3000);
+              data=await new Promise(function(res,rej){
+                var fr=new FileReader(),done=false;
+                var timer=setTimeout(function(){if(done)return;done=true;try{fr.abort()}catch(_){}rej(new Error('photo-filereader-timeout'));},1000);
+                fr.onload=function(){if(done)return;done=true;clearTimeout(timer);res(fr.result);};
+                fr.onerror=function(e){if(done)return;done=true;clearTimeout(timer);rej(e||new Error('photo-filereader-failed'));};
+                fr.onabort=function(){if(done)return;done=true;clearTimeout(timer);rej(new Error('photo-filereader-aborted'));};
+                try{fr.readAsDataURL(pb)}catch(e){if(done)return;done=true;clearTimeout(timer);rej(e);}
+              });
+            }
+            return await new Promise(function(res,rej){var z=new Image();z.onload=function(){res(z)};z.onerror=rej;z.src=data;});
+          })(),
+          new Promise(function(resolve){setTimeout(function(){resolve(null)},4000);})
+        ]);
+      }
+      var photoImages=await Promise.all(photos.slice(0,count).map(loadDeliveryPhotoSafe));
+      for(var i=0;i<count;i++){
+        var p=photos[i],col=i%2,row=Math.floor(i/2),x=pad+col*(cw+18),yy=y+row*318;
+        rr(x,yy,cw,300,16,'#fff','#d9cce9',2);
+        var im=photoImages[i];
+        if(im){var sc=Math.min((cw-30)/im.width,235/im.height),dw=im.width*sc,dh=im.height*sc;ctx.drawImage(im,x+cw/2-dw/2,yy+160-dh/2,dw,dh);}
+        else txt('Photo unavailable',x+cw/2,yy+150,18,700,'#777','center');
       }
     }
     return canvasBlob(canvas);
@@ -11485,7 +11516,7 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
       previewToken=window.__nfDeliveryPreparePreview(label,kind,cid);
       var b=await Promise.race([
         kind==='whatsapp'?makeWhatsAppImage(cid):makeDeliveryImage(cid),
-        new Promise(function(_,reject){setTimeout(function(){reject(new Error('card-build-timeout'));},35000);})
+        new Promise(function(_,reject){setTimeout(function(){reject(new Error('card-build-timeout'));},60000);})
       ]);
       if(kind==='whatsapp')deliveryBlobStore.whatsapp=b.blob;
       else deliveryBlobStore.delivery=b;
