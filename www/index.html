@@ -11480,6 +11480,8 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
       /* V194: photo loading must never block Delivery Card generation.
          Each photo has a hard 4s budget; failed/slow photos become placeholders. */
       function loadDeliveryPhotoSafe(p){
+        /* A rejected photo promise must NEVER reject Promise.all().
+           One bad/expired R2 URL was previously aborting the entire Delivery Card. */
         return Promise.race([
           (async function(){
             var src=p&&p.src;
@@ -11500,7 +11502,10 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
             return await new Promise(function(res,rej){var z=new Image();z.onload=function(){res(z)};z.onerror=rej;z.src=data;});
           })(),
           new Promise(function(resolve){setTimeout(function(){resolve(null)},4000);})
-        ]);
+        ]).catch(function(e){
+          console.warn('Delivery photo skipped:',e);
+          return null;
+        });
       }
       var photoImages=await Promise.all(photos.slice(0,count).map(loadDeliveryPhotoSafe));
       for(var i=0;i<count;i++){
