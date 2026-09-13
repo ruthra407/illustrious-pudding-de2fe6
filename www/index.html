@@ -16634,7 +16634,8 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
   window.__nfV239PhotoHookInstalled=true;
 
   function currentIsDelivery(){
-    return (history.state && history.state.view)==='delivery';
+    var view=document.getElementById('view-delivery');
+    return !!(view && view.classList.contains('active'));
   }
 
   function openGroupPhotoCard(mainId){
@@ -16655,7 +16656,7 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
     if(!main)return;
 
     var group=groupFor(id);
-    if(!group.length || group.length<2)return;
+    if(!group.length)return;
 
     /* Keep exactly one Photo Card visible: the common button switches the group. */
     content.querySelectorAll('.v233-multi-photo-box').forEach(function(card){card.remove();});
@@ -16683,3 +16684,4 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
   },true);
 })();
 </script>
+
