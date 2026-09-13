@@ -11287,7 +11287,33 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
 
   function roundRect(ctx,x,y,w,h,r,fill,stroke,lw){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();if(fill){ctx.fillStyle=fill;ctx.fill();}if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=lw||2;ctx.stroke();}}
   function drawText(ctx,v,x,y,size,weight,fill,align){ctx.font=(weight||700)+' '+size+'px Noto Sans Tamil,Arial,sans-serif';ctx.fillStyle=fill||'#171923';ctx.textAlign=align||'left';ctx.textBaseline='middle';ctx.fillText(String(v==null?'':v),x,y);}
-  function canvasBlob(canvas){return new Promise(function(resolve,reject){canvas.toBlob(function(blob){blob?resolve(blob):reject(new Error('card-image-failed'));},'image/jpeg',.95);});}
+  function canvasBlob(canvas){
+    return new Promise(function(resolve,reject){
+      var done=false;
+      function ok(b){if(done)return;done=true;if(b)resolve(b);else reject(new Error('card-image-failed'));}
+      function fail(e){if(done)return;done=true;reject(e||new Error('card-image-failed'));}
+      try{
+        if(typeof canvas.toBlob==='function'){
+          var timer=setTimeout(function(){
+            if(done)return;
+            /* Some Android WebViews can stall on toBlob. Fall back to dataURL. */
+            try{
+              var data=canvas.toDataURL('image/jpeg',.92);
+              var bin=atob(data.split(',')[1]||'');
+              var arr=new Uint8Array(bin.length);for(var i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);
+              ok(new Blob([arr],{type:'image/jpeg'}));
+            }catch(e){fail(e)}
+          },8000);
+          try{canvas.toBlob(function(blob){clearTimeout(timer);ok(blob);},'image/jpeg',.95)}catch(e){clearTimeout(timer);fail(e)}
+        }else{
+          var data=canvas.toDataURL('image/jpeg',.92);
+          var bin=atob(data.split(',')[1]||'');
+          var arr=new Uint8Array(bin.length);for(var i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);
+          ok(new Blob([arr],{type:'image/jpeg'}));
+        }
+      }catch(e){fail(e)}
+    });
+  }
 
   async function makeMultiWhatsAppImage(mainId){
     var group=groupFor(mainId),sum=groupSummary(group);if(!group.length)throw new Error('customer-not-found');
@@ -11514,15 +11540,40 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
     try{
       if(typeof window.__nfDeliveryPreparePreview!=='function')throw new Error('preview-unavailable');
       previewToken=window.__nfDeliveryPreparePreview(label,kind,cid);
-      var b=await Promise.race([
-        kind==='whatsapp'?makeWhatsAppImage(cid):makeDeliveryImage(cid),
-        new Promise(function(_,reject){setTimeout(function(){reject(new Error('card-build-timeout'));},60000);})
-      ]);
+      /* Delivery builder is internally bounded (photo fetch/read + JPEG encoding fallbacks).
+         Do not wrap it in another long global timeout: that timeout used to mask the
+         real failure and made a harmless photo problem look like a card-open failure. */
+      var b=kind==='whatsapp'
+        ? await Promise.race([
+            makeWhatsAppImage(cid),
+            new Promise(function(_,reject){setTimeout(function(){reject(new Error('card-build-timeout'));},35000);})
+          ])
+        : await makeDeliveryImage(cid);
       if(kind==='whatsapp')deliveryBlobStore.whatsapp=b.blob;
       else deliveryBlobStore.delivery=b;
       if(typeof window.__nfDeliverySetPreviewBlob==='function')window.__nfDeliverySetPreviewBlob(previewToken,b.blob||b,label);
     }catch(e){
       console.error('Delivery list card open failed',e);
+      /* Last-resort: rebuild without delivery photos so a bad/unsupported image path
+         can never prevent the Delivery Card itself from opening. */
+      if(kind==='delivery' && !openCustomerCard.__fallbackTried){
+        openCustomerCard.__fallbackTried=true;
+        try{
+          var savedBuild=nfBuildSimpleDeliveryCard;
+          /* Temporarily suppress only photo sources for this one fallback build. */
+          var savedCDP=window.customerDeliveryPhotos;
+          window.customerDeliveryPhotos=function(){return[]};
+          var fb=await savedBuild(cid);
+          window.customerDeliveryPhotos=savedCDP;
+          openCustomerCard.__fallbackTried=false;
+          if(typeof window.__nfDeliverySetPreviewBlob==='function')window.__nfDeliverySetPreviewBlob(previewToken,fb,label);
+          return;
+        }catch(fe){
+          try{window.customerDeliveryPhotos=window.customerDeliveryPhotos||savedCDP}catch(_){ }
+          openCustomerCard.__fallbackTried=false;
+          console.error('Delivery card fallback failed',fe);
+        }
+      }
       if(typeof window.__nfDeliveryPreviewError==='function')window.__nfDeliveryPreviewError(previewToken);
       else if(typeof toast==='function')toast('❌ Card open ஆகவில்லை.',true);
     }
