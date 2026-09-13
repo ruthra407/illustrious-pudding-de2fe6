@@ -11533,6 +11533,46 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
   }
   async function downloadDeliveryBlob(kind){var blob=deliveryBlobStore[kind];if(!blob){toast('Card இன்னும் தயாராகவில்லை. கொஞ்சம் wait செய்யுங்கள்.',true);return;}var btn=document.querySelector('[data-r100-download="'+kind+'"]');if(btn)btn.disabled=true;try{if(typeof window.__nfWacDownloadBlob!=='function')throw new Error('download-bridge-unavailable');await window.__nfWacDownloadBlob(blob,safeFilename(kind));if(typeof toast==='function')toast('✅ Card download செய்யப்பட்டது.');}catch(e){console.error('Delivery card download failed',e);if(typeof toast==='function')toast('❌ Card download ஆகவில்லை.',true)}finally{if(btn)btn.disabled=false;}}
 
+  async function nfBuildDeliveryCardGuarded(cid){
+    /* V196: isolate the Delivery builder. A failure in one optional layer must not
+       collapse the whole preview into the generic "Card open ஆகவில்லை" toast. */
+    try{
+      return await nfBuildSimpleDeliveryCard(cid);
+    }catch(primary){
+      console.error('Delivery primary builder failed:',primary);
+      try{
+        var group=groupFor(cid); if(!group.length)throw primary;
+        var W=1400,S=2,pad=48,inner=W-pad*2;
+        var c=document.createElement('canvas'); c.width=W*S; c.height=980*S;
+        var ctx=c.getContext('2d'); if(!ctx)throw new Error('canvas-unavailable'); ctx.scale(S,S);
+        var bg=ctx.createLinearGradient(0,0,W,980); bg.addColorStop(0,'#f2edff'); bg.addColorStop(1,'#fff9e8'); ctx.fillStyle=bg; ctx.fillRect(0,0,W,980);
+        function t(v,x,y,size,weight,fill,align){ctx.font=(weight||700)+' '+size+'px Noto Sans Tamil,Arial,sans-serif';ctx.fillStyle=fill||'#171923';ctx.textAlign=align||'left';ctx.textBaseline='middle';ctx.fillText(String(v==null?'':v),x,y);}
+        t('NEW FASHION TAILORING',W/2,90,42,950,'#351083','center');
+        t('🚚 DELIVERY CARD',W/2,145,44,950,'#b80c61','center');
+        t(group.map(function(x){return x.name||'Customer'}).join(' • '),pad,220,34,950,'#17131b');
+        t('Card generation fallback',pad,270,24,800,'#777');
+        t('Delivery Card could not use one of its optional data/photo layers.',pad,335,22,700,'#555');
+        t('The card is still opened safely.',pad,380,22,700,'#08794f');
+        var y=470;
+        group.slice(0,8).forEach(function(cu){
+          var os=ordersFor(cu.id)||[]; t((cu.name||'Customer')+' · '+os.length+' order(s)',pad,y,25,900,'#5b35c8'); y+=45;
+          os.slice(0,6).forEach(function(o){
+            var label=String(o.garment||o.garment_type||o.item_name||'Work');
+            var q=Number(o.quantity||o.qty||o.blouse_qty||1)||1;
+            var total=Number(o.total_amount||o.total||0)||0;
+            t(label+'  |  QTY '+q+'  |  ₹'+total.toLocaleString('en-IN'),pad+20,y,20,750,'#17131b'); y+=34;
+          });
+          y+=18;
+        });
+        return await canvasBlob(c);
+      }catch(fallback){
+        console.error('Delivery emergency builder failed:',fallback,'primary:',primary);
+        var msg=String(primary&&primary.message||primary||'unknown-error');
+        throw new Error('delivery-card-build-failed: '+msg);
+      }
+    }
+  }
+
   async function openCustomerCard(kind,id){
     var cid=String(id||'');if(!cid)return;
     var label=kind==='whatsapp'?'🟢 WhatsApp Customer Card':'🚚 Delivery Card';
@@ -11548,32 +11588,13 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
             makeWhatsAppImage(cid),
             new Promise(function(_,reject){setTimeout(function(){reject(new Error('card-build-timeout'));},35000);})
           ])
-        : await makeDeliveryImage(cid);
+        : await nfBuildDeliveryCardGuarded(cid);
       if(kind==='whatsapp')deliveryBlobStore.whatsapp=b.blob;
       else deliveryBlobStore.delivery=b;
       if(typeof window.__nfDeliverySetPreviewBlob==='function')window.__nfDeliverySetPreviewBlob(previewToken,b.blob||b,label);
     }catch(e){
       console.error('Delivery list card open failed',e);
-      /* Last-resort: rebuild without delivery photos so a bad/unsupported image path
-         can never prevent the Delivery Card itself from opening. */
-      if(kind==='delivery' && !openCustomerCard.__fallbackTried){
-        openCustomerCard.__fallbackTried=true;
-        try{
-          var savedBuild=nfBuildSimpleDeliveryCard;
-          /* Temporarily suppress only photo sources for this one fallback build. */
-          var savedCDP=window.customerDeliveryPhotos;
-          window.customerDeliveryPhotos=function(){return[]};
-          var fb=await savedBuild(cid);
-          window.customerDeliveryPhotos=savedCDP;
-          openCustomerCard.__fallbackTried=false;
-          if(typeof window.__nfDeliverySetPreviewBlob==='function')window.__nfDeliverySetPreviewBlob(previewToken,fb,label);
-          return;
-        }catch(fe){
-          try{window.customerDeliveryPhotos=window.customerDeliveryPhotos||savedCDP}catch(_){ }
-          openCustomerCard.__fallbackTried=false;
-          console.error('Delivery card fallback failed',fe);
-        }
-      }
+      console.error('Delivery card exact failure:',e);
       if(typeof window.__nfDeliveryPreviewError==='function')window.__nfDeliveryPreviewError(previewToken);
       else if(typeof toast==='function')toast('❌ Card open ஆகவில்லை.',true);
     }
