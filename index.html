@@ -5056,24 +5056,88 @@ async function markDelivered(id){
 await updateOrderStatus(id,"Delivered");
 }
 async function deleteCustomer(id){
- const c=state.customers.find(x=>String(x.id)===String(id));
- if(!c)return;
- if(!confirm(`“${c.name}” customer-ஐ delete செய்யவா?\n\nஇந்த customer-ன் orders, payments, measurements, alterations ஆகிய தொடர்புடைய records-ம் delete ஆகும்.`))return;
- try{
-   if(!nfD1Enabled())throw new Error("D1 Worker connection இல்லை.");
-   nfD1AccessToken=await nfD1GetAccessToken();
-   if(!nfD1AccessToken)throw new Error("Login session token கிடைக்கவில்லை.");
-   const res=await fetch(String(NF_D1_API_URL).replace(/\/$/,"")+"/api/customer-delete",{method:"POST",headers:nfD1Headers(),body:JSON.stringify({customer_id:String(id)})});
-   const out=await res.json().catch(()=>({}));
-   if(!res.ok)throw new Error(out?.error||("Customer delete failed ("+res.status+")"));
-   try{
-     const q=await nfDbAll(NF_QUEUE_STORE), affected=new Set([String(id)]);
-     (state.orders||[]).filter(o=>String(o.customer_id)===String(id)).forEach(o=>affected.add(String(o.id)));
-     for(const item of q){const iid=String(item.payload?.id||item.filters?.find?.(f=>f.field==="id")?.value||"");if(affected.has(iid))await nfDbDelete(NF_QUEUE_STORE,item.key);}
-   }catch(e){console.warn("Queue cleanup skipped",e)}
-   localStorage.removeItem("nf_village_"+id);localStorage.removeItem("nf_customer_designs_"+id);localStorage.removeItem("nf_customer_selected_designs_"+id);localStorage.removeItem("nf_customer_cloth_photos_"+id);
-   await nfIdbDelete(id);await loadAll(true);toast("Customer மற்றும் அந்த Customer-ன் Orders முழுவதும் delete செய்யப்பட்டது.");
- }catch(err){toast("Customer delete failed: "+err.message,true)}
+  const c=state.customers.find(x=>String(x.id)===String(id));
+  if(!c)return;
+  if(!confirm(`“${c.name}” customer-ஐ delete செய்யவா?\n\nஇந்த customer-ன் orders, payments, measurements, alterations, photos, designs மற்றும் தொடர்புடைய records அனைத்தும் delete ஆகும்.`))return;
+
+  try{
+    /* Collect the complete customer group before deletion so Main and
+       Additional Customer records can be removed together when they belong
+       to the same group. */
+    const customerIds=new Set([String(id)]);
+    try{
+      const root=state.customers.find(x=>String(x.id)===String(id));
+      const rootMain=String(root?.main_customer_id||root?.parent_customer_id||root?.parent_id||root?.main_id||root?.customer_group_id||"");
+      if(rootMain)customerIds.add(rootMain);
+      (state.customers||[]).forEach(x=>{
+        const parent=String(x?.main_customer_id||x?.parent_customer_id||x?.parent_id||x?.main_id||x?.customer_group_id||"");
+        if(parent && (parent===String(id)||parent===rootMain))customerIds.add(String(x.id));
+      });
+    }catch(e){}
+
+    const orderIds=new Set();
+    (state.orders||[]).forEach(o=>{
+      if(customerIds.has(String(o.customer_id)))orderIds.add(String(o.id));
+    });
+
+    /* Server-side authoritative cascade. */
+    if(!nfD1Enabled())throw new Error("D1 Worker connection இல்லை.");
+    nfD1AccessToken=await nfD1GetAccessToken();
+    if(!nfD1AccessToken)throw new Error("Login session token கிடைக்கவில்லை.");
+
+    const res=await fetch(
+      String(NF_D1_API_URL).replace(/\/$/,"")+"/api/customer-delete",
+      {
+        method:"POST",
+        headers:nfD1Headers(),
+        body:JSON.stringify({
+          customer_id:String(id),
+          customer_ids:Array.from(customerIds),
+          order_ids:Array.from(orderIds)
+        })
+      }
+    );
+    const out=await res.json().catch(()=>({}));
+    if(!res.ok)throw new Error(out?.error||("Customer delete failed ("+res.status+")"));
+
+    /* Remove any remaining locally cached customer-linked data. */
+    for(const cid of customerIds){
+      try{localStorage.removeItem("nf_village_"+cid)}catch(e){}
+      try{localStorage.removeItem("nf_customer_designs_"+cid)}catch(e){}
+      try{localStorage.removeItem("nf_customer_selected_designs_"+cid)}catch(e){}
+      try{localStorage.removeItem("nf_customer_cloth_photos_"+cid)}catch(e){}
+      try{await nfIdbDelete(cid)}catch(e){console.warn("IndexedDB cleanup skipped",cid,e)}
+    }
+
+    /* Remove offline queue mutations for deleted customers/orders. */
+    try{
+      const q=await nfDbAll(NF_QUEUE_STORE);
+      const affected=new Set([...customerIds,...orderIds]);
+      for(const item of q){
+        const payload=item?.payload||{};
+        const filters=item?.filters||[];
+        const idsToCheck=[
+          payload.id,payload.customer_id,payload.customerId,
+          payload.order_id,payload.orderId
+        ].filter(v=>v!=null).map(String);
+        if(Array.isArray(filters)){
+          filters.forEach(f=>{
+            if(f?.field==="id"||f?.field==="customer_id"||f?.field==="order_id"){
+              if(f.value!=null)idsToCheck.push(String(f.value));
+            }
+          });
+        }
+        if(idsToCheck.some(v=>affected.has(v))){
+          try{await nfDbDelete(NF_QUEUE_STORE,item.key)}catch(e){}
+        }
+      }
+    }catch(e){console.warn("Queue cleanup skipped",e)}
+
+    await loadAll(true);
+    toast("Customer மற்றும் அந்த Customer-ன் தொடர்புடைய எல்லா data-வும் delete செய்யப்பட்டது.");
+  }catch(err){
+    toast("Customer delete failed: "+err.message,true);
+  }
 }
 
 async function removeRow(table,id){
@@ -16666,3 +16730,47 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
   .r100-inline-photo-holder{margin-top:8px}
 }
 </style>
+
+<style id="nf-v243-order-full-details-remove-edit">
+/* V243: Multi Customer Order Full Details — remove ALL Edit Order buttons.
+   Delete Customer actions remain untouched and continue using the existing
+   synced delete routine. */
+#nfOrderFullDetailsContent .nf-v231-edit,
+#nfOrderFullDetailsContent .nf-v230-edit,
+#nfOrderFullDetailsContent .nf-v227-actions .btn.primary,
+#nfOrderFullDetailsContent button[title="Edit Order"],
+#nfOrderFullDetailsContent button[aria-label="Edit Order"]{
+  display:none!important;
+}
+</style>
+<script id="nf-v243-order-full-details-remove-edit-script">
+(function(){
+  "use strict";
+  function cleanOrderFullDetailsEdits(){
+    var content=document.getElementById("nfOrderFullDetailsContent");
+    if(!content)return;
+    content.querySelectorAll(
+      ".nf-v231-edit,.nf-v230-edit,.nf-v227-actions .btn.primary,"+
+      'button[title="Edit Order"],button[aria-label="Edit Order"]'
+    ).forEach(function(btn){btn.remove();});
+  }
+
+  /* Run after the existing V230 action sync has finished, without touching
+     Delete Customer buttons or their handlers. */
+  document.addEventListener("click",function(e){
+    var btn=e.target&&e.target.closest?e.target.closest(
+      ".nf-v227-order-card,.nf-v227-customer-order-full-btn"
+    ):null;
+    if(!btn)return;
+    setTimeout(cleanOrderFullDetailsEdits,120);
+    setTimeout(cleanOrderFullDetailsEdits,260);
+  },true);
+
+  /* Also catch any programmatic/opened Order Full Details render. */
+  var observer=new MutationObserver(function(){
+    var content=document.getElementById("nfOrderFullDetailsContent");
+    if(content)cleanOrderFullDetailsEdits();
+  });
+  try{observer.observe(document.body,{childList:true,subtree:true});}catch(e){}
+})();
+</script>
