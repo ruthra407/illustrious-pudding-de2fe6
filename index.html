@@ -11711,7 +11711,80 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
 
   async function makeDeliveryImageLegacy(mainId){ return nfBuildSimpleDeliveryCard(mainId); }
 
-  async function makeMultiCustomerDeliveryImage(mainId){ return nfBuildSimpleDeliveryCard(mainId); }
+  async function makeMultiCustomerDeliveryImage(mainId){
+    var group=groupFor(mainId);if(!group.length)throw new Error('customer-not-found');
+    var W=1000,pad=32,inner=W-pad*2;
+    function n(v){return Math.max(0,Number(v||0));}
+    function latestDate(list){return list.map(function(v){return String(v||'');}).filter(Boolean).sort().slice(-1)[0]||'';}
+    function customerPaymentInfo(c){
+      var orders=ordersFor(c.id),total=0,paid=0,payDates=[],advanceDates=[],balanceDates=[];
+      orders.forEach(function(o){
+        total+=typeof orderTotal==='function'?n(orderTotal(o)):n(o.total_amount||o.total);
+        var info=typeof nfOrderPaymentInfo==='function'?nfOrderPaymentInfo(o):null;
+        if(info){
+          paid+=n(info.totalPaid||info.customerPaid);
+          if(info.advanceDate)advanceDates.push(info.advanceDate);
+          if(info.balancePaidDate)balanceDates.push(info.balancePaidDate);
+          (info.payments||[]).forEach(function(p){if(p.payment_date)payDates.push(p.payment_date);});
+        }else{
+          paid+=n(o.paid||o.advance_amount);
+        }
+      });
+      var orderDates=orders.map(function(o){return o.order_date||'';});
+      var deliveryDates=orders.map(function(o){return o.delivery_date||'';});
+      return {
+        total:total,
+        paid:paid,
+        balance:Math.max(0,total-paid),
+        orderDate:latestDate(orderDates),
+        deliveryDate:latestDate(deliveryDates),
+        paidDate:latestDate(payDates)||latestDate(advanceDates)||latestDate(orderDates),
+        balanceDate:latestDate(balanceDates)
+      };
+    }
+    var people=group.slice(0,8),info=people.map(customerPaymentInfo);
+    var sectionH=360,gap=20,headerH=168,footerH=112;
+    var H=pad+headerH+12+people.length*sectionH+(people.length-1)*gap+footerH+pad;
+    var canvas=document.createElement('canvas');canvas.width=W;canvas.height=H;
+    var ctx=canvas.getContext('2d');if(!ctx)throw new Error('canvas-unavailable');
+    function rr(x,y,w,h,r,fill,stroke,lw){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();if(fill){ctx.fillStyle=fill;ctx.fill();}if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=lw||2;ctx.stroke();}}
+    function txt(v,x,y,size,weight,fill,align){ctx.font=(weight||700)+' '+size+'px Noto Sans Tamil,Arial,sans-serif';ctx.fillStyle=fill||'#171923';ctx.textAlign=align||'left';ctx.textBaseline='middle';ctx.fillText(String(v==null?'':v),x,y);}
+    function money2(v){return moneyText(v);}
+    var bg=ctx.createLinearGradient(0,0,W,H);bg.addColorStop(0,'#f1edff');bg.addColorStop(.5,'#fff2f7');bg.addColorStop(1,'#fff8e8');ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
+    var y=pad,hg=ctx.createLinearGradient(pad,y,W-pad,y);hg.addColorStop(0,'#351083');hg.addColorStop(1,'#df286e');rr(pad,y,inner,headerH,24,hg,'#f1cb43',3);
+    txt('NEW FASHION TAILORING',W/2,y+43,42,950,'#fff','center');
+    txt('🚚 DELIVERY CARD',W/2,y+96,48,950,'#ffe24d','center');
+    y+=headerH+12;
+    people.forEach(function(c,idx){
+      var m=info[idx],isMain=idx===0;
+      rr(pad,y,inner,sectionH,22,'#fff','#ddd2e8',2);
+      var sg=ctx.createLinearGradient(pad,y,W-pad,y);sg.addColorStop(0,isMain?'#5b35e8':'#d13b8a');sg.addColorStop(1,isMain?'#9b55df':'#f08a43');ctx.fillStyle=sg;ctx.fillRect(pad,y,inner,72);
+      txt(isMain?'👤 MAIN CUSTOMER':'👥 ADDITIONAL CUSTOMER',pad+24,y+36,28,950,'#fff');
+      txt(c.name||'Customer',pad+24,y+108,34,950,'#17131b');
+      txt('ORDER DATE',pad+24,y+145,17,850,'#777');
+      txt(dateTextSafe(m.orderDate),pad+150,y+145,24,950,'#17131b');
+      txt('DELIVERY DATE',W/2+18,y+145,17,850,'#777');
+      txt(dateTextSafe(m.deliveryDate),W/2+198,y+145,24,950,'#08794f');
+      var by=y+188,bw=(inner-28)/3;
+      var boxes=[
+        ['தைத்த மொத்த தொகை',m.total,'#5f3ee1',''],
+        ['கஸ்டமர் கொடுத்த தொகை',m.paid,'#0e9367',m.paidDate],
+        ['மீதம் கொடுக்க வேண்டிய தொகை',m.balance,'#d83e68',m.balance>0?m.deliveryDate:(m.balanceDate||'')]
+      ];
+      boxes.forEach(function(a,i){
+        var x=pad+10+i*(bw+9);rr(x,by,bw,146,17,a[2]);
+        txt(a[0],x+16,by+33,19,900,'#fff');
+        txt(money2(a[1]),x+16,by+82,36,950,'#fff');
+        if(a[3])txt('📅 '+dateTextSafe(a[3]),x+16,by+119,17,850,'#fff');
+      });
+      y+=sectionH+gap;
+    });
+    var fg=ctx.createLinearGradient(pad,y,W-pad,y);fg.addColorStop(0,'#24105d');fg.addColorStop(1,'#b80c61');rr(pad,y,inner,footerH,20,fg);
+    txt('Thank you for choosing us!',W/2,y+36,30,950,'#ffd84c','center');
+    txt('NEW FASHION TAILORING',W/2,y+73,24,950,'#fff','center');
+    txt('☎ PHONE: 8524931003',W/2,y+99,25,950,'#fff','center');
+    return canvasBlob(canvas);
+  }
 
   async function makeDeliveryImage(mainId){
     var group=groupFor(mainId);
