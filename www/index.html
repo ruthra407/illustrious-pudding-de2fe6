@@ -2050,32 +2050,6 @@ body.nf-photo-preview-scroll-locked{overscroll-behavior:none!important}
 }
 </style>
 
-<style>
-/* V192: make stitched-cloth upload boxes readable on mobile without overlap. */
-.nf-delivery-heading{font-size:22px!important;line-height:1.25!important;padding:15px 16px!important}
-.nf-delivery-type-head{font-size:18px!important;line-height:1.25!important;min-height:52px!important;padding:12px 14px!important}
-.nf-delivery-type-head b{font-size:22px!important}
-.nf-delivery-count{font-size:16px!important;line-height:1.3!important;min-height:48px!important;padding:11px 13px!important}
-.nf-delivery-count b{font-size:20px!important}
-.nf-delivery-status-title{font-size:17px!important;line-height:1.3!important;min-height:50px!important;padding:11px 13px!important}
-.nf-delivery-status-title b{font-size:21px!important}
-.nf-delivery-empty span{font-size:34px!important}
-.nf-delivery-empty small{font-size:15px!important;line-height:1.25!important;text-align:center;padding:0 4px!important}
-.nf-delivery-slot-actions label{height:40px!important;font-size:14px!important;font-weight:900!important;line-height:1.15!important}
-.nf-delivery-photo-tools button{height:38px!important;font-size:13px!important;font-weight:900!important}
-@media(max-width:560px){
- .nf-delivery-heading{font-size:20px!important;padding:14px 13px!important}
- .nf-delivery-type-head{font-size:16px!important;min-height:50px!important}
- .nf-delivery-type-head b{font-size:20px!important}
- .nf-delivery-count{font-size:14px!important;min-height:46px!important}
- .nf-delivery-count b{font-size:19px!important}
- .nf-delivery-status-title{font-size:16px!important;min-height:48px!important;padding:10px 11px!important}
- .nf-delivery-status-title b{font-size:20px!important}
- .nf-delivery-empty small{font-size:13px!important}
- .nf-delivery-slot-actions label{height:40px!important;font-size:13px!important}
- .nf-delivery-photo-tools button{height:38px!important;font-size:13px!important}
-}
-</style>
 </head><body><div class="loginpage" id="loginPage"><section class="loginbox"><div class="brand">NEW FASHION</div><div class="gold">TAILORING INDUSTRY</div><div class="sub">Online Tailoring Management Software</div><form id="loginForm"><div class="field"><label>Email</label><input autocomplete="email" class="input" id="loginEmail" placeholder="உங்கள் Email" required="" type="email"/></div><div class="field"><label>Password</label><input autocomplete="current-password" class="input" id="loginPassword" placeholder="Password" required="" type="password"/></div><button class="btn primary" id="loginBtn" type="submit">🔐 LOGIN</button><div class="msg" id="loginMsg"></div></form><button class="btn primary nf-reset-password-btn" id="resetPasswordBtn" type="button">🔄 RESET PASSWORD</button>
 <div class="nf-forgot-row">
 <button class="btn secondary nf-forgot-btn" id="forgotBtn" type="button">Forgot password?</button>
@@ -11389,24 +11363,7 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
 
   async function nfBuildSimpleDeliveryCard(mainId){
     var group=groupFor(mainId);if(!group.length)throw new Error('customer-not-found');
-    /* V193: Delivery Card must not wait for a full-table photo hydration.
-       The selected customer's stitched-cloth photos are hydrated locally/cloud
-       first, then the card is built. This prevents the 35s preview timeout. */
-    async function nfHydrateSelectedDeliveryPhotos(customerId){
-      try{if(typeof initCustomerClothPhotoStore==='function')await initCustomerClothPhotoStore();}catch(_){ }
-      if(!navigator.onLine)return;
-      try{
-        var key=String(customerId||''), rec=nfClothPhotoCache[key]||{}, cur=customerDeliveryPhotos(key), dst=customerStats(key)||{};
-        var defs=[['normal','given',dst.handedNormal],['normal','pending',dst.pendingNormal],['lining','given',dst.handedLining],['lining','pending',dst.pendingLining],['design','given',dst.handedDesign],['design','pending',dst.pendingDesign],['chudi','given',dst.handedChudi],['chudi','pending',dst.pendingChudi]];
-        var jobs=[];
-        defs.forEach(function(d){var type=d[0],status=d[1],limit=Math.min(NF_DELIVERY_SLOT_CAP,Math.max(0,Number(d[2]||0)));for(var slot=0;slot<limit;slot++){(function(type,status,slot){var idx=nfDeliveryPhotoIndex(type,status,slot);if(cur[idx]&&cur[idx].src)return;var path=nfDeliveryPhotoPath(key,type,status,slot);jobs.push(fetch(nfR2PhotoUrl(path),{method:'GET',cache:'no-store'}).then(function(r){if(!r.ok)return;cur[idx]={src:nfR2PhotoUrl(path),name:'Delivery '+type+' '+status+' '+(slot+1),savedAt:new Date().toISOString(),cloudPath:path,originalType:r.headers.get('content-type')||'image/*'};}).catch(function(_){}));})(type,status,slot);}});
-        await Promise.race([Promise.all(jobs),new Promise(function(resolve){setTimeout(resolve,5000);})]);
-        nfClothPhotoCache[key]={photos:Array.from({length:4},function(_,i){return rec?.photos?.[i]||rec?.[i]||null;}),blouseDesigns:Array.from({length:8},function(_,i){return rec?.blouseDesigns?.[i]||null;}),deliveryPhotos:cur};
-        try{await nfIdbPut(nfClothPhotoCache[key]);}catch(_){ }
-      }catch(e){console.warn('V193 selected delivery photo hydrate skipped:',e)}
-    }
-    var W=1400,S=2,pad=48,inner=W-pad*2,people=group.slice(0,8),rows=[],photos=[],stitchedPhotos=[],givenPhotos=[];
-    try{await nfHydrateSelectedDeliveryPhotos(people[0]?.id||mainId);}catch(_){ }
+    var W=1400,S=2,pad=48,inner=W-pad*2,people=group.slice(0,8),rows=[],photos=[];
     function n(v){return Math.max(0,Number(v||0));}
     function add(label,qty,given,rate,amount){
       qty=n(qty);given=Math.min(qty,n(given));rate=n(rate);
@@ -11449,53 +11406,10 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
       });
       try{
         if(typeof initCustomerClothPhotoStore==='function')await initCustomerClothPhotoStore();
-        /* V192: Delivery Card must use the photos uploaded in
-           "🚚 தைக்கப்பட்ட துணிகள்", not only the separate customer-given-cloth slots. */
-        /* V193: hydrate only this customer here. Full global hydration is
-           intentionally not called from the card builder. */
-        try{await nfHydrateSelectedDeliveryPhotos(c.id);}catch(_){ }
-        var dps=typeof customerDeliveryPhotos==='function'?customerDeliveryPhotos(c.id):[];
-        var deliveryDefs=[
-          ['normal','given','👗 Normal Blouse','கொடுக்கப்பட்டது'],
-          ['normal','pending','👗 Normal Blouse','மீதம் உள்ளது'],
-          ['lining','given','🧵 Lining Blouse','கொடுக்கப்பட்டது'],
-          ['lining','pending','🧵 Lining Blouse','மீதம் உள்ளது'],
-          ['design','given','🎨 Design Blouse','கொடுக்கப்பட்டது'],
-          ['design','pending','🎨 Design Blouse','மீதம் உள்ளது'],
-          ['chudi','given','👚 Chudi','கொடுக்கப்பட்டது'],
-          ['chudi','pending','👚 Chudi','மீதம் உள்ளது']
-        ];
-        deliveryDefs.forEach(function(def){
-          var type=def[0],status=def[1],title=def[2],statusLabel=def[3];
-          var dst=typeof customerStats==='function'?customerStats(c.id):{};
-          var countKey=status==='given'?(
-            type==='normal'?'handedNormal':type==='lining'?'handedLining':type==='design'?'handedDesign':'handedChudi'
-          ):(
-            type==='normal'?'pendingNormal':type==='lining'?'pendingLining':type==='design'?'pendingDesign':'pendingChudi'
-          );
-          var count=Math.min(NF_DELIVERY_SLOT_CAP,Math.max(0,Number(dst?.[countKey]||0)));
-          for(var slot=0;slot<count;slot++){
-            var p=dps[nfDeliveryPhotoIndex(type,status,slot)];
-            if(p&&p.src)stitchedPhotos.push({
-              src:p.src,name:(c.name||'Customer')+' • '+title+' • '+statusLabel+' • '+(slot+1),
-              customerName:c.name||'Customer',garmentTitle:title,statusLabel:statusLabel,
-              cloudPath:p.cloudPath||'',savedAt:p.savedAt||''
-            });
-          }
-        });
-        /* Fallback: if no stitched-cloth photo exists, retain the old
-           customer-given-cloth photos so the card never loses photo data. */
         var cps=typeof customerClothPhotos==='function'?customerClothPhotos(c.id):[];
-        (cps||[]).forEach(function(x){if(x&&x.src)givenPhotos.push({
-          src:x.src,name:(c.name||'Customer')+' • Customer cloth • '+((x.name)||'Photo'),
-          customerName:c.name||'Customer',garmentTitle:'Customer cloth',statusLabel:'',
-          cloudPath:x.cloudPath||'',savedAt:x.savedAt||''
-        });});
-      }catch(e){console.warn('Delivery card photo load skipped:',e)}
+        (cps||[]).forEach(function(x){if(x&&x.src)photos.push({src:x.src,name:c.name||'Customer',cloudPath:x.cloudPath||'',savedAt:x.savedAt||''});});
+      }catch(e){console.warn('Delivery card local photo load skipped:',e)}
     }
-    /* Prefer photos from the stitched-clothes upload panels; fall back to
-       customer-given-cloth photos only when those panels have no photos. */
-    photos=(stitchedPhotos.length?stitchedPhotos:givenPhotos).slice(0,12);
     var main=people[0]||{},mainOrders=ordersFor(main.id);
     var orderDates=mainOrders.map(function(o){return o.order_date||''}).filter(Boolean).sort();
     var deliveryDates=mainOrders.map(function(o){return o.delivery_date||''}).filter(Boolean).sort();
@@ -11529,42 +11443,25 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
     rr(pad,y,inner,82,16,remainingCount?'#fff4df':'#e8fff4',remainingCount?'#e1ad35':'#1caa73',2);txt(remainingCount?'📦 இன்னும் கொடுக்க வேண்டிய துணி: '+remainingCount+'':'✅ எல்லா துணிகளும் கொடுக்கப்பட்டது',pad+24,y+41,27,950,remainingCount?'#996700':'#087c50');y+=100;
     if(photos.length){
       var count=Math.min(8,photos.length),photoRows=Math.ceil(count/2),ph=photoRows*300+76;rr(pad,y,inner,ph,20,'#fff','#ddd2e8',2);
-      var pg=ctx.createLinearGradient(pad,y,W-pad,y);pg.addColorStop(0,'#6b20ca');pg.addColorStop(1,'#d30a61');ctx.fillStyle=pg;ctx.fillRect(pad,y,inner,60);txt(stitchedPhotos.length?'📸 தைக்கப்பட்ட துணிகள் போட்டோ':'📸 மிச்சமுள்ள துணி போட்டோ',pad+24,y+30,28,950,'#fff');y+=72;
-      /* V194: never let a slow/cross-origin photo block the whole Delivery Card.
-         Prepare all photo data in parallel with a short per-photo timeout, then
-         draw only the images that actually loaded. */
+      var pg=ctx.createLinearGradient(pad,y,W-pad,y);pg.addColorStop(0,'#6b20ca');pg.addColorStop(1,'#d30a61');ctx.fillStyle=pg;ctx.fillRect(pad,y,inner,60);txt('📸 மிச்சமுள்ள துணி போட்டோ',pad+24,y+30,28,950,'#fff');y+=72;
+      /* V192 PHOTO FIX: fetch all photo sources in parallel so one slow photo cannot
+         consume the whole card-build timeout. Failed photos remain as placeholders. */
       var photoData=await Promise.all(photos.slice(0,count).map(async function(p){
         try{
-          var src=typeof nfWacPhotoSrc==='function'?nfWacPhotoSrc(p):String(p.src||'');
-          if(!src)return null;
-          if(/^data:image\//i.test(src))return {p:p,data:src};
-          if(typeof nfWacFetchBlob==='function'){
-            try{
-              var pb=await nfWacFetchBlob(src,2600);
-              var data=await Promise.race([
-                new Promise(function(res,rej){var fr=new FileReader();fr.onload=function(){res(String(fr.result||''))};fr.onerror=rej;fr.readAsDataURL(pb);}),
-                new Promise(function(_,rej){setTimeout(function(){rej(new Error('photo-read-timeout'))},2200);})
-              ]);
-              if(data)return {p:p,data:data};
-            }catch(fetchErr){}
+          var src=p.src;if(typeof nfWacPhotoSrc==='function')src=nfWacPhotoSrc(p);var data=src;
+          if(/^blob:|^https?:/i.test(src)&&typeof nfWacFetchBlob==='function'){
+            var pb=await nfWacFetchBlob(src,9000);
+            data=await new Promise(function(res,rej){var fr=new FileReader();fr.onload=function(){res(fr.result)};fr.onerror=rej;fr.readAsDataURL(pb);});
           }
-          return {p:p,data:src};
+          return data;
         }catch(e){return null;}
       }));
-      var cw=(inner-18)/2;
-      for(var i=0;i<count;i++){
-        var p=photos[i],col=i%2,row=Math.floor(i/2),x=pad+col*(cw+18),yy=y+row*318;rr(x,yy,cw,300,16,'#fff','#d9cce9',2);
-        if(p.name)txt(p.name,x+18,yy+25,18,850,'#6e1e56');
-        var pd=photoData[i];
-        if(pd&&pd.data){
-          try{
-            var im=await Promise.race([
-              new Promise(function(res,rej){var z=new Image();z.onload=function(){res(z)};z.onerror=rej;z.src=pd.data;}),
-              new Promise(function(_,rej){setTimeout(function(){rej(new Error('photo-load-timeout'))},2200);})
-            ]);
-            var sc=Math.min((cw-30)/im.width,220/im.height),dw=im.width*sc,dh=im.height*sc;ctx.drawImage(im,x+cw/2-dw/2,yy+165-dh/2,dw,dh);
-          }catch(e){txt('Photo unavailable',x+cw/2,yy+155,18,700,'#777','center');}
-        }else{txt('Photo unavailable',x+cw/2,yy+155,18,700,'#777','center');}
+      var photoImages=await Promise.all(photoData.map(async function(data){
+        if(!data)return null;
+        try{return await new Promise(function(res,rej){var z=new Image();z.onload=function(){res(z)};z.onerror=rej;z.src=data;});}catch(e){return null;}
+      }));
+      var cw=(inner-18)/2;for(var i=0;i<count;i++){var p=photos[i],col=i%2,row=Math.floor(i/2),x=pad+col*(cw+18),yy=y+row*318;rr(x,yy,cw,300,16,'#fff','#d9cce9',2);
+        var im=photoImages[i];if(im){var sc=Math.min((cw-30)/im.width,235/im.height),dw=im.width*sc,dh=im.height*sc;ctx.drawImage(im,x+cw/2-dw/2,yy+160-dh/2,dw,dh);}else{txt('Photo unavailable',x+cw/2,yy+150,18,700,'#777','center');}
       }
     }
     return canvasBlob(canvas);
@@ -11596,10 +11493,9 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
     try{
       if(typeof window.__nfDeliveryPreparePreview!=='function')throw new Error('preview-unavailable');
       previewToken=window.__nfDeliveryPreparePreview(label,kind,cid);
-      var b=await Promise.race([
-        kind==='whatsapp'?makeWhatsAppImage(cid):makeDeliveryImage(cid),
-        new Promise(function(_,reject){setTimeout(function(){reject(new Error('card-build-timeout'));},60000);})
-      ]);
+      /* V192 PHOTO FIX: photo fetching is now parallel and non-blocking per image;
+         do not fail the entire Delivery Card because a photo is slow/unavailable. */
+      var b=await (kind==='whatsapp'?makeWhatsAppImage(cid):makeDeliveryImage(cid));
       if(kind==='whatsapp')deliveryBlobStore.whatsapp=b.blob;
       else deliveryBlobStore.delivery=b;
       if(typeof window.__nfDeliverySetPreviewBlob==='function')window.__nfDeliverySetPreviewBlob(previewToken,b.blob||b,label);
@@ -14743,12 +14639,6 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
 
 .nf-v240-person-name-text{min-width:0;line-height:1.2}.nf-v240-person-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:7px}.nf-v240-person-actions button{border:1px solid #ddd5ef;border-radius:10px;background:#fff;padding:6px 10px;color:#4d267c;font-size:11px;font-weight:850;cursor:pointer}.nf-v240-person-actions .nf-v240-person-new{background:#f1eaff;border-color:#d7c9ff}.nf-v240-person-actions .nf-v240-person-edit{background:#fff3f7;border-color:#f1c9d8}
 @media(max-width:560px){.nf-v240-person-actions{gap:5px}.nf-v240-person-actions button{padding:6px 8px;font-size:10.5px}}
-</style>
-<style id="nf-v193-delivery-card-readable-text">
-/* V193: readable Delivery Card photo/slot text; never let labels collide. */
-.nf-delivery-card{font-size:16px}
-.nf-delivery-card .nf-delivery-type-head strong,.nf-delivery-card .nf-delivery-type-head span{font-size:18px!important;line-height:1.25!important}
-.nf-delivery-card .nf-delivery-slot-label{font-size:16px!important;line-height:1.3!important;white-space:normal!important;overflow-wrap:anywhere}
 </style>
 <style id="nf-v280-five-hook-photo-css">
 .nf-v280-photo-hook{margin:8px;border:1px solid #ddd5ef;border-radius:14px;overflow:hidden;background:#fff}
