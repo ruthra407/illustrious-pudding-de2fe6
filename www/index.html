@@ -11521,13 +11521,13 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
       givenCounts.normal+=n(st.handedNormal);givenCounts.lining+=n(st.handedLining);givenCounts.design+=n(st.handedDesign);
       pendingCounts.normal+=n(st.pendingNormal);pendingCounts.lining+=n(st.pendingLining);pendingCounts.design+=n(st.pendingDesign);
     });
-    var givenCounterH=64+54;
-    var pendingCounterH=64+54;
+    var givenCounterH=66+62;
+    var pendingCounterH=66+62;
     var givenPhotoH=givenPhotoCount?Math.ceil(givenPhotoCount/2)*238:0;
     var pendingPhotoH=pendingPhotoCount?Math.ceil(pendingPhotoCount/2)*238:0;
     var givenSectionH=givenCounterH+givenPhotoH;
     var pendingSectionH=pendingCounterH+pendingPhotoH;
-    var baseBottom=734+rows.length*78;
+    var baseBottom=742+rows.length*84;
     var photoGap=14;
     var H=baseBottom+16+givenSectionH+pendingSectionH+photoGap;
     var canvas=document.createElement('canvas');
@@ -11552,32 +11552,30 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
     var cg=ctx.createLinearGradient(pad,y,W-pad,y);cg.addColorStop(0,'#5b1d7f');cg.addColorStop(1,'#d52d73');ctx.fillStyle=cg;ctx.fillRect(pad,y,inner,64);
     txt('🧮 துணி கணக்கு + விலை',pad+24,y+32,30,950,'#fff');y+=64;
 
-    // V214: Four compact, readable columns. Given and Remain are separate.
-    var calcCols=[
-      pad+28,
-      pad+inner*0.49,
-      pad+inner*0.72,
-      W-pad-28
-    ];
-    txt('ITEM',calcCols[0],y+32,18,900,'#6b4b7a');
-    txt('கணக்கு',calcCols[1],y+32,18,900,'#6b4b7a','center');
-    txt('கொடுத்தது',calcCols[2],y+32,18,900,'#6b4b7a','center');
-    txt('மீதம்',calcCols[3],y+32,18,900,'#6b4b7a','right');
-    y+=66;
+    // V215: Large, senior-friendly four-column layout.
+    // ITEM | கணக்கு | கொடுத்தது | மீதம்
+    var calcCols={
+      item:pad+24,
+      calc:pad+inner*0.50,
+      given:pad+inner*0.77,
+      remain:W-pad-24
+    };
+    txt('ITEM',calcCols.item,y+34,19,950,'#6b4b7a');
+    txt('கணக்கு',calcCols.calc,y+34,20,950,'#6b4b7a','center');
+    txt('கொடுத்தது',calcCols.given,y+34,20,950,'#6b4b7a','center');
+    txt('மீதம்',calcCols.remain,y+34,20,950,'#6b4b7a','right');
+    y+=68;
 
     rows.forEach(function(r,i){
-      rr(pad+12,y,inner-24,70,10,i%2?'#fff':'#faf7ff','#e7dfef',1);
-
-      // Keep blouse name and calculation close together; no oversized blank gap.
-      txt(r.label,calcCols[0],y+35,24,900,'#17131b');
+      rr(pad+10,y,inner-20,76,11,i%2?'#fff':'#faf7ff','#e7dfef',1);
+      txt(r.label,calcCols.item,y+38,27,950,'#17131b');
       txt(String(r.qty)+' × '+moneyText(r.rate)+' = '+moneyText(r.amount),
-          calcCols[1],y+35,20,900,'#5b35c8','center');
-
-      txt(String(r.given),calcCols[2],y+35,24,950,
-          r.given?'#08794f':'#6f7482','center');
-      txt(String(r.remain),calcCols[3],y+35,24,950,
+          calcCols.calc,y+38,24,950,'#5b35c8','center');
+      txt(String(r.given),calcCols.given,y+38,27,950,
+          r.given?'#08794f':'#68707b','center');
+      txt(String(r.remain),calcCols.remain,y+38,27,950,
           r.remain?'#b4233c':'#08794f','right');
-      y+=78;
+      y+=84;
     });
     y+=8;
     var bw=(inner-20)/3;
@@ -11586,7 +11584,7 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
       txt(a[0],x+18,y+32,19,900,'#fff');
       txt(moneyText(a[1]),x+18,y+80,34,950,'#fff');
     });y+=140;
-    rr(pad,y,inner,82,16,remainingCount?'#fff4df':'#e8fff4',remainingCount?'#e1ad35':'#1caa73',2);txt(remainingCount?'📦 இன்னும் கொடுக்க வேண்டிய துணி: '+remainingCount+'':'✅ எல்லா துணிகளும் கொடுக்கப்பட்டது',pad+24,y+41,27,950,remainingCount?'#996700':'#087c50');y+=100;
+
     function drawDeliveryPhotoSection(items,title,fromY,counts){
       var count=items.length,photoRows=Math.ceil(count/2),ph=64+54+(count?photoRows*238:0);
       rr(pad,fromY,inner,ph,20,'#fff','#ddd2e8',2);
@@ -11604,9 +11602,9 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
       var gap=10,cw=(inner-2*gap)/3,cy=fromY+68;
       labels.forEach(function(a,i){
         var x=pad+i*(cw+gap);
-        rr(x,cy,cw,42,12,'#f7f3ff','#dcd1ef',1);
-        txt(a[0],x+10,cy+14,15,900,'#5b35c8');
-        txt(String(a[1]),x+10,cy+31,18,950,'#17131b');
+        rr(x,cy,cw,50,12,'#f7f3ff','#dcd1ef',1);
+        txt(a[0],x+10,cy+17,18,950,'#5b35c8');
+        txt(String(a[1]),x+10,cy+39,24,950,'#17131b');
       });
 
       if(!count)return fromY+ph;
@@ -11617,7 +11615,7 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{f
         rr(x,yy,photoW,220,16,'#fff','#d9cce9',2);
         var sc=Math.min((photoW-24)/im.width,175/im.height),dw=im.width*sc,dh=im.height*sc;
         ctx.drawImage(im,x+photoW/2-dw/2,yy+110-dh/2,dw,dh);
-        txt(meta.category||'',x+12,yy+203,16,900,'#5b35c8');
+        txt(meta.category||'',x+12,yy+203,20,950,'#5b35c8');
       }
       return fromY+ph;
     }
