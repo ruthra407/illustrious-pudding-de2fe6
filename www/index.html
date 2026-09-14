@@ -17079,3 +17079,146 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
   try{observer.observe(document.body,{childList:true,subtree:true});}catch(e){}
 })();
 </script>
+
+
+<!-- V257: Multi Customer bulk-delete authority fix.
+     Scope: Main + all Additional customers -> every related Order Card + R2 order/customer objects.
+     Other delete flows are left unchanged. -->
+<script id="nf-v257-multi-customer-order-r2-delete-fix">
+(function(){
+  "use strict";
+  if(window.__nfV257MultiDeleteInstalled)return;
+  window.__nfV257MultiDeleteInstalled=true;
+
+  function S(v){return String(v==null?"":v);}
+  function customers(){return (typeof state!=="undefined"&&Array.isArray(state.customers))?state.customers:[];}
+  function orders(){return (typeof state!=="undefined"&&Array.isArray(state.orders))?state.orders:[];}
+  var PARENT_RE=/(?:^|\|\s*)(?:NF_MULTI_PARENT|NF_PARENT_CUSTOMER)\s*:\s*([^|\s]+)/i;
+  function parentId(c){
+    if(!c)return "";
+    var m=S(c.notes).match(PARENT_RE);
+    if(m&&m[1])return S(m[1]).trim();
+    return S(c.main_customer_id||c.parent_customer_id||c.parent_id||c.main_id||"").trim();
+  }
+  function customerById(id){
+    var sid=S(id);
+    return customers().find(function(c){return S(c&&c.id)===sid;})||null;
+  }
+  function groupIds(id){
+    var sid=S(id), selected=customerById(sid);
+    if(!selected)return [sid];
+    var root=parentId(selected)||sid;
+    var main=customerById(root);
+    if(!main || parentId(main))return [sid];
+    var seen=new Set([root]);
+    customers().forEach(function(c){
+      var cid=S(c&&c.id);
+      if(cid && parentId(c)===root)seen.add(cid);
+    });
+    return Array.from(seen);
+  }
+  function relatedOrderIds(ids){
+    var set=new Set(ids.map(S));
+    var out=new Set();
+    orders().forEach(function(o){
+      var cid=S(o&&(
+        o.customer_id||o.customerId||o.cust_id||o.custId||o.client_id||o.clientId||""
+      ));
+      if(set.has(cid))out.add(S(o&&o.id));
+    });
+    return Array.from(out).filter(Boolean);
+  }
+
+  async function workerPost(path,payload,allow404){
+    if(typeof nfD1Enabled!=="function"||!nfD1Enabled())throw new Error("D1 Worker connection இல்லை.");
+    nfD1AccessToken=await nfD1GetAccessToken();
+    if(!nfD1AccessToken)throw new Error("Login session token கிடைக்கவில்லை.");
+    var base=S(window.NF_D1_API_URL||"").replace(/\/$/,"");
+    if(!base)throw new Error("D1 Worker URL இல்லை.");
+    var res=await fetch(base+path,{
+      method:"POST",
+      headers:{"Content-Type":"application/json","Authorization":"Bearer "+nfD1AccessToken},
+      body:JSON.stringify(payload)
+    });
+    var body=null;try{body=await res.json();}catch(_){body=null;}
+    if(res.status===404 && allow404)return {ok:false,notFound:true,body:body};
+    if(!res.ok)throw new Error((body&&body.error)||("Request failed: "+res.status));
+    return {ok:true,body:body};
+  }
+
+  async function deleteOneOrder(orderId){
+    var r=await workerPost("/api/order-delete",{order_id:S(orderId)},true);
+    if(r.notFound)return;
+    if(!r.body||r.body.d1_verified!==true)throw new Error("Order delete verification failed: "+S(orderId));
+  }
+
+  async function deleteOneCustomer(customerId){
+    var r=await workerPost("/api/customer-delete",{customer_id:S(customerId)},true);
+    if(r.notFound)return {notFound:true};
+    if(!r.body||r.body.d1_verified!==true)throw new Error("Customer delete verification failed: "+S(customerId));
+    return r.body;
+  }
+
+  window.deleteCustomer=async function(id,skipConfirm){
+    var sid=S(id), selected=customerById(sid);
+    if(!sid||!selected)return false;
+
+    var ids=groupIds(sid);
+    var isMain=ids.length>1 && S(ids[0])===sid;
+    var orderIds=relatedOrderIds(ids);
+
+    if(!skipConfirm && !confirm(
+      "“"+S(selected.name||"Customer")+"” customer-ஐ delete செய்யவா?\n\n"+
+      (isMain
+        ? "Main + Additional Customers-ன் Orders, Payments, Alterations, Measurements, Designs, Calculations மற்றும் R2 data அனைத்தும் delete ஆகும்."
+        : "இந்த Additional Customer-ன் Order மற்றும் தொடர்புடைய data + R2 data delete ஆகும்.")
+    ))return false;
+
+    try{
+      /*
+       * FIRST: delete every known group Order through the authoritative Worker.
+       * This guarantees Main + Additional Order Cards and orders/<orderId>/ R2
+       * prefixes are removed even if the customer-cascade endpoint misses a
+       * legacy customer relationship.
+       */
+      for(var i=0;i<orderIds.length;i++)await deleteOneOrder(orderIds[i]);
+
+      /*
+       * SECOND: delete Main and each Additional Customer independently.
+       * If Main cascade already removed a child, the child's 404 is treated as
+       * already deleted. If the Main cascade misses a child, this second pass
+       * removes that child and its own R2 customer scope.
+       */
+      for(var j=0;j<ids.length;j++)await deleteOneCustomer(ids[j]);
+
+      if(typeof state!=="undefined"){
+        var idSet=new Set(ids.map(S)),orderSet=new Set(orderIds.map(S));
+        state.customers=(state.customers||[]).filter(function(c){return !idSet.has(S(c&&c.id));});
+        state.orders=(state.orders||[]).filter(function(o){return !idSet.has(S(o&&o.customer_id))&&!orderSet.has(S(o&&o.id));});
+      }
+
+      if(typeof loadAll==="function")await loadAll(true);
+      if(typeof renderCustomers==="function")renderCustomers();
+      if(typeof renderOrders==="function")renderOrders();
+      if(typeof renderDashboardCustomers==="function")renderDashboardCustomers();
+      if(typeof renderSidebarCustomerList==="function")renderSidebarCustomerList();
+      if(typeof renderMyCustomersSlideMenu==="function")renderMyCustomersSlideMenu();
+
+      if(typeof toast==="function"){
+        toast(isMain
+          ? "Main + Additional Customers மற்றும் அனைத்து Orders delete செய்யப்பட்டது."
+          : "Additional Customer மற்றும் அதன் Order delete செய்யப்பட்டது.");
+      }
+      console.log("V257 Multi Customer delete completed",{customer_ids:ids,order_ids:orderIds});
+      return true;
+    }catch(err){
+      console.error("V257 Multi Customer delete:",err);
+      if(typeof toast==="function")toast("Delete failed: "+S(err&&err.message||err),true);
+      return false;
+    }
+  };
+
+  window.__nfUnifiedCustomerDelete=window.deleteCustomer;
+  window.nfV22AdditionalDelete=window.deleteCustomer;
+})();
+</script>
