@@ -113,6 +113,115 @@ export default {
       }
     }
 
+    if (url.pathname === "/api/order-delete" && request.method === "POST") {
+      const auth = request.headers.get("Authorization") || "";
+      const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
+      if (!token) return json({ error: "Authentication required" }, 401);
+
+      const user = await verifySupabaseUser(token);
+      if (!user?.id) return json({ error: "Invalid session" }, 401);
+
+      let body;
+      try { body = await request.json(); }
+      catch { return json({ error: "Invalid JSON" }, 400); }
+
+      const orderId = String(body.order_id || "").trim();
+      if (!orderId) return json({ error: "order_id is required" }, 400);
+
+      try {
+        const orderCols = await tableColumns(env.DB, "orders");
+        if (!orderCols.has("id")) return json({ error: "orders.id column missing" }, 500);
+
+        const order = await env.DB.prepare(
+          `SELECT * FROM orders WHERE id = ? AND owner_id = ? LIMIT 1`
+        ).bind(orderId, user.id).first();
+
+        if (!order) return json({ error: "Order not found" }, 404);
+
+        const [paymentCols, alterationCols, calculationCols] = await Promise.all([
+          tableColumns(env.DB, "payments"),
+          tableColumns(env.DB, "alterations"),
+          tableColumns(env.DB, "calculations")
+        ]);
+
+        const statements = [];
+        if (paymentCols.has("order_id")) {
+          statements.push(env.DB.prepare(
+            `DELETE FROM payments WHERE owner_id = ? AND order_id = ?`
+          ).bind(user.id, orderId));
+        }
+        if (alterationCols.has("order_id")) {
+          statements.push(env.DB.prepare(
+            `DELETE FROM alterations WHERE owner_id = ? AND order_id = ?`
+          ).bind(user.id, orderId));
+        }
+        if (calculationCols.has("order_id")) {
+          statements.push(env.DB.prepare(
+            `DELETE FROM calculations WHERE owner_id = ? AND order_id = ?`
+          ).bind(user.id, orderId));
+        }
+
+        statements.push(env.DB.prepare(
+          `DELETE FROM orders WHERE owner_id = ? AND id = ?`
+        ).bind(user.id, orderId));
+
+        await env.DB.batch(statements);
+
+        const remaining = {};
+        const orderCheck = await env.DB.prepare(
+          `SELECT COUNT(*) AS n FROM orders WHERE owner_id = ? AND id = ?`
+        ).bind(user.id, orderId).first();
+        remaining.orders = Number(orderCheck?.n || 0);
+
+        async function verifyOrderTable(table, cols, key) {
+          if (!cols.has("order_id")) return;
+          const r = await env.DB.prepare(
+            `SELECT COUNT(*) AS n FROM ${table} WHERE owner_id = ? AND order_id = ?`
+          ).bind(user.id, orderId).first();
+          remaining[key] = Number(r?.n || 0);
+        }
+
+        await verifyOrderTable("payments", paymentCols, "payments");
+        await verifyOrderTable("alterations", alterationCols, "alterations");
+        await verifyOrderTable("calculations", calculationCols, "calculations");
+
+        for (const [key, value] of Object.entries(remaining)) {
+          if (Number(value) !== 0) {
+            throw new Error(`Order cascade verification failed: ${key}=${value}`);
+          }
+        }
+
+        let r2ObjectsDeleted = 0;
+        if (!env.MY_BUCKET) throw new Error("R2 bucket binding MY_BUCKET is missing");
+
+        let cursor;
+        do {
+          const listed = await env.MY_BUCKET.list({
+            prefix: `orders/${orderId}/`,
+            limit: 1000,
+            ...(cursor ? { cursor } : {})
+          });
+
+          const keys = (listed.objects || []).map(o => o.key).filter(Boolean);
+          if (keys.length) {
+            await env.MY_BUCKET.delete(keys);
+            r2ObjectsDeleted += keys.length;
+          }
+          cursor = listed.truncated ? listed.cursor : undefined;
+        } while (cursor);
+
+        return json({
+          ok: true,
+          order_id: orderId,
+          d1_verified: true,
+          r2_objects_deleted: r2ObjectsDeleted,
+          remaining
+        });
+      } catch (e) {
+        return json({ ok: false, error: String(e?.message || e) }, 500);
+      }
+    }
+
     if (url.pathname === "/api/customer-delete" && request.method === "POST") {
       const auth = request.headers.get("Authorization") || "";
       const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
