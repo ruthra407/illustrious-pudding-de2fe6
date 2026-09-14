@@ -7,7 +7,8 @@ const TABLES = new Set([
   "measurements",
   "alterations",
   "payments",
-  "designs"
+  "designs",
+  "calculations"
 ]);
 
 export default {
@@ -22,18 +23,28 @@ export default {
       });
     }
 
+    /* =====================================================
+       GENERIC D1 API
+       ===================================================== */
+
     if (url.pathname === "/api/db" && request.method === "POST") {
       const auth = request.headers.get("Authorization") || "";
-      const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
+      const token = auth.startsWith("Bearer ")
+        ? auth.slice(7)
+        : "";
 
       if (!token) {
-        return json({ error: "Authentication required" }, 401);
+        return json({
+          error: "Authentication required"
+        }, 401);
       }
 
       const user = await verifySupabaseUser(token);
 
       if (!user?.id) {
-        return json({ error: "Invalid session" }, 401);
+        return json({
+          error: "Invalid session"
+        }, 401);
       }
 
       let body;
@@ -41,24 +52,34 @@ export default {
       try {
         body = await request.json();
       } catch {
-        return json({ error: "Invalid JSON" }, 400);
+        return json({
+          error: "Invalid JSON"
+        }, 400);
       }
 
       const table = String(body.table || "");
 
       if (!TABLES.has(table)) {
-        return json({ error: "Invalid table" }, 400);
+        return json({
+          error: "Invalid table"
+        }, 400);
       }
 
       try {
-        const op = String(body.operation || "select");
+        const op = String(
+          body.operation || "select"
+        );
+
         const filters = Array.isArray(body.filters)
           ? body.filters
           : [];
 
+        /* SELECT */
+
         if (op === "select") {
           let sql =
-            `SELECT * FROM ${table} WHERE owner_id = ?`;
+            `SELECT * FROM ${safeCol(table)} ` +
+            `WHERE owner_id = ?`;
 
           const args = [user.id];
 
@@ -70,7 +91,9 @@ export default {
           if (body.order?.field) {
             sql +=
               ` ORDER BY ${safeCol(body.order.field)} ` +
-              `${body.order.ascending === false ? "DESC" : "ASC"}`;
+              `${body.order.ascending === false
+                ? "DESC"
+                : "ASC"}`;
           }
 
           const r = await env.DB
@@ -105,6 +128,8 @@ export default {
           });
         }
 
+        /* INSERT */
+
         if (op === "insert") {
           const input = Array.isArray(body.payload)
             ? body.payload
@@ -113,14 +138,22 @@ export default {
           const out = [];
 
           for (const raw of input) {
-            const row = { ...(raw || {}) };
+            const row = {
+              ...(raw || {})
+            };
 
             row.id ||= crypto.randomUUID();
             row.owner_id = user.id;
-            row.created_at ||= new Date().toISOString();
-            row.updated_at ||= row.created_at;
+            row.created_at ||=
+              new Date().toISOString();
+            row.updated_at ||=
+              row.created_at;
 
-            await insertRow(env.DB, table, row);
+            await insertRow(
+              env.DB,
+              table,
+              row
+            );
 
             out.push(row);
           }
@@ -132,6 +165,8 @@ export default {
             error: null
           });
         }
+
+        /* UPDATE */
 
         if (op === "update") {
           const payload = {
@@ -152,12 +187,15 @@ export default {
           }
 
           let sql =
-            `UPDATE ${table} SET ` +
-            `${cols.map(c => `${safeCol(c)} = ?`).join(", ")}, ` +
+            `UPDATE ${safeCol(table)} SET ` +
+            `${cols
+              .map(c => `${safeCol(c)} = ?`)
+              .join(", ")}, ` +
             `updated_at = ? ` +
             `WHERE owner_id = ?`;
 
-          const args = cols.map(c => payload[c]);
+          const args =
+            cols.map(c => payload[c]);
 
           args.push(
             new Date().toISOString(),
@@ -183,9 +221,12 @@ export default {
           );
         }
 
+        /* DELETE */
+
         if (op === "delete") {
           let sql =
-            `DELETE FROM ${table} WHERE owner_id = ?`;
+            `DELETE FROM ${safeCol(table)} ` +
+            `WHERE owner_id = ?`;
 
           const args = [user.id];
 
@@ -216,15 +257,30 @@ export default {
       }
     }
 
-    /*
-     * CUSTOMER DELETE
-     *
-     * Main Customer:
-     *   Main + linked Additional Customers
-     *
-     * Additional Customer:
-     *   Additional only
-     */
+
+    /* =====================================================
+       UNIFIED CUSTOMER CASCADE DELETE
+       
+       MAIN:
+         Main + Additional Customers
+
+       ADDITIONAL:
+         Additional only
+
+       D1:
+         customers
+         orders
+         payments
+         alterations
+         measurements
+         designs
+         calculations
+
+       R2:
+         customer prefixes
+         order prefixes
+       ===================================================== */
+
     if (
       url.pathname === "/api/customer-delete" &&
       request.method === "POST"
@@ -263,7 +319,9 @@ export default {
       }
 
       const customerId =
-        String(body.customer_id || "").trim();
+        String(
+          body.customer_id || ""
+        ).trim();
 
       if (!customerId) {
         return json({
@@ -272,16 +330,24 @@ export default {
       }
 
       try {
+        /* -------------------------------------------------
+           FIND SELECTED CUSTOMER
+           ------------------------------------------------- */
+
         const customer =
-          await env.DB.prepare(
-            `SELECT id, name, notes
-             FROM customers
-             WHERE id = ?
-               AND owner_id = ?
-             LIMIT 1`
-          )
-          .bind(customerId, user.id)
-          .first();
+          await env.DB
+            .prepare(
+              `SELECT id, name, notes
+               FROM customers
+               WHERE id = ?
+                 AND owner_id = ?
+               LIMIT 1`
+            )
+            .bind(
+              customerId,
+              user.id
+            )
+            .first();
 
         if (!customer) {
           return json({
@@ -290,43 +356,49 @@ export default {
         }
 
         const selectedNotes =
-          String(customer.notes || "");
+          String(
+            customer.notes || ""
+          );
 
         const isAdditionalCustomer =
           selectedNotes.includes(
             "NF_MULTI_PARENT:"
           );
 
+        /* -------------------------------------------------
+           BUILD CUSTOMER CASCADE SET
+           ------------------------------------------------- */
+
         const customerIds =
           new Set([customerId]);
 
         /*
-         * IMPORTANT:
-         * Main Customer delete:
-         * Find Additional Customers by
-         * NF_MULTI_PARENT marker anywhere
-         * inside notes.
+         * If selected customer is MAIN,
+         * collect all linked Additional Customers.
          */
         if (!isAdditionalCustomer) {
           const childResult =
-            await env.DB.prepare(
-              `SELECT id
-               FROM customers
-               WHERE owner_id = ?
-                 AND notes LIKE ?`
-            )
-            .bind(
-              user.id,
-              `%NF_MULTI_PARENT:${customerId}%`
-            )
-            .all();
+            await env.DB
+              .prepare(
+                `SELECT id
+                 FROM customers
+                 WHERE owner_id = ?
+                   AND notes LIKE ?`
+              )
+              .bind(
+                user.id,
+                `%NF_MULTI_PARENT:${customerId}%`
+              )
+              .all();
 
           for (
-            const child of
-              (childResult.results || [])
+            const child
+              of (childResult.results || [])
           ) {
             const childId =
-              String(child.id || "").trim();
+              String(
+                child.id || ""
+              ).trim();
 
             if (childId) {
               customerIds.add(childId);
@@ -337,152 +409,236 @@ export default {
         const deleteCustomerIds =
           Array.from(customerIds);
 
+        if (!deleteCustomerIds.length) {
+          throw new Error(
+            "No customer IDs found for deletion"
+          );
+        }
+
         const customerPlaceholders =
           deleteCustomerIds
             .map(() => "?")
             .join(",");
 
-        /*
-         * Find orders for Main + Additional
-         */
+        /* -------------------------------------------------
+           FIND ALL ORDERS
+           ------------------------------------------------- */
+
         const orderResult =
-          await env.DB.prepare(
-            `SELECT id
-             FROM orders
-             WHERE owner_id = ?
-               AND customer_id IN
-                 (${customerPlaceholders})`
-          )
-          .bind(
-            user.id,
-            ...deleteCustomerIds
-          )
-          .all();
+          await env.DB
+            .prepare(
+              `SELECT id
+               FROM orders
+               WHERE owner_id = ?
+                 AND customer_id IN
+                   (${customerPlaceholders})`
+            )
+            .bind(
+              user.id,
+              ...deleteCustomerIds
+            )
+            .all();
 
         const orderIds =
           (orderResult.results || [])
-            .map(r => String(r.id || "").trim())
+            .map(r =>
+              String(r.id || "").trim()
+            )
             .filter(Boolean);
+
+        /* -------------------------------------------------
+           GET ACTUAL TABLE COLUMNS
+           ------------------------------------------------- */
 
         const [
           paymentCols,
           alterationCols,
           measurementCols,
-          designCols
+          designCols,
+          calculationCols
         ] = await Promise.all([
-          tableColumns(env.DB, "payments"),
-          tableColumns(env.DB, "alterations"),
-          tableColumns(env.DB, "measurements"),
-          tableColumns(env.DB, "designs")
+          tableColumns(
+            env.DB,
+            "payments"
+          ),
+          tableColumns(
+            env.DB,
+            "alterations"
+          ),
+          tableColumns(
+            env.DB,
+            "measurements"
+          ),
+          tableColumns(
+            env.DB,
+            "designs"
+          ),
+          tableColumns(
+            env.DB,
+            "calculations"
+          )
         ]);
 
         const statements = [];
 
-        /*
-         * Payments by customer
-         */
-        if (paymentCols.has("customer_id")) {
+        /* -------------------------------------------------
+           PAYMENTS BY CUSTOMER
+           ------------------------------------------------- */
+
+        if (
+          paymentCols.has("customer_id")
+        ) {
           statements.push(
             env.DB.prepare(
               `DELETE FROM payments
                WHERE owner_id = ?
                  AND customer_id IN
                    (${customerPlaceholders})`
-            )
-            .bind(
+            ).bind(
               user.id,
               ...deleteCustomerIds
             )
           );
         }
 
-        /*
-         * Alterations by customer
-         */
-        if (alterationCols.has("customer_id")) {
+        /* -------------------------------------------------
+           ALTERATIONS BY CUSTOMER
+           ------------------------------------------------- */
+
+        if (
+          alterationCols.has("customer_id")
+        ) {
           statements.push(
             env.DB.prepare(
               `DELETE FROM alterations
                WHERE owner_id = ?
                  AND customer_id IN
                    (${customerPlaceholders})`
-            )
-            .bind(
+            ).bind(
               user.id,
               ...deleteCustomerIds
             )
           );
         }
 
-        /*
-         * Measurements by customer
-         */
-        if (measurementCols.has("customer_id")) {
+        /* -------------------------------------------------
+           MEASUREMENTS BY CUSTOMER
+           ------------------------------------------------- */
+
+        if (
+          measurementCols.has("customer_id")
+        ) {
           statements.push(
             env.DB.prepare(
               `DELETE FROM measurements
                WHERE owner_id = ?
                  AND customer_id IN
                    (${customerPlaceholders})`
-            )
-            .bind(
+            ).bind(
               user.id,
               ...deleteCustomerIds
             )
           );
         }
 
-        /*
-         * Designs by customer
-         */
-        if (designCols.has("customer_id")) {
+        /* -------------------------------------------------
+           DESIGNS BY CUSTOMER
+           ------------------------------------------------- */
+
+        if (
+          designCols.has("customer_id")
+        ) {
           statements.push(
             env.DB.prepare(
               `DELETE FROM designs
                WHERE owner_id = ?
                  AND customer_id IN
                    (${customerPlaceholders})`
-            )
-            .bind(
+            ).bind(
               user.id,
               ...deleteCustomerIds
             )
           );
         }
 
-        /*
-         * Delete order-linked data
-         */
+        /* -------------------------------------------------
+           CALCULATIONS BY CUSTOMER
+           ------------------------------------------------- */
+
+        if (
+          calculationCols.has("customer_id")
+        ) {
+          statements.push(
+            env.DB.prepare(
+              `DELETE FROM calculations
+               WHERE owner_id = ?
+                 AND customer_id IN
+                   (${customerPlaceholders})`
+            ).bind(
+              user.id,
+              ...deleteCustomerIds
+            )
+          );
+        }
+
+        /* -------------------------------------------------
+           ORDER-LINKED DATA
+           ------------------------------------------------- */
+
         if (orderIds.length) {
           const orderPlaceholders =
             orderIds
               .map(() => "?")
               .join(",");
 
-          if (paymentCols.has("order_id")) {
+          /* PAYMENTS BY ORDER */
+
+          if (
+            paymentCols.has("order_id")
+          ) {
             statements.push(
               env.DB.prepare(
                 `DELETE FROM payments
                  WHERE owner_id = ?
                    AND order_id IN
                      (${orderPlaceholders})`
-              )
-              .bind(
+              ).bind(
                 user.id,
                 ...orderIds
               )
             );
           }
 
-          if (alterationCols.has("order_id")) {
+          /* ALTERATIONS BY ORDER */
+
+          if (
+            alterationCols.has("order_id")
+          ) {
             statements.push(
               env.DB.prepare(
                 `DELETE FROM alterations
                  WHERE owner_id = ?
                    AND order_id IN
                      (${orderPlaceholders})`
+              ).bind(
+                user.id,
+                ...orderIds
               )
-              .bind(
+            );
+          }
+
+          /* CALCULATIONS BY ORDER */
+
+          if (
+            calculationCols.has("order_id")
+          ) {
+            statements.push(
+              env.DB.prepare(
+                `DELETE FROM calculations
+                 WHERE owner_id = ?
+                   AND order_id IN
+                     (${orderPlaceholders})`
+              ).bind(
                 user.id,
                 ...orderIds
               )
@@ -490,59 +646,68 @@ export default {
           }
         }
 
-        /*
-         * Delete orders
-         */
+        /* -------------------------------------------------
+           DELETE ORDERS
+           ------------------------------------------------- */
+
         statements.push(
           env.DB.prepare(
             `DELETE FROM orders
              WHERE owner_id = ?
                AND customer_id IN
                  (${customerPlaceholders})`
-          )
-          .bind(
+          ).bind(
             user.id,
             ...deleteCustomerIds
           )
         );
 
-        /*
-         * Delete customers
-         */
+        /* -------------------------------------------------
+           DELETE CUSTOMERS
+           ------------------------------------------------- */
+
         statements.push(
           env.DB.prepare(
             `DELETE FROM customers
              WHERE owner_id = ?
                AND id IN
                  (${customerPlaceholders})`
-          )
-          .bind(
+          ).bind(
             user.id,
             ...deleteCustomerIds
           )
         );
 
-        await env.DB.batch(statements);
+        /* -------------------------------------------------
+           EXECUTE D1 CASCADE
+           ------------------------------------------------- */
 
-        /*
-         * Verify customers deleted
-         */
+        await env.DB.batch(
+          statements
+        );
+
+        /* -------------------------------------------------
+           VERIFY CUSTOMERS
+           ------------------------------------------------- */
+
         const customerCheck =
-          await env.DB.prepare(
-            `SELECT id
-             FROM customers
-             WHERE owner_id = ?
-               AND id IN
-                 (${customerPlaceholders})`
-          )
-          .bind(
-            user.id,
-            ...deleteCustomerIds
-          )
-          .all();
+          await env.DB
+            .prepare(
+              `SELECT id
+               FROM customers
+               WHERE owner_id = ?
+                 AND id IN
+                   (${customerPlaceholders})`
+            )
+            .bind(
+              user.id,
+              ...deleteCustomerIds
+            )
+            .all();
 
         if (
-          (customerCheck.results || []).length
+          (customerCheck.results || [])
+            .length
         ) {
           throw new Error(
             "Customer D1 delete failed: customer row still exists"
@@ -551,40 +716,15 @@ export default {
 
         const remaining = {};
 
-        /*
-         * Verify orders
-         */
+        /* -------------------------------------------------
+           VERIFY ORDERS
+           ------------------------------------------------- */
+
         const orderCheck =
-          await env.DB.prepare(
-            `SELECT COUNT(*) AS n
-             FROM orders
-             WHERE owner_id = ?
-               AND customer_id IN
-                 (${customerPlaceholders})`
-          )
-          .bind(
-            user.id,
-            ...deleteCustomerIds
-          )
-          .first();
-
-        remaining.orders =
-          Number(orderCheck?.n || 0);
-
-        if (remaining.orders !== 0) {
-          throw new Error(
-            `Customer cascade verification failed: orders=${remaining.orders}`
-          );
-        }
-
-        /*
-         * Verify measurements
-         */
-        if (measurementCols.has("customer_id")) {
-          const r =
-            await env.DB.prepare(
+          await env.DB
+            .prepare(
               `SELECT COUNT(*) AS n
-               FROM measurements
+               FROM orders
                WHERE owner_id = ?
                  AND customer_id IN
                    (${customerPlaceholders})`
@@ -595,33 +735,74 @@ export default {
             )
             .first();
 
+        remaining.orders =
+          Number(
+            orderCheck?.n || 0
+          );
+
+        if (
+          remaining.orders !== 0
+        ) {
+          throw new Error(
+            `Customer cascade verification failed: orders=${remaining.orders}`
+          );
+        }
+
+        /* -------------------------------------------------
+           VERIFY MEASUREMENTS
+           ------------------------------------------------- */
+
+        if (
+          measurementCols.has("customer_id")
+        ) {
+          const r =
+            await env.DB
+              .prepare(
+                `SELECT COUNT(*) AS n
+                 FROM measurements
+                 WHERE owner_id = ?
+                   AND customer_id IN
+                     (${customerPlaceholders})`
+              )
+              .bind(
+                user.id,
+                ...deleteCustomerIds
+              )
+              .first();
+
           remaining.measurements =
             Number(r?.n || 0);
 
-          if (remaining.measurements !== 0) {
+          if (
+            remaining.measurements !== 0
+          ) {
             throw new Error(
               `Customer cascade verification failed: measurements=${remaining.measurements}`
             );
           }
         }
 
-        /*
-         * Verify alterations by customer
-         */
-        if (alterationCols.has("customer_id")) {
+        /* -------------------------------------------------
+           VERIFY ALTERATIONS BY CUSTOMER
+           ------------------------------------------------- */
+
+        if (
+          alterationCols.has("customer_id")
+        ) {
           const r =
-            await env.DB.prepare(
-              `SELECT COUNT(*) AS n
-               FROM alterations
-               WHERE owner_id = ?
-                 AND customer_id IN
-                   (${customerPlaceholders})`
-            )
-            .bind(
-              user.id,
-              ...deleteCustomerIds
-            )
-            .first();
+            await env.DB
+              .prepare(
+                `SELECT COUNT(*) AS n
+                 FROM alterations
+                 WHERE owner_id = ?
+                   AND customer_id IN
+                     (${customerPlaceholders})`
+              )
+              .bind(
+                user.id,
+                ...deleteCustomerIds
+              )
+              .first();
 
           remaining.alterations_customer =
             Number(r?.n || 0);
@@ -635,23 +816,27 @@ export default {
           }
         }
 
-        /*
-         * Verify payments by customer
-         */
-        if (paymentCols.has("customer_id")) {
+        /* -------------------------------------------------
+           VERIFY PAYMENTS BY CUSTOMER
+           ------------------------------------------------- */
+
+        if (
+          paymentCols.has("customer_id")
+        ) {
           const r =
-            await env.DB.prepare(
-              `SELECT COUNT(*) AS n
-               FROM payments
-               WHERE owner_id = ?
-                 AND customer_id IN
-                   (${customerPlaceholders})`
-            )
-            .bind(
-              user.id,
-              ...deleteCustomerIds
-            )
-            .first();
+            await env.DB
+              .prepare(
+                `SELECT COUNT(*) AS n
+                 FROM payments
+                 WHERE owner_id = ?
+                   AND customer_id IN
+                     (${customerPlaceholders})`
+              )
+              .bind(
+                user.id,
+                ...deleteCustomerIds
+              )
+              .first();
 
           remaining.payments_customer =
             Number(r?.n || 0);
@@ -665,23 +850,27 @@ export default {
           }
         }
 
-        /*
-         * Verify designs
-         */
-        if (designCols.has("customer_id")) {
+        /* -------------------------------------------------
+           VERIFY DESIGNS
+           ------------------------------------------------- */
+
+        if (
+          designCols.has("customer_id")
+        ) {
           const r =
-            await env.DB.prepare(
-              `SELECT COUNT(*) AS n
-               FROM designs
-               WHERE owner_id = ?
-                 AND customer_id IN
-                   (${customerPlaceholders})`
-            )
-            .bind(
-              user.id,
-              ...deleteCustomerIds
-            )
-            .first();
+            await env.DB
+              .prepare(
+                `SELECT COUNT(*) AS n
+                 FROM designs
+                 WHERE owner_id = ?
+                   AND customer_id IN
+                     (${customerPlaceholders})`
+              )
+              .bind(
+                user.id,
+                ...deleteCustomerIds
+              )
+              .first();
 
           remaining.designs_customer =
             Number(r?.n || 0);
@@ -695,29 +884,67 @@ export default {
           }
         }
 
-        /*
-         * Verify payments by order
-         */
+        /* -------------------------------------------------
+           VERIFY CALCULATIONS BY CUSTOMER
+           ------------------------------------------------- */
+
+        if (
+          calculationCols.has("customer_id")
+        ) {
+          const r =
+            await env.DB
+              .prepare(
+                `SELECT COUNT(*) AS n
+                 FROM calculations
+                 WHERE owner_id = ?
+                   AND customer_id IN
+                     (${customerPlaceholders})`
+              )
+              .bind(
+                user.id,
+                ...deleteCustomerIds
+              )
+              .first();
+
+          remaining.calculations_customer =
+            Number(r?.n || 0);
+
+          if (
+            remaining.calculations_customer !== 0
+          ) {
+            throw new Error(
+              `Customer cascade verification failed: calculations_customer=${remaining.calculations_customer}`
+            );
+          }
+        }
+
+        /* -------------------------------------------------
+           VERIFY PAYMENTS BY ORDER
+           ------------------------------------------------- */
+
         if (
           orderIds.length &&
           paymentCols.has("order_id")
         ) {
           const orderPlaceholders =
-            orderIds.map(() => "?").join(",");
+            orderIds
+              .map(() => "?")
+              .join(",");
 
           const r =
-            await env.DB.prepare(
-              `SELECT COUNT(*) AS n
-               FROM payments
-               WHERE owner_id = ?
-                 AND order_id IN
-                   (${orderPlaceholders})`
-            )
-            .bind(
-              user.id,
-              ...orderIds
-            )
-            .first();
+            await env.DB
+              .prepare(
+                `SELECT COUNT(*) AS n
+                 FROM payments
+                 WHERE owner_id = ?
+                   AND order_id IN
+                     (${orderPlaceholders})`
+              )
+              .bind(
+                user.id,
+                ...orderIds
+              )
+              .first();
 
           remaining.payments_orders =
             Number(r?.n || 0);
@@ -731,29 +958,33 @@ export default {
           }
         }
 
-        /*
-         * Verify alterations by order
-         */
+        /* -------------------------------------------------
+           VERIFY ALTERATIONS BY ORDER
+           ------------------------------------------------- */
+
         if (
           orderIds.length &&
           alterationCols.has("order_id")
         ) {
           const orderPlaceholders =
-            orderIds.map(() => "?").join(",");
+            orderIds
+              .map(() => "?")
+              .join(",");
 
           const r =
-            await env.DB.prepare(
-              `SELECT COUNT(*) AS n
-               FROM alterations
-               WHERE owner_id = ?
-                 AND order_id IN
-                   (${orderPlaceholders})`
-            )
-            .bind(
-              user.id,
-              ...orderIds
-            )
-            .first();
+            await env.DB
+              .prepare(
+                `SELECT COUNT(*) AS n
+                 FROM alterations
+                 WHERE owner_id = ?
+                   AND order_id IN
+                     (${orderPlaceholders})`
+              )
+              .bind(
+                user.id,
+                ...orderIds
+              )
+              .first();
 
           remaining.alterations_orders =
             Number(r?.n || 0);
@@ -765,23 +996,80 @@ export default {
               `Customer cascade verification failed: alterations_orders=${remaining.alterations_orders}`
             );
           }
-      }        /*
-         * R2 cleanup
-         */
-        const prefixes = new Set();
-
-        for (const id of deleteCustomerIds) {
-          prefixes.add(`${id}/`);
-          prefixes.add(`customers/${id}/`);
         }
 
-        for (const orderId of orderIds) {
-          prefixes.add(`orders/${orderId}/`);
+        /* -------------------------------------------------
+           VERIFY CALCULATIONS BY ORDER
+           ------------------------------------------------- */
+
+        if (
+          orderIds.length &&
+          calculationCols.has("order_id")
+        ) {
+          const orderPlaceholders =
+            orderIds
+              .map(() => "?")
+              .join(",");
+
+          const r =
+            await env.DB
+              .prepare(
+                `SELECT COUNT(*) AS n
+                 FROM calculations
+                 WHERE owner_id = ?
+                   AND order_id IN
+                     (${orderPlaceholders})`
+              )
+              .bind(
+                user.id,
+                ...orderIds
+              )
+              .first();
+
+          remaining.calculations_orders =
+            Number(r?.n || 0);
+
+          if (
+            remaining.calculations_orders !== 0
+          ) {
+            throw new Error(
+              `Customer cascade verification failed: calculations_orders=${remaining.calculations_orders}`
+            );
+          }
+        }
+
+        /* -------------------------------------------------
+           R2 CLEANUP
+           ------------------------------------------------- */
+
+        const prefixes =
+          new Set();
+
+        for (
+          const id
+            of deleteCustomerIds
+        ) {
+          prefixes.add(`${id}/`);
+          prefixes.add(
+            `customers/${id}/`
+          );
+        }
+
+        for (
+          const orderId
+            of orderIds
+        ) {
+          prefixes.add(
+            `orders/${orderId}/`
+          );
         }
 
         let deletedObjects = 0;
 
-        for (const prefix of prefixes) {
+        for (
+          const prefix
+            of prefixes
+        ) {
           let cursor;
 
           do {
@@ -796,12 +1084,18 @@ export default {
 
             const keys =
               (listed.objects || [])
-                .map(o => o.key)
+                .map(
+                  o => o.key
+                )
                 .filter(Boolean);
 
             if (keys.length) {
-              await env.MY_BUCKET.delete(keys);
-              deletedObjects += keys.length;
+              await env.MY_BUCKET.delete(
+                keys
+              );
+
+              deletedObjects +=
+                keys.length;
             }
 
             cursor =
@@ -812,37 +1106,59 @@ export default {
           } while (cursor);
         }
 
+        /* -------------------------------------------------
+           FINAL RESPONSE
+           ------------------------------------------------- */
+
         return json({
           ok: true,
-          customer_id: customerId,
+          customer_id:
+            customerId,
+          customer_type:
+            isAdditionalCustomer
+              ? "additional"
+              : "main",
           customer_ids_deleted:
             deleteCustomerIds,
           customers_deleted:
             deleteCustomerIds.length,
-          order_ids: orderIds,
+          order_ids:
+            orderIds,
           orders_deleted:
             orderIds.length,
+          d1_verified:
+            true,
           r2_objects_deleted:
-            deletedObjects
+            deletedObjects,
+          remaining
         });
 
       } catch (e) {
         return json({
-          error: String(e?.message || e)
+          ok: false,
+          error:
+            String(
+              e?.message || e
+            )
         }, 500);
       }
     }
 
-    /*
-     * R2 TEST
-     */
-    if (url.pathname === "/api/r2-test") {
+
+    /* =====================================================
+       R2 TEST
+       ===================================================== */
+
+    if (
+      url.pathname === "/api/r2-test"
+    ) {
       await env.MY_BUCKET.put(
         "r2-test.txt",
         "R2 WORKS",
         {
           httpMetadata: {
-            contentType: "text/plain"
+            contentType:
+              "text/plain"
           }
         }
       );
@@ -855,11 +1171,15 @@ export default {
       );
     }
 
-    /*
-     * R2 PUT
-     */
+
+    /* =====================================================
+       R2 PUT
+       ===================================================== */
+
     if (
-      url.pathname.startsWith("/api/r2/") &&
+      url.pathname.startsWith(
+        "/api/r2/"
+      ) &&
       request.method === "PUT"
     ) {
       const key =
@@ -899,11 +1219,15 @@ export default {
       });
     }
 
-    /*
-     * R2 GET
-     */
+
+    /* =====================================================
+       R2 GET
+       ===================================================== */
+
     if (
-      url.pathname.startsWith("/api/r2/") &&
+      url.pathname.startsWith(
+        "/api/r2/"
+      ) &&
       request.method === "GET"
     ) {
       const key =
@@ -914,7 +1238,9 @@ export default {
         );
 
       const object =
-        await env.MY_BUCKET.get(key);
+        await env.MY_BUCKET.get(
+          key
+        );
 
       if (!object) {
         return new Response(
@@ -927,11 +1253,15 @@ export default {
       }
 
       const headers =
-        new Headers(corsHeaders);
+        new Headers(
+          corsHeaders
+        );
 
       headers.set(
         "Content-Type",
-        object.httpMetadata?.contentType ||
+        object
+          .httpMetadata
+          ?.contentType ||
           "application/octet-stream"
       );
 
@@ -942,15 +1272,21 @@ export default {
 
       return new Response(
         object.body,
-        { headers }
+        {
+          headers
+        }
       );
     }
 
-    /*
-     * R2 DELETE
-     */
+
+    /* =====================================================
+       R2 DELETE
+       ===================================================== */
+
     if (
-      url.pathname.startsWith("/api/r2/") &&
+      url.pathname.startsWith(
+        "/api/r2/"
+      ) &&
       request.method === "DELETE"
     ) {
       const key =
@@ -960,7 +1296,9 @@ export default {
           )
         );
 
-      await env.MY_BUCKET.delete(key);
+      await env.MY_BUCKET.delete(
+        key
+      );
 
       return json({
         ok: true,
@@ -968,11 +1306,15 @@ export default {
       });
     }
 
-    /*
-     * Static assets
-     */
+
+    /* =====================================================
+       STATIC ASSETS
+       ===================================================== */
+
     if (env.ASSETS?.fetch) {
-      return env.ASSETS.fetch(request);
+      return env.ASSETS.fetch(
+        request
+      );
     }
 
     return new Response(
@@ -983,10 +1325,7 @@ export default {
       }
     );
   }
-};
-
-
-/* =========================================================
+};/* =========================================================
    HELPERS
    ========================================================= */
 
@@ -999,59 +1338,94 @@ function validCol(c) {
 
 function safeCol(c) {
   if (!validCol(c)) {
-    throw new Error("Invalid column");
+    throw new Error(
+      "Invalid column"
+    );
   }
 
   return c;
 }
 
 
-function addFilters(filters, add) {
+/* =========================================================
+   FILTER BUILDER
+   ========================================================= */
+
+function addFilters(
+  filters,
+  add
+) {
   for (const f of filters) {
+    if (!f || typeof f !== "object") {
+      continue;
+    }
+
     const field =
       safeCol(f.field);
+
+    /* IN */
 
     if (Array.isArray(f.__in)) {
       if (!f.__in.length) {
         add(
-          [` AND 0`],
+          ` AND 0`,
           []
         );
+
         continue;
       }
 
       add(
-        [
-          ` AND ${field} IN (` +
-          `${f.__in.map(() => "?").join(",")})`
-        ],
+        ` AND ${field} IN (` +
+        `${f.__in
+          .map(() => "?")
+          .join(",")})`,
         f.__in
       );
 
-    } else if (
+      continue;
+    }
+
+    /* GREATER THAN */
+
+    if (
       Object.prototype.hasOwnProperty.call(
         f,
         "__gt"
       )
     ) {
-
       add(
-        [` AND ${field} > ?`],
+        ` AND ${field} > ?`,
         [f.__gt]
       );
 
-    } else {
-
-      add(
-        [` AND ${field} = ?`],
-        [f.value]
-      );
+      continue;
     }
+
+    /* EQUAL */
+
+    add(
+      ` AND ${field} = ?`,
+      [f.value]
+    );
   }
 }
 
 
-async function tableColumns(db, table) {
+/* =========================================================
+   TABLE COLUMNS
+
+   calculations is included.
+
+   If calculations table does not exist yet,
+   PRAGMA returns an empty column set and the
+   cascade safely skips calculation deletion.
+   ========================================================= */
+
+async function tableColumns(
+  db,
+  table
+) {
   const allowed =
     new Set([
       "customers",
@@ -1059,7 +1433,8 @@ async function tableColumns(db, table) {
       "measurements",
       "alterations",
       "payments",
-      "designs"
+      "designs",
+      "calculations"
     ]);
 
   if (!allowed.has(table)) {
@@ -1071,39 +1446,65 @@ async function tableColumns(db, table) {
   const r =
     await db
       .prepare(
-        `PRAGMA table_info(${table})`
+        `PRAGMA table_info(${safeCol(table)})`
       )
       .all();
 
   return new Set(
     (r.results || [])
-      .map(x =>
-        String(x.name || "")
+      .map(
+        x =>
+          String(
+            x.name || ""
+          )
       )
+      .filter(Boolean)
   );
 }
 
 
-async function insertRow(db, table, row) {
+/* =========================================================
+   INSERT
+   ========================================================= */
+
+async function insertRow(
+  db,
+  table,
+  row
+) {
   const cols =
     Object.keys(row)
       .filter(validCol);
 
+  if (!cols.length) {
+    throw new Error(
+      "No valid columns"
+    );
+  }
+
   const sql =
-    `INSERT INTO ${table} ` +
+    `INSERT INTO ${safeCol(table)} ` +
     `(${cols.join(",")}) ` +
     `VALUES (` +
-    `${cols.map(() => "?").join(",")}` +
+    `${cols
+      .map(() => "?")
+      .join(",")}` +
     `)`;
 
   await db
     .prepare(sql)
     .bind(
-      ...cols.map(c => row[c])
+      ...cols.map(
+        c => row[c]
+      )
     )
     .run();
 }
 
+
+/* =========================================================
+   SELECT AFTER UPDATE
+   ========================================================= */
 
 async function selectAfter(
   db,
@@ -1113,15 +1514,20 @@ async function selectAfter(
   single
 ) {
   let sql =
-    `SELECT * FROM ${table} ` +
+    `SELECT * FROM ${safeCol(table)} ` +
     `WHERE owner_id = ?`;
 
-  const args = [owner];
+  const args = [
+    owner
+  ];
 
-  addFilters(filters, (s, a) => {
-    sql += s;
-    args.push(...a);
-  });
+  addFilters(
+    filters,
+    (s, a) => {
+      sql += s;
+      args.push(...a);
+    }
+  );
 
   const r =
     await db
@@ -1132,13 +1538,18 @@ async function selectAfter(
   const rows =
     r.results || [];
 
-  if (single === "single") {
-    if (rows.length !== 1) {
+  if (
+    single === "single"
+  ) {
+    if (
+      rows.length !== 1
+    ) {
       return json({
         data: null,
-        error: rows.length
-          ? "Multiple rows returned"
-          : "No rows found"
+        error:
+          rows.length
+            ? "Multiple rows returned"
+            : "No rows found"
       });
     }
 
@@ -1158,42 +1569,68 @@ async function selectAfter(
 }
 
 
-async function verifySupabaseUser(token) {
-  const r =
-    await fetch(
-      `${SUPABASE_URL}/auth/v1/user`,
-      {
-        headers: {
-          apikey:
-            SUPABASE_ANON_KEY,
-          Authorization:
-            `Bearer ${token}`
-        }
-      }
-    );
+/* =========================================================
+   SUPABASE USER VERIFICATION
+   ========================================================= */
 
-  if (!r.ok) {
+async function verifySupabaseUser(
+  token
+) {
+  try {
+    const r =
+      await fetch(
+        `${SUPABASE_URL}/auth/v1/user`,
+        {
+          headers: {
+            apikey:
+              SUPABASE_ANON_KEY,
+            Authorization:
+              `Bearer ${token}`
+          }
+        }
+      );
+
+    if (!r.ok) {
+      return null;
+    }
+
+    return await r.json();
+
+  } catch {
     return null;
   }
-
-  return r.json();
 }
 
 
+/* =========================================================
+   CORS
+   ========================================================= */
+
 function cors() {
   return {
-    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Origin":
+      "*",
+
     "Access-Control-Allow-Headers":
       "Authorization,Content-Type",
+
     "Access-Control-Allow-Methods":
       "GET,PUT,DELETE,POST,OPTIONS",
+
     "Content-Type":
       "application/json"
   };
 }
 
 
-function json(data, status = 200) {
+/* =========================================================
+   JSON RESPONSE
+   ========================================================= */
+
+function json(
+  data,
+  status = 200
+) {
   return new Response(
     JSON.stringify(data),
     {
