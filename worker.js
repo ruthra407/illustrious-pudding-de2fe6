@@ -274,20 +274,29 @@ export default {
          * behind.
          */
         const selectedParent = parentIdOf(selected);
-        const rootId = selectedParent || customerId;
-        const customerIds = new Set([rootId]);
+        const isAdditional = !!selectedParent;
 
-        let changed = true;
-        while (changed) {
-          changed = false;
-          for (const c of allCustomers) {
-            const cid = String(c?.id || "").trim();
-            if (!cid || customerIds.has(cid)) continue;
+        /*
+         * Main deletion => complete Multi-Customer family.
+         * Additional deletion => ONLY the selected Additional Customer.
+         * Never seed an Additional deletion with its parent/Main ID.
+         */
+        const rootId = isAdditional ? selectedParent : customerId;
+        const customerIds = new Set([customerId]);
 
-            const parent = parentIdOf(c);
-            if (customerIds.has(parent)) {
-              customerIds.add(cid);
-              changed = true;
+        if (!isAdditional) {
+          let changed = true;
+          while (changed) {
+            changed = false;
+            for (const c of allCustomers) {
+              const cid = String(c?.id || "").trim();
+              if (!cid || customerIds.has(cid)) continue;
+
+              const parent = parentIdOf(c);
+              if (customerIds.has(parent)) {
+                customerIds.add(cid);
+                changed = true;
+              }
             }
           }
         }
@@ -534,7 +543,7 @@ export default {
         return json({
           ok: true,
           customer_id: customerId,
-          customer_type: selectedParent ? "additional" : "main",
+          customer_type: isAdditional ? "additional" : "main",
           root_customer_id: rootId,
           customer_ids_deleted: customerIdList,
           customers_deleted: customerIdList.length,
