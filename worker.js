@@ -164,9 +164,27 @@ export default {
         const customerIdList = Array.from(customerIds);
         const cp = customerIdList.map(() => "?").join(",");
 
-        const orderResult = await env.DB.prepare(
-          `SELECT id FROM orders WHERE owner_id = ? AND customer_id IN (${cp})`
-        ).bind(user.id, ...customerIdList).all();
+        // Find orders using every supported customer-reference column.
+        // This is intentionally broader than only orders.customer_id because
+        // older data may use customerId/cust_id/client_id style fields.
+        const orderCols = await tableColumns(env.DB, "orders");
+        const orderCustomerCols = [
+          "customer_id", "customerId",
+          "cust_id", "custId",
+          "client_id", "clientId"
+        ].filter(c => orderCols.has(c));
+
+        let orderResult = { results: [] };
+
+        if (orderCustomerCols.length) {
+          const orderLinks = orderCustomerCols
+            .map(c => `${safeCol(c)} IN (${cp})`)
+            .join(" OR ");
+
+          orderResult = await env.DB.prepare(
+            `SELECT id FROM orders WHERE owner_id = ? AND (${orderLinks})`
+          ).bind(user.id, ...customerIdList).all();
+        }
 
         const orderIds = (orderResult.results || [])
           .map(r => String(r.id || "").trim())
@@ -220,11 +238,17 @@ export default {
           }
         }
 
-        statements.push(
-          env.DB.prepare(
-            `DELETE FROM orders WHERE owner_id = ? AND customer_id IN (${cp})`
-          ).bind(user.id, ...customerIdList)
-        );
+        if (orderCustomerCols.length) {
+          const orderLinks = orderCustomerCols
+            .map(c => `${safeCol(c)} IN (${cp})`)
+            .join(" OR ");
+
+          statements.push(
+            env.DB.prepare(
+              `DELETE FROM orders WHERE owner_id = ? AND (${orderLinks})`
+            ).bind(user.id, ...customerIdList)
+          );
+        }
 
         statements.push(
           env.DB.prepare(
@@ -241,10 +265,19 @@ export default {
         ).bind(user.id, ...customerIdList).first();
         remaining.customers = Number(customerCheck?.n || 0);
 
-        const orderCheck = await env.DB.prepare(
-          `SELECT COUNT(*) AS n FROM orders WHERE owner_id = ? AND customer_id IN (${cp})`
-        ).bind(user.id, ...customerIdList).first();
-        remaining.orders = Number(orderCheck?.n || 0);
+        if (orderCustomerCols.length) {
+          const orderLinks = orderCustomerCols
+            .map(c => `${safeCol(c)} IN (${cp})`)
+            .join(" OR ");
+
+          const orderCheck = await env.DB.prepare(
+            `SELECT COUNT(*) AS n FROM orders WHERE owner_id = ? AND (${orderLinks})`
+          ).bind(user.id, ...customerIdList).first();
+
+          remaining.orders = Number(orderCheck?.n || 0);
+        } else {
+          remaining.orders = 0;
+        }
 
         async function verifyCustomerTable(table, cols, key) {
           if (!cols.has("customer_id")) return;
