@@ -253,29 +253,48 @@ export default {
         function parentIdOf(c) {
           if (!c) return "";
           const notes = String(c.notes || "");
-          const marker = notes.match(/(?:^|\|\s*)(?:NF_MULTI_PARENT|NF_PARENT_CUSTOMER)\s*:\s*([^|\s]+)/i);
+          const marker = notes.match(
+            /(?:^|\|\s*)(?:NF_MULTI_PARENT|NF_PARENT_CUSTOMER)\s*:\s*([^|\s]+)/i
+          );
           if (marker?.[1]) return String(marker[1]).trim();
-          return String(c.main_customer_id || c.parent_customer_id || c.parent_id || c.main_id || "").trim();
+
+          return String(
+            c.main_customer_id ||
+            c.parent_customer_id ||
+            c.parent_id ||
+            c.main_id ||
+            ""
+          ).trim();
         }
 
+        /*
+         * Resolve the complete Multi-Customer family from the authoritative
+         * parent marker/parent columns. This is deliberately recursive so
+         * older/imported data with a child -> child relationship is not left
+         * behind.
+         */
         const selectedParent = parentIdOf(selected);
-        const isAdditional = !!selectedParent;
-        const customerIds = new Set([customerId]);
+        const rootId = selectedParent || customerId;
+        const customerIds = new Set([rootId]);
 
-        if (!isAdditional) {
+        let changed = true;
+        while (changed) {
+          changed = false;
           for (const c of allCustomers) {
-            const cid = String(c.id || "").trim();
-            if (!cid || cid === customerId) continue;
-            if (parentIdOf(c) === customerId) customerIds.add(cid);
+            const cid = String(c?.id || "").trim();
+            if (!cid || customerIds.has(cid)) continue;
+
+            const parent = parentIdOf(c);
+            if (customerIds.has(parent)) {
+              customerIds.add(cid);
+              changed = true;
+            }
           }
         }
 
         const customerIdList = Array.from(customerIds);
         const cp = customerIdList.map(() => "?").join(",");
 
-        // Find orders using every supported customer-reference column.
-        // This is intentionally broader than only orders.customer_id because
-        // older data may use customerId/cust_id/client_id style fields.
         const orderCols = await tableColumns(env.DB, "orders");
         const orderCustomerCols = [
           "customer_id", "customerId",
@@ -283,30 +302,35 @@ export default {
           "client_id", "clientId"
         ].filter(c => orderCols.has(c));
 
-        let orderResult = { results: [] };
+        let orderIds = [];
 
         if (orderCustomerCols.length) {
           const orderLinks = orderCustomerCols
             .map(c => `${safeCol(c)} IN (${cp})`)
             .join(" OR ");
 
-          orderResult = await env.DB.prepare(
+          const orderResult = await env.DB.prepare(
             `SELECT id FROM orders WHERE owner_id = ? AND (${orderLinks})`
           ).bind(user.id, ...customerIdList).all();
+
+          orderIds = (orderResult.results || [])
+            .map(r => String(r.id || "").trim())
+            .filter(Boolean);
         }
 
-        const orderIds = (orderResult.results || [])
-          .map(r => String(r.id || "").trim())
-          .filter(Boolean);
-
-        const [paymentCols, alterationCols, measurementCols, designCols, calculationCols] =
-          await Promise.all([
-            tableColumns(env.DB, "payments"),
-            tableColumns(env.DB, "alterations"),
-            tableColumns(env.DB, "measurements"),
-            tableColumns(env.DB, "designs"),
-            tableColumns(env.DB, "calculations")
-          ]);
+        const [
+          paymentCols,
+          alterationCols,
+          measurementCols,
+          designCols,
+          calculationCols
+        ] = await Promise.all([
+          tableColumns(env.DB, "payments"),
+          tableColumns(env.DB, "alterations"),
+          tableColumns(env.DB, "measurements"),
+          tableColumns(env.DB, "designs"),
+          tableColumns(env.DB, "calculations")
+        ]);
 
         const statements = [];
 
@@ -329,21 +353,27 @@ export default {
           const op = orderIds.map(() => "?").join(",");
 
           if (paymentCols.has("order_id")) {
-            statements.push(env.DB.prepare(
-              `DELETE FROM payments WHERE owner_id = ? AND order_id IN (${op})`
-            ).bind(user.id, ...orderIds));
+            statements.push(
+              env.DB.prepare(
+                `DELETE FROM payments WHERE owner_id = ? AND order_id IN (${op})`
+              ).bind(user.id, ...orderIds)
+            );
           }
 
           if (alterationCols.has("order_id")) {
-            statements.push(env.DB.prepare(
-              `DELETE FROM alterations WHERE owner_id = ? AND order_id IN (${op})`
-            ).bind(user.id, ...orderIds));
+            statements.push(
+              env.DB.prepare(
+                `DELETE FROM alterations WHERE owner_id = ? AND order_id IN (${op})`
+              ).bind(user.id, ...orderIds)
+            );
           }
 
           if (calculationCols.has("order_id")) {
-            statements.push(env.DB.prepare(
-              `DELETE FROM calculations WHERE owner_id = ? AND order_id IN (${op})`
-            ).bind(user.id, ...orderIds));
+            statements.push(
+              env.DB.prepare(
+                `DELETE FROM calculations WHERE owner_id = ? AND order_id IN (${op})`
+              ).bind(user.id, ...orderIds)
+            );
           }
         }
 
@@ -367,6 +397,10 @@ export default {
 
         if (statements.length) await env.DB.batch(statements);
 
+        /*
+         * D1 verification: every family customer, order and child record
+         * must be gone before success is returned to the frontend.
+         */
         const remaining = {};
 
         const customerCheck = await env.DB.prepare(
@@ -424,20 +458,27 @@ export default {
           }
         }
 
+        /*
+         * R2 cleanup covers all known customer-level and order-level layouts.
+         * Then list the same prefixes again. Success is NOT returned while an
+         * object remains under any deletion prefix.
+         */
+        if (!env.MY_BUCKET) {
+          throw new Error("R2 bucket binding MY_BUCKET is missing");
+        }
+
         const prefixes = new Set();
         for (const id of customerIdList) {
           prefixes.add(`${id}/`);
           prefixes.add(`customers/${id}/`);
         }
-        for (const oid of orderIds) prefixes.add(`orders/${oid}/`);
+        for (const oid of orderIds) {
+          prefixes.add(`orders/${oid}/`);
+        }
 
         let deletedObjects = 0;
 
-        if (!env.MY_BUCKET) {
-          throw new Error("R2 bucket binding MY_BUCKET is missing");
-        }
-
-        for (const prefix of prefixes) {
+        async function deletePrefix(prefix) {
           let cursor;
           do {
             const listed = await env.MY_BUCKET.list({
@@ -459,17 +500,51 @@ export default {
           } while (cursor);
         }
 
+        async function countPrefix(prefix) {
+          let count = 0;
+          let cursor;
+          do {
+            const listed = await env.MY_BUCKET.list({
+              prefix,
+              limit: 1000,
+              ...(cursor ? { cursor } : {})
+            });
+
+            count += (listed.objects || []).length;
+            cursor = listed.truncated ? listed.cursor : undefined;
+          } while (cursor);
+          return count;
+        }
+
+        for (const prefix of prefixes) {
+          await deletePrefix(prefix);
+        }
+
+        const r2Remaining = {};
+        for (const prefix of prefixes) {
+          r2Remaining[prefix] = await countPrefix(prefix);
+        }
+
+        for (const [prefix, count] of Object.entries(r2Remaining)) {
+          if (Number(count) !== 0) {
+            throw new Error(`R2 deletion verification failed: ${prefix}=${count}`);
+          }
+        }
+
         return json({
           ok: true,
           customer_id: customerId,
-          customer_type: isAdditional ? "additional" : "main",
+          customer_type: selectedParent ? "additional" : "main",
+          root_customer_id: rootId,
           customer_ids_deleted: customerIdList,
           customers_deleted: customerIdList.length,
           order_ids: orderIds,
           orders_deleted: orderIds.length,
           d1_verified: true,
+          r2_verified: true,
           r2_objects_deleted: deletedObjects,
-          remaining
+          remaining,
+          r2_remaining: r2Remaining
         });
       } catch (e) {
         return json({
