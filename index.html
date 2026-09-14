@@ -2154,6 +2154,7 @@ const NF_QUEUE_STORE="queue";
 const NF_TABLES=["customers","orders","measurements","alterations","payments","designs"];
 /* V120 D1 BRIDGE: local-first app data -> Cloudflare D1 through Worker. */
 const NF_D1_API_URL="https://illustrious-pudding-de2fe6.ruthra407.workers.dev";
+const NF_D1_BASE=NF_D1_API_URL;
 let nfD1AccessToken="";
 async function nfD1GetAccessToken(){
  try{const r=await supabaseClient.auth.getSession();return r?.data?.session?.access_token||""}catch(_){return ""}
@@ -13244,6 +13245,143 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-card{
   };
 })();
 </script>
+
+<script id="nf-v256-final-delete-authority">
+(function(){
+  "use strict";
+
+  function S256(v){return String(v==null?"":v);}
+  function customerById256(id){
+    var list=(typeof state!=="undefined"&&Array.isArray(state.customers))?state.customers:[];
+    return list.find(function(c){return S256(c&&c.id)===S256(id)})||null;
+  }
+
+  async function unifiedCustomerDelete256(id, skipConfirm){
+    var sid=S256(id), c=customerById256(sid);
+    if(!sid||!c)return false;
+
+    if(!skipConfirm && !confirm(
+      "“"+S256(c.name||"Customer")+"” customer-ஐ delete செய்யவா?\n\n"+
+      "Main Customer என்றால் அதனுடன் இணைந்த Additional Customers உட்பட, "+
+      "orders, payments, measurements, alterations, designs, calculations மற்றும் photos அனைத்தும் delete ஆகும்."
+    )) return false;
+
+    try{
+      if(typeof nfD1Enabled!=="function" || !nfD1Enabled()) throw new Error("D1 Worker connection இல்லை.");
+      nfD1AccessToken=await nfD1GetAccessToken();
+      if(!nfD1AccessToken) throw new Error("Login session token கிடைக்கவில்லை.");
+
+      var base=String(NF_D1_API_URL||"").replace(/\/$/,"");
+      if(!base) throw new Error("D1 Worker URL இல்லை.");
+
+      var res=await fetch(base+"/api/customer-delete",{
+        method:"POST",
+        headers:{
+          "Content-Type":"application/json",
+          "Authorization":"Bearer "+nfD1AccessToken
+        },
+        body:JSON.stringify({customer_id:sid})
+      });
+
+      var body=null;
+      try{body=await res.json();}catch(_){}
+      if(!res.ok) throw new Error((body&&body.error)||"Customer delete failed.");
+      if(!body || body.d1_verified!==true) throw new Error("D1 Customer delete verification failed.");
+
+      var deletedCustomerIds=Array.isArray(body.customer_ids_deleted)
+        ? body.customer_ids_deleted.map(S256).filter(Boolean) : [sid];
+      if(deletedCustomerIds.indexOf(sid)<0)deletedCustomerIds.unshift(sid);
+
+      var deletedOrderIds=Array.isArray(body.order_ids)
+        ? body.order_ids.map(S256).filter(Boolean) : [];
+
+      var ids=new Set(deletedCustomerIds);
+      var orderIds=new Set(deletedOrderIds);
+
+      // Delete the exact R2 paths returned by the authoritative Worker scope.
+      var paths=new Set();
+      ids.forEach(function(cid){
+        for(var slot=0;slot<4;slot++)paths.add(nfCloudPhotoPath(cid,slot));
+        for(var b=0;b<8;b++)paths.add(nfBlouseDesignPhotoPath(cid,b));
+        ["normal","lining","design","chudi"].forEach(function(type){
+          ["given","pending"].forEach(function(status){
+            for(var ds=0;ds<NF_DELIVERY_SLOT_CAP;ds++)paths.add(nfDeliveryPhotoPath(cid,type,status,ds));
+          });
+        });
+        paths.add(cid+"/cards/customer-card.jpg");
+        paths.add(cid+"/cards/delivery-card.jpg");
+      });
+      orderIds.forEach(function(oid){paths.add("orders/"+oid+"/");});
+
+      var failed=[];
+      await Promise.all(Array.from(paths).map(async function(path){
+        try{
+          var rr=await fetch(nfR2PhotoUrl(path),{method:"DELETE",cache:"no-store"});
+          if(!(rr.ok||rr.status===404))failed.push(path);
+        }catch(_){failed.push(path);}
+      }));
+
+      if(failed.length){
+        try{
+          var pending=JSON.parse(localStorage.getItem("nf_pending_photo_deletes")||"[]");
+          localStorage.setItem("nf_pending_photo_deletes",
+            JSON.stringify(Array.from(new Set(pending.concat(failed)))));
+        }catch(_){}
+        throw new Error("Cloud photo deletion failed for "+failed.length+" file(s).");
+      }
+
+      ids.forEach(function(cid){
+        try{
+          localStorage.removeItem("nf_village_"+cid);
+          localStorage.removeItem("nf_customer_designs_"+cid);
+          localStorage.removeItem("nf_customer_selected_designs_"+cid);
+          localStorage.removeItem("nf_customer_cloth_photos_"+cid);
+        }catch(_){}
+        try{if(typeof nfIdbDelete==="function")nfIdbDelete(cid);}catch(_){}
+      });
+
+      if(typeof loadAll==="function")await loadAll(true);
+      if(typeof renderCustomers==="function")renderCustomers();
+      if(typeof renderDashboardCustomers==="function")renderDashboardCustomers();
+      if(typeof renderSidebarCustomerList==="function")renderSidebarCustomerList();
+      if(typeof renderMyCustomersSlideMenu==="function")renderMyCustomersSlideMenu();
+
+      console.log("V256 unified customer delete completed",{
+        selected_customer_id:sid,
+        customer_ids_deleted:Array.from(ids),
+        order_ids_deleted:Array.from(orderIds),
+        worker_verified:body.d1_verified,
+        remaining:body.remaining,
+        r2_objects_deleted:body.r2_objects_deleted
+      });
+
+      if(typeof toast==="function"){
+        toast(
+          c.name+(body.customer_type==="main" ? " + Additional Customers" : "")+
+          " delete செய்யப்பட்டது."
+        );
+      }
+      return true;
+    }catch(err){
+      console.error("V256 unified customer delete:",err);
+      if(typeof toast==="function")toast("Customer delete failed: "+S256(err&&err.message||err),true);
+      return false;
+    }
+  }
+
+  window.__nfUnifiedCustomerDelete=unifiedCustomerDelete256;
+  window.deleteCustomer=unifiedCustomerDelete256;
+
+  // The Additional Customer UI calls this public hook.
+  window.nfV22AdditionalDelete=async function(customerId){
+    return await unifiedCustomerDelete256(String(customerId||""),false);
+  };
+
+  // Replace the Order Card delete hook once more at the final layer.
+  window.deleteOrderFromCard=window.deleteOrderFromCard;
+
+})();
+</script>
 </body>
 <script id="nf-v120-single-cash-dedupe-fix">
 /* V22: superseded by the single stable customer-group renderer. */
@@ -15429,39 +15567,14 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-card{
 
   async function deleteAdditionalDirect(customerId){
     var cid=String(customerId||"");
-    if(!cid)return;
-    var customers=(typeof state!=="undefined"&&Array.isArray(state.customers))?state.customers:[];
-    var c=customers.find(function(x){return String(x&&x.id||"")===cid;});
-    if(!c)return;
-    if(!confirm("“"+String(c.name||"Customer")+"” Additional Customer-ஐ delete செய்யவா?\n\nஇந்த customer-ன் orders, payments, measurements, alterations ஆகிய தொடர்புடைய records-ம் delete ஆகும்."))return;
-    try{
-      var orders=(state.orders||[]).filter(function(o){return String(o&&o.customer_id||"")===cid;});
-      var ids=orders.map(function(o){return o&&o.id;}).filter(Boolean);
-      if(!nfD1Enabled())throw new Error("D1 Worker connection இல்லை.");
-      nfD1AccessToken=await nfD1GetAccessToken();
-      if(!nfD1AccessToken)throw new Error("Login session token கிடைக்கவில்லை.");
-      if(ids.length){
-        var p=await nfD1Execute("payments","delete",null,[{field:"order_id",__in:ids}],null,null); if(p.error)throw new Error(p.error.message||"D1 payments delete failed");
-        var a=await nfD1Execute("alterations","delete",null,[{field:"order_id",__in:ids}],null,null); if(a.error)throw new Error(a.error.message||"D1 alterations delete failed");
-      }
-      var ac=await nfD1Execute("alterations","delete",null,[{field:"customer_id",value:cid}],null,null); if(ac.error)throw new Error(ac.error.message||"D1 alterations delete failed");
-      var m=await nfD1Execute("measurements","delete",null,[{field:"customer_id",value:cid}],null,null); if(m.error)throw new Error(m.error.message||"D1 measurements delete failed");
-      var o=await nfD1Execute("orders","delete",null,[{field:"customer_id",value:cid}],null,null); if(o.error)throw new Error(o.error.message||"D1 orders delete failed");
-      var cc=await nfD1Execute("customers","delete",null,[{field:"id",value:cid}],null,null); if(cc.error)throw new Error(cc.error.message||"D1 customer delete failed");
-      localStorage.removeItem("nf_village_"+cid);
-      localStorage.removeItem("nf_customer_designs_"+cid);
-      localStorage.removeItem("nf_customer_selected_designs_"+cid);
-      localStorage.removeItem("nf_customer_cloth_photos_"+cid);
-      try{if(typeof nfIdbDelete==="function")await nfIdbDelete(cid);}catch(_){ }
-      if(typeof loadAll==="function")await loadAll(true);
-      if(typeof renderCustomers==="function")renderCustomers();
-      if(typeof renderDashboardCustomers==="function")renderDashboardCustomers();
-      if(typeof renderSidebarCustomerList==="function")renderSidebarCustomerList();
-      if(typeof renderMyCustomersSlideMenu==="function")renderMyCustomersSlideMenu();
-      if(typeof toast==="function")toast("Additional Customer delete செய்யப்பட்டது.");
-    }catch(err){
-      if(typeof toast==="function")toast("Additional Customer delete failed: "+(err&&err.message||err),true);
+    if(!cid)return false;
+    if(typeof window.__nfUnifiedCustomerDelete==="function"){
+      return await window.__nfUnifiedCustomerDelete(cid,false);
     }
+    if(typeof window.deleteCustomer==="function"){
+      return await window.deleteCustomer(cid,false);
+    }
+    return false;
   }
 
   function editAdditional(customerId){
@@ -16745,20 +16858,35 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
      alteration records; Customer records remain intact. */
   async function deleteOrderFromCard(orderId){
     var id=S(orderId),o=(state.orders||[]).find(function(x){return S(x&&x.id)===id});
-    if(!o){toast('Order கிடைக்கவில்லை.',true);return}
-    if(!confirm('“'+S(o.order_no||'Order')+'” Order-ஐ delete செய்யவா?\n\nஇந்த Order-ன் Payments மற்றும் Alterations தொடர்புடைய records-ம் delete ஆகும். Customer delete ஆகாது.'))return;
+    if(!o){toast('Order கிடைக்கவில்லை.',true);return false}
+    if(!confirm('“'+S(o.order_no||'Order')+'” Order-ஐ delete செய்யவா?\n\nஇந்த Order-ன் Payments, Alterations மற்றும் தொடர்புடைய Calculations records-ம் delete ஆகும். Customer delete ஆகாது.'))return false;
     try{
-      var payments=await supabaseClient.from('payments').delete().eq('order_id',id);if(payments.error)throw payments.error;
-      var alterations=await supabaseClient.from('alterations').delete().eq('order_id',id);if(alterations.error)throw alterations.error;
-      var orderDel=await supabaseClient.from('orders').delete().eq('id',id);if(orderDel.error)throw orderDel.error;
-      try{state.orders=(state.orders||[]).filter(function(x){return S(x&&x.id)!==id});}catch(_){ }
-      closeOrderFullDetails();
-      if(typeof loadAll==='function')await loadAll(true);
-      renderOrders();
-      if(typeof renderCustomers==='function')renderCustomers();
-      if(typeof renderDashboardCustomers==='function')renderDashboardCustomers();
-      if(typeof toast==='function')toast('Order delete செய்யப்பட்டது.');
-    }catch(err){if(typeof toast==='function')toast('Order delete failed: '+(err&&err.message||err),true)}
+      if(!nfD1Enabled())throw new Error("D1 Worker connection இல்லை.");
+      nfD1AccessToken=await nfD1GetAccessToken();
+      if(!nfD1AccessToken)throw new Error("Login session token கிடைக்கவில்லை.");
+      var res=await fetch(String(NF_D1_API_URL).replace(/\/$/,"")+"/api/order-delete",{
+        method:"POST",
+        headers:{"Content-Type":"application/json","Authorization":"Bearer "+nfD1AccessToken},
+        body:JSON.stringify({order_id:id})
+      });
+      var body=null;try{body=await res.json();}catch(_){}
+      if(!res.ok)throw new Error((body&&body.error)||"Order delete failed.");
+      if(!body||body.d1_verified!==true)throw new Error("D1 Order delete verification failed.");
+      try{state.orders=(state.orders||[]).filter(function(x){return S(x&&x.id)!==id});}catch(_){}
+      try{localStorage.removeItem("nf_pending_since_v1_"+id);}catch(_){}
+      if(typeof closeOrderFullDetails==="function")closeOrderFullDetails();
+      if(typeof loadAll==="function")await loadAll(true);
+      if(typeof renderOrders==="function")renderOrders();
+      if(typeof renderCustomers==="function")renderCustomers();
+      if(typeof renderDashboardCustomers==="function")renderDashboardCustomers();
+      if(typeof toast==="function")toast("Order delete செய்யப்பட்டது.");
+      console.log("V256 order delete completed",{order_id:id,d1_verified:body.d1_verified,r2_objects_deleted:body.r2_objects_deleted});
+      return true;
+    }catch(err){
+      console.error("V256 order delete:",err);
+      if(typeof toast==="function")toast("Order delete failed: "+S(err&&err.message||err),true);
+      return false;
+    }
   }
   window.deleteOrderFromCard=deleteOrderFromCard;
 
