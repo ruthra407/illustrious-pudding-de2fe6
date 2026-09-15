@@ -12732,11 +12732,11 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-card{
   function esc230(v){return typeof window.esc==='function'?window.esc(v==null?'':S(v)):S(v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
 
   async function deleteAdditionalCustomer(cid,skipConfirm){
-    /* Legacy V230 entry point: never perform its old partial D1 cascade.
-       Delegate to the final authoritative Worker cascade installed at EOF. */
+    /* V230 compatibility shim: the final unified handler below is authoritative. */
+    cid=S(cid); if(!cid)return false;
     if(typeof window.nfUnifiedCustomerDelete==='function')
-      return window.nfUnifiedCustomerDelete(cid,{skipConfirm:!!skipConfirm,source:"legacy-additional"});
-    if(typeof toast==='function')toast('Customer delete system இன்னும் load ஆகவில்லை.',true);
+      return window.nfUnifiedCustomerDelete(cid,{skipConfirm:!!skipConfirm,source:'additional'});
+    if(typeof toast==='function')toast('Delete handler இன்னும் load ஆகவில்லை. மீண்டும் முயற்சிக்கவும்.',true);
     return false;
   }
   window.nfV230DeleteAdditionalCustomer=deleteAdditionalCustomer;
@@ -16731,7 +16731,7 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
     if(!target){if(typeof toast==='function')toast("Customer கிடைக்கவில்லை.",true);return false;}
 
     const additional=isAdditional(target);
-    const children=additional?[]:all.filter(c=>S(c&&id)!==sid&&parentId(c)===sid);
+    const children=additional?[]:all.filter(c=>S(c&&c.id)!==sid&&parentId(c)===sid);
     const names=[target].concat(children).map(c=>S(c&&c.name||"Customer"));
     if(!(opts&&opts.skipConfirm)){
       const msg=additional
@@ -16741,11 +16741,41 @@ body.nf-dashboard-mode #view-dashboard .nf-dashboard-customer-hub .nf-dch-list{
     }
 
     try{
-      const result=await callCustomerDelete(sid);
-      const customerIds=Array.isArray(result.customer_ids_deleted)?result.customer_ids_deleted:[sid];
-      const orderIds=Array.isArray(result.order_ids)?result.order_ids:[];
+      /*
+       * V253.1 CHILD DISCOVERY FIX: use each child customer's own c.id.
+       * The previous filter compared the outer id argument instead of c.id,
+       * which made the Main Customer delete path discover zero Additional Customers.
+       * V253 FINAL DELETE FIX:
+       * The Worker endpoint may historically cascade only the supplied customer_id.
+       * Therefore a Main Multi Customer is deleted only AFTER every Additional
+       * Customer has been independently deleted and verified. This guarantees
+       * each Additional Customer's own Orders/related records are processed even
+       * when the Worker has an incomplete parent cascade.
+       */
+      let customerIds=[];
+      let orderIds=[];
+      const deleteOne=async function(cid){
+        const r=await callCustomerDelete(cid);
+        const cids=Array.isArray(r.customer_ids_deleted)?r.customer_ids_deleted:[cid];
+        const oids=Array.isArray(r.order_ids)?r.order_ids:[];
+        cids.forEach(x=>{if(S(x)&&!customerIds.some(y=>S(y)===S(x)))customerIds.push(S(x));});
+        oids.forEach(x=>{if(S(x)&&!orderIds.some(y=>S(y)===S(x)))orderIds.push(S(x));});
+        return r;
+      };
 
-      /* Server is authoritative. Only after verified success do we clean local-first state. */
+      if(!additional){
+        /* Delete children first so their customer-scoped Orders/R2 data cannot
+           be orphaned by deletion of the Main Customer. */
+        for(const child of children){
+          await deleteOne(S(child&&child.id));
+        }
+      }
+
+      /* Finally delete the requested customer (Main or standalone Additional). */
+      await deleteOne(sid);
+
+      /* Server is authoritative. Only after every verified delete succeeds do
+         we clean local-first state. */
       await cleanupLocal(customerIds,orderIds);
       if(typeof state!=="undefined"){
         const cset=new Set(customerIds.map(S)),oset=new Set(orderIds.map(S));
