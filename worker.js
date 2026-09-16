@@ -260,23 +260,13 @@ export default {
 
         const selectedParent = parentIdOf(selected);
         const isAdditional = !!selectedParent;
-        // Build the complete Multi-Customer family recursively.
-        // Main delete => Main + all descendants.
-        // Additional delete => selected Additional + its descendants only.
         const customerIds = new Set([customerId]);
 
-        let changed = true;
-        while (changed) {
-          changed = false;
+        if (!isAdditional) {
           for (const c of allCustomers) {
-            const cid = String(c?.id || "").trim();
-            if (!cid || customerIds.has(cid)) continue;
-
-            const parent = parentIdOf(c);
-            if (customerIds.has(parent)) {
-              customerIds.add(cid);
-              changed = true;
-            }
+            const cid = String(c.id || "").trim();
+            if (!cid || cid === customerId) continue;
+            if (parentIdOf(c) === customerId) customerIds.add(cid);
           }
         }
 
